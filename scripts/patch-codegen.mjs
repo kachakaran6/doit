@@ -81,17 +81,15 @@ if (fs.existsSync(svgDtsPath)) {
   fs.copyFileSync(svgDtsPath, path.join(svgTypesDir, 'types.ts'));
 }
 
-// 5. Patch react-native-svg package.json to point react-native field to compiled lib/module/index.js
+// 5. Ensure react-native-svg package.json points react-native to src/index.ts
 const svgPkgPath = path.join(rootDir, 'node_modules', 'react-native-svg', 'package.json');
 if (fs.existsSync(svgPkgPath)) {
   const svgPkg = JSON.parse(fs.readFileSync(svgPkgPath, 'utf8'));
-  if (svgPkg['react-native'] !== 'lib/module/index.js') {
-    svgPkg['react-native'] = 'lib/module/index.js';
+  if (svgPkg['react-native'] !== 'src/index.ts') {
+    svgPkg['react-native'] = 'src/index.ts';
     fs.writeFileSync(svgPkgPath, JSON.stringify(svgPkg, null, 2) + '\n', 'utf8');
-    // eslint-disable-next-line no-console
-    console.log('✔ Patched react-native-svg entrypoint to lib/module/index.js');
   }
 }
 
 // eslint-disable-next-line no-console
-console.log('✔ React Native Codegen & SVG entrypoints patched successfully');
+console.log('✔ React Native Codegen & SVG types patched successfully');
