@@ -1,0 +1,21 @@
+meta {
+  name: Convert Sticky to Task
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/stickies/{{stickyId}}/convert
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+body:json {
+  {
+    "title": "Converted bug report from sticky"
+  }
+}

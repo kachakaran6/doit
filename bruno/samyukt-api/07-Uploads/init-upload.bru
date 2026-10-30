@@ -1,0 +1,23 @@
+meta {
+  name: Init 3-Step Upload
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/uploads/init
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+body:json {
+  {
+    "contentType": "image/png",
+    "sizeBytes": 204800,
+    "purpose": "TASK"
+  }
+}

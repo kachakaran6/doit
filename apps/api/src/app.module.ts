@@ -12,6 +12,7 @@ import { LabelsModule } from './modules/labels/labels.module';
 import { SearchModule } from './modules/search/search.module';
 import { StickiesModule } from './modules/stickies/stickies.module';
 import { AttachmentsModule } from './modules/attachments/attachments.module';
+import { VoiceModule } from './modules/voice/voice.module';
 
 @Module({
   imports: [
@@ -29,6 +30,7 @@ import { AttachmentsModule } from './modules/attachments/attachments.module';
     SearchModule,
     StickiesModule,
     AttachmentsModule,
+    VoiceModule,
   ],
   controllers: [HealthController],
   providers: [],
