@@ -11,6 +11,7 @@ import { TasksModule } from './modules/tasks/tasks.module';
 import { LabelsModule } from './modules/labels/labels.module';
 import { SearchModule } from './modules/search/search.module';
 import { StickiesModule } from './modules/stickies/stickies.module';
+import { AttachmentsModule } from './modules/attachments/attachments.module';
 
 @Module({
   imports: [
@@ -27,6 +28,7 @@ import { StickiesModule } from './modules/stickies/stickies.module';
     LabelsModule,
     SearchModule,
     StickiesModule,
+    AttachmentsModule,
   ],
   controllers: [HealthController],
   providers: [],

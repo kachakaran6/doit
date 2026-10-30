@@ -6,9 +6,9 @@
 ## Current state
 
 - **Phase:** 1 — Backend core
-- **Last completed prompt:** P06 (green)
-- **Next prompt:** P07 — Attachments & Uploads
-- **Branch in flight:** `feat/p06-stickies`
+- **Last completed prompt:** P07 (green)
+- **Next prompt:** P08 — Voice Transcription Pipeline (Completing Gate G1)
+- **Branch in flight:** `feat/p07-attachments-uploads`
 - **Blocked on:** nothing
 - **Target Package Name:** `com.samyukt.doit` (Play Store eligible; `samyukt.doit.app` also confirmed valid)
 
@@ -16,6 +16,7 @@
 
 | Prompt | Step reached | Notes |
 |---|---|---|
+| P07 | Completed & verified | Three-step resumable upload pipeline (`POST /uploads/init`, PUT, `POST /uploads/:id/complete`), MIME whitelist and kind-based size validation (413 before byte transfer), magic-byte sniffing (422 rejection on spoofing), thumbnail background job queuing, DB constraint to exactly one of `taskId`/`bugId`/`commentId`, and queued storage object deletion on task cleanup |
 | P06 | Completed & verified | Free-form notes/stickies CRUD, body max 5000 validation, pinned-first sorting, fractional indexing reorder, atomic convert-to-task (`POST /stickies/:id/convert`) linking both ways, 409 duplicate conversion rejection with task ID details, and graceful sticky deletion keeping tasks intact with nullified reference |
 | P05 | Completed & verified | Workspace labels CRUD, case-insensitive collision check (409 CONFLICT), one-statement cascade detachment, search operator parser (`#label`, `@assignee`, `is:bug`, `is:done`, `due:today|overdue|week`, `project:KEY`), relevance ranking (exact title > prefix > title > bug > desc > comment), and `<mark>` snippet highlighting with PostgreSQL GIN index migration |
 | P04 | Completed & verified | Task lifecycle (TODO, IN_PROGRESS, BLOCKED, DONE) with 422 state-machine validation, fractional indexing midpoint reordering, idempotency cache replay, auto-incrementing per-project numbering (`SMP-42`), checklist CRUD, and ActivityLog auditing |
@@ -29,6 +30,7 @@
 | 2026-10-30 | Turborepo + pnpm hoisted node-linker | exFAT filesystem compatibility without directory symlinks |
 | 2026-10-30 | WorkspaceMemberGuard route resolution | Inspects `:workspaceId`, `:projectId`, or resource `:id` dynamically to prevent client-supplied body tampering |
 | 2026-10-30 | Owner role immutable and non-removable | Protects workspace ownership integrity against rogue admins |
+| 2026-10-30 | In-memory upload session cache + local storage raw PUT | Allows frictionless dev testing without AWS S3 credentials |
 
 ## Stubs / temporary code
 
@@ -59,4 +61,4 @@
 | Gate | Result | Date | Evidence |
 |---|---|---|---|
 | G0 | pass | 2026-10-30 | `pnpm lint`, `pnpm typecheck`, `pnpm test`, `pnpm build` all green; GET `/api/v1/health` returned 200 `{ status: "ok", version: "0.1.0" }` |
-| G1 (in progress) | green so far | 2026-10-30 | P01, P02, P03, P04, P05 & P06 complete; 54 unit tests passing across 15 suites; 39 Swagger endpoints registered |
+| G1 (in progress) | green so far | 2026-10-30 | P01, P02, P03, P04, P05, P06 & P07 complete; 59 unit tests passing across 16 suites; 44 Swagger endpoints registered |
