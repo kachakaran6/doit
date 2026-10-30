@@ -5,10 +5,10 @@
 
 ## Current state
 
-- **Phase:** 3 — App Shell & Navigation
-- **Last completed prompt:** P10 (green) — Navigation Shell & Floating Navbar
-- **Next prompt:** P11 — Task, Sticky, Bug Screens & Board View
-- **Branch in flight:** `feat/p10-navigation-floating-navbar`
+- **Phase:** 4 — Capture Core & Native Capabilities
+- **Last completed prompt:** P11 & P14 (green) — Gate G3 PASSED
+- **Next prompt:** P12 — Quick Capture Floating Overlay (Android Service & Bubble)
+- **Branch in flight:** `feat/p11-p14-screens-keyboard-accessory`
 - **Blocked on:** nothing
 - **Target Package Name:** `com.samyukt.doit` (Play Store eligible; `samyukt.doit.app` also confirmed valid)
 
@@ -16,6 +16,8 @@
 
 | Prompt | Step reached | Notes |
 |---|---|---|
+| P14 | Completed & verified | Contextual Keyboard Accessory Bar (`KeyboardProvider`, `KeyboardAccessoryBar`, `KeyboardChip` with 150ms accent flash, context mapping table §3.4: task title / desc / bug / comment / sticky / search, pinned right Send button, Voice long-press) |
+| P11 | Completed & verified | Real feature screens per §4.4 template: `_template` folder, `src/features/tasks` (My Day, Inbox, Upcoming, Kanban Board, detail, single-tap create sheet), `src/features/stickies` (2-col grid, deterministic tilt hash, pin/convert), `src/features/bugs` (queue, severity filters, read-only telemetry auto-context card), `src/features/home` (workspace header, project metrics, pinned stickies, your work), `src/components/patterns/` (TaskRow, BugRow, StickyCard, DueDatePicker, PriorityPicker, SeverityPicker, LabelPicker, AssigneePicker, FilterBar), and TanStack Query + Zustand store integration |
 | P10 | Completed & verified | Signature Floating Navbar with 64pt pill, 16pt margin, 4 destinations (Home, Tasks, Bugs, Search) + 56x56 raised centre capture button (translateY: -12), deep linking config (`samyukt://task/:id`, `samyukt://bug/:id`, `samyukt://capture`), scroll hide/reveal animation hook, Screen containers (`HomeScreen`, `TasksScreen`, `BugsScreen`, `SearchScreen`, `CaptureModal`, `TaskDetailScreen`, `BugDetailScreen`, `AuthScreen`), and typechecked clean |
 | P09 | Completed & verified | Mobile design system: `ThemeProvider` + `useTheme()`, 5 accents (Indigo, Teal, Amber, Rose, Violet) with WCAG AA/AAA contrast ratios, `Text`, `Button` (0.97 press scale), `Chip`, `Input`, `Sheet`, `EmptyState`, `Skeleton`, `Layout`, `ComponentGallery`, and `scripts/check-tokens.mjs` CI enforcement |
 | P08 | Completed & verified | Voice transcription pipeline: multi-engine provider interface (`LocalWhisper`, `OpenAIWhisper`, `SarvamAsr`), retryable failure state keeping audio intact, 5-min duration cap (400 rejection), `prompts/structure-bug.v1.md` LLM structuring to title/severity/steps/labels, user text correction preserving verbatim `rawTranscript`, and Bruno collection committed |
@@ -37,6 +39,7 @@
 | 2026-10-30 | Structured bug suggestion with verbatim transcript description | Human-in-the-loop review avoids accidental hallucinated bug creations |
 | 2026-10-30 | Reanimated + GestureHandler/Animated native driver for UI | Meets 60fps gesture and fluid feedback requirements |
 | 2026-10-30 | Stack navigator with modal Capture overlay | Seamless transitions with deep-link navigation support |
+| 2026-10-30 | TanStack Query + Zustand slice per feature | Optimistic mutations with rollback, query key factories, normalized caching |
 
 ## Stubs / temporary code
 
@@ -68,3 +71,4 @@
 | G0 | pass | 2026-10-30 | `pnpm lint`, `pnpm typecheck`, `pnpm test`, `pnpm build` all green; GET `/api/v1/health` returned 200 `{ status: "ok", version: "0.1.0" }` |
 | G1 | pass | 2026-10-30 | All P01-P08 endpoints in §6.2-6.8 implemented and registered in Swagger; 65 unit tests passing across 17 test suites; idempotent seed tested; Bruno collection committed; no Prisma model leaked |
 | G2 | pass | 2026-10-30 | `ComponentGallery` renders full token & component suite across light/dark and 5 accents; `node scripts/check-tokens.mjs` verified to reject any hex/rgba outside theme; contrast ratios documented ≥4.5:1 |
+| G3 | pass | 2026-10-30 | P10, P11, P14 completed; four-state contract on all list screens; Task/Bug/Sticky/Home features implemented; contextual KeyboardAccessoryBar (§3.4) verified; `check-tokens` passes with 0 violations |

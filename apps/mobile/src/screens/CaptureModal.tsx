@@ -1,9 +1,13 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRoute, useNavigation, RouteProp } from '@react-navigation/native';
-import { Text, Button, Input, Chip } from '../components/ui';
+import { Text, Button, Input, Chip, KeyboardAccessoryBar } from '../components/ui';
+import { DueDatePicker, PriorityPicker, PriorityValue, SeverityPicker, SeverityValue } from '../components/patterns';
 import { useTheme } from '../theme/useTheme';
+import { useKeyboardBar } from '../app/providers/KeyboardProvider';
+import { useCreateTaskMutation } from '../features/tasks/api/mutations';
+import { useCreateBugMutation } from '../features/bugs/api/mutations';
 import { RootStackParamList } from '../navigation/types';
 
 type CaptureRouteProp = RouteProp<RootStackParamList, 'CaptureModal'>;
@@ -17,16 +21,64 @@ export const CaptureModal: React.FC = () => {
   const [mode, setMode] = useState<'task' | 'bug' | 'voice'>(initialMode);
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
-  const [priority, setPriority] = useState<'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT'>('MEDIUM');
+  const [dueDate, setDueDate] = useState<string | null>(null);
+  const [priority, setPriority] = useState<PriorityValue>('MEDIUM');
+  const [severity, setSeverity] = useState<SeverityValue>('MAJOR');
 
-  const handleSave = () => {
-    // In P11/P12 full capture state integration
+  const { setKeyboardContext, setOnAction, setActiveValue } = useKeyboardBar();
+
+  const createTask = useCreateTaskMutation('default');
+  const createBug = useCreateBugMutation('default');
+
+  useEffect(() => {
+    setActiveValue('priority', priority);
+    setActiveValue('severity', severity);
+  }, [priority, severity, setActiveValue]);
+
+  useEffect(() => {
+    setOnAction((actionId, payload) => {
+      if (actionId === 'due_date') {
+        const d = new Date();
+        if (payload === 'tomorrow') d.setDate(d.getDate() + 1);
+        setDueDate(d.toISOString().split('T')[0] ?? null);
+      } else if (actionId === 'pick_priority') {
+        setPriority((prev) => (prev === 'LOW' ? 'MEDIUM' : prev === 'MEDIUM' ? 'HIGH' : prev === 'HIGH' ? 'URGENT' : 'LOW'));
+      } else if (actionId === 'pick_severity') {
+        setSeverity((prev) => (prev === 'CRITICAL' ? 'MAJOR' : prev === 'MAJOR' ? 'MINOR' : prev === 'MINOR' ? 'TRIVIAL' : 'CRITICAL'));
+      } else if (actionId === 'send') {
+        handleSave();
+      }
+    });
+
+    return () => setOnAction(undefined);
+  }, [title, description, priority, severity, dueDate]);
+
+  const handleSave = async () => {
+    if (!title.trim()) return;
+
+    if (mode === 'bug') {
+      await createBug.mutateAsync({
+        title: title.trim(),
+        description: description.trim() || undefined,
+        severity,
+      });
+    } else {
+      await createTask.mutateAsync({
+        title: title.trim(),
+        description: description.trim() || undefined,
+        dueDate: dueDate || undefined,
+        priority,
+      });
+    }
+
     navigation.goBack();
   };
 
+  const isSaving = createTask.isPending || createBug.isPending;
+
   return (
     <SafeAreaView edges={['top', 'bottom']} style={[styles.safeArea, { backgroundColor: colors.bg }]}>
-      <ScrollView contentContainerStyle={[styles.container, { padding: spacing.lg }]}>
+      <ScrollView contentContainerStyle={[styles.container, { padding: spacing.lg, paddingBottom: 80 }]}>
         <View style={styles.header}>
           <Text variant="h1">
             {mode === 'bug' ? 'Report Bug' : mode === 'voice' ? 'Voice Capture' : 'Quick Capture'}
@@ -39,12 +91,18 @@ export const CaptureModal: React.FC = () => {
           <Chip
             label="Task"
             selected={mode === 'task'}
-            onPress={() => setMode('task')}
+            onPress={() => {
+              setMode('task');
+              setKeyboardContext('task_title');
+            }}
           />
           <Chip
             label="Bug"
             selected={mode === 'bug'}
-            onPress={() => setMode('bug')}
+            onPress={() => {
+              setMode('bug');
+              setKeyboardContext('bug_desc');
+            }}
           />
           <Chip
             label="Voice Note"
@@ -60,6 +118,8 @@ export const CaptureModal: React.FC = () => {
             placeholder={mode === 'bug' ? 'e.g. Crash on checkout button click' : 'e.g. Finish design review'}
             value={title}
             onChangeText={setTitle}
+            onFocus={() => setKeyboardContext(mode === 'bug' ? 'bug_desc' : 'task_title')}
+            autoFocus
           />
 
           <Input
@@ -67,26 +127,22 @@ export const CaptureModal: React.FC = () => {
             placeholder="Additional notes, reproduction steps, or context..."
             value={description}
             onChangeText={setDescription}
+            onFocus={() => setKeyboardContext(mode === 'bug' ? 'bug_desc' : 'task_desc')}
             multiline
             numberOfLines={4}
           />
         </View>
 
-        {/* Priority Selector for Task/Bug */}
-        <View style={[styles.priorityGroup, { marginTop: spacing.lg }]}>
-          <Text variant="caption" color="secondary" style={{ marginBottom: spacing.xs }}>
-            Priority
-          </Text>
-          <View style={[styles.modeRow, { gap: spacing.xs }]}>
-            {(['LOW', 'MEDIUM', 'HIGH', 'URGENT'] as const).map((p) => (
-              <Chip
-                key={p}
-                label={p}
-                selected={priority === p}
-                onPress={() => setPriority(p)}
-              />
-            ))}
-          </View>
+        {/* Single-tap Pickers */}
+        <View style={{ marginTop: spacing.lg, gap: spacing.md }}>
+          {mode === 'task' ? (
+            <>
+              <DueDatePicker value={dueDate} onChange={setDueDate} />
+              <PriorityPicker value={priority} onChange={setPriority} />
+            </>
+          ) : (
+            <SeverityPicker value={severity} onChange={setSeverity} />
+          )}
         </View>
 
         {/* Action Buttons */}
@@ -102,10 +158,14 @@ export const CaptureModal: React.FC = () => {
             variant="primary"
             style={styles.actionBtn}
             disabled={!title.trim()}
+            loading={isSaving}
             onPress={handleSave}
           />
         </View>
       </ScrollView>
+
+      {/* P14 Contextual Keyboard Accessory Bar */}
+      <KeyboardAccessoryBar onSend={handleSave} />
     </SafeAreaView>
   );
 };
@@ -128,9 +188,6 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
   },
   inputGroup: {
-    width: '100%',
-  },
-  priorityGroup: {
     width: '100%',
   },
   actionRow: {
