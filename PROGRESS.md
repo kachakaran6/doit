@@ -6,9 +6,9 @@
 ## Current state
 
 - **Phase:** 1 — Backend core
-- **Last completed prompt:** P03 (green)
-- **Next prompt:** P04 — Tasks Core
-- **Branch in flight:** `feat/p03-workspaces-roles`
+- **Last completed prompt:** P04 (green)
+- **Next prompt:** P05 — Labels, Filters, Views & Search
+- **Branch in flight:** `feat/p04-tasks-core`
 - **Blocked on:** nothing
 - **Target Package Name:** `com.samyukt.doit` (Play Store eligible; `samyukt.doit.app` also confirmed valid)
 
@@ -16,6 +16,7 @@
 
 | Prompt | Step reached | Notes |
 |---|---|---|
+| P04 | Completed & verified | Task lifecycle (TODO, IN_PROGRESS, BLOCKED, DONE) with 422 state-machine validation, fractional indexing midpoint reordering, idempotency cache replay, auto-incrementing per-project numbering (`SMP-42`), checklist CRUD, and ActivityLog auditing |
 | P03 | Completed & verified | Multi-tenant workspaces, projects with unique 2-5 char keys, memberships with invite token flows, `WorkspaceMemberGuard` resolving workspace context from route params and enforcing strict OWNER > ADMIN > TESTER > VIEWER role hierarchy |
 
 ## Decisions made (cheap-to-reverse, decided without asking)
@@ -56,4 +57,4 @@
 | Gate | Result | Date | Evidence |
 |---|---|---|---|
 | G0 | pass | 2026-10-30 | `pnpm lint`, `pnpm typecheck`, `pnpm test`, `pnpm build` all green; GET `/api/v1/health` returned 200 `{ status: "ok", version: "0.1.0" }` |
-| G1 (in progress) | green so far | 2026-10-30 | P01, P02 & P03 complete; 22 unit tests passing across 9 suites; 19 Swagger endpoints registered |
+| G1 (in progress) | green so far | 2026-10-30 | P01, P02, P03 & P04 complete; 29 unit tests passing across 11 suites; 28 Swagger endpoints registered |
