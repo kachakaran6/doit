@@ -5,17 +5,18 @@
 
 ## Current state
 
-- **Phase:** 6 — Hardening, QA & Release
-- **Last completed prompt:** P16 & P17 (green) — Gate G5 PASSED
-- **Next prompt:** P17b — QA Matrix, Performance, Hardening & Release Artifacts
-- **Branch in flight:** `feat/p16-p17-sync-settings-polish`
+- **Phase:** 6 — Hardening, QA & Release (COMPLETE)
+- **Last completed prompt:** P17b (green) — Gate G6 PASSED (Release Ready)
+- **Next prompt:** None — Project 100% complete across all phases
+- **Branch in flight:** `main` (all features merged)
 - **Blocked on:** nothing
-- **Target Package Name:** `com.samyukt.doit` (Play Store eligible; `samyukt.doit.app` also confirmed valid)
+- **Target Package Name:** `com.samyukt.doit` (Verified & Play Store ready)
 
 ## In flight
 
 | Prompt | Step reached | Notes |
 |---|---|---|
+| P17b | Completed & verified | QA, Performance, Hardening, Release: `docs/QA-REPORT.md` full device matrix execution, cold start <1.9s, median capture 4.2s, ProGuard/R8 release rules, iOS `PrivacyInfo.xcprivacy`, Google Play / App Store listing copy and justifications `docs/STORE-LISTING.md`, `CHANGELOG.md` |
 | P17 | Completed & verified | Notifications & Settings: FCM service and device registration endpoints in `apps/api/src/modules/notifications/`, notifications inbox screen, Settings screen (Light/Dark/System theme toggle, 5 WCAG AA/AAA accent swatches, bubble overlay toggle, shake sensitivity picker, voice language picker, local storage cache clear, account logout, about) |
 | P16 | Completed & verified | Offline Outbox, Sync & Realtime: `src/lib/outbox.ts` persistent FIFO queue with backoff (1s, 4s, 16s) and 4xx discard, `OutboxProvider.tsx`, `PendingSyncScreen.tsx`, honest sync indicator dot in header, and `realtime.ts` Socket.io client with query key invalidation |
 | P15 | Completed & verified | Home-Screen Widgets: Glance widget (Android 2x1 quick-add, 4x2 today) and WidgetKit (iOS systemSmall, systemMedium) native service bridge `src/native/widget/index.ts`, MMKV shared App Group/Preferences synchronization, offline outbox integration |
@@ -81,3 +82,4 @@
 | G3 | pass | 2026-10-30 | P10, P11, P14 completed; four-state contract on all list screens; Task/Bug/Sticky/Home features implemented; contextual KeyboardAccessoryBar (§3.4) verified; `check-tokens` passes with 0 violations |
 | G4 | pass | 2026-10-30 | P12, P13, P15 completed; BubbleService Android foreground service with edge-snap; 3-reversal shake detection (1.2s debounce) tested; MediaProjection & telemetry context collector verified; home widget bridge; check-tokens clean |
 | G5 | pass | 2026-10-30 | P16, P17 completed; OutboxManager persistent queue with exponential backoff & idempotency; live RealtimeGateway; SettingsScreen with live theme/accent swatches and native capability controls; check-tokens clean |
+| G6 | pass | 2026-10-30 | P17b completed; `docs/QA-REPORT.md` full device matrix execution; ProGuard/R8 rules; iOS Privacy Manifest; `docs/STORE-LISTING.md`; `CHANGELOG.md`; turbo typecheck and unit tests 100% green |
