@@ -20,7 +20,7 @@ export class ApiError extends Error {
 }
 
 class HttpClient {
-  private baseUrl: string = 'http://10.0.2.2:3000/api/v1'; // Android emulator default localhost
+  private baseUrl: string = process.env.EXPO_PUBLIC_API_URL || 'http://10.0.2.2:3000/api/v1'; // Android emulator default localhost
   private authToken: string | null = null;
 
   setBaseUrl(url: string) {
@@ -40,7 +40,7 @@ class HttpClient {
     options: RequestInit = {}
   ): Promise<T> {
     const url = path.startsWith('http') ? path : `${this.baseUrl}${path.startsWith('/') ? path : `/${path}`}`;
-    
+
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
       Accept: 'application/json',
@@ -105,3 +105,4 @@ class HttpClient {
 }
 
 export const http = new HttpClient();
+
