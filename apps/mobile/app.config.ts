@@ -36,7 +36,5 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     ],
   },
   plugins: [],
-  experiments: {
-    typedRoutes: true,
-  },
+  
 });

@@ -1,2 +1,1 @@
-export * from './tokens.js';
-
+export * from './tokens';
