@@ -2,6 +2,8 @@ import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { InfraModule } from './infra/infra.module';
 import { HealthController } from './health/health.controller';
+import { AuthModule } from './modules/auth/auth.module';
+import { UsersModule } from './modules/users/users.module';
 
 @Module({
   imports: [
@@ -9,6 +11,8 @@ import { HealthController } from './health/health.controller';
       isGlobal: true,
     }),
     InfraModule,
+    AuthModule,
+    UsersModule,
   ],
   controllers: [HealthController],
   providers: [],
