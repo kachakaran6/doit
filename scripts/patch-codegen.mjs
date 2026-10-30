@@ -73,5 +73,25 @@ for (const base of codegenDirs) {
   }
 }
 
+// 4. Ensure missing src/lib/extract/types.ts exists in react-native-svg
+const svgTypesDir = path.join(rootDir, 'node_modules', 'react-native-svg', 'src', 'lib', 'extract');
+const svgDtsPath = path.join(rootDir, 'node_modules', 'react-native-svg', 'lib', 'typescript', 'lib', 'extract', 'types.d.ts');
+if (fs.existsSync(svgDtsPath)) {
+  fs.mkdirSync(svgTypesDir, { recursive: true });
+  fs.copyFileSync(svgDtsPath, path.join(svgTypesDir, 'types.ts'));
+}
+
+// 5. Patch react-native-svg package.json to point react-native field to compiled lib/module/index.js
+const svgPkgPath = path.join(rootDir, 'node_modules', 'react-native-svg', 'package.json');
+if (fs.existsSync(svgPkgPath)) {
+  const svgPkg = JSON.parse(fs.readFileSync(svgPkgPath, 'utf8'));
+  if (svgPkg['react-native'] !== 'lib/module/index.js') {
+    svgPkg['react-native'] = 'lib/module/index.js';
+    fs.writeFileSync(svgPkgPath, JSON.stringify(svgPkg, null, 2) + '\n', 'utf8');
+    // eslint-disable-next-line no-console
+    console.log('✔ Patched react-native-svg entrypoint to lib/module/index.js');
+  }
+}
+
 // eslint-disable-next-line no-console
-console.log('✔ React Native Codegen patched for qualified types (CodegenTypes.*)');
+console.log('✔ React Native Codegen & SVG entrypoints patched successfully');
