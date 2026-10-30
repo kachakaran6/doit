@@ -6,9 +6,9 @@
 ## Current state
 
 - **Phase:** 1 — Backend core
-- **Last completed prompt:** P05 (green)
-- **Next prompt:** P06 — Stickies
-- **Branch in flight:** `feat/p05-labels-filters-views-search`
+- **Last completed prompt:** P06 (green)
+- **Next prompt:** P07 — Attachments & Uploads
+- **Branch in flight:** `feat/p06-stickies`
 - **Blocked on:** nothing
 - **Target Package Name:** `com.samyukt.doit` (Play Store eligible; `samyukt.doit.app` also confirmed valid)
 
@@ -16,6 +16,7 @@
 
 | Prompt | Step reached | Notes |
 |---|---|---|
+| P06 | Completed & verified | Free-form notes/stickies CRUD, body max 5000 validation, pinned-first sorting, fractional indexing reorder, atomic convert-to-task (`POST /stickies/:id/convert`) linking both ways, 409 duplicate conversion rejection with task ID details, and graceful sticky deletion keeping tasks intact with nullified reference |
 | P05 | Completed & verified | Workspace labels CRUD, case-insensitive collision check (409 CONFLICT), one-statement cascade detachment, search operator parser (`#label`, `@assignee`, `is:bug`, `is:done`, `due:today|overdue|week`, `project:KEY`), relevance ranking (exact title > prefix > title > bug > desc > comment), and `<mark>` snippet highlighting with PostgreSQL GIN index migration |
 | P04 | Completed & verified | Task lifecycle (TODO, IN_PROGRESS, BLOCKED, DONE) with 422 state-machine validation, fractional indexing midpoint reordering, idempotency cache replay, auto-incrementing per-project numbering (`SMP-42`), checklist CRUD, and ActivityLog auditing |
 | P03 | Completed & verified | Multi-tenant workspaces, projects with unique 2-5 char keys, memberships with invite token flows, `WorkspaceMemberGuard` resolving workspace context from route params and enforcing strict OWNER > ADMIN > TESTER > VIEWER role hierarchy |
@@ -58,4 +59,4 @@
 | Gate | Result | Date | Evidence |
 |---|---|---|---|
 | G0 | pass | 2026-10-30 | `pnpm lint`, `pnpm typecheck`, `pnpm test`, `pnpm build` all green; GET `/api/v1/health` returned 200 `{ status: "ok", version: "0.1.0" }` |
-| G1 (in progress) | green so far | 2026-10-30 | P01, P02, P03, P04 & P05 complete; 49 unit tests passing across 14 suites; 33 Swagger endpoints registered |
+| G1 (in progress) | green so far | 2026-10-30 | P01, P02, P03, P04, P05 & P06 complete; 54 unit tests passing across 15 suites; 39 Swagger endpoints registered |
