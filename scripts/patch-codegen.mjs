@@ -73,12 +73,20 @@ for (const base of codegenDirs) {
   }
 }
 
-// 4. Ensure missing src/lib/extract/types.ts exists in react-native-svg
+// 4. Ensure missing src/lib/extract/types.ts and lib helpers exist in react-native-svg
 const svgTypesDir = path.join(rootDir, 'node_modules', 'react-native-svg', 'src', 'lib', 'extract');
 const svgDtsPath = path.join(rootDir, 'node_modules', 'react-native-svg', 'lib', 'typescript', 'lib', 'extract', 'types.d.ts');
 if (fs.existsSync(svgDtsPath)) {
   fs.mkdirSync(svgTypesDir, { recursive: true });
   fs.copyFileSync(svgDtsPath, path.join(svgTypesDir, 'types.ts'));
+}
+
+const svgLibDir = path.join(rootDir, 'node_modules', 'react-native-svg', 'src', 'lib');
+const localFixes = path.join(rootDir, 'scripts', 'svg-fixes');
+if (fs.existsSync(localFixes) && fs.existsSync(svgLibDir)) {
+  for (const file of fs.readdirSync(localFixes)) {
+    fs.copyFileSync(path.join(localFixes, file), path.join(svgLibDir, file));
+  }
 }
 
 // 5. Ensure react-native-svg package.json points react-native to src/index.ts
