@@ -5,10 +5,10 @@
 
 ## Current state
 
-- **Phase:** 2 & 3 — Mobile Design System & App Shell
-- **Last completed prompt:** P08 (green) — Gate G1 PASSED
-- **Next prompt:** P09 — Mobile Design System, Theme Tokens & Component Gallery
-- **Branch in flight:** `feat/p08-voice-transcription`
+- **Phase:** 3 — App Shell & Navigation
+- **Last completed prompt:** P09 (green) — Gate G2 PASSED
+- **Next prompt:** P10 — Navigation Shell & Signature Floating Navbar
+- **Branch in flight:** `feat/p09-design-system`
 - **Blocked on:** nothing
 - **Target Package Name:** `com.samyukt.doit` (Play Store eligible; `samyukt.doit.app` also confirmed valid)
 
@@ -16,6 +16,7 @@
 
 | Prompt | Step reached | Notes |
 |---|---|---|
+| P09 | Completed & verified | Mobile design system: `ThemeProvider` + `useTheme()`, 5 accents (Indigo, Teal, Amber, Rose, Violet) with WCAG AA/AAA contrast ratios, `Text`, `Button` (0.97 press scale), `Chip`, `Input`, `Sheet`, `EmptyState`, `Skeleton`, `Layout`, `ComponentGallery`, and `scripts/check-tokens.mjs` CI enforcement |
 | P08 | Completed & verified | Voice transcription pipeline: multi-engine provider interface (`LocalWhisper`, `OpenAIWhisper`, `SarvamAsr`), retryable failure state keeping audio intact, 5-min duration cap (400 rejection), `prompts/structure-bug.v1.md` LLM structuring to title/severity/steps/labels, user text correction preserving verbatim `rawTranscript`, and Bruno collection committed |
 | P07 | Completed & verified | Three-step resumable upload pipeline (`POST /uploads/init`, PUT, `POST /uploads/:id/complete`), MIME whitelist and kind-based size validation (413 before byte transfer), magic-byte sniffing (422 rejection on spoofing), thumbnail background job queuing, DB constraint to exactly one of `taskId`/`bugId`/`commentId`, and queued storage object deletion on task cleanup |
 | P06 | Completed & verified | Free-form notes/stickies CRUD, body max 5000 validation, pinned-first sorting, fractional indexing reorder, atomic convert-to-task (`POST /stickies/:id/convert`) linking both ways, 409 duplicate conversion rejection with task ID details, and graceful sticky deletion keeping tasks intact with nullified reference |
@@ -33,13 +34,13 @@
 | 2026-10-30 | Owner role immutable and non-removable | Protects workspace ownership integrity against rogue admins |
 | 2026-10-30 | In-memory upload session cache + local storage raw PUT | Allows frictionless dev testing without AWS S3 credentials |
 | 2026-10-30 | Structured bug suggestion with verbatim transcript description | Human-in-the-loop review avoids accidental hallucinated bug creations |
+| 2026-10-30 | Reanimated + GestureHandler/Animated native driver for UI | Meets 60fps gesture and fluid feedback requirements |
 
 ## Stubs / temporary code
 
 | Where | What | Remove when |
 |---|---|---|
 | `infra/realtime/realtime.gateway.ts` | Socket.io shell logger | P16 realtime lands |
-| `apps/mobile/App.tsx` | Placeholder PingSchema verification screen | P10 navigation lands |
 
 ## Backlog discovered (do not build without asking)
 
@@ -64,3 +65,4 @@
 |---|---|---|---|
 | G0 | pass | 2026-10-30 | `pnpm lint`, `pnpm typecheck`, `pnpm test`, `pnpm build` all green; GET `/api/v1/health` returned 200 `{ status: "ok", version: "0.1.0" }` |
 | G1 | pass | 2026-10-30 | All P01-P08 endpoints in §6.2-6.8 implemented and registered in Swagger; 65 unit tests passing across 17 test suites; idempotent seed tested; Bruno collection committed; no Prisma model leaked |
+| G2 | pass | 2026-10-30 | `ComponentGallery` renders full token & component suite across light/dark and 5 accents; `node scripts/check-tokens.mjs` verified to reject any hex/rgba outside theme; contrast ratios documented ≥4.5:1 |
