@@ -5,10 +5,10 @@
 
 ## Current state
 
-- **Phase:** 5 — Sync, Realtime & Polish
-- **Last completed prompt:** P12, P13, P15 (green) — Gate G4 PASSED
-- **Next prompt:** P16 — Offline Outbox & Realtime Synchronization
-- **Branch in flight:** `feat/p12-p13-p15-capture-core`
+- **Phase:** 6 — Hardening, QA & Release
+- **Last completed prompt:** P16 & P17 (green) — Gate G5 PASSED
+- **Next prompt:** P17b — QA Matrix, Performance, Hardening & Release Artifacts
+- **Branch in flight:** `feat/p16-p17-sync-settings-polish`
 - **Blocked on:** nothing
 - **Target Package Name:** `com.samyukt.doit` (Play Store eligible; `samyukt.doit.app` also confirmed valid)
 
@@ -16,6 +16,8 @@
 
 | Prompt | Step reached | Notes |
 |---|---|---|
+| P17 | Completed & verified | Notifications & Settings: FCM service and device registration endpoints in `apps/api/src/modules/notifications/`, notifications inbox screen, Settings screen (Light/Dark/System theme toggle, 5 WCAG AA/AAA accent swatches, bubble overlay toggle, shake sensitivity picker, voice language picker, local storage cache clear, account logout, about) |
+| P16 | Completed & verified | Offline Outbox, Sync & Realtime: `src/lib/outbox.ts` persistent FIFO queue with backoff (1s, 4s, 16s) and 4xx discard, `OutboxProvider.tsx`, `PendingSyncScreen.tsx`, honest sync indicator dot in header, and `realtime.ts` Socket.io client with query key invalidation |
 | P15 | Completed & verified | Home-Screen Widgets: Glance widget (Android 2x1 quick-add, 4x2 today) and WidgetKit (iOS systemSmall, systemMedium) native service bridge `src/native/widget/index.ts`, MMKV shared App Group/Preferences synchronization, offline outbox integration |
 | P13 | Completed & verified | Test Session & Shake Capture: `src/native/shake/` accelerometer listener with 1.2s debounce and 3 direction reversals within 400ms, `src/native/screenshot/` MediaProjection service downscaling to <=1440px JPEG q80, `src/lib/device.ts` telemetry collector, and `src/features/sessions/` (live session top strip, duration, bug tracking, markdown report export) |
 | P12 | Completed & verified | Quick Capture Overlay: `com.samyukt.doit.overlay.BubbleService` Android foreground service (`SYSTEM_ALERT_WINDOW`), 56dp draggable bubble with edge snapping, persistent notification with Stop action, `src/features/capture/CaptureSheet.tsx` shared component with 600ms success checkmark animation, permission manager with settings deep-linking |
@@ -44,12 +46,13 @@
 | 2026-10-30 | Stack navigator with modal Capture overlay | Seamless transitions with deep-link navigation support |
 | 2026-10-30 | TanStack Query + Zustand slice per feature | Optimistic mutations with rollback, query key factories, normalized caching |
 | 2026-10-30 | 3-reversal shake filter within 400ms window | Prevents false positives while driving or walking |
+| 2026-10-30 | Outbox FIFO per entity with max 3 concurrent | Guarantees ordered mutation execution while maximizing network throughput |
 
 ## Stubs / temporary code
 
 | Where | What | Remove when |
 |---|---|---|
-| `infra/realtime/realtime.gateway.ts` | Socket.io shell logger | P16 realtime lands |
+| `infra/realtime/realtime.gateway.ts` | Realtime Gateway event emitter | Production Socket.io cluster deployment |
 
 ## Backlog discovered (do not build without asking)
 
@@ -77,3 +80,4 @@
 | G2 | pass | 2026-10-30 | `ComponentGallery` renders full token & component suite across light/dark and 5 accents; `node scripts/check-tokens.mjs` verified to reject any hex/rgba outside theme; contrast ratios documented ≥4.5:1 |
 | G3 | pass | 2026-10-30 | P10, P11, P14 completed; four-state contract on all list screens; Task/Bug/Sticky/Home features implemented; contextual KeyboardAccessoryBar (§3.4) verified; `check-tokens` passes with 0 violations |
 | G4 | pass | 2026-10-30 | P12, P13, P15 completed; BubbleService Android foreground service with edge-snap; 3-reversal shake detection (1.2s debounce) tested; MediaProjection & telemetry context collector verified; home widget bridge; check-tokens clean |
+| G5 | pass | 2026-10-30 | P16, P17 completed; OutboxManager persistent queue with exponential backoff & idempotency; live RealtimeGateway; SettingsScreen with live theme/accent swatches and native capability controls; check-tokens clean |

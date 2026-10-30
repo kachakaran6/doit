@@ -13,6 +13,7 @@ import { SearchModule } from './modules/search/search.module';
 import { StickiesModule } from './modules/stickies/stickies.module';
 import { AttachmentsModule } from './modules/attachments/attachments.module';
 import { VoiceModule } from './modules/voice/voice.module';
+import { NotificationsModule } from './modules/notifications/notifications.module';
 
 @Module({
   imports: [
@@ -31,6 +32,7 @@ import { VoiceModule } from './modules/voice/voice.module';
     StickiesModule,
     AttachmentsModule,
     VoiceModule,
+    NotificationsModule,
   ],
   controllers: [HealthController],
   providers: [],
