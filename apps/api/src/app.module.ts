@@ -8,6 +8,8 @@ import { WorkspacesModule } from './modules/workspaces/workspaces.module';
 import { ProjectsModule } from './modules/projects/projects.module';
 import { MembersModule } from './modules/members/members.module';
 import { TasksModule } from './modules/tasks/tasks.module';
+import { LabelsModule } from './modules/labels/labels.module';
+import { SearchModule } from './modules/search/search.module';
 
 @Module({
   imports: [
@@ -21,6 +23,8 @@ import { TasksModule } from './modules/tasks/tasks.module';
     ProjectsModule,
     MembersModule,
     TasksModule,
+    LabelsModule,
+    SearchModule,
   ],
   controllers: [HealthController],
   providers: [],
