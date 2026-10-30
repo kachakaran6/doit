@@ -1,0 +1,367 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum Role {
+  OWNER
+  ADMIN
+  TESTER
+  VIEWER
+}
+
+enum TaskStatus {
+  TODO
+  IN_PROGRESS
+  BLOCKED
+  DONE
+}
+
+enum Priority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+enum TaskType {
+  TASK
+  BUG
+}
+
+enum Severity {
+  BLOCKER
+  CRITICAL
+  MAJOR
+  MINOR
+  COSMETIC
+}
+
+enum TaskSource {
+  MANUAL
+  VOICE
+  BUG
+  STICKY
+  WIDGET
+  OVERLAY
+  SHARE
+}
+
+enum AttachmentKind {
+  IMAGE
+  VIDEO
+  AUDIO
+  FILE
+  SCREENSHOT
+  RECORDING
+}
+
+enum AccentName {
+  INDIGO
+  TEAL
+  AMBER
+  ROSE
+  VIOLET
+}
+
+enum ThemeMode {
+  SYSTEM
+  LIGHT
+  DARK
+}
+
+enum SessionState {
+  ACTIVE
+  ENDED
+  ABANDONED
+}
+
+enum VoiceState {
+  RECORDED
+  TRANSCRIBING
+  TRANSCRIBED
+  FAILED
+}
+
+model User {
+  id            String    @id @default(uuid()) @db.Uuid
+  email         String    @unique
+  passwordHash  String
+  name          String
+  avatarUrl     String?
+  locale        String    @default("en-IN")
+  prefs         Json      @default("{}") // theme, accent, voiceLanguage, shakeSensitivity
+  emailVerified DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  deletedAt     DateTime?
+
+  memberships   Membership[]
+  sessions      Session[]
+  createdTasks  Task[]        @relation("TaskCreator")
+  assignedTasks Task[]        @relation("TaskAssignee")
+  comments      Comment[]
+  stickies      Sticky[]
+  voiceNotes    VoiceNote[]
+  bugs          BugReport[]
+  activity      ActivityLog[]
+}
+
+model Session {
+  id          String    @id @default(uuid()) @db.Uuid
+  userId      String    @db.Uuid
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  refreshHash String // argon2 of the current refresh token
+  familyId    String    @db.Uuid // rotation family; replay revokes family
+  deviceName  String?
+  deviceId    String? // stable install id
+  platform    String? // ios | android
+  appVersion  String?
+  lastSeenAt  DateTime  @default(now())
+  expiresAt   DateTime
+  revokedAt   DateTime?
+  createdAt   DateTime  @default(now())
+
+  @@index([userId])
+  @@index([familyId])
+}
+
+model Workspace {
+  id          String        @id @default(uuid()) @db.Uuid
+  name        String
+  slug        String        @unique
+  ownerId     String        @db.Uuid
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  memberships Membership[]
+  projects    Project[]
+  activity    ActivityLog[]
+}
+
+model Membership {
+  id              String    @id @default(uuid()) @db.Uuid
+  workspaceId     String    @db.Uuid
+  userId          String    @db.Uuid
+  role            Role      @default(TESTER)
+  invitedEmail    String?
+  inviteToken     String?   @unique
+  inviteExpiresAt DateTime?
+  acceptedAt      DateTime?
+  createdAt       DateTime  @default(now())
+  workspace       Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([workspaceId, userId])
+}
+
+model Project {
+  id          String        @id @default(uuid()) @db.Uuid
+  workspaceId String        @db.Uuid
+  name        String
+  key         String // short prefix for human ids, e.g. SMP
+  description String?
+  color       AccentName    @default(INDIGO)
+  archivedAt  DateTime?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  workspace   Workspace     @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  tasks       Task[]
+  stickies    Sticky[]
+  sessions    TestSession[]
+
+  @@unique([workspaceId, key])
+}
+
+model Task {
+  id                    String        @id @default(uuid()) @db.Uuid
+  projectId             String        @db.Uuid
+  number                Int // per-project sequential human id
+  type                  TaskType      @default(TASK)
+  title                 String
+  description           String?
+  status                TaskStatus    @default(TODO)
+  priority              Priority      @default(MEDIUM)
+  dueAt                 DateTime?
+  dueHasTime            Boolean       @default(false)
+  order                 Decimal       @default(0) @db.Decimal(20, 10) // fractional index
+  source                TaskSource    @default(MANUAL)
+  createdById           String        @db.Uuid
+  assigneeId            String?       @db.Uuid
+  completedAt           DateTime?
+  convertedFromStickyId String?       @db.Uuid
+  createdAt             DateTime      @default(now())
+  updatedAt             DateTime      @updatedAt
+  deletedAt             DateTime?
+  project               Project       @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  createdBy             User          @relation("TaskCreator", fields: [createdById], references: [id])
+  assignee              User?         @relation("TaskAssignee", fields: [assigneeId], references: [id])
+  labels                TaskLabel[]
+  checklist             ChecklistItem[]
+  comments              Comment[]
+  attachments           Attachment[]
+  bug                   BugReport?
+  activity              ActivityLog[]
+
+  @@unique([projectId, number])
+  @@index([projectId, status, order])
+  @@index([assigneeId, dueAt])
+}
+
+model Label {
+  id          String      @id @default(uuid()) @db.Uuid
+  workspaceId String      @db.Uuid
+  name        String
+  color       AccentName  @default(INDIGO)
+  tasks       TaskLabel[]
+
+  @@unique([workspaceId, name])
+}
+
+model TaskLabel {
+  taskId  String @db.Uuid
+  labelId String @db.Uuid
+  task    Task   @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  label   Label  @relation(fields: [labelId], references: [id], onDelete: Cascade)
+
+  @@id([taskId, labelId])
+}
+
+model ChecklistItem {
+  id     String  @id @default(uuid()) @db.Uuid
+  taskId String  @db.Uuid
+  text   String
+  done   Boolean @default(false)
+  order  Decimal @default(0) @db.Decimal(20, 10)
+  task   Task    @relation(fields: [taskId], references: [id], onDelete: Cascade)
+}
+
+model Comment {
+  id          String    @id @default(uuid()) @db.Uuid
+  taskId      String    @db.Uuid
+  authorId    String    @db.Uuid
+  body        String
+  voiceNoteId String?   @db.Uuid
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
+  task        Task      @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  author      User      @relation(fields: [authorId], references: [id])
+}
+
+model Sticky {
+  id              String     @id @default(uuid()) @db.Uuid
+  projectId       String     @db.Uuid
+  authorId        String     @db.Uuid
+  body            String
+  color           AccentName @default(AMBER)
+  pinned          Boolean    @default(false)
+  order           Decimal    @default(0) @db.Decimal(20, 10)
+  convertedTaskId String?    @db.Uuid
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+  deletedAt       DateTime?
+  project         Project    @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  author          User       @relation(fields: [authorId], references: [id])
+}
+
+model Attachment {
+  id         String         @id @default(uuid()) @db.Uuid
+  taskId     String?        @db.Uuid
+  bugId      String?        @db.Uuid
+  commentId  String?        @db.Uuid
+  kind       AttachmentKind
+  storageKey String
+  mimeType   String
+  sizeBytes  Int
+  width      Int?
+  height     Int?
+  durationMs Int?
+  thumbKey   String?
+  createdAt  DateTime       @default(now())
+  task       Task?          @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  bug        BugReport?     @relation(fields: [bugId], references: [id], onDelete: Cascade)
+}
+
+model VoiceNote {
+  id            String     @id @default(uuid()) @db.Uuid
+  authorId      String     @db.Uuid
+  storageKey    String
+  durationMs    Int
+  language      String     @default("en-IN")
+  state         VoiceState @default(RECORDED)
+  rawTranscript String? // engine output, never edited
+  text          String? // user-edited version
+  engine        String? // device | whisper | saarika
+  createdAt     DateTime   @default(now())
+  author        User       @relation(fields: [authorId], references: [id])
+}
+
+model TestSession {
+  id           String       @id @default(uuid()) @db.Uuid
+  projectId    String       @db.Uuid
+  startedById  String       @db.Uuid
+  state        SessionState @default(ACTIVE)
+  appUnderTest String? // package / bundle id
+  appVersion   String?
+  deviceInfo   Json         @default("{}")
+  startedAt    DateTime     @default(now())
+  endedAt      DateTime?
+  summary      Json? // {bugCount, severitySplit, durationMs}
+  project      Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  bugs         BugReport[]
+}
+
+model BugReport {
+  id           String       @id @default(uuid()) @db.Uuid
+  taskId       String       @unique @db.Uuid
+  sessionId    String?      @db.Uuid
+  reporterId   String?      @db.Uuid
+  severity     Severity     @default(MAJOR)
+  steps        Json         @default("[]") // string[]
+  expected     String?
+  actual       String?
+  frequency    String? // always | often | sometimes | once
+  deviceModel  String?
+  osVersion    String?
+  appUnderTest String?
+  appVersion   String?
+  buildNumber  String?
+  capturedAt   DateTime     @default(now())
+  autoContext  Json         @default("{}") // everything else we scraped
+  task         Task         @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  session      TestSession? @relation(fields: [sessionId], references: [id])
+  reporter     User?        @relation(fields: [reporterId], references: [id])
+  attachments  Attachment[]
+}
+
+model ActivityLog {
+  id          String    @id @default(uuid()) @db.Uuid
+  workspaceId String    @db.Uuid
+  taskId      String?   @db.Uuid
+  actorId     String    @db.Uuid
+  action      String // task.created, task.status.changed, bug.created …
+  meta        Json      @default("{}") // {from, to, field}
+  createdAt   DateTime  @default(now())
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  task        Task?     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  actor       User      @relation(fields: [actorId], references: [id])
+
+  @@index([workspaceId, createdAt])
+}
+
+model Notification {
+  id        String    @id @default(uuid()) @db.Uuid
+  userId    String    @db.Uuid
+  type      String
+  title     String
+  body      String?
+  deepLink  String?
+  readAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([userId, readAt])
+}

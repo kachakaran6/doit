@@ -1,9 +1,28 @@
 import { Controller, Get } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { Ping, PingSchema } from '@samyukt/contracts';
+import { PrismaService } from '../infra/prisma/prisma.service';
+import { StorageService } from '../infra/storage/storage.service';
+import { QueueService } from '../infra/queue/queue.service';
 
+export interface ReadinessResponse {
+  db: 'up' | 'down';
+  storage: 'up' | 'down';
+  queue: 'up' | 'down';
+}
+
+@ApiTags('Health')
 @Controller('health')
 export class HealthController {
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly storage: StorageService,
+    private readonly queue: QueueService,
+  ) {}
+
   @Get()
+  @ApiOperation({ summary: 'Liveness health check' })
+  @ApiResponse({ status: 200, description: 'Service is healthy' })
   getHealth(): Ping {
     const payload = {
       status: 'ok' as const,
@@ -12,8 +31,23 @@ export class HealthController {
       timestamp: new Date().toISOString(),
     };
 
-    // Validates response through contracts schema
     return PingSchema.parse(payload);
   }
-}
 
+  @Get('ready')
+  @ApiOperation({ summary: 'Readiness probe checking db, storage, and queue' })
+  @ApiResponse({ status: 200, description: 'Component readiness status' })
+  async getReadiness(): Promise<ReadinessResponse> {
+    const [dbHealthy, storageHealthy, queueHealthy] = await Promise.all([
+      this.prisma.isHealthy().catch(() => false),
+      this.storage.isHealthy().catch(() => false),
+      this.queue.isHealthy().catch(() => false),
+    ]);
+
+    return {
+      db: dbHealthy ? 'up' : 'down',
+      storage: storageHealthy ? 'up' : 'down',
+      queue: queueHealthy ? 'up' : 'down',
+    };
+  }
+}
