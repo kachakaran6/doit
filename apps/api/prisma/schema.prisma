@@ -140,6 +140,7 @@ model Workspace {
   memberships Membership[]
   projects    Project[]
   activity    ActivityLog[]
+  labels      Label[]
 }
 
 model Membership {
@@ -216,6 +217,7 @@ model Label {
   workspaceId String      @db.Uuid
   name        String
   color       AccentName  @default(INDIGO)
+  workspace   Workspace   @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   tasks       TaskLabel[]
 
   @@unique([workspaceId, name])
