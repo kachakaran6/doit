@@ -6,3 +6,4 @@ export * from './Sheet';
 export * from './EmptyState';
 export * from './Skeleton';
 export * from './Layout';
+export * from './FloatingNavBar';

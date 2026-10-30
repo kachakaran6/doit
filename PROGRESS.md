@@ -6,9 +6,9 @@
 ## Current state
 
 - **Phase:** 3 — App Shell & Navigation
-- **Last completed prompt:** P09 (green) — Gate G2 PASSED
-- **Next prompt:** P10 — Navigation Shell & Signature Floating Navbar
-- **Branch in flight:** `feat/p09-design-system`
+- **Last completed prompt:** P10 (green) — Navigation Shell & Floating Navbar
+- **Next prompt:** P11 — Task, Sticky, Bug Screens & Board View
+- **Branch in flight:** `feat/p10-navigation-floating-navbar`
 - **Blocked on:** nothing
 - **Target Package Name:** `com.samyukt.doit` (Play Store eligible; `samyukt.doit.app` also confirmed valid)
 
@@ -16,6 +16,7 @@
 
 | Prompt | Step reached | Notes |
 |---|---|---|
+| P10 | Completed & verified | Signature Floating Navbar with 64pt pill, 16pt margin, 4 destinations (Home, Tasks, Bugs, Search) + 56x56 raised centre capture button (translateY: -12), deep linking config (`samyukt://task/:id`, `samyukt://bug/:id`, `samyukt://capture`), scroll hide/reveal animation hook, Screen containers (`HomeScreen`, `TasksScreen`, `BugsScreen`, `SearchScreen`, `CaptureModal`, `TaskDetailScreen`, `BugDetailScreen`, `AuthScreen`), and typechecked clean |
 | P09 | Completed & verified | Mobile design system: `ThemeProvider` + `useTheme()`, 5 accents (Indigo, Teal, Amber, Rose, Violet) with WCAG AA/AAA contrast ratios, `Text`, `Button` (0.97 press scale), `Chip`, `Input`, `Sheet`, `EmptyState`, `Skeleton`, `Layout`, `ComponentGallery`, and `scripts/check-tokens.mjs` CI enforcement |
 | P08 | Completed & verified | Voice transcription pipeline: multi-engine provider interface (`LocalWhisper`, `OpenAIWhisper`, `SarvamAsr`), retryable failure state keeping audio intact, 5-min duration cap (400 rejection), `prompts/structure-bug.v1.md` LLM structuring to title/severity/steps/labels, user text correction preserving verbatim `rawTranscript`, and Bruno collection committed |
 | P07 | Completed & verified | Three-step resumable upload pipeline (`POST /uploads/init`, PUT, `POST /uploads/:id/complete`), MIME whitelist and kind-based size validation (413 before byte transfer), magic-byte sniffing (422 rejection on spoofing), thumbnail background job queuing, DB constraint to exactly one of `taskId`/`bugId`/`commentId`, and queued storage object deletion on task cleanup |
@@ -35,6 +36,7 @@
 | 2026-10-30 | In-memory upload session cache + local storage raw PUT | Allows frictionless dev testing without AWS S3 credentials |
 | 2026-10-30 | Structured bug suggestion with verbatim transcript description | Human-in-the-loop review avoids accidental hallucinated bug creations |
 | 2026-10-30 | Reanimated + GestureHandler/Animated native driver for UI | Meets 60fps gesture and fluid feedback requirements |
+| 2026-10-30 | Stack navigator with modal Capture overlay | Seamless transitions with deep-link navigation support |
 
 ## Stubs / temporary code
 
