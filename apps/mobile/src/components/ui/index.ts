@@ -7,3 +7,5 @@ export * from './EmptyState';
 export * from './Skeleton';
 export * from './Layout';
 export * from './FloatingNavBar';
+export * from './KeyboardChip';
+export * from './KeyboardAccessoryBar';
