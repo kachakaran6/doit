@@ -4,6 +4,9 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { RootStackParamList } from './types';
 import { TabsNavigator } from './TabsNavigator';
 import { TaskDetailScreen, BugDetailScreen, CaptureModal, AuthScreen } from '../screens';
+import { SettingsScreen } from '../features/settings';
+import { PendingSyncScreen } from '../features/outbox/screens/PendingSyncScreen';
+import { NotificationsScreen } from '../features/notifications';
 import { ComponentGallery } from '../app/dev/ComponentGallery';
 import { NavBarScrollProvider } from './nav-bar-scroll.context';
 
@@ -24,6 +27,9 @@ const linking: LinkingOptions<RootStackParamList> = {
       TaskDetail: 'task/:id',
       BugDetail: 'bug/:id',
       CaptureModal: 'capture',
+      Settings: 'settings',
+      PendingSync: 'sync',
+      Notifications: 'notifications',
       Auth: 'auth',
       DevGallery: 'dev/gallery',
     },
@@ -45,6 +51,9 @@ export const RootNavigator: React.FC = () => {
           <Stack.Screen name="Auth" component={AuthScreen} />
           <Stack.Screen name="TaskDetail" component={TaskDetailScreen} />
           <Stack.Screen name="BugDetail" component={BugDetailScreen} />
+          <Stack.Screen name="Settings" component={SettingsScreen} />
+          <Stack.Screen name="PendingSync" component={PendingSyncScreen} />
+          <Stack.Screen name="Notifications" component={NotificationsScreen} />
           <Stack.Screen
             name="CaptureModal"
             component={CaptureModal}

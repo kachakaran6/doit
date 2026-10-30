@@ -12,5 +12,8 @@ export type RootStackParamList = {
   TaskDetail: { id: string };
   BugDetail: { id: string };
   CaptureModal: { initialMode?: 'task' | 'bug' | 'voice' };
+  Settings: undefined;
+  PendingSync: undefined;
+  Notifications: undefined;
   DevGallery?: undefined;
 };
