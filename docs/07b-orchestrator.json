@@ -1,0 +1,225 @@
+{
+  "project": "Samyukt",
+  "version": "1.0.0",
+  "lanes": {
+    "A": [
+      "P00",
+      "P01",
+      "P02",
+      "P03",
+      "P04",
+      "P05",
+      "P06",
+      "P07",
+      "P08",
+      "P12",
+      "P13",
+      "P15",
+      "P16",
+      "P17b"
+    ],
+    "B": [
+      "P09",
+      "P10",
+      "P11",
+      "P14",
+      "P17"
+    ]
+  },
+  "prompts": [
+    {
+      "id": "P00",
+      "file": "08-PROMPTS/P00-bootstrap-monorepo.md",
+      "title": "Bootstrap monorepo",
+      "deps": [],
+      "lane": "A",
+      "gate": "G0"
+    },
+    {
+      "id": "P01",
+      "file": "08-PROMPTS/P01-backend-foundation.md",
+      "title": "Backend foundation",
+      "deps": [
+        "P00"
+      ],
+      "lane": "A"
+    },
+    {
+      "id": "P02",
+      "file": "08-PROMPTS/P02-auth-jwt.md",
+      "title": "Auth: JWT + refresh rotation",
+      "deps": [
+        "P01"
+      ],
+      "lane": "A"
+    },
+    {
+      "id": "P03",
+      "file": "08-PROMPTS/P03-workspaces-projects-roles.md",
+      "title": "Workspaces, projects, roles",
+      "deps": [
+        "P02"
+      ],
+      "lane": "A"
+    },
+    {
+      "id": "P04",
+      "file": "08-PROMPTS/P04-tasks-core.md",
+      "title": "Tasks core",
+      "deps": [
+        "P03"
+      ],
+      "lane": "A"
+    },
+    {
+      "id": "P05",
+      "file": "08-PROMPTS/P05-labels-filters-search.md",
+      "title": "Labels, filters, search",
+      "deps": [
+        "P04"
+      ],
+      "lane": "A"
+    },
+    {
+      "id": "P06",
+      "file": "08-PROMPTS/P06-stickies.md",
+      "title": "Stickies",
+      "deps": [
+        "P04"
+      ],
+      "lane": "A"
+    },
+    {
+      "id": "P07",
+      "file": "08-PROMPTS/P07-attachments-uploads.md",
+      "title": "Attachments & uploads",
+      "deps": [
+        "P04"
+      ],
+      "lane": "A"
+    },
+    {
+      "id": "P08",
+      "file": "08-PROMPTS/P08-voice-transcription.md",
+      "title": "Voice + transcription",
+      "deps": [
+        "P07"
+      ],
+      "lane": "A"
+    },
+    {
+      "id": "P09",
+      "file": "08-PROMPTS/P09-design-system.md",
+      "title": "Design system + theme",
+      "deps": [
+        "P00"
+      ],
+      "lane": "B",
+      "gate": "G2"
+    },
+    {
+      "id": "P10",
+      "file": "08-PROMPTS/P10-navigation-floating-navbar.md",
+      "title": "Navigation + floating navbar",
+      "deps": [
+        "P09"
+      ],
+      "lane": "B"
+    },
+    {
+      "id": "P11",
+      "file": "08-PROMPTS/P11-feature-screens.md",
+      "title": "Task/sticky/bug screens",
+      "deps": [
+        "P04",
+        "P06",
+        "P09",
+        "P10"
+      ],
+      "lane": "B"
+    },
+    {
+      "id": "P12",
+      "file": "08-PROMPTS/P12-quick-capture-overlay.md",
+      "title": "Quick Capture overlay",
+      "deps": [
+        "P11",
+        "P08"
+      ],
+      "lane": "A"
+    },
+    {
+      "id": "P13",
+      "file": "08-PROMPTS/P13-test-session-shake-screenshot.md",
+      "title": "Test session, shake, screenshot",
+      "deps": [
+        "P12"
+      ],
+      "lane": "A"
+    },
+    {
+      "id": "P14",
+      "file": "08-PROMPTS/P14-keyboard-accessory-bar.md",
+      "title": "Keyboard accessory bar",
+      "deps": [
+        "P11"
+      ],
+      "lane": "B",
+      "gate": "G3"
+    },
+    {
+      "id": "P15",
+      "file": "08-PROMPTS/P15-home-widgets.md",
+      "title": "Home-screen widgets",
+      "deps": [
+        "P12"
+      ],
+      "lane": "A",
+      "gate": "G4"
+    },
+    {
+      "id": "P16",
+      "file": "08-PROMPTS/P16-offline-sync-realtime.md",
+      "title": "Offline outbox, sync, realtime",
+      "deps": [
+        "P04",
+        "P11"
+      ],
+      "lane": "A"
+    },
+    {
+      "id": "P17",
+      "file": "08-PROMPTS/P17-notifications-settings-polish.md",
+      "title": "Notifications, settings, polish",
+      "deps": [
+        "P16"
+      ],
+      "lane": "B",
+      "gate": "G5"
+    },
+    {
+      "id": "P17b",
+      "file": "08-PROMPTS/P17b-qa-hardening-release.md",
+      "title": "QA, hardening, release",
+      "deps": [
+        "P17",
+        "P15",
+        "P14",
+        "P13"
+      ],
+      "lane": "A",
+      "gate": "G6"
+    }
+  ],
+  "gates": [
+    "G0",
+    "G1",
+    "G2",
+    "G3",
+    "G4",
+    "G5",
+    "G6"
+  ],
+  "rules": "09-AGENT-RULES.md",
+  "progressFile": "PROGRESS.md"
+}

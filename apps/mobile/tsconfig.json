@@ -1,0 +1,14 @@
+{
+  "extends": "expo/tsconfig.base",
+  "compilerOptions": {
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./src/*"],
+      "@samyukt/contracts": ["../../packages/contracts/src"],
+      "@samyukt/tokens": ["../../packages/design-tokens/src"]
+    }
+  },
+  "include": ["**/*.ts", "**/*.tsx", ".expo/types/**/*.ts", "expo-env.d.ts", "../../packages/contracts/src/**/*", "../../packages/design-tokens/src/**/*"]
+}
