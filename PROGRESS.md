@@ -5,10 +5,10 @@
 
 ## Current state
 
-- **Phase:** 1 — Backend core
-- **Last completed prompt:** P07 (green)
-- **Next prompt:** P08 — Voice Transcription Pipeline (Completing Gate G1)
-- **Branch in flight:** `feat/p07-attachments-uploads`
+- **Phase:** 2 & 3 — Mobile Design System & App Shell
+- **Last completed prompt:** P08 (green) — Gate G1 PASSED
+- **Next prompt:** P09 — Mobile Design System, Theme Tokens & Component Gallery
+- **Branch in flight:** `feat/p08-voice-transcription`
 - **Blocked on:** nothing
 - **Target Package Name:** `com.samyukt.doit` (Play Store eligible; `samyukt.doit.app` also confirmed valid)
 
@@ -16,6 +16,7 @@
 
 | Prompt | Step reached | Notes |
 |---|---|---|
+| P08 | Completed & verified | Voice transcription pipeline: multi-engine provider interface (`LocalWhisper`, `OpenAIWhisper`, `SarvamAsr`), retryable failure state keeping audio intact, 5-min duration cap (400 rejection), `prompts/structure-bug.v1.md` LLM structuring to title/severity/steps/labels, user text correction preserving verbatim `rawTranscript`, and Bruno collection committed |
 | P07 | Completed & verified | Three-step resumable upload pipeline (`POST /uploads/init`, PUT, `POST /uploads/:id/complete`), MIME whitelist and kind-based size validation (413 before byte transfer), magic-byte sniffing (422 rejection on spoofing), thumbnail background job queuing, DB constraint to exactly one of `taskId`/`bugId`/`commentId`, and queued storage object deletion on task cleanup |
 | P06 | Completed & verified | Free-form notes/stickies CRUD, body max 5000 validation, pinned-first sorting, fractional indexing reorder, atomic convert-to-task (`POST /stickies/:id/convert`) linking both ways, 409 duplicate conversion rejection with task ID details, and graceful sticky deletion keeping tasks intact with nullified reference |
 | P05 | Completed & verified | Workspace labels CRUD, case-insensitive collision check (409 CONFLICT), one-statement cascade detachment, search operator parser (`#label`, `@assignee`, `is:bug`, `is:done`, `due:today|overdue|week`, `project:KEY`), relevance ranking (exact title > prefix > title > bug > desc > comment), and `<mark>` snippet highlighting with PostgreSQL GIN index migration |
@@ -31,6 +32,7 @@
 | 2026-10-30 | WorkspaceMemberGuard route resolution | Inspects `:workspaceId`, `:projectId`, or resource `:id` dynamically to prevent client-supplied body tampering |
 | 2026-10-30 | Owner role immutable and non-removable | Protects workspace ownership integrity against rogue admins |
 | 2026-10-30 | In-memory upload session cache + local storage raw PUT | Allows frictionless dev testing without AWS S3 credentials |
+| 2026-10-30 | Structured bug suggestion with verbatim transcript description | Human-in-the-loop review avoids accidental hallucinated bug creations |
 
 ## Stubs / temporary code
 
@@ -61,4 +63,4 @@
 | Gate | Result | Date | Evidence |
 |---|---|---|---|
 | G0 | pass | 2026-10-30 | `pnpm lint`, `pnpm typecheck`, `pnpm test`, `pnpm build` all green; GET `/api/v1/health` returned 200 `{ status: "ok", version: "0.1.0" }` |
-| G1 (in progress) | green so far | 2026-10-30 | P01, P02, P03, P04, P05, P06 & P07 complete; 59 unit tests passing across 16 suites; 44 Swagger endpoints registered |
+| G1 | pass | 2026-10-30 | All P01-P08 endpoints in §6.2-6.8 implemented and registered in Swagger; 65 unit tests passing across 17 test suites; idempotent seed tested; Bruno collection committed; no Prisma model leaked |
