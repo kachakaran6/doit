@@ -2,7 +2,7 @@ import React from 'react';
 import { View, StyleSheet, Pressable } from 'react-native';
 import { useTheme } from '../../theme/useTheme';
 import { Text } from './Text';
-import { useOutbox } from '../../app/providers/OutboxProvider';
+import { useOutbox } from '../../core/providers/OutboxProvider';
 
 export interface SyncStatusIndicatorProps {
   onPress?: () => void;

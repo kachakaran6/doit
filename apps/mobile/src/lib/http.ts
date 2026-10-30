@@ -2,6 +2,20 @@
  * Core HTTP Client for Mobile Application
  */
 
+import Constants from 'expo-constants';
+
+function getDefaultBaseUrl(): string {
+  if (process.env.EXPO_PUBLIC_API_URL) {
+    return process.env.EXPO_PUBLIC_API_URL;
+  }
+  const hostUri = Constants.expoConfig?.hostUri;
+  if (hostUri) {
+    const host = hostUri.split(':')[0];
+    return `http://${host}:3000/api/v1`;
+  }
+  return 'http://127.0.0.1:3000/api/v1';
+}
+
 export interface ApiResponse<T = any> {
   data: T;
   status: number;
@@ -20,7 +34,7 @@ export class ApiError extends Error {
 }
 
 class HttpClient {
-  private baseUrl: string = process.env.EXPO_PUBLIC_API_URL || 'http://10.0.2.2:3000/api/v1'; // Android emulator default localhost
+  private baseUrl: string = getDefaultBaseUrl();
   private authToken: string | null = null;
 
   setBaseUrl(url: string) {

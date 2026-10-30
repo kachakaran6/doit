@@ -7,15 +7,17 @@ import { TaskDetailScreen, BugDetailScreen, CaptureModal, AuthScreen } from '../
 import { SettingsScreen } from '../features/settings';
 import { PendingSyncScreen } from '../features/outbox/screens/PendingSyncScreen';
 import { NotificationsScreen } from '../features/notifications';
-import { ComponentGallery } from '../app/dev/ComponentGallery';
+import { ComponentGallery } from '../core/dev/ComponentGallery';
 import { NavBarScrollProvider } from './nav-bar-scroll.context';
+import { useAuthStore } from '../features/auth/store';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
 const linking: LinkingOptions<RootStackParamList> = {
-  prefixes: ['samyukt://', 'https://samyukt.com'],
+  prefixes: ['doit://', 'samyukt://', 'https://app.samyukt.com', 'https://samyukt.com'],
   config: {
     screens: {
+      Auth: 'auth',
       MainTabs: {
         screens: {
           Home: 'home',
@@ -30,39 +32,45 @@ const linking: LinkingOptions<RootStackParamList> = {
       Settings: 'settings',
       PendingSync: 'sync',
       Notifications: 'notifications',
-      Auth: 'auth',
       DevGallery: 'dev/gallery',
     },
   },
 };
 
 export const RootNavigator: React.FC = () => {
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+
   return (
     <NavBarScrollProvider>
       <NavigationContainer linking={linking}>
         <Stack.Navigator
-          initialRouteName="MainTabs"
+          initialRouteName={isAuthenticated ? 'MainTabs' : 'Auth'}
           screenOptions={{
             headerShown: false,
             animation: 'slide_from_right',
           }}
         >
-          <Stack.Screen name="MainTabs" component={TabsNavigator} />
-          <Stack.Screen name="Auth" component={AuthScreen} />
-          <Stack.Screen name="TaskDetail" component={TaskDetailScreen} />
-          <Stack.Screen name="BugDetail" component={BugDetailScreen} />
-          <Stack.Screen name="Settings" component={SettingsScreen} />
-          <Stack.Screen name="PendingSync" component={PendingSyncScreen} />
-          <Stack.Screen name="Notifications" component={NotificationsScreen} />
-          <Stack.Screen
-            name="CaptureModal"
-            component={CaptureModal}
-            options={{
-              presentation: 'modal',
-              animation: 'slide_from_bottom',
-            }}
-          />
-          <Stack.Screen name="DevGallery" component={ComponentGallery} />
+          {!isAuthenticated ? (
+            <Stack.Screen name="Auth" component={AuthScreen} />
+          ) : (
+            <>
+              <Stack.Screen name="MainTabs" component={TabsNavigator} />
+              <Stack.Screen name="TaskDetail" component={TaskDetailScreen} />
+              <Stack.Screen name="BugDetail" component={BugDetailScreen} />
+              <Stack.Screen name="Settings" component={SettingsScreen} />
+              <Stack.Screen name="PendingSync" component={PendingSyncScreen} />
+              <Stack.Screen name="Notifications" component={NotificationsScreen} />
+              <Stack.Screen
+                name="CaptureModal"
+                component={CaptureModal}
+                options={{
+                  presentation: 'modal',
+                  animation: 'slide_from_bottom',
+                }}
+              />
+              <Stack.Screen name="DevGallery" component={ComponentGallery} />
+            </>
+          )}
         </Stack.Navigator>
       </NavigationContainer>
     </NavBarScrollProvider>

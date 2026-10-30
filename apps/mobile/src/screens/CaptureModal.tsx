@@ -5,7 +5,7 @@ import { useRoute, useNavigation, RouteProp } from '@react-navigation/native';
 import { Text, Button, Input, Chip, KeyboardAccessoryBar } from '../components/ui';
 import { DueDatePicker, PriorityPicker, PriorityValue, SeverityPicker, SeverityValue } from '../components/patterns';
 import { useTheme } from '../theme/useTheme';
-import { useKeyboardBar } from '../app/providers/KeyboardProvider';
+import { useKeyboardBar } from '../core/providers/KeyboardProvider';
 import { useCreateTaskMutation } from '../features/tasks/api/mutations';
 import { useCreateBugMutation } from '../features/bugs/api/mutations';
 import { RootStackParamList } from '../navigation/types';

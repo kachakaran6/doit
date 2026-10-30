@@ -1,4 +1,4 @@
-import { KeyboardContextType } from '../../app/providers/KeyboardProvider';
+import { KeyboardContextType } from '../../core/providers/KeyboardProvider';
 
 describe('Keyboard Accessory Bar Context Mapping (§3.4)', () => {
   const getExpectedChips = (ctx: KeyboardContextType): string[] => {

@@ -99,5 +99,64 @@ if (fs.existsSync(svgPkgPath)) {
   }
 }
 
+// 6. Safeguard @react-native/babel-plugin-codegen from crashing on pre-compiled .js components
+const babelCodegenFiles = [
+  path.join(rootDir, 'node_modules', '@react-native', 'babel-plugin-codegen', 'index.js'),
+  path.join(rootDir, 'node_modules', 'babel-preset-expo', 'node_modules', '@react-native', 'babel-plugin-codegen', 'index.js'),
+];
+
+for (const bcf of babelCodegenFiles) {
+  if (fs.existsSync(bcf)) {
+    let content = fs.readFileSync(bcf, 'utf8');
+    if (!content.includes('// SAFE_FALLBACK')) {
+      const targetStr = `      Program: {
+        exit(path) {
+          if (this.defaultExport) {
+            const viewConfig = generateViewConfig(this.filename, this.code);
+            this.defaultExport.replaceWithMultiple(
+              parse(viewConfig, {
+                babelrc: false,
+                browserslistConfigFile: false,
+                configFile: false,
+              }).program.body,
+            );
+            if (this.commandsExport != null) {
+              this.commandsExport.remove();
+            }
+            this.codeInserted = true;
+          }
+        },
+      },`;
+
+      const safeStr = `      Program: {
+        exit(path) {
+          if (this.defaultExport) {
+            try {
+              // SAFE_FALLBACK: if viewConfig extraction fails on pre-compiled node_modules, fallback to runtime
+              const viewConfig = generateViewConfig(this.filename, this.code);
+              this.defaultExport.replaceWithMultiple(
+                parse(viewConfig, {
+                  babelrc: false,
+                  browserslistConfigFile: false,
+                  configFile: false,
+                }).program.body,
+              );
+              if (this.commandsExport != null) {
+                this.commandsExport.remove();
+              }
+              this.codeInserted = true;
+            } catch (_err) {
+              // Gracefully fallback to runtime requireNativeComponent
+            }
+          }
+        },
+      },`;
+
+      content = content.replace(targetStr, safeStr);
+      fs.writeFileSync(bcf, content, 'utf8');
+    }
+  }
+}
+
 // eslint-disable-next-line no-console
 console.log('✔ React Native Codegen & SVG types patched successfully');

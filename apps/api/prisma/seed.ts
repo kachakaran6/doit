@@ -9,10 +9,12 @@ async function main() {
   // 1. Users (2 users)
   const alice = await prisma.user.upsert({
     where: { email: 'alice@samyukt.com' },
-    update: {},
+    update: {
+      passwordHash: '$argon2id$v=19$m=65536,p=4,t=3$3IQC7G7iFpyPpMnbR8zO0g$NHrHTQR1PJvmth3AlssewO/DPeNdCBo0Yn5naWluzp8',
+    },
     create: {
       email: 'alice@samyukt.com',
-      passwordHash: '$argon2id$v=19$m=65536,t=3,p=4$dummyhashalice',
+      passwordHash: '$argon2id$v=19$m=65536,p=4,t=3$3IQC7G7iFpyPpMnbR8zO0g$NHrHTQR1PJvmth3AlssewO/DPeNdCBo0Yn5naWluzp8',
       name: 'Alice Sharma',
       locale: 'en-IN',
       prefs: { theme: 'DARK', accent: 'INDIGO' },
@@ -21,10 +23,12 @@ async function main() {
 
   const bob = await prisma.user.upsert({
     where: { email: 'bob@samyukt.com' },
-    update: {},
+    update: {
+      passwordHash: '$argon2id$v=19$m=65536,p=4,t=3$3IQC7G7iFpyPpMnbR8zO0g$NHrHTQR1PJvmth3AlssewO/DPeNdCBo0Yn5naWluzp8',
+    },
     create: {
       email: 'bob@samyukt.com',
-      passwordHash: '$argon2id$v=19$m=65536,t=3,p=4$dummyhashbob',
+      passwordHash: '$argon2id$v=19$m=65536,p=4,t=3$3IQC7G7iFpyPpMnbR8zO0g$NHrHTQR1PJvmth3AlssewO/DPeNdCBo0Yn5naWluzp8',
       name: 'Bob Verma',
       locale: 'en-IN',
       prefs: { theme: 'LIGHT', accent: 'TEAL' },

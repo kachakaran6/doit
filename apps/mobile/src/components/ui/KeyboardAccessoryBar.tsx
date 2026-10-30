@@ -8,7 +8,7 @@ import {
   Pressable,
 } from 'react-native';
 import { useTheme } from '../../theme/useTheme';
-import { useKeyboardBar } from '../../app/providers/KeyboardProvider';
+import { useKeyboardBar } from '../../core/providers/KeyboardProvider';
 import { KeyboardChip } from './KeyboardChip';
 import { Text } from './Text';
 import {

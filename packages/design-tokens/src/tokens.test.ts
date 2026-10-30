@@ -1,4 +1,4 @@
-import { neutrals, accents, spacing, radius } from './tokens';
+import { neutrals, accents, spacing, radius } from './tokens.js';
 
 if (!neutrals.light.bg || !neutrals.dark.bg) {
   throw new Error('Neutrals token missing bg');

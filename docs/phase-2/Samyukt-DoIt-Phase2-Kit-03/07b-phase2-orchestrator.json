@@ -1,0 +1,252 @@
+{
+  "project": "Samyukt DoIt",
+  "phase": 2,
+  "version": "1.0.0",
+  "naming": {
+    "scope": "@doit",
+    "bundleId": "com.samyukt.doit",
+    "displayName": "Samyukt DoIt",
+    "scheme": "doit"
+  },
+  "lanes": {
+    "M": [
+      "M01",
+      "M02",
+      "M03"
+    ],
+    "B": [
+      "B00",
+      "B01",
+      "B02"
+    ],
+    "W": [
+      "W00",
+      "W01",
+      "W02",
+      "W03",
+      "W04",
+      "W05",
+      "W06",
+      "W07",
+      "W08",
+      "W09",
+      "W10"
+    ],
+    "L": [
+      "L01",
+      "L00"
+    ]
+  },
+  "prompts": [
+    {
+      "id": "R00",
+      "file": "08-PROMPTS/R00-naming-migration.md",
+      "title": "Naming migration",
+      "deps": [],
+      "lane": "-",
+      "gate": "G7"
+    },
+    {
+      "id": "M01",
+      "file": "08-PROMPTS/M01-dev-client-native-verification.md",
+      "title": "Dev client + native verification",
+      "deps": [
+        "R00"
+      ],
+      "lane": "M",
+      "gate": "G8"
+    },
+    {
+      "id": "M02",
+      "file": "08-PROMPTS/M02-gluestack-adoption.md",
+      "title": "gluestack-ui v5 adoption",
+      "deps": [
+        "M01"
+      ],
+      "lane": "M",
+      "gate": "G9"
+    },
+    {
+      "id": "M03",
+      "file": "08-PROMPTS/M03-qa-evidence-and-hardening.md",
+      "title": "QA evidence + hardening",
+      "deps": [
+        "M02"
+      ],
+      "lane": "M"
+    },
+    {
+      "id": "B00",
+      "file": "08-PROMPTS/B00-production-infrastructure.md",
+      "title": "Production infrastructure",
+      "deps": [
+        "R00"
+      ],
+      "lane": "B"
+    },
+    {
+      "id": "B01",
+      "file": "08-PROMPTS/B01-email-push-ai-providers.md",
+      "title": "Email, push, AI providers",
+      "deps": [
+        "B00"
+      ],
+      "lane": "B"
+    },
+    {
+      "id": "B02",
+      "file": "08-PROMPTS/B02-observability-security-backups.md",
+      "title": "Observability, security, backups",
+      "deps": [
+        "B01"
+      ],
+      "lane": "B",
+      "gate": "G10"
+    },
+    {
+      "id": "W00",
+      "file": "08-PROMPTS/W00-web-scaffold.md",
+      "title": "Web scaffold",
+      "deps": [
+        "R00"
+      ],
+      "lane": "W"
+    },
+    {
+      "id": "W01",
+      "file": "08-PROMPTS/W01-web-auth.md",
+      "title": "Web auth",
+      "deps": [
+        "W00",
+        "B00"
+      ],
+      "lane": "W"
+    },
+    {
+      "id": "W02",
+      "file": "08-PROMPTS/W02-web-design-system.md",
+      "title": "Web design system",
+      "deps": [
+        "W01"
+      ],
+      "lane": "W"
+    },
+    {
+      "id": "W03",
+      "file": "08-PROMPTS/W03-web-app-shell.md",
+      "title": "App shell + dashboard",
+      "deps": [
+        "W02"
+      ],
+      "lane": "W",
+      "gate": "G11"
+    },
+    {
+      "id": "W04",
+      "file": "08-PROMPTS/W04-web-board.md",
+      "title": "Board",
+      "deps": [
+        "W03"
+      ],
+      "lane": "W"
+    },
+    {
+      "id": "W05",
+      "file": "08-PROMPTS/W05-web-task-detail.md",
+      "title": "Task detail drawer",
+      "deps": [
+        "W04"
+      ],
+      "lane": "W",
+      "gate": "G12"
+    },
+    {
+      "id": "W06",
+      "file": "08-PROMPTS/W06-web-bugs-sessions-stickies.md",
+      "title": "Bugs, sessions, stickies",
+      "deps": [
+        "W05"
+      ],
+      "lane": "W"
+    },
+    {
+      "id": "W07",
+      "file": "08-PROMPTS/W07-web-search-command-palette.md",
+      "title": "Search + command palette",
+      "deps": [
+        "W06"
+      ],
+      "lane": "W"
+    },
+    {
+      "id": "W08",
+      "file": "08-PROMPTS/W08-web-settings-members-admin.md",
+      "title": "Settings, members, admin",
+      "deps": [
+        "W07"
+      ],
+      "lane": "W"
+    },
+    {
+      "id": "W09",
+      "file": "08-PROMPTS/W09-web-realtime-presence.md",
+      "title": "Realtime + presence",
+      "deps": [
+        "W08"
+      ],
+      "lane": "W"
+    },
+    {
+      "id": "W10",
+      "file": "08-PROMPTS/W10-web-qa-performance-deploy.md",
+      "title": "Web QA, perf, deploy",
+      "deps": [
+        "W09"
+      ],
+      "lane": "W",
+      "gate": "G13"
+    },
+    {
+      "id": "L00",
+      "file": "08-PROMPTS/L00-store-submission.md",
+      "title": "Store submission",
+      "deps": [
+        "M03",
+        "B00",
+        "B01",
+        "L01"
+      ],
+      "lane": "L",
+      "gate": "G14"
+    },
+    {
+      "id": "L01",
+      "file": "08-PROMPTS/L01-legal-compliance.md",
+      "title": "Legal, privacy, compliance",
+      "deps": [],
+      "lane": "L"
+    }
+  ],
+  "gates": [
+    "G7",
+    "G8",
+    "G9",
+    "G10",
+    "G11",
+    "G12",
+    "G13",
+    "G14"
+  ],
+  "rules": "09-PHASE2-RULES.md",
+  "progressFile": "PROGRESS.md",
+  "exclusiveResources": [
+    {
+      "path": "packages/design-tokens",
+      "prompts": [
+        "M02",
+        "W02"
+      ],
+      "note": "serialise these"
+    }
+  ]
+}

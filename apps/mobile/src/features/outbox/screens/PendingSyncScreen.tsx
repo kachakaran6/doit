@@ -4,7 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { useTheme } from '../../../theme/useTheme';
 import { Text, Button, EmptyState } from '../../../components/ui';
-import { useOutbox } from '../../../app/providers/OutboxProvider';
+import { useOutbox } from '../../../core/providers/OutboxProvider';
 import { OutboxEntry } from '../../../lib/outbox';
 import { RotateCw, Trash2, CheckCircle2 } from 'lucide-react-native';
 
