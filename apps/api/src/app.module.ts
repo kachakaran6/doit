@@ -10,6 +10,7 @@ import { MembersModule } from './modules/members/members.module';
 import { TasksModule } from './modules/tasks/tasks.module';
 import { LabelsModule } from './modules/labels/labels.module';
 import { SearchModule } from './modules/search/search.module';
+import { StickiesModule } from './modules/stickies/stickies.module';
 
 @Module({
   imports: [
@@ -25,6 +26,7 @@ import { SearchModule } from './modules/search/search.module';
     TasksModule,
     LabelsModule,
     SearchModule,
+    StickiesModule,
   ],
   controllers: [HealthController],
   providers: [],
