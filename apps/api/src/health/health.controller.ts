@@ -21,9 +21,14 @@ export class HealthController {
   ) {}
 
   @Get()
-  @ApiOperation({ summary: 'Liveness health check' })
-  @ApiResponse({ status: 200, description: 'Service is healthy' })
-  getHealth(): Ping {
+  @ApiOperation({ summary: 'Liveness health check verifying database' })
+  @ApiResponse({ status: 200, description: 'Service is healthy and database is connected' })
+  async getHealth(): Promise<Ping> {
+    const isDbUp = await this.prisma.isHealthy();
+    if (!isDbUp) {
+      throw new Error('Database unreachable');
+    }
+
     const payload = {
       status: 'ok' as const,
       version: '0.1.0',

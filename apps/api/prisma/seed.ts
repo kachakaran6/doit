@@ -1,20 +1,22 @@
-import { PrismaClient, Role, TaskStatus, Priority, AccentName, TaskType, Severity, TaskSource, Task } from '@prisma/client';
+import { PrismaClient, Role, TaskStatus, Priority, AccentName, TaskType, Severity, TaskSource } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
 async function main() {
   // eslint-disable-next-line no-console
-  console.log('Seeding Samyukt database...');
+  console.log('Seeding DoIt database with clean neutral demo data...');
 
-  // 1. Users (2 users)
+  // Standard test password hash: "Password123!"
+  const passwordHash =
+    '$argon2id$v=19$m=65536,p=4,t=3$3IQC7G7iFpyPpMnbR8zO0g$NHrHTQR1PJvmth3AlssewO/DPeNdCBo0Yn5naWluzp8';
+
+  // 1. Users
   const alice = await prisma.user.upsert({
-    where: { email: 'alice@samyukt.com' },
-    update: {
-      passwordHash: '$argon2id$v=19$m=65536,p=4,t=3$3IQC7G7iFpyPpMnbR8zO0g$NHrHTQR1PJvmth3AlssewO/DPeNdCBo0Yn5naWluzp8',
-    },
+    where: { email: 'alice@doit.local' },
+    update: { passwordHash },
     create: {
-      email: 'alice@samyukt.com',
-      passwordHash: '$argon2id$v=19$m=65536,p=4,t=3$3IQC7G7iFpyPpMnbR8zO0g$NHrHTQR1PJvmth3AlssewO/DPeNdCBo0Yn5naWluzp8',
+      email: 'alice@doit.local',
+      passwordHash,
       name: 'Alice Sharma',
       locale: 'en-IN',
       prefs: { theme: 'DARK', accent: 'INDIGO' },
@@ -22,26 +24,49 @@ async function main() {
   });
 
   const bob = await prisma.user.upsert({
-    where: { email: 'bob@samyukt.com' },
-    update: {
-      passwordHash: '$argon2id$v=19$m=65536,p=4,t=3$3IQC7G7iFpyPpMnbR8zO0g$NHrHTQR1PJvmth3AlssewO/DPeNdCBo0Yn5naWluzp8',
-    },
+    where: { email: 'bob@doit.local' },
+    update: { passwordHash },
     create: {
-      email: 'bob@samyukt.com',
-      passwordHash: '$argon2id$v=19$m=65536,p=4,t=3$3IQC7G7iFpyPpMnbR8zO0g$NHrHTQR1PJvmth3AlssewO/DPeNdCBo0Yn5naWluzp8',
+      email: 'bob@doit.local',
+      passwordHash,
       name: 'Bob Verma',
       locale: 'en-IN',
       prefs: { theme: 'LIGHT', accent: 'TEAL' },
     },
   });
 
-  // 2. Workspace (1 workspace)
-  const workspace = await prisma.workspace.upsert({
-    where: { slug: 'acme' },
-    update: {},
+  // Backward compatible credentials for quick-tap demo buttons
+  await prisma.user.upsert({
+    where: { email: 'alice@samyukt.com' },
+    update: { passwordHash },
     create: {
-      name: 'Acme Technologies',
-      slug: 'acme',
+      email: 'alice@samyukt.com',
+      passwordHash,
+      name: 'Alice Sharma',
+      locale: 'en-IN',
+      prefs: { theme: 'DARK', accent: 'INDIGO' },
+    },
+  });
+
+  await prisma.user.upsert({
+    where: { email: 'bob@samyukt.com' },
+    update: { passwordHash },
+    create: {
+      email: 'bob@samyukt.com',
+      passwordHash,
+      name: 'Bob Verma',
+      locale: 'en-IN',
+      prefs: { theme: 'LIGHT', accent: 'TEAL' },
+    },
+  });
+
+  // 2. Demo Workspace
+  const workspace = await prisma.workspace.upsert({
+    where: { slug: 'demo' },
+    update: { name: 'Demo Workspace' },
+    create: {
+      name: 'Demo Workspace',
+      slug: 'demo',
       ownerId: alice.id,
     },
   });
@@ -54,7 +79,7 @@ async function main() {
         userId: alice.id,
       },
     },
-    update: {},
+    update: { role: Role.OWNER },
     create: {
       workspaceId: workspace.id,
       userId: alice.id,
@@ -69,7 +94,7 @@ async function main() {
         userId: bob.id,
       },
     },
-    update: {},
+    update: { role: Role.TESTER },
     create: {
       workspaceId: workspace.id,
       userId: bob.id,
@@ -77,50 +102,33 @@ async function main() {
     },
   });
 
-  // 3. Projects (2 projects)
-  const mobileProj = await prisma.project.upsert({
+  // 3. Primary Project: "Getting Started" (GS)
+  const gsProject = await prisma.project.upsert({
     where: {
       workspaceId_key: {
         workspaceId: workspace.id,
-        key: 'MOB',
+        key: 'GS',
       },
     },
-    update: {},
+    update: { name: 'Getting Started' },
     create: {
       workspaceId: workspace.id,
-      name: 'Mobile Client',
-      key: 'MOB',
+      name: 'Getting Started',
+      key: 'GS',
       color: AccentName.INDIGO,
     },
   });
 
-  const webProj = await prisma.project.upsert({
-    where: {
-      workspaceId_key: {
-        workspaceId: workspace.id,
-        key: 'WEB',
-      },
-    },
-    update: {},
-    create: {
-      workspaceId: workspace.id,
-      name: 'Web Dashboard',
-      key: 'WEB',
-      color: AccentName.TEAL,
-    },
-  });
-
-  // 4. Labels (6 labels)
-  const labelNames = [
+  // 4. Default Project Labels
+  const labels = [
     { name: 'Bug', color: AccentName.ROSE },
     { name: 'Feature', color: AccentName.INDIGO },
     { name: 'P0', color: AccentName.AMBER },
     { name: 'P1', color: AccentName.TEAL },
     { name: 'UI', color: AccentName.VIOLET },
-    { name: 'Backend', color: AccentName.INDIGO },
   ];
 
-  for (const l of labelNames) {
+  for (const l of labels) {
     await prisma.label.upsert({
       where: {
         workspaceId_name: {
@@ -137,34 +145,58 @@ async function main() {
     });
   }
 
-  // 5. Tasks (8 tasks: 4 in MOB, 4 in WEB)
-  const taskData = [
-    { proj: mobileProj, num: 1, title: 'Implement Quick Capture Overlay', status: TaskStatus.IN_PROGRESS, prio: Priority.URGENT, type: TaskType.TASK },
-    { proj: mobileProj, num: 2, title: 'Fix Shake Detection on Pixel 6a', status: TaskStatus.TODO, prio: Priority.HIGH, type: TaskType.BUG },
-    { proj: mobileProj, num: 3, title: 'Crash when saving voice note in airplane mode', status: TaskStatus.TODO, prio: Priority.HIGH, type: TaskType.BUG },
-    { proj: mobileProj, num: 4, title: 'Design System Token audit for Dark Mode', status: TaskStatus.DONE, prio: Priority.MEDIUM, type: TaskType.TASK },
-    { proj: webProj, num: 1, title: 'NestJS Auth and JWT Session rotation', status: TaskStatus.DONE, prio: Priority.HIGH, type: TaskType.TASK },
-    { proj: webProj, num: 2, title: 'PostgreSQL tsvector full text search', status: TaskStatus.IN_PROGRESS, prio: Priority.MEDIUM, type: TaskType.TASK },
-    { proj: webProj, num: 3, title: 'Attachment presigned URL generation fails on large file', status: TaskStatus.TODO, prio: Priority.URGENT, type: TaskType.BUG },
-    { proj: webProj, num: 4, title: 'Workspace member invite link expiration', status: TaskStatus.TODO, prio: Priority.LOW, type: TaskType.TASK },
+  // 5. Sample Tasks
+  const sampleTasks = [
+    {
+      num: 1,
+      title: 'Welcome to DoIt! Review getting started guide',
+      status: TaskStatus.IN_PROGRESS,
+      priority: Priority.HIGH,
+      type: TaskType.TASK,
+      desc: 'Explore the floating navbar, Quick Capture sheet, and workspace switcher.',
+    },
+    {
+      num: 2,
+      title: 'Fix keyboard accessory bar positioning above software keyboard',
+      status: TaskStatus.DONE,
+      priority: Priority.URGENT,
+      type: TaskType.TASK,
+      desc: 'Verify accessory bar remains pinned directly above the virtual keyboard without clipping.',
+    },
+    {
+      num: 3,
+      title: 'App crash on network timeout during background sync',
+      status: TaskStatus.TODO,
+      priority: Priority.HIGH,
+      type: TaskType.BUG,
+      desc: 'Steps to reproduce: disable wifi while saving a task, observe retry queue behavior.',
+    },
+    {
+      num: 4,
+      title: 'Set up dark mode appearance and select brand accent',
+      status: TaskStatus.DONE,
+      priority: Priority.MEDIUM,
+      type: TaskType.TASK,
+      desc: 'Check appearance settings: Indigo, Teal, Amber, Rose, or Violet.',
+    },
   ];
 
-  const createdTasks: Task[] = [];
-  for (const t of taskData) {
+  for (const t of sampleTasks) {
     const task = await prisma.task.upsert({
       where: {
         projectId_number: {
-          projectId: t.proj.id,
+          projectId: gsProject.id,
           number: t.num,
         },
       },
       update: {},
       create: {
-        projectId: t.proj.id,
+        projectId: gsProject.id,
         number: t.num,
         title: t.title,
+        description: t.desc,
         status: t.status,
-        priority: t.prio,
+        priority: t.priority,
         type: t.type,
         source: TaskSource.MANUAL,
         createdById: alice.id,
@@ -172,48 +204,43 @@ async function main() {
         order: t.num * 1000,
       },
     });
-    createdTasks.push(task);
+
+    if (t.type === TaskType.BUG) {
+      await prisma.bugReport.upsert({
+        where: { taskId: task.id },
+        update: {},
+        create: {
+          taskId: task.id,
+          severity: Severity.CRITICAL,
+          steps: ['Open app under test', 'Disconnect network', 'Submit task or bug'],
+          expected: 'Should queue in outbox and show syncing indicator',
+          actual: 'Observed timeout exception in previous build',
+          frequency: 'often',
+          deviceModel: 'Android Device',
+          osVersion: 'Android 14',
+        },
+      });
+    }
   }
 
-  // 6. Bugs (3 bugs attached to tasks)
-  const bugTasks = createdTasks.filter((t) => t.type === TaskType.BUG);
-  for (const bt of bugTasks) {
-    await prisma.bugReport.upsert({
-      where: { taskId: bt.id },
-      update: {},
-      create: {
-        taskId: bt.id,
-        severity: Severity.CRITICAL,
-        steps: ['Open app under test', 'Shake device', 'Submit bug report'],
-        expected: 'Bug report should be created with screenshot attached',
-        actual: 'Screen flickered and timeout occurred',
-        frequency: 'often',
-        deviceModel: 'Pixel 6a',
-        osVersion: 'Android 14',
-      },
-    });
-  }
-
-  // 7. Stickies (4 stickies)
-  const stickyData = [
-    { body: 'Remember to verify audio permission on Android 13+', color: AccentName.AMBER },
-    { body: 'Ask team about Saarika vs Whisper server latency', color: AccentName.INDIGO },
-    { body: 'Check contrast ratio on violet button containers', color: AccentName.VIOLET },
-    { body: 'Release candidate build targeted for end of week', color: AccentName.ROSE },
+  // 6. Sample Stickies
+  const stickyNotes = [
+    { body: 'Welcome to DoIt stickies. Tap to pin or convert into an action item.', color: AccentName.AMBER },
+    { body: 'Quick shortcut: Long-press the + button to capture voice or bug reports.', color: AccentName.INDIGO },
   ];
 
-  for (let i = 0; i < stickyData.length; i++) {
-    const s = stickyData[i]!;
+  for (let i = 0; i < stickyNotes.length; i++) {
+    const s = stickyNotes[i]!;
     const existing = await prisma.sticky.findFirst({
       where: {
-        projectId: mobileProj.id,
+        projectId: gsProject.id,
         body: s.body,
       },
     });
     if (!existing) {
       await prisma.sticky.create({
         data: {
-          projectId: mobileProj.id,
+          projectId: gsProject.id,
           authorId: alice.id,
           body: s.body,
           color: s.color,
@@ -224,7 +251,7 @@ async function main() {
   }
 
   // eslint-disable-next-line no-console
-  console.log('Seeding completed successfully!');
+  console.log('✔ DoIt neutral demo seed completed successfully!');
 }
 
 main()

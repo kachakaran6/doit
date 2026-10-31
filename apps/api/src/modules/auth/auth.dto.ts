@@ -1,10 +1,17 @@
 import { z } from 'zod';
 
-export const RegisterSchema = z.object({
-  email: z.string().email(),
-  password: z.string().min(8, 'Password must be at least 8 characters'),
-  name: z.string().min(2),
-});
+export const RegisterSchema = z
+  .object({
+    email: z.string().email(),
+    password: z.string().min(8, 'Password must be at least 8 characters'),
+    name: z.string().min(2).optional(),
+    fullName: z.string().min(2).optional(),
+  })
+  .transform((val) => ({
+    email: val.email,
+    password: val.password,
+    name: val.name || val.fullName || 'User',
+  }));
 
 export type RegisterDto = z.infer<typeof RegisterSchema>;
 

@@ -10,6 +10,8 @@
     "typecheck": "turbo run typecheck",
     "test": "turbo run test",
     "format": "prettier --write \"**/*.{ts,tsx,js,json,md}\"",
+    "db:reset": "pnpm --filter @doit/api run db:reset",
+    "smoke": "node scripts/smoke-api.mjs",
     "postinstall": "node scripts/sync-packages.mjs && node scripts/patch-codegen.mjs"
   },
   "devDependencies": {

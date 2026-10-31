@@ -6,6 +6,7 @@ import {
 import { Reflector } from '@nestjs/core';
 import { JwtService } from '@nestjs/jwt';
 import { Request } from 'express';
+import { PrismaService } from '../../infra/prisma/prisma.service';
 import { IS_PUBLIC_KEY } from '../decorators/public.decorator';
 import { AppError } from '../errors/app.error';
 import { ErrorCode } from '../errors/error-code.enum';
@@ -16,6 +17,7 @@ export class JwtAuthGuard implements CanActivate {
   constructor(
     private readonly reflector: Reflector,
     private readonly jwtService: JwtService,
+    private readonly prisma: PrismaService,
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
@@ -44,9 +46,22 @@ export class JwtAuthGuard implements CanActivate {
       const payload = await this.jwtService.verifyAsync<AuthUserPayload>(token, {
         secret: process.env.JWT_SECRET || 'super-secret-development-jwt-key-replace-in-prod',
       });
+
+      // Validate access token against session in database (revoked session stops working immediately)
+      if (payload.sid) {
+        const session = await this.prisma.session.findUnique({
+          where: { id: payload.sid },
+          select: { revokedAt: true },
+        });
+        if (!session || session.revokedAt) {
+          throw new AppError(ErrorCode.SESSION_REVOKED, 'Session has been revoked.', 401);
+        }
+      }
+
       (request as Request & { user: AuthUserPayload }).user = payload;
       return true;
-    } catch {
+    } catch (err) {
+      if (err instanceof AppError) throw err;
       throw new AppError(ErrorCode.TOKEN_EXPIRED, 'Access token is invalid or expired.', 401);
     }
   }

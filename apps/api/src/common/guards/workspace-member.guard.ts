@@ -32,9 +32,9 @@ export class WorkspaceMemberGuard implements CanActivate {
     const wsParam = request.params['workspaceId'];
     let workspaceId: string | undefined = typeof wsParam === 'string' ? wsParam : undefined;
 
-    // If route is /workspaces/:id
+    // If route is /workspaces/:id or /workspaces/:workspaceId
     const idParam = request.params['id'];
-    if (!workspaceId && request.baseUrl.includes('workspaces') && typeof idParam === 'string') {
+    if (!workspaceId && ((request.baseUrl && request.baseUrl.includes('workspaces')) || (request.originalUrl && request.originalUrl.includes('workspaces'))) && typeof idParam === 'string') {
       workspaceId = idParam;
     }
 

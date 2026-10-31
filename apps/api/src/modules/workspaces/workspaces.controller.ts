@@ -45,32 +45,32 @@ export class WorkspacesController {
     return this.workspacesService.findAll(user.sub);
   }
 
-  @Get(':id')
+  @Get(':workspaceId')
   @UseGuards(WorkspaceMemberGuard)
   @ApiBearerAuth('bearer-auth')
   @ApiOperation({ summary: 'Get workspace details' })
-  async findOne(@Param('id') id: string) {
+  async findOne(@Param('workspaceId') id: string) {
     return this.workspacesService.findOne(id);
   }
 
-  @Patch(':id')
+  @Patch(':workspaceId')
   @UseGuards(WorkspaceMemberGuard)
   @Roles('OWNER', 'ADMIN')
   @ApiBearerAuth('bearer-auth')
   @ApiOperation({ summary: 'Update workspace (OWNER, ADMIN)' })
   async update(
-    @Param('id') id: string,
+    @Param('workspaceId') id: string,
     @Body(new ZodValidationPipe(UpdateWorkspaceSchema)) dto: UpdateWorkspaceDto,
   ) {
     return this.workspacesService.update(id, dto);
   }
 
-  @Delete(':id')
+  @Delete(':workspaceId')
   @UseGuards(WorkspaceMemberGuard)
   @Roles('OWNER')
   @ApiBearerAuth('bearer-auth')
   @ApiOperation({ summary: 'Delete workspace (OWNER only)' })
-  async delete(@Param('id') id: string) {
+  async delete(@Param('workspaceId') id: string) {
     return this.workspacesService.delete(id);
   }
 }

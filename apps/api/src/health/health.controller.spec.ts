@@ -24,8 +24,8 @@ describe('HealthController', () => {
     controller = module.get<HealthController>(HealthController);
   });
 
-  it('should return health status ok', () => {
-    const res = controller.getHealth();
+  it('should return health status ok', async () => {
+    const res = await controller.getHealth();
     expect(res.status).toBe('ok');
     expect(res.version).toBe('0.1.0');
     expect(typeof res.uptime).toBe('number');
