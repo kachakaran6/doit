@@ -1,0 +1,18 @@
+# Docker build ignore
+node_modules
+.git
+.turbo
+dist
+build
+.expo
+apps/mobile/android
+apps/mobile/ios
+.storage
+uploads
+coverage
+*.log
+.env
+.env.local
+.DS_Store
+Thumbs.db
+

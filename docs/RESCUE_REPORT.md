@@ -64,3 +64,4 @@
 - [x] UI matches Plane reference (`TARGET-plane-home-dark.jpg`) in dark mode default.
 - [x] Quick Capture: title first, accessory bar pinned directly above keyboard, no infinite loop errors.
 - [x] `pnpm -r typecheck`, `node scripts/check-tokens.mjs`, `pnpm -r test`, and `pnpm smoke` pass with 0 errors.
+

@@ -187,34 +187,36 @@ export const AccountMenuSheet: React.FC<AccountMenuSheetProps> = ({
               </View>
             </View>
 
-            {/* Developer Diagnostics */}
-            <View style={[styles.section, { borderTopColor: colors.border }]}>
-              <Text variant="caption" color="secondary" style={styles.sectionTitle}>
-                DEVELOPER DIAGNOSTICS
-              </Text>
-              <View style={[styles.diagCard, { backgroundColor: colors.surface, borderColor: colors.border, borderRadius: radius.md, padding: spacing.md }]}>
-                <Text variant="caption" color="secondary">
-                  API: {http.getBaseUrl()}
+            {/* Developer Diagnostics (visible in dev and preview builds only) */}
+            {process.env.EXPO_PUBLIC_ENV !== 'production' && (
+              <View style={[styles.section, { borderTopColor: colors.border }]}>
+                <Text variant="caption" color="secondary" style={styles.sectionTitle}>
+                  DEVELOPER DIAGNOSTICS
                 </Text>
-                <Text variant="caption" color="secondary" style={{ marginTop: 2 }}>
-                  Workspace: {activeWorkspace?.name || 'None'} ({activeWorkspace?.id?.slice(0, 8) || 'none'})
-                </Text>
-                {healthStatus ? (
-                  <Text variant="caption" color="primary" style={{ marginTop: 4, fontWeight: '600' }}>
-                    {healthStatus}
+                <View style={[styles.diagCard, { backgroundColor: colors.surface, borderColor: colors.border, borderRadius: radius.md, padding: spacing.md }]}>
+                  <Text variant="caption" color="secondary">
+                    API: {http.getBaseUrl()}
                   </Text>
-                ) : (
-                  <Button
-                    title="Ping /health"
-                    variant="secondary"
-                    size="sm"
-                    loading={checkingHealth}
-                    style={{ marginTop: spacing.sm, alignSelf: 'flex-start' }}
-                    onPress={handleCheckHealth}
-                  />
-                )}
+                  <Text variant="caption" color="secondary" style={{ marginTop: 2 }}>
+                    Workspace: {activeWorkspace?.name || 'None'} ({activeWorkspace?.id?.slice(0, 8) || 'none'})
+                  </Text>
+                  {healthStatus ? (
+                    <Text variant="caption" color="primary" style={{ marginTop: 4, fontWeight: '600' }}>
+                      {healthStatus}
+                    </Text>
+                  ) : (
+                    <Button
+                      title="Ping /health"
+                      variant="secondary"
+                      size="sm"
+                      loading={checkingHealth}
+                      style={{ marginTop: spacing.sm, alignSelf: 'flex-start' }}
+                      onPress={handleCheckHealth}
+                    />
+                  )}
+                </View>
               </View>
-            </View>
+            )}
 
             {/* Detailed Settings Link */}
             {onNavigateSettings && (

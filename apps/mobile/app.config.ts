@@ -2,13 +2,13 @@ import { ExpoConfig, ConfigContext } from 'expo/config';
 
 export default ({ config }: ConfigContext): ExpoConfig => ({
   ...config,
-  name: 'Samyukt DoIt',
+  name: 'DoIt',
   slug: 'doit',
   scheme: 'doit',
   version: '0.1.0',
   orientation: 'portrait',
   icon: './assets/icon.png',
-  userInterfaceStyle: 'automatic',
+  userInterfaceStyle: 'dark',
   newArchEnabled: true,
   splash: {
     image: './assets/splash-icon.png',
@@ -22,6 +22,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   android: {
     package: 'com.samyukt.doit',
     versionCode: 104,
+    allowBackup: false,
     adaptiveIcon: {
       foregroundImage: './assets/adaptive-icon.png',
       backgroundColor: '#0B0C0E',
@@ -36,6 +37,5 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
       'HIGH_SAMPLING_RATE_SENSORS',
     ],
   },
-  plugins: [],
-  
+  plugins: ['./plugins/withDoItAndroidRelease'],
 });

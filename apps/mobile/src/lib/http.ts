@@ -1,10 +1,12 @@
 /**
  * Core HTTP Client for Mobile Application
- * Automatically unwraps standard { data, meta } envelopes
+ * Automatically unwraps standard { data, meta } envelopes,
+ * supports silent token rotation via /auth/refresh,
  * and extracts typed ApiError with server error codes, details, and request IDs.
  */
 
 import Constants from 'expo-constants';
+import { AuthStorage } from '../features/auth/auth.storage';
 
 function getDefaultBaseUrl(): string {
   if (process.env.EXPO_PUBLIC_API_URL) {
@@ -46,9 +48,10 @@ class HttpClient {
   private authToken: string | null = null;
   private workspaceId: string | null = null;
   public readonly failedRequests: FailedRequestLog[] = [];
+  private isRefreshing: boolean = false;
 
   setBaseUrl(url: string) {
-    this.baseUrl = url.replace(/\/+$/, '');
+    this.baseUrl = url.replace(/\/$/, '');
   }
 
   getBaseUrl(): string {
@@ -73,16 +76,13 @@ class HttpClient {
 
   private logFailedRequest(entry: FailedRequestLog) {
     this.failedRequests.unshift(entry);
-    if (this.failedRequests.length > 20) {
+    if (this.failedRequests.length > 50) {
       this.failedRequests.pop();
     }
   }
 
-  async request<T = any>(path: string, options: RequestInit = {}): Promise<T> {
-    const url = path.startsWith('http')
-      ? path
-      : `${this.baseUrl}${path.startsWith('/') ? path : `/${path}`}`;
-
+  async request<T>(path: string, options: RequestInit = {}, isRetry = false): Promise<T> {
+    const url = path.startsWith('http') ? path : `${this.baseUrl}${path.startsWith('/') ? path : `/${path}`}`;
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
       Accept: 'application/json',
@@ -118,6 +118,47 @@ class HttpClient {
         'NETWORK_ERROR',
         `Cannot reach API server at ${this.baseUrl}. Check network or ADB reverse.`
       );
+    }
+
+    // Handle 401 Unauthorized with silent token rotation
+    if (response.status === 401 && !isRetry && !url.includes('/auth/login') && !url.includes('/auth/refresh') && !this.isRefreshing) {
+      this.isRefreshing = true;
+      try {
+        const session = await AuthStorage.getSession();
+        if (session && session.refreshToken) {
+          const refreshRes = await fetch(`${this.baseUrl}/auth/refresh`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Accept: 'application/json',
+            },
+            body: JSON.stringify({ refreshToken: session.refreshToken }),
+          });
+
+          if (refreshRes.ok) {
+            const refreshData = await refreshRes.json();
+            const payload = refreshData.data || refreshData;
+            const newAccessToken = payload.accessToken;
+            const newRefreshToken = payload.refreshToken || session.refreshToken;
+
+            if (newAccessToken) {
+              this.setAuthToken(newAccessToken);
+              await AuthStorage.setSession({
+                ...session,
+                accessToken: newAccessToken,
+                refreshToken: newRefreshToken,
+              });
+              this.isRefreshing = false;
+              // Retry original request with fresh token
+              return this.request<T>(path, options, true);
+            }
+          }
+        }
+      } catch (refreshErr) {
+        console.warn('[HttpClient] Automatic refresh failed:', refreshErr);
+      } finally {
+        this.isRefreshing = false;
+      }
     }
 
     if (!response.ok) {
@@ -161,7 +202,6 @@ class HttpClient {
     }
 
     const json = await response.json();
-    // Automatically unwrap standard { data, meta } envelopes
     if (json && typeof json === 'object' && 'data' in json && 'meta' in json) {
       return json.data as T;
     }
@@ -169,28 +209,56 @@ class HttpClient {
     return json as T;
   }
 
-  get<T = any>(path: string, options?: RequestInit): Promise<T> {
-    return this.request<T>(path, { ...options, method: 'GET' });
+  async get<T>(path: string, optionsOrHeaders?: RequestInit | Record<string, string>): Promise<T> {
+    const opts: RequestInit =
+      optionsOrHeaders && ('headers' in optionsOrHeaders || 'method' in optionsOrHeaders)
+        ? (optionsOrHeaders as RequestInit)
+        : { headers: optionsOrHeaders as Record<string, string> };
+    return this.request<T>(path, { ...opts, method: 'GET' });
   }
 
-  post<T = any>(path: string, body?: any, options?: RequestInit): Promise<T> {
+  async post<T>(path: string, body?: any, optionsOrHeaders?: RequestInit | Record<string, string>): Promise<T> {
+    const opts: RequestInit =
+      optionsOrHeaders && ('headers' in optionsOrHeaders || 'method' in optionsOrHeaders)
+        ? (optionsOrHeaders as RequestInit)
+        : { headers: optionsOrHeaders as Record<string, string> };
     return this.request<T>(path, {
-      ...options,
+      ...opts,
       method: 'POST',
       body: body ? JSON.stringify(body) : undefined,
     });
   }
 
-  patch<T = any>(path: string, body?: any, options?: RequestInit): Promise<T> {
+  async patch<T>(path: string, body?: any, optionsOrHeaders?: RequestInit | Record<string, string>): Promise<T> {
+    const opts: RequestInit =
+      optionsOrHeaders && ('headers' in optionsOrHeaders || 'method' in optionsOrHeaders)
+        ? (optionsOrHeaders as RequestInit)
+        : { headers: optionsOrHeaders as Record<string, string> };
     return this.request<T>(path, {
-      ...options,
+      ...opts,
       method: 'PATCH',
       body: body ? JSON.stringify(body) : undefined,
     });
   }
 
-  delete<T = any>(path: string, options?: RequestInit): Promise<T> {
-    return this.request<T>(path, { ...options, method: 'DELETE' });
+  async put<T>(path: string, body?: any, optionsOrHeaders?: RequestInit | Record<string, string>): Promise<T> {
+    const opts: RequestInit =
+      optionsOrHeaders && ('headers' in optionsOrHeaders || 'method' in optionsOrHeaders)
+        ? (optionsOrHeaders as RequestInit)
+        : { headers: optionsOrHeaders as Record<string, string> };
+    return this.request<T>(path, {
+      ...opts,
+      method: 'PUT',
+      body: body ? JSON.stringify(body) : undefined,
+    });
+  }
+
+  async delete<T>(path: string, optionsOrHeaders?: RequestInit | Record<string, string>): Promise<T> {
+    const opts: RequestInit =
+      optionsOrHeaders && ('headers' in optionsOrHeaders || 'method' in optionsOrHeaders)
+        ? (optionsOrHeaders as RequestInit)
+        : { headers: optionsOrHeaders as Record<string, string> };
+    return this.request<T>(path, { ...opts, method: 'DELETE' });
   }
 }
 

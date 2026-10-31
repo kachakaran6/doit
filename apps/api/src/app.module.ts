@@ -1,7 +1,9 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
+import { validateEnv } from './config/env.schema';
 import { InfraModule } from './infra/infra.module';
 import { HealthController } from './health/health.controller';
+import { ConfigController } from './config/config.controller';
 import { AuthModule } from './modules/auth/auth.module';
 import { UsersModule } from './modules/users/users.module';
 import { WorkspacesModule } from './modules/workspaces/workspaces.module';
@@ -19,6 +21,7 @@ import { NotificationsModule } from './modules/notifications/notifications.modul
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
+      validate: validateEnv,
     }),
     InfraModule,
     AuthModule,
@@ -34,7 +37,7 @@ import { NotificationsModule } from './modules/notifications/notifications.modul
     VoiceModule,
     NotificationsModule,
   ],
-  controllers: [HealthController],
+  controllers: [HealthController, ConfigController],
   providers: [],
 })
 export class AppModule {}

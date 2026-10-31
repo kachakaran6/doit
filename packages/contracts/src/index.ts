@@ -2,6 +2,7 @@ import { z } from 'zod';
 
 export const PingSchema = z.object({
   status: z.literal('ok'),
+  db: z.enum(['up', 'down']).optional(),
   version: z.string(),
   uptime: z.number(),
   timestamp: z.string(),

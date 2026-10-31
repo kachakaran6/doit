@@ -6,11 +6,16 @@
   "scripts": {
     "build": "turbo run build && node scripts/sync-packages.mjs",
     "dev": "turbo run dev",
-    "lint": "eslint \"**/*.ts\" \"**/*.tsx\" --ignore-pattern \"docs/**\" --ignore-pattern \"doit-*/**\"",
+    "lint": "eslint \"**/*.ts\" \"**/*.tsx\" --ignore-pattern \"docs/**\" --ignore-pattern \"doit-*/**\" --ignore-pattern \"apps/mobile/android/**\" --ignore-pattern \"apps/mobile/ios/**\"",
     "typecheck": "turbo run typecheck",
     "test": "turbo run test",
     "format": "prettier --write \"**/*.{ts,tsx,js,json,md}\"",
     "db:reset": "pnpm --filter @doit/api run db:reset",
+    "db:seed:prod": "pnpm --filter @doit/api run db:seed:prod",
+    "mobile:apk": "pnpm --filter @doit/mobile run build:apk",
+    "mobile:apk:local": "pnpm --filter @doit/mobile run build:apk:local",
+    "mobile:aab": "pnpm --filter @doit/mobile run build:aab",
+    "mobile:dev": "pnpm --filter @doit/mobile run start:dev",
     "smoke": "node scripts/smoke-api.mjs",
     "postinstall": "node scripts/sync-packages.mjs && node scripts/patch-codegen.mjs"
   },

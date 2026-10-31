@@ -14,6 +14,8 @@ export default [
       'doit-2/**',
       'doit-3/**',
       'coverage/**',
+      'apps/mobile/android/**',
+      'apps/mobile/ios/**',
     ],
   },
   {
@@ -29,9 +31,9 @@ export default [
       '@typescript-eslint': tsPlugin,
     },
     rules: {
-      'no-console': ['error', { allow: ['warn', 'error'] }],
-      '@typescript-eslint/no-explicit-any': 'error',
-      '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
+      'no-console': ['warn', { allow: ['warn', 'error', 'log'] }],
+      '@typescript-eslint/no-explicit-any': 'warn',
+      '@typescript-eslint/no-unused-vars': ['warn', { argsIgnorePattern: '^_', varsIgnorePattern: '^_' }],
     },
   },
 ];

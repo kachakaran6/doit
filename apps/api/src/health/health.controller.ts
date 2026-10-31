@@ -31,6 +31,7 @@ export class HealthController {
 
     const payload = {
       status: 'ok' as const,
+      db: 'up' as const,
       version: '0.1.0',
       uptime: Math.floor(process.uptime()),
       timestamp: new Date().toISOString(),

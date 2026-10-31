@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
-import * as fs from 'node:fs';
-import * as path from 'node:path';
+import { IStorageAdapter, PresignedPutResult } from './storage-adapter.interface';
+import { LocalStorageAdapter } from './local-storage.adapter';
+import { S3StorageAdapter } from './s3-storage.adapter';
 
 export interface IStorageService {
   putObject(key: string, buffer: Buffer, mimeType: string): Promise<string>;
@@ -10,88 +11,90 @@ export interface IStorageService {
     key: string,
     contentType: string,
     expiresInSeconds?: number,
-  ): Promise<{ putUrl: string; headers: Record<string, string> }>;
+  ): Promise<PresignedPutResult>;
   deleteObject(key: string): Promise<boolean>;
   getPublicUrl(key: string): string;
+  listObjects(prefix?: string): Promise<string[]>;
   isHealthy(): Promise<boolean>;
+  cleanupOrphans(referencedKeys: Set<string>): Promise<{ deleted: number; retained: number }>;
 }
 
 @Injectable()
 export class StorageService implements IStorageService {
   private readonly logger = new Logger(StorageService.name);
-  private readonly storageRoot: string;
-  private readonly baseUrl: string;
+  private readonly adapter: IStorageAdapter;
 
   constructor() {
-    this.storageRoot = path.resolve(process.cwd(), '.storage');
-    this.baseUrl = process.env.BASE_URL || 'http://localhost:3000';
-
-    if (!fs.existsSync(this.storageRoot)) {
-      fs.mkdirSync(this.storageRoot, { recursive: true });
+    const driver = process.env.STORAGE_DRIVER || 'local';
+    if (driver === 's3') {
+      this.logger.log('Initializing StorageService with S3StorageAdapter');
+      this.adapter = new S3StorageAdapter();
+    } else {
+      this.logger.log('Initializing StorageService with LocalStorageAdapter');
+      this.adapter = new LocalStorageAdapter();
     }
   }
 
-  async putObject(key: string, buffer: Buffer, _mimeType: string): Promise<string> {
-    const fullPath = path.join(this.storageRoot, key);
-    const dir = path.dirname(fullPath);
-    if (!fs.existsSync(dir)) {
-      fs.mkdirSync(dir, { recursive: true });
-    }
+  get activeDriver(): 'local' | 's3' {
+    return this.adapter.driver;
+  }
 
-    await fs.promises.writeFile(fullPath, buffer);
-    this.logger.log(`Stored object at key: ${key}`);
-    return this.getPublicUrl(key);
+  async putObject(key: string, buffer: Buffer, mimeType: string): Promise<string> {
+    return this.adapter.putObject(key, buffer, mimeType);
   }
 
   async getObject(key: string): Promise<Buffer | null> {
-    const fullPath = path.join(this.storageRoot, key);
-    if (!fs.existsSync(fullPath)) {
-      return null;
-    }
-    return fs.promises.readFile(fullPath);
+    return this.adapter.getObject(key);
   }
 
-  async getSignedUrl(key: string, _expiresInSeconds = 3600): Promise<string> {
-    // In local dev, public URL with token serves as signed URL
-    return `${this.baseUrl}/static/${key}?sig=local-dev-token`;
+  async getSignedUrl(key: string, expiresInSeconds = 3600): Promise<string> {
+    return this.adapter.getSignedUrl(key, expiresInSeconds);
   }
 
   async createPresignedPutUrl(
     key: string,
     contentType: string,
-    _expiresInSeconds = 900,
-  ): Promise<{ putUrl: string; headers: Record<string, string> }> {
-    // For local dev, endpoint /uploads/raw/:key handles direct PUT
-    const putUrl = `${this.baseUrl}/uploads/raw/${encodeURIComponent(key)}`;
-    return {
-      putUrl,
-      headers: {
-        'content-type': contentType,
-      },
-    };
+    expiresInSeconds = 900,
+  ): Promise<PresignedPutResult> {
+    return this.adapter.createPresignedPutUrl(key, contentType, expiresInSeconds);
   }
 
   async deleteObject(key: string): Promise<boolean> {
-    const fullPath = path.join(this.storageRoot, key);
-    if (fs.existsSync(fullPath)) {
-      await fs.promises.unlink(fullPath);
-      return true;
-    }
-    return false;
+    return this.adapter.deleteObject(key);
   }
 
   getPublicUrl(key: string): string {
-    return `${this.baseUrl}/static/${key}`;
+    return this.adapter.getPublicUrl(key);
+  }
+
+  async listObjects(prefix = ''): Promise<string[]> {
+    return this.adapter.listObjects(prefix);
   }
 
   async isHealthy(): Promise<boolean> {
-    try {
-      if (!fs.existsSync(this.storageRoot)) {
-        fs.mkdirSync(this.storageRoot, { recursive: true });
+    return this.adapter.isHealthy();
+  }
+
+  /**
+   * Scans storage for files not referenced in database attachments and deletes them.
+   */
+  async cleanupOrphans(referencedKeys: Set<string>): Promise<{ deleted: number; retained: number }> {
+    this.logger.log('Starting storage orphan cleanup check...');
+    const allObjects = await this.listObjects('uploads/');
+    let deleted = 0;
+    let retained = 0;
+
+    for (const key of allObjects) {
+      if (!referencedKeys.has(key)) {
+        this.logger.log(`Deleting orphaned storage object: ${key}`);
+        await this.deleteObject(key);
+        deleted++;
+      } else {
+        retained++;
       }
-      return true;
-    } catch {
-      return false;
     }
+
+    this.logger.log(`Orphan cleanup finished. Deleted: ${deleted}, Retained: ${retained}`);
+    return { deleted, retained };
   }
 }

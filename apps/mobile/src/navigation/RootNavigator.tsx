@@ -10,6 +10,8 @@ import { NotificationsScreen } from '../features/notifications';
 import { ComponentGallery } from '../core/dev/ComponentGallery';
 import { NavBarScrollProvider } from './nav-bar-scroll.context';
 import { useAuthStore } from '../features/auth/store';
+import { useVersionPolicy } from '../features/system/useVersionPolicy';
+import { ForceUpdateScreen } from '../features/system/ForceUpdateScreen';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
@@ -39,10 +41,20 @@ const linking: LinkingOptions<RootStackParamList> = {
 
 export const RootNavigator: React.FC = () => {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const versionPolicy = useVersionPolicy();
 
   useEffect(() => {
     useAuthStore.getState().initAuth().catch(() => {});
   }, []);
+
+  if (versionPolicy.checked && versionPolicy.needsUpdate) {
+    return (
+      <ForceUpdateScreen
+        minVersion={versionPolicy.minAppVersion}
+        downloadUrl={versionPolicy.downloadUrl}
+      />
+    );
+  }
 
   return (
     <NavBarScrollProvider>
