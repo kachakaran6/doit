@@ -10,6 +10,7 @@ import {
   LabelOption,
 } from '../../../components/patterns';
 import { useCreateTaskMutation } from '../api/mutations';
+import { useWorkspaceStore } from '../../workspace';
 
 export interface TaskCreateSheetProps {
   isOpen: boolean;
@@ -32,7 +33,8 @@ export const TaskCreateSheet: React.FC<TaskCreateSheetProps> = ({
   const [priority, setPriority] = useState<PriorityValue>('MEDIUM');
   const [selectedLabelIds, setSelectedLabelIds] = useState<string[]>([]);
 
-  const createTask = useCreateTaskMutation();
+  const activeProject = useWorkspaceStore((s) => s.activeProject);
+  const createTask = useCreateTaskMutation(activeProject?.id || 'default');
 
   const handleToggleLabel = (id: string) => {
     setSelectedLabelIds((prev) =>

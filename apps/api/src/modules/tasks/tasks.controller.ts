@@ -43,6 +43,72 @@ import { CurrentUser, AuthUserPayload } from '../../common/decorators/current-us
 export class TasksController {
   constructor(private readonly tasksService: TasksService) {}
 
+  @Post('projects/:projectId/bugs')
+  @UseGuards(WorkspaceMemberGuard)
+  @ApiBearerAuth('bearer-auth')
+  @ApiOperation({ summary: 'Create a new bug in a project' })
+  async createBug(
+    @CurrentUser() user: AuthUserPayload,
+    @Param('projectId') projectId: string,
+    @Headers('idempotency-key') idempotencyKey: string | undefined,
+    @Body() dto: any,
+  ) {
+    return this.tasksService.create(
+      user.sub,
+      {
+        title: dto.title || 'Untitled Bug',
+        description: dto.description,
+        priority: dto.severity === 'CRITICAL' ? 'URGENT' : dto.severity === 'MAJOR' ? 'HIGH' : 'MEDIUM',
+        type: 'BUG',
+        source: 'BUG',
+        projectId,
+        dueHasTime: false,
+        labelIds: [],
+      },
+      idempotencyKey,
+    );
+  }
+
+  @Get('projects/:projectId/bugs')
+  @UseGuards(WorkspaceMemberGuard)
+  @ApiBearerAuth('bearer-auth')
+  @ApiOperation({ summary: 'List bugs in a project' })
+  async listBugsByProject(
+    @Param('projectId') projectId: string,
+    @Query(new ZodValidationPipe(TaskListQuerySchema)) query: TaskListQueryDto,
+  ) {
+    return this.tasksService.findAll({ projectId }, { ...query, type: 'BUG' });
+  }
+
+  @Get('bugs/:id')
+  @UseGuards(WorkspaceMemberGuard)
+  @ApiBearerAuth('bearer-auth')
+  @ApiOperation({ summary: 'Get bug details' })
+  async findOneBug(@Param('id') id: string) {
+    return this.tasksService.findOne(id);
+  }
+
+  @Patch('bugs/:id')
+  @UseGuards(WorkspaceMemberGuard)
+  @ApiBearerAuth('bearer-auth')
+  @ApiOperation({ summary: 'Update bug status or details' })
+  async updateBug(
+    @CurrentUser() user: AuthUserPayload,
+    @Param('id') id: string,
+    @Body() dto: any,
+  ) {
+    if (dto.status) {
+      const taskStatus =
+        dto.status === 'RESOLVED' || dto.status === 'VERIFIED'
+          ? 'DONE'
+          : dto.status === 'IN_PROGRESS'
+            ? 'IN_PROGRESS'
+            : 'TODO';
+      return this.tasksService.updateStatus(id, user.sub, { status: taskStatus });
+    }
+    return this.tasksService.update(id, user.sub, dto);
+  }
+
   @Post('projects/:projectId/tasks')
   @UseGuards(WorkspaceMemberGuard)
   @ApiBearerAuth('bearer-auth')

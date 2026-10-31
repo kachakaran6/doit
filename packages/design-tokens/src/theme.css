@@ -1,0 +1,67 @@
+@layer theme {
+  :root {
+    /* surfaces */
+    --color-bg:             255 255 255;
+    --color-bg-subtle:      246 247 249;
+    --color-surface:        255 255 255;
+    --color-surface-raised: 255 255 255;
+    --color-border:         228 230 235;
+    --color-border-strong:  208 211 218;
+
+    /* text */
+    --color-text:           16 17 20;
+    --color-text-secondary: 91 97 110;
+    --color-text-tertiary:  139 145 158;
+
+    /* semantic */
+    --color-success: 15 157 88;
+    --color-warning: 180 83 9;
+    --color-danger:  217 48 37;
+    --color-info:    26 115 232;
+
+    /* accent — overridden by [data-accent] */
+    --color-accent:            79 70 229;
+    --color-accent-on:         255 255 255;
+    --color-accent-container:  238 240 254;
+    --color-accent-soft:       232 234 253;
+    --color-accent-text:       79 70 229;
+
+    /* radius, space, type — same numbers as mobile */
+    --radius-sm: 8px;
+    --radius-md: 12px;
+    --radius-lg: 16px;
+    --radius-xl: 20px;
+    --radius-pill: 999px;
+
+    --space-xs: 4px;
+    --space-sm: 8px;
+    --space-md: 12px;
+    --space-lg: 16px;
+    --space-xl: 20px;
+    --space-2xl: 24px;
+    --space-3xl: 32px;
+
+    --font-sans: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  }
+
+  .dark {
+    --color-bg:             11 12 14;
+    --color-bg-subtle:      19 20 23;
+    --color-surface:        23 24 28;
+    --color-surface-raised: 30 32 37;
+    --color-border:         38 40 46;
+    --color-border-strong:  51 54 61;
+
+    --color-text:           242 243 245;
+    --color-text-secondary: 155 161 172;
+    --color-text-tertiary:  107 114 128;
+
+    --color-success: 52 211 153;
+    --color-warning: 251 191 36;
+    --color-danger:  248 113 113;
+    --color-info:    96 165 250;
+
+    --color-accent-text: 165 180 252;
+  }
+}
+

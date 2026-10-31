@@ -11,14 +11,18 @@ import {
   useConvertStickyMutation,
 } from '../api/mutations';
 import { StickyViewModel } from '../types';
+import { useWorkspaceStore } from '../../workspace';
 
 export const StickyBoardScreen: React.FC = () => {
   const { colors, spacing } = useTheme();
-  const { data: stickies, isLoading, error, refetch, isRefetching } = useStickiesQuery('default');
+  const activeProject = useWorkspaceStore((s) => s.activeProject);
+  const projectId = activeProject?.id || 'default';
 
-  const createSticky = useCreateStickyMutation('default');
-  const togglePin = useTogglePinStickyMutation('default');
-  const convertSticky = useConvertStickyMutation('default');
+  const { data: stickies, isLoading, error, refetch, isRefetching } = useStickiesQuery(projectId);
+
+  const createSticky = useCreateStickyMutation(projectId);
+  const togglePin = useTogglePinStickyMutation(projectId);
+  const convertSticky = useConvertStickyMutation(projectId);
 
   const [isSheetOpen, setSheetOpen] = useState(false);
   const [newBody, setNewBody] = useState('');

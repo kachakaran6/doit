@@ -11,10 +11,23 @@ export function useCreateTaskMutation(projectId: string = 'default') {
       title: string;
       description?: string;
       dueDate?: string;
+      dueAt?: string;
       priority?: string;
       labelIds?: string[];
     }) => {
-      return http.post<TaskViewModel>(`/projects/${projectId}/tasks`, payload);
+      const { dueDate, dueAt, ...rest } = payload;
+      let finalDueAt = dueAt;
+      if (!finalDueAt && dueDate) {
+        try {
+          finalDueAt = new Date(dueDate).toISOString();
+        } catch {
+          finalDueAt = undefined;
+        }
+      }
+      return http.post<TaskViewModel>(`/projects/${projectId}/tasks`, {
+        ...rest,
+        dueAt: finalDueAt,
+      });
     },
     onMutate: async (newTask) => {
       await queryClient.cancelQueries({ queryKey: taskKeys.lists() });

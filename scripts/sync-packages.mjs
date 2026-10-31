@@ -24,6 +24,13 @@ for (const pkg of packages) {
       fs.writeFileSync(path.join(targetDir, 'package.json'), JSON.stringify(parsed, null, 2) + '\n', 'utf8');
     }
 
+    const themeCssSrc = path.join(pkgDir, 'src', 'theme.css');
+    if (fs.existsSync(themeCssSrc)) {
+      fs.mkdirSync(path.join(targetDir, 'src'), { recursive: true });
+      fs.copyFileSync(themeCssSrc, path.join(targetDir, 'src', 'theme.css'));
+      fs.copyFileSync(themeCssSrc, path.join(targetDir, 'theme.css'));
+    }
+
     const distSrc = path.join(pkgDir, 'dist');
     const distDest = path.join(targetDir, 'dist');
     if (fs.existsSync(distSrc)) {

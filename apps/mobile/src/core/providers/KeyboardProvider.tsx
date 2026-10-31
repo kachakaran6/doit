@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { Keyboard, KeyboardEvent, Platform } from 'react-native';
 
 export type KeyboardContextType =
@@ -61,21 +61,32 @@ export const KeyboardProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     };
   }, []);
 
-  const setActiveValue = (key: string, val: any) => {
-    setActiveValues((prev) => ({ ...prev, [key]: val }));
-  };
+  const setActiveValue = useCallback((key: string, val: any) => {
+    setActiveValues((prev) => {
+      if (prev[key] === val) return prev;
+      return { ...prev, [key]: val };
+    });
+  }, []);
+
+  const setKeyboardContextCallback = useCallback((ctx: KeyboardContextType) => {
+    setKeyboardContext((prev) => (prev === ctx ? prev : ctx));
+  }, []);
+
+  const setOnActionCallback = useCallback((handler?: (actionId: string, payload?: any) => void) => {
+    setActionHandler(() => handler);
+  }, []);
 
   return (
     <KeyboardStateContext.Provider
       value={{
         keyboardContext,
-        setKeyboardContext,
+        setKeyboardContext: setKeyboardContextCallback,
         keyboardHeight,
         isKeyboardVisible,
         activeValues,
         setActiveValue,
         onAction: actionHandler,
-        setOnAction: setActionHandler,
+        setOnAction: setOnActionCallback,
       }}
     >
       {children}

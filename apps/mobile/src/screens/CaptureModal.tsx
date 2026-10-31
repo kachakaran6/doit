@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, ScrollView } from 'react-native';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { View, StyleSheet, ScrollView, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRoute, useNavigation, RouteProp } from '@react-navigation/native';
 import { Text, Button, Input, Chip, KeyboardAccessoryBar } from '../components/ui';
@@ -8,15 +8,20 @@ import { useTheme } from '../theme/useTheme';
 import { useKeyboardBar } from '../core/providers/KeyboardProvider';
 import { useCreateTaskMutation } from '../features/tasks/api/mutations';
 import { useCreateBugMutation } from '../features/bugs/api/mutations';
+import { useWorkspaceStore } from '../features/workspace';
 import { RootStackParamList } from '../navigation/types';
+import { X, Check, Bug, CheckSquare, Mic } from 'lucide-react-native';
 
 type CaptureRouteProp = RouteProp<RootStackParamList, 'CaptureModal'>;
 
 export const CaptureModal: React.FC = () => {
-  const { colors, spacing } = useTheme();
+  const { colors, spacing, radius, elevation } = useTheme();
   const navigation = useNavigation();
   const route = useRoute<CaptureRouteProp>();
   const initialMode = route.params?.initialMode ?? 'task';
+
+  const activeProject = useWorkspaceStore((s) => s.activeProject);
+  const projectId = activeProject?.id || 'default';
 
   const [mode, setMode] = useState<'task' | 'bug' | 'voice'>(initialMode);
   const [title, setTitle] = useState('');
@@ -24,17 +29,76 @@ export const CaptureModal: React.FC = () => {
   const [dueDate, setDueDate] = useState<string | null>(null);
   const [priority, setPriority] = useState<PriorityValue>('MEDIUM');
   const [severity, setSeverity] = useState<SeverityValue>('MAJOR');
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const { setKeyboardContext, setOnAction, setActiveValue } = useKeyboardBar();
 
-  const createTask = useCreateTaskMutation('default');
-  const createBug = useCreateBugMutation('default');
+  const createTask = useCreateTaskMutation(projectId);
+  const createBug = useCreateBugMutation(projectId);
+
+  // Keep latest mutable state in ref to avoid recreating effect listeners
+  const stateRef = useRef({
+    mode,
+    title,
+    description,
+    dueDate,
+    priority,
+    severity,
+    projectId,
+  });
 
   useEffect(() => {
-    setActiveValue('priority', priority);
-    setActiveValue('severity', severity);
-  }, [priority, severity, setActiveValue]);
+    stateRef.current = {
+      mode,
+      title,
+      description,
+      dueDate,
+      priority,
+      severity,
+      projectId,
+    };
+  }, [mode, title, description, dueDate, priority, severity, projectId]);
 
+  // Sync active values into keyboard bar without infinite loop
+  useEffect(() => {
+    setActiveValue('priority', priority);
+  }, [priority, setActiveValue]);
+
+  useEffect(() => {
+    setActiveValue('severity', severity);
+  }, [severity, setActiveValue]);
+
+  const handleSave = useCallback(async () => {
+    const current = stateRef.current;
+    if (!current.title.trim()) {
+      setErrorMessage('Please enter a title or issue summary.');
+      return;
+    }
+    setErrorMessage(null);
+
+    try {
+      if (current.mode === 'bug') {
+        await createBug.mutateAsync({
+          title: current.title.trim(),
+          description: current.description.trim() || undefined,
+          severity: current.severity,
+        });
+      } else {
+        const dueAtIso = current.dueDate ? new Date(current.dueDate).toISOString() : undefined;
+        await createTask.mutateAsync({
+          title: current.title.trim(),
+          description: current.description.trim() || undefined,
+          dueDate: dueAtIso,
+          priority: current.priority,
+        });
+      }
+      navigation.goBack();
+    } catch (err: any) {
+      setErrorMessage(err.message || 'Failed to save. Please try again.');
+    }
+  }, [createBug, createTask, navigation]);
+
+  // Keyboard action listener mounted once
   useEffect(() => {
     setOnAction((actionId, payload) => {
       if (actionId === 'due_date') {
@@ -42,63 +106,60 @@ export const CaptureModal: React.FC = () => {
         if (payload === 'tomorrow') d.setDate(d.getDate() + 1);
         setDueDate(d.toISOString().split('T')[0] ?? null);
       } else if (actionId === 'pick_priority') {
-        setPriority((prev) => (prev === 'LOW' ? 'MEDIUM' : prev === 'MEDIUM' ? 'HIGH' : prev === 'HIGH' ? 'URGENT' : 'LOW'));
+        setPriority((prev) =>
+          prev === 'LOW' ? 'MEDIUM' : prev === 'MEDIUM' ? 'HIGH' : prev === 'HIGH' ? 'URGENT' : 'LOW'
+        );
       } else if (actionId === 'pick_severity') {
-        setSeverity((prev) => (prev === 'CRITICAL' ? 'MAJOR' : prev === 'MAJOR' ? 'MINOR' : prev === 'MINOR' ? 'TRIVIAL' : 'CRITICAL'));
+        setSeverity((prev) =>
+          prev === 'CRITICAL' ? 'MAJOR' : prev === 'MAJOR' ? 'MINOR' : prev === 'MINOR' ? 'TRIVIAL' : 'CRITICAL'
+        );
       } else if (actionId === 'send') {
         handleSave();
       }
     });
 
     return () => setOnAction(undefined);
-  }, [title, description, priority, severity, dueDate]);
-
-  const handleSave = async () => {
-    if (!title.trim()) return;
-
-    if (mode === 'bug') {
-      await createBug.mutateAsync({
-        title: title.trim(),
-        description: description.trim() || undefined,
-        severity,
-      });
-    } else {
-      await createTask.mutateAsync({
-        title: title.trim(),
-        description: description.trim() || undefined,
-        dueDate: dueDate || undefined,
-        priority,
-      });
-    }
-
-    navigation.goBack();
-  };
+  }, [setOnAction, handleSave]);
 
   const isSaving = createTask.isPending || createBug.isPending;
 
   return (
     <SafeAreaView edges={['top', 'bottom']} style={[styles.safeArea, { backgroundColor: colors.bg }]}>
-      <ScrollView contentContainerStyle={[styles.container, { padding: spacing.lg, paddingBottom: 80 }]}>
+      <ScrollView contentContainerStyle={[styles.container, { padding: spacing.lg, paddingBottom: 96 }]}>
+        {/* Header Bar */}
         <View style={styles.header}>
-          <Text variant="h1">
-            {mode === 'bug' ? 'Report Bug' : mode === 'voice' ? 'Voice Capture' : 'Quick Capture'}
-          </Text>
-          <Button title="Close" variant="ghost" size="sm" onPress={() => navigation.goBack()} />
+          <View>
+            <Text variant="caption" color="accent" style={{ fontWeight: '700', textTransform: 'uppercase' }}>
+              {activeProject ? `${activeProject.key} • ${activeProject.name}` : 'Quick Capture'}
+            </Text>
+            <Text variant="h1" style={{ marginTop: 2 }}>
+              {mode === 'bug' ? 'Report Bug' : mode === 'voice' ? 'Voice Capture' : 'New Task'}
+            </Text>
+          </View>
+          <Button
+            title=""
+            variant="ghost"
+            size="sm"
+            icon={<X size={20} color={colors.textPrimary} />}
+            onPress={() => navigation.goBack()}
+          />
         </View>
 
-        {/* Mode Selector */}
+        {/* Mode Selector Chips */}
         <View style={[styles.modeRow, { gap: spacing.sm, marginVertical: spacing.md }]}>
           <Chip
             label="Task"
             selected={mode === 'task'}
+            leadingIcon={<CheckSquare size={13} color={mode === 'task' ? colors.accentText : colors.textTertiary} />}
             onPress={() => {
               setMode('task');
               setKeyboardContext('task_title');
             }}
           />
           <Chip
-            label="Bug"
+            label="Bug Report"
             selected={mode === 'bug'}
+            leadingIcon={<Bug size={13} color={mode === 'bug' ? colors.accentText : colors.textTertiary} />}
             onPress={() => {
               setMode('bug');
               setKeyboardContext('bug_desc');
@@ -107,24 +168,51 @@ export const CaptureModal: React.FC = () => {
           <Chip
             label="Voice Note"
             selected={mode === 'voice'}
+            leadingIcon={<Mic size={13} color={mode === 'voice' ? colors.accentText : colors.textTertiary} />}
             onPress={() => setMode('voice')}
           />
         </View>
 
-        {/* Inputs */}
-        <View style={[styles.inputGroup, { gap: spacing.md, marginTop: spacing.md }]}>
+        {errorMessage && (
+          <View
+            style={[
+              styles.errorCard,
+              {
+                backgroundColor: colors.surface,
+                borderColor: colors.danger,
+                padding: spacing.md,
+                borderRadius: radius.md,
+                marginBottom: spacing.md,
+              },
+            ]}
+          >
+            <Text variant="caption" color="danger">
+              {errorMessage}
+            </Text>
+          </View>
+        )}
+
+        {/* Input Fields */}
+        <View style={[styles.inputGroup, { gap: spacing.md }]}>
           <Input
             label={mode === 'bug' ? 'Issue Summary' : 'Task Title'}
-            placeholder={mode === 'bug' ? 'e.g. Crash on checkout button click' : 'e.g. Finish design review'}
+            placeholder={mode === 'bug' ? 'e.g. App crashes when tapping checkout' : 'e.g. Review pull request for auth'}
             value={title}
-            onChangeText={setTitle}
+            onChangeText={(txt) => {
+              setTitle(txt);
+              if (errorMessage) setErrorMessage(null);
+            }}
             onFocus={() => setKeyboardContext(mode === 'bug' ? 'bug_desc' : 'task_title')}
             autoFocus
           />
 
           <Input
-            label="Details (Markdown)"
-            placeholder="Additional notes, reproduction steps, or context..."
+            label="Description & Context (Markdown)"
+            placeholder={
+              mode === 'bug'
+                ? 'Steps to reproduce:\n1. Open app\n2. Navigate to...\n3. Observe crash'
+                : 'Add acceptance criteria, links, or notes...'
+            }
             value={description}
             onChangeText={setDescription}
             onFocus={() => setKeyboardContext(mode === 'bug' ? 'bug_desc' : 'task_desc')}
@@ -133,7 +221,7 @@ export const CaptureModal: React.FC = () => {
           />
         </View>
 
-        {/* Single-tap Pickers */}
+        {/* Context Pickers */}
         <View style={{ marginTop: spacing.lg, gap: spacing.md }}>
           {mode === 'task' ? (
             <>
@@ -154,11 +242,12 @@ export const CaptureModal: React.FC = () => {
             onPress={() => navigation.goBack()}
           />
           <Button
-            title={mode === 'bug' ? 'Submit Bug' : 'Save Task'}
+            title={mode === 'bug' ? 'Submit Bug' : 'Create Task'}
             variant="primary"
             style={styles.actionBtn}
             disabled={!title.trim()}
             loading={isSaving}
+            icon={<Check size={16} color={colors.accentText} />}
             onPress={handleSave}
           />
         </View>
@@ -175,17 +264,20 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   container: {
-    paddingBottom: 48,
+    flexGrow: 1,
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     marginBottom: 8,
   },
   modeRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
+  },
+  errorCard: {
+    borderWidth: 1,
   },
   inputGroup: {
     width: '100%',

@@ -100,8 +100,56 @@ export const SettingsScreen: React.FC = () => {
             Settings
           </Text>
           <Text variant="caption" color="secondary">
-            Preferences, appearance, and native capabilities
+            Preferences, account, and native capabilities
           </Text>
+        </View>
+
+        {/* 0. User Profile Card */}
+        <View
+          style={[
+            styles.profileCard,
+            {
+              backgroundColor: colors.surfaceRaised,
+              borderColor: colors.border,
+              borderRadius: radius.lg,
+              padding: spacing.lg,
+            },
+          ]}
+        >
+          <View style={styles.profileRow}>
+            <View
+              style={[
+                styles.avatarCircle,
+                {
+                  backgroundColor: colors.accent,
+                  borderRadius: radius.pill,
+                },
+              ]}
+            >
+              <Text variant="h3" style={{ color: colors.accentText, fontWeight: '700' }}>
+                {(user?.fullName || user?.email || 'U')
+                  .split(' ')
+                  .map((n) => n[0])
+                  .join('')
+                  .toUpperCase()
+                  .slice(0, 2)}
+              </Text>
+            </View>
+            <View style={{ flex: 1, marginLeft: spacing.md }}>
+              <Text variant="h3" numberOfLines={1}>
+                {user?.fullName || 'Active User'}
+              </Text>
+              <Text variant="caption" color="secondary" numberOfLines={1}>
+                {user?.email || 'Logged In'}
+              </Text>
+              <View style={[styles.roleBadge, { backgroundColor: colors.surface, marginTop: 4 }]}>
+                <ShieldCheck size={12} color={colors.accentText} />
+                <Text variant="caption" color="accent" style={{ fontSize: 11, fontWeight: '600', marginLeft: 4 }}>
+                  Verified Account
+                </Text>
+              </View>
+            </View>
+          </View>
         </View>
 
         {/* 1. Appearance Section: Theme & 5 Accent Swatches */}
@@ -272,6 +320,27 @@ const styles = StyleSheet.create({
   },
   header: {
     marginBottom: 8,
+  },
+  profileCard: {
+    borderWidth: 1,
+  },
+  profileRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  avatarCircle: {
+    width: 48,
+    height: 48,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  roleBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 6,
   },
   section: {
     width: '100%',

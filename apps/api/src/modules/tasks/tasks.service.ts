@@ -32,10 +32,22 @@ export class TasksService {
       };
     }
 
-    const project = await this.prisma.project.findUnique({
-      where: { id: dto.projectId },
-      select: { id: true, key: true, workspaceId: true },
-    });
+    let project: { id: string; key: string; workspaceId: string } | null = null;
+    if (dto.projectId === 'default') {
+      const firstMembership = await this.prisma.membership.findFirst({
+        where: { userId },
+        include: { workspace: { include: { projects: { take: 1 } } } },
+      });
+      if (firstMembership?.workspace?.projects[0]) {
+        project = firstMembership.workspace.projects[0];
+        dto.projectId = project.id;
+      }
+    } else {
+      project = await this.prisma.project.findUnique({
+        where: { id: dto.projectId },
+        select: { id: true, key: true, workspaceId: true },
+      });
+    }
 
     if (!project) {
       throw new AppError(ErrorCode.PROJECT_NOT_FOUND, 'Project not found.', 404);
@@ -119,8 +131,11 @@ export class TasksService {
     if (typeof scope === 'string') {
       where.project = { workspaceId: scope };
     } else {
-      if (scope.projectId) {
+      if (scope.projectId && scope.projectId !== 'default') {
         where.projectId = scope.projectId;
+      } else if (scope.projectId === 'default') {
+        const firstProject = await this.prisma.project.findFirst({ select: { id: true } });
+        if (firstProject) where.projectId = firstProject.id;
       } else if (scope.workspaceId) {
         where.project = { workspaceId: scope.workspaceId };
       }

@@ -7,6 +7,7 @@ import { useTheme } from '../../../theme/useTheme';
 import { Text, Button, EmptyState, Skeleton, Chip } from '../../../components/ui';
 import { BugRow } from '../../../components/patterns';
 import { useBugsQuery } from '../api/queries';
+import { useWorkspaceStore } from '../../workspace';
 import { RootStackParamList } from '../../../navigation/types';
 import { BugSeverity } from '../types';
 
@@ -14,8 +15,10 @@ export const BugQueueScreen: React.FC = () => {
   const { colors, spacing } = useTheme();
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const [selectedSeverity, setSelectedSeverity] = useState<string>('ALL');
+  const activeProject = useWorkspaceStore((s) => s.activeProject);
+  const projectId = activeProject?.id || 'default';
 
-  const { data: bugs, isLoading, error, refetch, isRefetching } = useBugsQuery('default');
+  const { data: bugs, isLoading, error, refetch, isRefetching } = useBugsQuery(projectId);
 
   const items = bugs || [];
   const filteredBugs = items.filter((b) => {

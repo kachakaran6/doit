@@ -12,6 +12,7 @@ import { useTasksQuery } from '../api/queries';
 import { useUpdateTaskStatusMutation } from '../api/mutations';
 import { useTaskFilters } from '../hooks/useTaskFilters';
 import { useTaskStore } from '../store';
+import { useWorkspaceStore } from '../../workspace';
 import { RootStackParamList } from '../../../navigation/types';
 import { TaskStatus } from '../types';
 
@@ -19,11 +20,13 @@ export const TaskListScreen: React.FC = () => {
   const { colors, spacing } = useTheme();
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { viewMode, setViewMode, isCreateSheetOpen, setCreateSheetOpen } = useTaskStore();
+  const activeProject = useWorkspaceStore((s) => s.activeProject);
+  const projectId = activeProject?.id || 'default';
 
-  const { data: tasks, isLoading, error, refetch, isRefetching } = useTasksQuery('default');
+  const { data: tasks, isLoading, error, refetch, isRefetching } = useTasksQuery(projectId);
   const { activeTab, setActiveTab, selectedStatus, setSelectedStatus, filteredTasks } =
     useTaskFilters(tasks || []);
-  const updateStatus = useUpdateTaskStatusMutation('default');
+  const updateStatus = useUpdateTaskStatusMutation(projectId);
 
   const handleToggleStatus = (id: string, current: TaskStatus) => {
     const nextStatus: TaskStatus = current === 'DONE' ? 'TODO' : 'DONE';

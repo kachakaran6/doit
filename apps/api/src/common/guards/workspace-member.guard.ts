@@ -43,19 +43,32 @@ export class WorkspaceMemberGuard implements CanActivate {
     const projId = typeof projParam === 'string' ? projParam : undefined;
 
     if (!workspaceId && projId) {
-      const project = await this.prisma.project.findUnique({
-        where: { id: projId },
-        select: { workspaceId: true },
-      });
-      if (project) {
-        workspaceId = project.workspaceId;
-      } else {
-        const task = await this.prisma.task.findUnique({
-          where: { id: projId },
-          select: { project: { select: { workspaceId: true } } },
+      if (projId === 'default') {
+        const firstMembership = await this.prisma.membership.findFirst({
+          where: { userId },
+          include: { workspace: { include: { projects: { take: 1 } } } },
         });
-        if (task?.project) {
-          workspaceId = task.project.workspaceId;
+        if (firstMembership?.workspace?.projects[0]) {
+          workspaceId = firstMembership.workspaceId;
+          const resolvedId = firstMembership.workspace.projects[0].id;
+          if (request.params['projectId']) request.params['projectId'] = resolvedId;
+          if (request.params['id'] === 'default') request.params['id'] = resolvedId;
+        }
+      } else {
+        const project = await this.prisma.project.findUnique({
+          where: { id: projId },
+          select: { workspaceId: true },
+        });
+        if (project) {
+          workspaceId = project.workspaceId;
+        } else {
+          const task = await this.prisma.task.findUnique({
+            where: { id: projId },
+            select: { project: { select: { workspaceId: true } } },
+          });
+          if (task?.project) {
+            workspaceId = task.project.workspaceId;
+          }
         }
       }
     }
