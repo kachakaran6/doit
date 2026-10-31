@@ -1,31 +1,42 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { View, StyleSheet, ScrollView, RefreshControl, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useTheme } from '../../../theme/useTheme';
-import { Text, Button, Chip, Skeleton, EmptyState } from '../../../components/ui';
-import { TaskRow, StickyCard } from '../../../components/patterns';
+import { Text, Skeleton } from '../../../components/ui';
+import { StickyCard } from '../../../components/patterns';
 import { useTasksQuery } from '../../tasks/api/queries';
 import { useStickiesQuery } from '../../stickies/api/queries';
 import { useBugsQuery } from '../../bugs/api/queries';
-import { useUpdateTaskStatusMutation } from '../../tasks/api/mutations';
 import { useAuthStore } from '../../auth/store';
 import { useWorkspaceStore, useWorkspacesQuery, useProjectsQuery } from '../../workspace';
+import { WorkspaceSwitcherSheet } from '../../workspace/components/WorkspaceSwitcherSheet';
+import { AccountMenuSheet } from '../../settings/components/AccountMenuSheet';
 import { RootStackParamList } from '../../../navigation/types';
-import { FolderGit2, CheckCircle2, AlertTriangle, ChevronRight, Plus, Sparkles, Layers } from 'lucide-react-native';
+import {
+  Layers,
+  ChevronRight,
+  ChevronDown,
+  LayoutGrid,
+  SquareStack,
+  Bug,
+  StickyNote,
+} from 'lucide-react-native';
 
 export const HomeScreen: React.FC = () => {
   const { colors, spacing, radius, elevation } = useTheme();
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const user = useAuthStore((s) => s.user);
 
+  const [isWorkspaceSheetOpen, setWorkspaceSheetOpen] = useState(false);
+  const [isAccountMenuOpen, setAccountMenuOpen] = useState(false);
+
   // Load user workspaces & projects
   useWorkspacesQuery();
   const activeWorkspace = useWorkspaceStore((s) => s.activeWorkspace);
   const activeProject = useWorkspaceStore((s) => s.activeProject);
-  const setActiveProject = useWorkspaceStore((s) => s.setActiveProject);
-  const { data: projects } = useProjectsQuery(activeWorkspace?.id);
+  useProjectsQuery(activeWorkspace?.id);
 
   const projectId = activeProject?.id || 'default';
 
@@ -33,10 +44,8 @@ export const HomeScreen: React.FC = () => {
     useTasksQuery(projectId);
   const { data: stickies, isLoading: stickiesLoading, refetch: refetchStickies } =
     useStickiesQuery(projectId);
-  const { data: bugs, isLoading: bugsLoading, refetch: refetchBugs } =
+  const { data: bugs, refetch: refetchBugs } =
     useBugsQuery(projectId);
-
-  const updateTaskStatus = useUpdateTaskStatusMutation(projectId);
 
   const handleRefresh = async () => {
     await Promise.all([refetchTasks(), refetchStickies(), refetchBugs()]);
@@ -46,26 +55,23 @@ export const HomeScreen: React.FC = () => {
   const allBugs = bugs || [];
   const allStickies = stickies || [];
 
-  const todayTasks = allTasks.filter((t) => t.status !== 'DONE').slice(0, 5);
-  const openBugsCount = allBugs.filter((b) => b.status !== 'RESOLVED' && b.status !== 'VERIFIED').length;
-  const completedTasksCount = allTasks.filter((t) => t.status === 'DONE').length;
-  const pinnedStickies = allStickies.filter((s) => s.isPinned).slice(0, 2);
-
   const userInitials = (user?.fullName || user?.email || 'U')
     .split(' ')
-    .map((w) => w[0])
+    .map((w: string) => w[0])
     .join('')
     .toUpperCase()
     .slice(0, 2);
 
+  const workspaceInitial = (activeWorkspace?.name || 'D').charAt(0).toUpperCase();
+
   if (tasksLoading && stickiesLoading && !allTasks.length) {
     return (
       <SafeAreaView edges={['top']} style={[styles.container, { backgroundColor: colors.bg, padding: spacing.lg }]}>
-        <Skeleton width="60%" height={28} style={{ marginBottom: spacing.md }} />
-        <Skeleton width="100%" height={120} style={{ marginBottom: spacing.xl, borderRadius: radius.lg }} />
+        <Skeleton width="60%" height={32} style={{ marginBottom: spacing.md }} />
+        <Skeleton width="100%" height={72} style={{ marginBottom: spacing.xl, borderRadius: radius.lg }} />
         <Skeleton width="40%" height={20} style={{ marginBottom: spacing.md }} />
-        <Skeleton width="100%" height={64} style={{ marginBottom: spacing.sm, borderRadius: radius.md }} />
-        <Skeleton width="100%" height={64} style={{ borderRadius: radius.md }} />
+        <Skeleton width="100%" height={56} style={{ marginBottom: spacing.sm, borderRadius: radius.md }} />
+        <Skeleton width="100%" height={56} style={{ borderRadius: radius.md }} />
       </SafeAreaView>
     );
   }
@@ -73,7 +79,7 @@ export const HomeScreen: React.FC = () => {
   return (
     <SafeAreaView edges={['top']} style={[styles.container, { backgroundColor: colors.bg }]}>
       <ScrollView
-        contentContainerStyle={[styles.scrollContent, { padding: spacing.lg, paddingBottom: 110 }]}
+        contentContainerStyle={[styles.scrollContent, { padding: spacing.lg, paddingBottom: 150 }]}
         refreshControl={
           <RefreshControl
             refreshing={refetchingTasks}
@@ -82,230 +88,231 @@ export const HomeScreen: React.FC = () => {
           />
         }
       >
-        {/* Top App Bar: Workspace & Project Pills + User Avatar */}
-        <View style={styles.topBar}>
-          <View style={styles.workspacePillsGroup}>
-            <TouchableOpacity
-              style={[
-                styles.workspaceBadge,
-                {
-                  backgroundColor: colors.surfaceRaised,
-                  borderColor: colors.border,
-                  borderRadius: radius.pill,
-                  paddingHorizontal: spacing.sm + 2,
-                  paddingVertical: 6,
-                },
-              ]}
-              activeOpacity={0.7}
-            >
-              <FolderGit2 size={14} color={colors.accentText} />
-              <Text variant="caption" color="primary" style={{ fontWeight: '600', marginLeft: 6 }}>
-                {activeWorkspace?.name || 'Workspace'}
+        {/* Top Header Row matching Plane reference */}
+        <View style={styles.headerRow}>
+          {/* Workspace Tile Logo + Name + Chevron + Dot */}
+          <TouchableOpacity
+            style={styles.workspaceSelector}
+            activeOpacity={0.7}
+            onPress={() => setWorkspaceSheetOpen(true)}
+          >
+            <View style={[styles.workspaceLogoTile, { backgroundColor: colors.info, borderRadius: radius.sm }]}>
+              <Text variant="body" style={{ color: colors.accentOnPrimary, fontWeight: '700', fontSize: 16 }}>
+                {workspaceInitial}
               </Text>
+            </View>
+
+            <View style={styles.workspaceNameRow}>
+              <Text variant="h2" numberOfLines={1} style={styles.workspaceNameText}>
+                {activeWorkspace?.name || 'DoIt'}
+              </Text>
+              <ChevronDown size={16} color={colors.textSecondary} style={{ marginLeft: 4 }} />
+              <View style={[styles.statusDot, { backgroundColor: colors.textSecondary }]} />
+            </View>
+          </TouchableOpacity>
+
+          {/* Right Header Controls: Grid icon + 40px Circular Avatar */}
+          <View style={styles.headerRightActions}>
+            <TouchableOpacity
+              style={styles.gridButton}
+              activeOpacity={0.7}
+              onPress={() => navigation.navigate('Search' as any)}
+            >
+              <LayoutGrid size={22} color={colors.textSecondary} />
             </TouchableOpacity>
 
-            {projects && projects.length > 1 ? (
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ flexGrow: 0 }}>
-                <View style={{ flexDirection: 'row', gap: 6 }}>
-                  {projects.map((p) => {
-                    const isSelected = p.id === activeProject?.id;
-                    return (
-                      <Chip
-                        key={p.id}
-                        label={p.name}
-                        selected={isSelected}
-                        onPress={() => setActiveProject(p)}
-                      />
-                    );
-                  })}
-                </View>
-              </ScrollView>
-            ) : (
-              <View
-                style={[
-                  styles.projectPill,
-                  {
-                    backgroundColor: colors.surface,
-                    borderRadius: radius.pill,
-                    paddingHorizontal: spacing.sm,
-                    paddingVertical: 6,
-                  },
-                ]}
-              >
-                <Layers size={12} color={colors.textSecondary} />
-                <Text variant="caption" color="secondary" style={{ marginLeft: 4 }}>
-                  {activeProject?.name || 'Default Project'}
-                </Text>
-              </View>
-            )}
+            <TouchableOpacity
+              style={[
+                styles.avatarCircle,
+                {
+                  backgroundColor: colors.warning,
+                  borderColor: colors.border,
+                  borderRadius: radius.pill,
+                },
+              ]}
+              onPress={() => setAccountMenuOpen(true)}
+              activeOpacity={0.8}
+              accessibilityLabel="Open account menu"
+            >
+              <Text variant="caption" style={{ color: colors.accentOnPrimary, fontWeight: '700', fontSize: 14 }}>
+                {userInitials}
+              </Text>
+            </TouchableOpacity>
           </View>
-
-          {/* User Profile Avatar with Settings Deep Link */}
-          <TouchableOpacity
-            style={[
-              styles.avatarButton,
-              {
-                backgroundColor: colors.accent,
-                borderColor: colors.border,
-                borderRadius: radius.pill,
-                ...elevation.e1,
-              },
-            ]}
-            onPress={() => navigation.navigate('Settings')}
-            activeOpacity={0.8}
-            accessibilityLabel="Open settings and profile"
-          >
-            <Text variant="caption" style={{ color: colors.accentText, fontWeight: '700', fontSize: 13 }}>
-              {userInitials}
-            </Text>
-          </TouchableOpacity>
         </View>
 
-        {/* Hero Project Card */}
-        <View
+        {/* Full-width "Work" Card */}
+        <TouchableOpacity
           style={[
-            styles.projectCard,
+            styles.workCard,
             {
-              backgroundColor: colors.surfaceRaised,
+              backgroundColor: colors.surface,
               borderColor: colors.border,
-              borderRadius: radius.lg,
-              padding: spacing.lg,
-              marginTop: spacing.md,
+              borderRadius: radius.xl,
+              paddingHorizontal: spacing.lg,
+              paddingVertical: spacing.lg,
+              marginTop: spacing.lg,
               ...elevation.e1,
             },
           ]}
+          activeOpacity={0.7}
+          onPress={() => navigation.navigate('Tasks' as any)}
         >
-          <View style={styles.projectHeader}>
-            <View style={{ flex: 1 }}>
-              <View style={styles.keyBadgeRow}>
-                <View style={[styles.keyBadge, { backgroundColor: colors.surface, borderRadius: radius.sm }]}>
-                  <Text variant="caption" color="accent" style={{ fontWeight: '800', fontSize: 11, letterSpacing: 0.5 }}>
-                    {activeProject?.key || 'SMP'}
-                  </Text>
-                </View>
-                <Text variant="caption" color="secondary" style={{ marginLeft: 6 }}>
-                  Sprint Active
-                </Text>
-              </View>
+          <View style={styles.workCardLeft}>
+            <Layers size={22} color={colors.textPrimary} />
+            <Text variant="h2" style={{ marginLeft: spacing.md, fontSize: 17, fontWeight: '600' }}>
+              Work
+            </Text>
+          </View>
+          <ChevronRight size={18} color={colors.textTertiary} />
+        </TouchableOpacity>
 
-              <Text variant="h2" style={{ marginTop: 4 }} numberOfLines={1}>
-                {activeProject?.name || 'Samyukt Doit'}
-              </Text>
-            </View>
-
-            <Button
-              title="Board"
-              variant="ghost"
-              size="sm"
-              icon={<ChevronRight size={16} color={colors.textSecondary} />}
-              onPress={() => navigation.navigate('MainTabs')}
-            />
+        {/* Section: Your work ▾ */}
+        <View style={[styles.sectionContainer, { marginTop: spacing['2xl'] }]}>
+          <View style={styles.sectionHeaderRow}>
+            <Text variant="body" color="secondary" style={styles.sectionHeaderTitle}>
+              Your work ▾
+            </Text>
           </View>
 
-          {/* Metrics Counters */}
-          <View style={[styles.metricsRow, { marginTop: spacing.md, gap: spacing.md }]}>
-            <View style={[styles.metricCard, { backgroundColor: colors.surface, borderRadius: radius.md }]}>
-              <CheckCircle2 size={16} color={colors.success} />
-              <View style={{ marginLeft: 8 }}>
-                <Text variant="caption" color="primary" style={{ fontWeight: '700' }}>
-                  {completedTasksCount}
-                </Text>
-                <Text variant="caption" color="secondary" style={{ fontSize: 11 }}>
-                  Completed
-                </Text>
-              </View>
+          {/* Row 1: Work items */}
+          <TouchableOpacity
+            style={[styles.itemRow, { borderColor: colors.border }]}
+            activeOpacity={0.7}
+            onPress={() => navigation.navigate('Tasks' as any)}
+          >
+            <View style={styles.itemRowLeft}>
+              <SquareStack size={20} color={colors.textSecondary} />
+              <Text variant="body" style={{ marginLeft: spacing.md, fontSize: 16 }}>
+                Work items
+              </Text>
             </View>
+            <View style={styles.itemRowRight}>
+              <Text variant="body" color="secondary">
+                {allTasks.length}
+              </Text>
+              <ChevronRight size={16} color={colors.textTertiary} style={{ marginLeft: 4 }} />
+            </View>
+          </TouchableOpacity>
 
-            <View style={[styles.metricCard, { backgroundColor: colors.surface, borderRadius: radius.md }]}>
-              <AlertTriangle size={16} color={openBugsCount > 0 ? colors.warning : colors.textTertiary} />
-              <View style={{ marginLeft: 8 }}>
-                <Text
-                  variant="caption"
-                  color={openBugsCount > 0 ? 'warning' : 'primary'}
-                  style={{ fontWeight: '700' }}
-                >
-                  {openBugsCount}
-                </Text>
-                <Text variant="caption" color="secondary" style={{ fontSize: 11 }}>
-                  Open Bugs
-                </Text>
-              </View>
+          {/* Row 2: Bugs */}
+          <TouchableOpacity
+            style={[styles.itemRow, { borderColor: colors.border }]}
+            activeOpacity={0.7}
+            onPress={() => navigation.navigate('Bugs' as any)}
+          >
+            <View style={styles.itemRowLeft}>
+              <Bug size={20} color={colors.textSecondary} />
+              <Text variant="body" style={{ marginLeft: spacing.md, fontSize: 16 }}>
+                Bugs
+              </Text>
+            </View>
+            <View style={styles.itemRowRight}>
+              <Text variant="body" color="secondary">
+                {allBugs.length}
+              </Text>
+              <ChevronRight size={16} color={colors.textTertiary} style={{ marginLeft: 4 }} />
+            </View>
+          </TouchableOpacity>
+        </View>
+
+        {/* Section: Recent activity ▾ */}
+        <View style={[styles.sectionContainer, { marginTop: spacing['2xl'] }]}>
+          <View style={styles.sectionHeaderRow}>
+            <Text variant="body" color="secondary" style={styles.sectionHeaderTitle}>
+              Recent activity ▾
+            </Text>
+            <TouchableOpacity onPress={() => navigation.navigate('Tasks' as any)}>
+              <Text variant="caption" color="secondary">
+                View all
+              </Text>
+            </TouchableOpacity>
+          </View>
+
+          <View style={styles.recentProjectRow}>
+            <Text style={{ fontSize: 20 }}>👇</Text>
+            <View style={{ marginLeft: spacing.md }}>
+              <Text variant="body" style={{ fontWeight: '600', fontSize: 16 }}>
+                {activeProject?.name || activeWorkspace?.name || 'Project'}
+              </Text>
+              <Text variant="caption" color="secondary" style={{ marginTop: 2 }}>
+                Project
+              </Text>
             </View>
           </View>
         </View>
 
-        {/* Pinned Stickies Section */}
-        {pinnedStickies.length > 0 && (
-          <View style={{ marginTop: spacing.xl }}>
-            <View style={styles.sectionHeader}>
-              <Text variant="label" color="secondary" style={styles.sectionEyebrow}>
-                PINNED STICKIES
-              </Text>
-              <Sparkles size={14} color={colors.accentText} />
-            </View>
-            <View style={[styles.stickiesRow, { gap: spacing.sm, marginTop: spacing.xs }]}>
-              {pinnedStickies.map((s) => (
+        {/* Section: Stickies ▾ */}
+        <View style={[styles.sectionContainer, { marginTop: spacing['2xl'] }]}>
+          <View style={styles.sectionHeaderRow}>
+            <Text variant="body" color="secondary" style={styles.sectionHeaderTitle}>
+              Stickies ▾
+            </Text>
+          </View>
+
+          {allStickies.length > 0 ? (
+            <View style={styles.stickiesGrid}>
+              {allStickies.slice(0, 3).map((s) => (
                 <StickyCard
                   key={s.id}
                   id={s.id}
                   body={s.body}
+                  color={s.color}
                   isPinned={s.isPinned}
-                  convertedTaskId={s.convertedTaskId}
+                  
+                  
+                  onPress={() => {}}
                 />
               ))}
             </View>
-          </View>
-        )}
-
-        {/* "Your work" section */}
-        <View style={{ marginTop: spacing.xl }}>
-          <View style={styles.sectionHeader}>
-            <Text variant="label" color="secondary" style={styles.sectionEyebrow}>
-              YOUR WORK (TODAY)
-            </Text>
-            <Button
-              title="Add Task"
-              variant="ghost"
-              size="sm"
-              icon={<Plus size={14} color={colors.accentText} />}
-              onPress={() => navigation.navigate('CaptureModal', { initialMode: 'task' })}
-            />
-          </View>
-
-          {!todayTasks.length ? (
-            <EmptyState
-              illustration="no-tasks"
-              title="All clear for today"
-              body="No pending tasks for today. Tap + to capture new ideas or items."
-              actionTitle="Quick Capture"
-              onAction={() => navigation.navigate('CaptureModal', { initialMode: 'task' })}
-              style={{ marginTop: spacing.md }}
-            />
           ) : (
-            <View style={{ marginTop: spacing.xs, gap: spacing.xs }}>
-              {todayTasks.map((t) => (
-                <TaskRow
-                  key={t.id}
-                  id={t.id}
-                  humanId={t.humanId}
-                  title={t.title}
-                  status={t.status}
-                  priority={t.priority}
-                  dueDate={t.dueDate}
-                  labels={t.labels}
-                  onPress={() => navigation.navigate('TaskDetail', { id: t.id })}
-                  onToggleStatus={() =>
-                    updateTaskStatus.mutate({
-                      id: t.id,
-                      status: t.status === 'DONE' ? 'TODO' : 'DONE',
-                    })
-                  }
-                />
-              ))}
+            /* Plane-style isometric sticky empty state */
+            <View style={styles.stickiesEmptyState}>
+              <View style={[styles.stickiesIllustrationBox, { backgroundColor: colors.surfaceRaised, borderColor: colors.border }]}>
+                <StickyNote size={44} color={colors.textTertiary} strokeWidth={1.5} />
+              </View>
+
+              <Text
+                variant="body"
+                color="secondary"
+                style={[styles.emptyCaption, { marginVertical: spacing.md }]}
+              >
+                Jot down an idea, capture an aha, or record a brainwave. Add a sticky to get started.
+              </Text>
+
+              <TouchableOpacity
+                style={[
+                  styles.createStickyOutlineBtn,
+                  {
+                    borderColor: colors.borderStrong,
+                    borderRadius: radius.pill,
+                    paddingHorizontal: spacing.xl,
+                    paddingVertical: 10,
+                  },
+                ]}
+                activeOpacity={0.7}
+                onPress={() => (navigation as any).navigate('CaptureModal', { initialMode: 'task' })}
+              >
+                <Text variant="body" style={{ fontWeight: '600' }}>
+                  Create your first sticky
+                </Text>
+              </TouchableOpacity>
             </View>
           )}
         </View>
       </ScrollView>
+
+      {/* Sheets */}
+      <WorkspaceSwitcherSheet
+        visible={isWorkspaceSheetOpen}
+        onClose={() => setWorkspaceSheetOpen(false)}
+      />
+
+      <AccountMenuSheet
+        visible={isAccountMenuOpen}
+        onClose={() => setAccountMenuOpen(false)}
+        onNavigateSettings={() => navigation.navigate('Settings')}
+      />
     </SafeAreaView>
   );
 };
@@ -317,72 +324,117 @@ const styles = StyleSheet.create({
   scrollContent: {
     flexGrow: 1,
   },
-  topBar: {
+  headerRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 4,
   },
-  workspacePillsGroup: {
+  workspaceSelector: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
     flex: 1,
   },
-  workspaceBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderWidth: 1,
-  },
-  projectPill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  avatarButton: {
-    width: 36,
-    height: 36,
+  workspaceLogoTile: {
+    width: 40,
+    height: 40,
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 1.5,
+  },
+  workspaceNameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginLeft: 12,
+  },
+  workspaceNameText: {
+    fontSize: 18,
+    fontWeight: '600',
+  },
+  statusDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
     marginLeft: 8,
   },
-  projectCard: {
+  headerRightActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  gridButton: {
+    padding: 6,
+  },
+  avatarCircle: {
+    width: 40,
+    height: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
     borderWidth: 1,
   },
-  projectHeader: {
+  workCard: {
     flexDirection: 'row',
+    alignItems: 'center',
     justifyContent: 'space-between',
-    alignItems: 'flex-start',
+    borderWidth: 1,
   },
-  keyBadgeRow: {
+  workCardLeft: {
     flexDirection: 'row',
     alignItems: 'center',
   },
-  keyBadge: {
-    paddingHorizontal: 6,
-    paddingVertical: 2,
+  sectionContainer: {
+    width: '100%',
   },
-  metricsRow: {
+  sectionHeaderRow: {
     flexDirection: 'row',
     alignItems: 'center',
-  },
-  metricCard: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-  },
-  sectionHeader: {
-    flexDirection: 'row',
     justifyContent: 'space-between',
+    marginBottom: 8,
+  },
+  sectionHeaderTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  itemRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 14,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+  },
+  itemRowLeft: {
+    flexDirection: 'row',
     alignItems: 'center',
   },
-  sectionEyebrow: {
-    fontWeight: '700',
-    letterSpacing: 0.5,
-  },
-  stickiesRow: {
+  itemRowRight: {
     flexDirection: 'row',
+    alignItems: 'center',
+  },
+  recentProjectRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 12,
+  },
+  stickiesGrid: {
+    gap: 10,
+  },
+  stickiesEmptyState: {
+    alignItems: 'center',
+    paddingVertical: 20,
+    paddingHorizontal: 16,
+  },
+  stickiesIllustrationBox: {
+    width: 72,
+    height: 72,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+  },
+  emptyCaption: {
+    textAlign: 'center',
+    lineHeight: 20,
+    maxWidth: 280,
+  },
+  createStickyOutlineBtn: {
+    borderWidth: 1,
   },
 });

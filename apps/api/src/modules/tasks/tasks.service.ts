@@ -56,7 +56,7 @@ export class TasksService {
     const task = await this.prisma.$transaction(async (tx) => {
       // Find highest number in project
       const latestTask = await tx.task.findFirst({
-        where: { projectId: dto.projectId },
+        where: { projectId: project.id },
         orderBy: { number: 'desc' },
         select: { number: true, order: true },
       });
@@ -66,7 +66,7 @@ export class TasksService {
 
       const created = await tx.task.create({
         data: {
-          projectId: dto.projectId,
+          projectId: project.id,
           number: nextNumber,
           title: dto.title,
           description: dto.description,

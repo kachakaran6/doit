@@ -9,7 +9,7 @@ export const LoginScreen: React.FC = () => {
   const { colors, spacing, radius } = useTheme();
   const [mode, setMode] = useState<'signin' | 'signup'>('signin');
   const [fullName, setFullName] = useState('');
-  const [email, setEmail] = useState('alice@samyukt.com');
+  const [email, setEmail] = useState('alice@doit.local');
   const [password, setPassword] = useState('Password123!');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
@@ -55,7 +55,7 @@ export const LoginScreen: React.FC = () => {
       <ScrollView contentContainerStyle={[styles.container, { padding: spacing.lg }]}>
         <View style={styles.header}>
           <Text variant="h1" style={{ textAlign: 'center' }}>
-            Samyukt DoIt
+            DoIt
           </Text>
           <Text variant="body" color="secondary" style={{ marginTop: spacing.xs, textAlign: 'center' }}>
             {mode === 'signin' ? 'Sign in to access your workspaces' : 'Create an account to get started'}
@@ -159,7 +159,7 @@ export const LoginScreen: React.FC = () => {
                 title="Bob (Tester)"
                 variant="secondary"
                 size="sm"
-                onPress={() => setDemoAccount('bob@samyukt.com')}
+                onPress={() => setDemoAccount('bob@doit.local')}
               />
             </View>
           </View>

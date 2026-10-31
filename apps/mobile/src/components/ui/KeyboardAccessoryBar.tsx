@@ -198,7 +198,7 @@ export const KeyboardAccessoryBar: React.FC<KeyboardAccessoryBarProps> = ({
         {
           backgroundColor: colors.bgSubtle,
           borderTopColor: colors.border,
-          bottom: Platform.OS === 'android' ? keyboardHeight : 0,
+          bottom: 0,
         },
       ]}
     >

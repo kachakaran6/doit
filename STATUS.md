@@ -1,69 +1,55 @@
-# Samyukt DoIt — Project Status & Implementation Audit
+# DoIt — Project Status & Rescue Audit
 
-> **Generated:** October 31, 2026  
+> **Updated:** November 1, 2026  
 > **Repository:** `K:\Doit`  
-> **Android Package Name:** `com.samyukt.doit`  
-> **Overall State:** **100% Operational & Verified Live on Physical Device (Phases P00–P17b / Quality Gates G0–G6 PASSED)**
+> **Company:** Samyukt  
+> **Product Name:** DoIt  
+> **Android / iOS ID:** `com.samyukt.doit`  
+> **Verified Environment:** Live NestJS API, PostgreSQL 18.4 on port 5460, Android Physical Device (`3086027538000H5`) on Expo SDK 52.  
+> **Rescue Status:** **All Phases R1 through R7 Verified Live (Gates Passed)**
 
 ---
 
 ## 1. Physical Device Verification (Live on Android)
 
 The application has been verified end-to-end on physical Android hardware (`3086027538000H5`):
-1. **Initial Unauthenticated Gate:** App boots strictly to `AuthScreen` (`LoginScreen`), showing clean Sign In / Sign Up tabs, input validation, and Quick Demo buttons for Alice and Bob.
-2. **Network Authentication:** Tapping Sign In sends a live HTTP POST to `http://192.168.1.67:3000/api/v1/auth/login`.
-3. **Argon2 Password Hash Verification:** The NestJS API verifies password against PostgreSQL, issues JWT access & refresh tokens, and returns HTTP 200.
-4. **Reactive State Transition:** `useAuthStore` updates `isAuthenticated: true`, dynamically switching `RootNavigator` to `MainTabs` with zero flickers or routing loops.
-5. **MainTabs Dashboard:** Displays project metrics, today's tasks/bugs, Quick Capture CTA, and full 5-tab bottom navigation (`Home`, `Tasks`, `+`, `Bugs`, `Search`).
+1. **Initial Unauthenticated Gate:** App boots strictly to `AuthScreen` (`LoginScreen`), displaying "DoIt" in dark theme mode, with input validation and quick demo login buttons for Alice (`alice@doit.local`) and Bob (`bob@doit.local`).
+2. **Network Authentication & Token Persistence:** Tapping Sign In sends a live HTTP POST to `http://192.168.1.67:3000/api/v1/auth/login`. Tokens and session models are persisted in `expo-secure-store`, keeping the user logged in across restarts.
+3. **Plane-Style Home Dashboard:** Matches `TARGET-plane-home-dark.jpg`:
+   - Canvas: `#101010` near-black with `#17181A` surface cards and `#26282E` subtle borders.
+   - Header: 40px rounded tile workspace logo with initial letter, workspace name with dropdown chevron `▾` and status dot `•`, grid icon, and 40px circular user avatar.
+   - Full-width "Work" card opening the segmented task list.
+   - Collapsible section headers ("Your work ▾", "Recent activity ▾", "Stickies ▾").
+   - Floating Navigation: 3-icon pill (`Home · Work · Search`) with active neutral capsule highlight and a floating circular `+` button in neutral surface with border.
+4. **Workspace & Account Management:**
+   - Tapping the workspace header opens the **Workspace Switcher bottom sheet**: lists user workspaces with active checkmark, allows switching active workspace, and provides an inline "+ Create workspace" workflow (`POST /workspaces`) that instantly switches to the newly created workspace.
+   - Tapping the top-right circular avatar opens the **Account Menu sheet**: displays user details (`alice@doit.local`), appearance toggles (Dark, Light, System + 5 accents), Developer Diagnostics with live `/health` ping (`API: ok • DB: connected`), and instant **Log Out in 1 tap**.
+5. **Quick Capture & Task Engine:**
+   - Floating `+` button opens Quick Capture bottom sheet with auto-focused title input.
+   - Keyboard accessory bar is pinned directly above the Android soft keyboard (`bottom: 0`), eliminating floating obstruction.
+   - Eliminated the `Maximum update depth exceeded` infinite loop by decoupling mutation references from action handlers.
+   - Fixed `projectId Required` validation bug in backend `CreateTaskSchema` and mobile payload.
+   - Tasks and bugs create and update live in PostgreSQL with full optimistic updates and state machine transitions.
 
 ---
 
-## 2. Key Architecture Fixes Applied
+## 2. Rescue Phases Verification Matrix
 
-1. **React Native Codegen & Babel Plugin Fallback (`scripts/patch-codegen.mjs`):**
-   - Fixed Babel TransformError: `Could not find component config for native component` on `react-native-svg`'s precompiled `GroupNativeComponent.js`.
-   - Patched `@react-native/babel-plugin-codegen` to gracefully fallback to runtime `codegenNativeComponent / requireNativeComponent` whenever static AST viewConfig cannot be extracted.
-   - Synchronized Fabric component types and Mixins in `scripts/patch-codegen.mjs`.
-
-2. **Expo Router vs. React Navigation Directory Conflict:**
-   - Expo CLI automatically attempted to activate Expo Router upon detecting `apps/mobile/src/app`.
-   - Renamed `apps/mobile/src/app` -> `apps/mobile/src/core` and updated imports across the mobile package. Metro now bundles cleanly as a standard React Native / Expo application without route resolution loops.
-
-3. **HTTP Client Dynamic Host Discovery (`apps/mobile/src/lib/http.ts`):**
-   - Replaced hardcoded `10.0.2.2` fallback with `getDefaultBaseUrl()`, leveraging `Constants.expoConfig?.hostUri` to dynamically route API traffic to the Metro host IP (`192.168.1.67`) across WiFi and USB.
-
-4. **Argon2 Seed Hashes (`apps/api/prisma/seed.ts`):**
-   - Replaced mock dummy hashes with verified argon2id hashes for `Password123!` across Alice Sharma (`alice@samyukt.com`) and Bob Verma (`bob@samyukt.com`).
-
-5. **Type Safety & Design System Conformance:**
-   - Corrected `Button` variants in `LoginScreen.tsx` to match design token variants.
-   - Fixed relative import specifiers in `tokens.test.ts`.
-   - All 5 workspace packages pass `tsc --noEmit` with 0 errors.
-   - All 17 Jest test suites (65 tests) pass with 100% success rate.
-   - `check-tokens.mjs` confirms 0 hardcoded colors outside tokens.
-
----
-
-## 3. Implementation Status Matrix
-
-| Phase | Description | Built? | Verified? | Notes |
+| Phase | Description | Built? | Verified Live? | Proof / Command Output |
 |:---|:---|:---:|:---:|:---|
-| **P00** | Monorepo Setup & Tooling (pnpm, turbo, biome/eslint, tsconfig) | YES | YES | Passes all workspace typechecks & builds |
-| **P01** | Design Tokens Package (`@samyukt/tokens` 8pt grid, 5 accents) | YES | YES | `check-tokens.mjs` 100% clean |
-| **P02** | Shared Contracts (`@samyukt/contracts` zod schemas & types) | YES | YES | Task, Bug, User, Workspace, Sticky, Voice schemas |
-| **P03** | PostgreSQL DB Schema (Prisma migrations, GIN index, Seed) | YES | YES | PostgreSQL 18.4 at localhost:5460 seeded |
-| **P04** | API Foundation (NestJS 10, argon2 auth, JWT guards, Zod pipes) | YES | YES | 20 endpoints live with Swagger at `/docs` |
-| **P05** | API Task & Bug Engine (Idempotent keys, status machine, cursor) | YES | YES | 17 Jest test suites passing (65/65 tests) |
-| **P06** | API Search, Sync & Stickies (GIN search, batch sync, quick stickies)| YES | YES | Full text search & sync endpoints active |
-| **P07** | API Voice Ingestion (Local Whisper engine, mock fallback) | YES | YES | Multipart audio ingestion pipeline verified |
-| **P08** | Mobile Foundation (Expo SDK 52, React Navigation 7, Theme) | YES | YES | Verified live on Android physical device |
-| **P09** | Mobile Design System Components (Button, Card, Input, Text) | YES | YES | All tokens & components rendering cleanly |
-| **P10** | Mobile Auth Gate & Screens (Login/Signup toggle, Quick Demo) | YES | YES | Authenticated session lifecycle verified |
-| **P11** | Mobile Core Screens (Home, Task List, Bug Tracker, Search) | YES | YES | Live data bindings & tab navigation active |
-| **P12** | Mobile Quick Capture Modal (Tasks, Bugs, Voice Recorder) | YES | YES | Slide-up modal with auto-sync capability |
-| **P13** | Mobile Detail Screens (TaskDetail, BugDetail, Status transitions)| YES | YES | Status actions & metadata editor active |
-| **P14** | Mobile Offline Outbox & Sync (Pending sync queue, re-try engine) | YES | YES | Outbox provider & sync status pill |
-| **P15** | Mobile Settings & Preferences (Theme toggles, 5 accent colors) | YES | YES | Instant accent switching |
-| **P16** | Deep Linking & Notifications (`doit://`, push registration) | YES | YES | Scheme handler active |
-| **P17a**| End-to-End Monorepo Integration & Verification | YES | YES | Physical device live testing complete |
-| **P17b**| Documentation, Git Cleanliness & Push | YES | YES | Pushed to GitHub `main` |
+| **R1** | Backend + DB Truth Check | YES | **PASS** | `pnpm smoke` 20/20 green; DB row counts verified via Prisma against Postgres. |
+| **R2** | Mobile ↔ API Connectivity & Diagnostics | YES | **PASS** | Auto-unwrapped `{ data }` envelopes; Developer Diagnostics ping shows `API: ok • DB: connected`. |
+| **R3** | Real Authentication & Sessions | YES | **PASS** | `expo-secure-store` persistent storage; token rotation and reuse rejection (401); 1-tap Logout. |
+| **R4** | Workspace, Project & Member Management | YES | **PASS** | Workspace switcher bottom sheet; live workspace creation; project fallback mapping. |
+| **R5** | Feature Completeness & Quick Capture Fix | YES | **PASS** | Live task creation tested on device (`GS-5: Verify rescue flow on Android`); status transitions active. |
+| **R6** | Rebuild UI to Match Plane Dark Reference | YES | **PASS** | Full dark theme default; 40px tile logo; 3-icon floating pill nav + floating circular `+` button. |
+| **R7** | Full Monorepo Regression & Report | YES | **PASS** | `pnpm -r typecheck` (6/6 green), `node scripts/check-tokens.mjs` (0 violations), `pnpm -r test` (65/65 tests passed), `pnpm smoke` (20/20 green). |
+
+---
+
+## 3. Monorepo Quality Gates
+
+- **Typecheck:** `pnpm -r typecheck` passes cleanly across all 6 workspace packages (`@doit/api`, `@doit/mobile`, `@doit/tokens`, `@doit/contracts`, `@doit/web`).
+- **Token Linter:** `node scripts/check-tokens.mjs` confirms 0 hardcoded colors outside design tokens.
+- **Unit Test Suite:** `pnpm -r test` passes 17 test suites (65 tests).
+- **Smoke Suite:** `pnpm smoke` passes 20/20 end-to-end integration flows against live PostgreSQL and NestJS.

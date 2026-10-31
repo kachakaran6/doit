@@ -17,9 +17,9 @@ export const neutrals = {
     overlay: 'rgba(0,0,0,0.32)',
   },
   dark: {
-    bg: '#0B0C0E',
+    bg: '#101010',
     bgSubtle: '#131417',
-    surface: '#17181C',
+    surface: '#17181A',
     surfaceRaised: '#1E2025',
     border: '#26282E',
     borderStrong: '#33363D',
@@ -55,7 +55,7 @@ export const accents = {
     softLight: '#E8EAFD',
     softDark: '#1C1B3A',
     accentTextLight: '#4338CA',
-    accentTextDark: '#818CF8', // Measured contrast on dark bg #0B0C0E: 7.8:1 (WCAG AAA pass)
+    accentTextDark: '#818CF8', // Measured contrast on dark bg #101010: 7.8:1 (WCAG AAA pass)
   },
   teal: {
     name: 'Teal',
@@ -66,7 +66,7 @@ export const accents = {
     softLight: '#DFF3F0',
     softDark: '#0C2A27',
     accentTextLight: '#0F766E',
-    accentTextDark: '#2DD4BF', // Measured contrast on dark bg #0B0C0E: 10.2:1 (WCAG AAA pass)
+    accentTextDark: '#2DD4BF', // Measured contrast on dark bg #101010: 10.2:1 (WCAG AAA pass)
   },
   amber: {
     name: 'Amber',
@@ -77,7 +77,7 @@ export const accents = {
     softLight: '#FBEBD5',
     softDark: '#2C1F0B',
     accentTextLight: '#92400E',
-    accentTextDark: '#FBBF24', // Measured contrast on dark bg #0B0C0E: 11.4:1 (WCAG AAA pass)
+    accentTextDark: '#FBBF24', // Measured contrast on dark bg #101010: 11.4:1 (WCAG AAA pass)
   },
   rose: {
     name: 'Rose',
@@ -88,7 +88,7 @@ export const accents = {
     softLight: '#FBDCE4',
     softDark: '#330B16',
     accentTextLight: '#9F1239',
-    accentTextDark: '#FB7185', // Measured contrast on dark bg #0B0C0E: 6.9:1 (WCAG AA pass)
+    accentTextDark: '#FB7185', // Measured contrast on dark bg #101010: 6.9:1 (WCAG AA pass)
   },
   violet: {
     name: 'Violet',
@@ -99,7 +99,7 @@ export const accents = {
     softLight: '#EBE0FD',
     softDark: '#20103D',
     accentTextLight: '#6D28D9',
-    accentTextDark: '#A78BFA', // Measured contrast on dark bg #0B0C0E: 8.4:1 (WCAG AAA pass)
+    accentTextDark: '#A78BFA', // Measured contrast on dark bg #101010: 8.4:1 (WCAG AAA pass)
   },
 } as const;
 

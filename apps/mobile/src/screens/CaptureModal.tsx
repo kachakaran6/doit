@@ -68,6 +68,7 @@ export const CaptureModal: React.FC = () => {
     setActiveValue('severity', severity);
   }, [severity, setActiveValue]);
 
+  const handleSaveRef = useRef<() => Promise<void>>(() => Promise.resolve());
   const handleSave = useCallback(async () => {
     const current = stateRef.current;
     if (!current.title.trim()) {
@@ -97,6 +98,7 @@ export const CaptureModal: React.FC = () => {
       setErrorMessage(err.message || 'Failed to save. Please try again.');
     }
   }, [createBug, createTask, navigation]);
+  handleSaveRef.current = handleSave;
 
   // Keyboard action listener mounted once
   useEffect(() => {
@@ -114,12 +116,12 @@ export const CaptureModal: React.FC = () => {
           prev === 'CRITICAL' ? 'MAJOR' : prev === 'MAJOR' ? 'MINOR' : prev === 'MINOR' ? 'TRIVIAL' : 'CRITICAL'
         );
       } else if (actionId === 'send') {
-        handleSave();
+        handleSaveRef.current();
       }
     });
 
     return () => setOnAction(undefined);
-  }, [setOnAction, handleSave]);
+  }, [setOnAction]);
 
   const isSaving = createTask.isPending || createBug.isPending;
 

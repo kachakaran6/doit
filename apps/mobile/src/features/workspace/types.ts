@@ -13,3 +13,4 @@ export interface WorkspaceItem {
   role: string;
   projects?: ProjectItem[];
 }
+

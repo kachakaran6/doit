@@ -14,6 +14,7 @@ export function useCreateTaskMutation(projectId: string = 'default') {
       dueAt?: string;
       priority?: string;
       labelIds?: string[];
+      projectId?: string;
     }) => {
       const { dueDate, dueAt, ...rest } = payload;
       let finalDueAt = dueAt;
@@ -26,6 +27,7 @@ export function useCreateTaskMutation(projectId: string = 'default') {
       }
       return http.post<TaskViewModel>(`/projects/${projectId}/tasks`, {
         ...rest,
+        projectId,
         dueAt: finalDueAt,
       });
     },
@@ -88,8 +90,11 @@ export function useUpdateTaskStatusMutation(projectId: string = 'default') {
         queryClient.setQueryData(taskKeys.list({ projectId }), context.previousTasks);
       }
     },
-    onSettled: () => {
+    onSettled: (_data, _error, variables) => {
       queryClient.invalidateQueries({ queryKey: taskKeys.lists() });
+      if (variables?.id) {
+        queryClient.invalidateQueries({ queryKey: taskKeys.detail(variables.id) });
+      }
     },
   });
 }

@@ -29,3 +29,4 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
   setActiveWorkspace: (ws) => set({ activeWorkspace: ws }),
   setActiveProject: (p) => set({ activeProject: p }),
 }));
+

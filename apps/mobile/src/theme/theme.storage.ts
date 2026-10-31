@@ -1,6 +1,6 @@
 import { ThemeMode, Accent } from './useTheme';
 
-let currentMode: ThemeMode = 'system';
+let currentMode: ThemeMode = 'dark';
 let currentAccent: Accent = 'indigo';
 
 export const ThemeStorage = {

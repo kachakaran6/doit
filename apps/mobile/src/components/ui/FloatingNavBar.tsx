@@ -5,16 +5,15 @@ import {
   Animated,
   StyleSheet,
   Vibration,
+  TouchableOpacity,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import { useTheme } from '../../theme/useTheme';
 import { useNavBarScroll } from '../../navigation/nav-bar-scroll.context';
-import { Text } from './Text';
 import {
   Home as HomeIcon,
-  CheckSquare as TasksIcon,
-  AlertCircle as BugsIcon,
+  Layers as WorkIcon,
   Search as SearchIcon,
   Plus as PlusIcon,
 } from 'lucide-react-native';
@@ -24,9 +23,6 @@ export interface FloatingNavBarProps extends BottomTabBarProps {
   onCaptureLongPress?: () => void;
 }
 
-/**
- * Use FloatingNavBar as the custom bottom bar floating pill for the tab navigator.
- */
 export const FloatingNavBar: React.FC<FloatingNavBarProps> = ({
   state,
   navigation,
@@ -37,20 +33,10 @@ export const FloatingNavBar: React.FC<FloatingNavBarProps> = ({
   const insets = useSafeAreaInsets();
   const { translateY } = useNavBarScroll();
 
-  const tabIndex = state.index;
-  const slideAnim = useRef(new Animated.Value(tabIndex)).current;
+  const currentRouteName = state.routes[state.index]?.name;
 
-  useEffect(() => {
-    Animated.spring(slideAnim, {
-      toValue: tabIndex,
-      damping: 18,
-      stiffness: 180,
-      useNativeDriver: true,
-    }).start();
-  }, [tabIndex, slideAnim]);
-
-  const handleTabPress = (route: string, index: number) => {
-    Vibration.vibrate(10); // Light haptic feedback
+  const handleTabPress = (route: string) => {
+    Vibration.vibrate(10);
     navigation.navigate(route);
   };
 
@@ -64,7 +50,7 @@ export const FloatingNavBar: React.FC<FloatingNavBarProps> = ({
   };
 
   const handleCaptureLongPress = () => {
-    Vibration.vibrate([0, 20, 50, 20]); // Distinct haptic for bug capture
+    Vibration.vibrate([0, 20, 50, 20]);
     if (onCaptureLongPress) {
       onCaptureLongPress();
     } else {
@@ -72,21 +58,47 @@ export const FloatingNavBar: React.FC<FloatingNavBarProps> = ({
     }
   };
 
+  const isHomeActive = currentRouteName === 'Home';
+  const isWorkActive = currentRouteName === 'Tasks' || currentRouteName === 'Bugs';
+  const isSearchActive = currentRouteName === 'Search';
+
   return (
     <Animated.View
       style={[
         styles.wrapper,
         {
           bottom: insets.bottom + spacing.sm,
-          marginHorizontal: spacing.lg,
           transform: [{ translateY }],
         },
       ]}
       pointerEvents="box-none"
     >
+      {/* Floating circular + button on the right */}
+      <View style={styles.fabRow} pointerEvents="box-none">
+        <TouchableOpacity
+          onPress={handleCapturePress}
+          onLongPress={handleCaptureLongPress}
+          activeOpacity={0.8}
+          accessibilityRole="button"
+          accessibilityLabel="Quick capture task or long press for bug"
+          style={[
+            styles.fabButton,
+            {
+              backgroundColor: colors.surfaceRaised,
+              borderColor: colors.border,
+              borderRadius: radius.pill,
+              ...elevation.e2,
+            },
+          ]}
+        >
+          <PlusIcon size={26} color={colors.textPrimary} strokeWidth={2} />
+        </TouchableOpacity>
+      </View>
+
+      {/* Floating 3-item icon pill */}
       <View
         style={[
-          styles.pill,
+          styles.pillContainer,
           {
             backgroundColor: colors.surface,
             borderColor: colors.border,
@@ -99,107 +111,51 @@ export const FloatingNavBar: React.FC<FloatingNavBarProps> = ({
         <Pressable
           accessibilityRole="tab"
           accessibilityLabel="Home tab"
-          style={styles.tabItem}
-          onPress={() => handleTabPress('Home', 0)}
+          style={[
+            styles.tabItem,
+            isHomeActive && [styles.activeTabCapsule, { backgroundColor: colors.surfaceRaised }],
+          ]}
+          onPress={() => handleTabPress('Home')}
         >
           <HomeIcon
             size={22}
-            color={tabIndex === 0 ? colors.accentText : colors.textTertiary}
-            strokeWidth={tabIndex === 0 ? 2.2 : 1.75}
+            color={isHomeActive ? colors.textPrimary : colors.textTertiary}
+            strokeWidth={isHomeActive ? 2.2 : 1.75}
           />
-          <Text
-            variant="caption"
-            color={tabIndex === 0 ? 'accent' : 'tertiary'}
-            style={styles.tabLabel}
-          >
-            Home
-          </Text>
         </Pressable>
 
-        {/* Tab 2: Tasks */}
+        {/* Tab 2: Work */}
         <Pressable
           accessibilityRole="tab"
-          accessibilityLabel="Tasks tab"
-          style={styles.tabItem}
-          onPress={() => handleTabPress('Tasks', 1)}
+          accessibilityLabel="Work tab"
+          style={[
+            styles.tabItem,
+            isWorkActive && [styles.activeTabCapsule, { backgroundColor: colors.surfaceRaised }],
+          ]}
+          onPress={() => handleTabPress('Tasks')}
         >
-          <TasksIcon
+          <WorkIcon
             size={22}
-            color={tabIndex === 1 ? colors.accentText : colors.textTertiary}
-            strokeWidth={tabIndex === 1 ? 2.2 : 1.75}
+            color={isWorkActive ? colors.textPrimary : colors.textTertiary}
+            strokeWidth={isWorkActive ? 2.2 : 1.75}
           />
-          <Text
-            variant="caption"
-            color={tabIndex === 1 ? 'accent' : 'tertiary'}
-            style={styles.tabLabel}
-          >
-            Tasks
-          </Text>
         </Pressable>
 
-        {/* Centre Space for Floating Raised Button */}
-        <View style={styles.centreSpacer} />
-
-        {/* Tab 3: Bugs */}
-        <Pressable
-          accessibilityRole="tab"
-          accessibilityLabel="Bugs tab"
-          style={styles.tabItem}
-          onPress={() => handleTabPress('Bugs', 3)}
-        >
-          <BugsIcon
-            size={22}
-            color={tabIndex === 3 ? colors.accentText : colors.textTertiary}
-            strokeWidth={tabIndex === 3 ? 2.2 : 1.75}
-          />
-          <Text
-            variant="caption"
-            color={tabIndex === 3 ? 'accent' : 'tertiary'}
-            style={styles.tabLabel}
-          >
-            Bugs
-          </Text>
-        </Pressable>
-
-        {/* Tab 4: Search */}
+        {/* Tab 3: Search */}
         <Pressable
           accessibilityRole="tab"
           accessibilityLabel="Search tab"
-          style={styles.tabItem}
-          onPress={() => handleTabPress('Search', 4)}
+          style={[
+            styles.tabItem,
+            isSearchActive && [styles.activeTabCapsule, { backgroundColor: colors.surfaceRaised }],
+          ]}
+          onPress={() => handleTabPress('Search')}
         >
           <SearchIcon
             size={22}
-            color={tabIndex === 4 ? colors.accentText : colors.textTertiary}
-            strokeWidth={tabIndex === 4 ? 2.2 : 1.75}
+            color={isSearchActive ? colors.textPrimary : colors.textTertiary}
+            strokeWidth={isSearchActive ? 2.2 : 1.75}
           />
-          <Text
-            variant="caption"
-            color={tabIndex === 4 ? 'accent' : 'tertiary'}
-            style={styles.tabLabel}
-          >
-            Search
-          </Text>
-        </Pressable>
-      </View>
-
-      {/* Raised Centre Capture Button: 56x56, pill radius, translateY -12 */}
-      <View style={styles.captureWrapper} pointerEvents="box-none">
-        <Pressable
-          onPress={handleCapturePress}
-          onLongPress={handleCaptureLongPress}
-          accessibilityRole="button"
-          accessibilityLabel="Quick capture task or long press for bug"
-          style={[
-            styles.captureButton,
-            {
-              backgroundColor: colors.accent,
-              borderRadius: radius.pill,
-              ...elevation.e2,
-            },
-          ]}
-        >
-          <PlusIcon size={28} color={colors.accentOnPrimary} strokeWidth={2.5} />
         </Pressable>
       </View>
     </Animated.View>
@@ -209,44 +165,41 @@ export const FloatingNavBar: React.FC<FloatingNavBarProps> = ({
 const styles = StyleSheet.create({
   wrapper: {
     position: 'absolute',
-    left: 0,
-    right: 0,
-    height: 64,
+    left: 16,
+    right: 16,
     alignItems: 'center',
     justifyContent: 'center',
     zIndex: 100,
   },
-  pill: {
+  fabRow: {
+    width: '100%',
+    alignItems: 'flex-end',
+    marginBottom: 8,
+  },
+  fabButton: {
+    width: 60,
+    height: 60,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+  },
+  pillContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     width: '100%',
-    height: 64,
+    height: 60,
     borderWidth: 1,
-    paddingHorizontal: 8,
+    paddingHorizontal: 12,
   },
   tabItem: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    height: '100%',
+    height: 44,
+    borderRadius: 999,
   },
-  tabLabel: {
-    fontSize: 10,
-    marginTop: 2,
-  },
-  centreSpacer: {
-    width: 60,
-  },
-  captureWrapper: {
-    position: 'absolute',
-    top: -12,
-    alignSelf: 'center',
-  },
-  captureButton: {
-    width: 56,
-    height: 56,
-    alignItems: 'center',
-    justifyContent: 'center',
+  activeTabCapsule: {
+    borderRadius: 999,
   },
 });

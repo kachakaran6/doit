@@ -23,7 +23,7 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({
 }) => {
   const systemColorScheme = useColorScheme();
   const [mode, setModeState] = useState<ThemeMode>(
-    initialMode || ThemeStorage.getMode() || 'system',
+    initialMode || ThemeStorage.getMode() || 'dark',
   );
   const [accent, setAccentState] = useState<Accent>(
     initialAccent || ThemeStorage.getAccent() || 'indigo',

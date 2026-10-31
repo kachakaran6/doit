@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { NavigationContainer, LinkingOptions } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { RootStackParamList } from './types';
@@ -39,6 +39,10 @@ const linking: LinkingOptions<RootStackParamList> = {
 
 export const RootNavigator: React.FC = () => {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+
+  useEffect(() => {
+    useAuthStore.getState().initAuth().catch(() => {});
+  }, []);
 
   return (
     <NavBarScrollProvider>
