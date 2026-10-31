@@ -6,27 +6,31 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const rootDir = path.resolve(__dirname, '..');
 
 const packages = [
-  { name: 'contracts', target: '@samyukt/contracts' },
-  { name: 'design-tokens', target: '@samyukt/tokens' },
+  { name: 'contracts', targets: ['@doit/contracts', '@samyukt/contracts'] },
+  { name: 'design-tokens', targets: ['@doit/tokens', '@samyukt/tokens'] },
 ];
 
 for (const pkg of packages) {
   const pkgDir = path.join(rootDir, 'packages', pkg.name);
-  const targetDir = path.join(rootDir, 'node_modules', pkg.target);
 
-  fs.mkdirSync(targetDir, { recursive: true });
+  for (const target of pkg.targets) {
+    const targetDir = path.join(rootDir, 'node_modules', target);
+    fs.mkdirSync(targetDir, { recursive: true });
 
-  const pkgJsonPath = path.join(pkgDir, 'package.json');
-  if (fs.existsSync(pkgJsonPath)) {
-    fs.copyFileSync(pkgJsonPath, path.join(targetDir, 'package.json'));
-  }
+    const pkgJsonPath = path.join(pkgDir, 'package.json');
+    if (fs.existsSync(pkgJsonPath)) {
+      const parsed = JSON.parse(fs.readFileSync(pkgJsonPath, 'utf8'));
+      parsed.name = target;
+      fs.writeFileSync(path.join(targetDir, 'package.json'), JSON.stringify(parsed, null, 2) + '\n', 'utf8');
+    }
 
-  const distSrc = path.join(pkgDir, 'dist');
-  const distDest = path.join(targetDir, 'dist');
-  if (fs.existsSync(distSrc)) {
-    fs.cpSync(distSrc, distDest, { recursive: true, force: true });
+    const distSrc = path.join(pkgDir, 'dist');
+    const distDest = path.join(targetDir, 'dist');
+    if (fs.existsSync(distSrc)) {
+      fs.cpSync(distSrc, distDest, { recursive: true, force: true });
+    }
   }
 }
 
 // eslint-disable-next-line no-console
-console.log('Synchronized workspace packages into node_modules/@samyukt');
+console.log('Synchronized workspace packages into node_modules/@doit and node_modules/@samyukt');

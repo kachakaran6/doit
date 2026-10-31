@@ -1,6 +1,6 @@
 import { Controller, Get } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
-import { Ping, PingSchema } from '@samyukt/contracts';
+import { Ping, PingSchema } from '@doit/contracts';
 import { PrismaService } from '../infra/prisma/prisma.service';
 import { StorageService } from '../infra/storage/storage.service';
 import { QueueService } from '../infra/queue/queue.service';

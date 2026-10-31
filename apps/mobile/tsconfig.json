@@ -8,6 +8,12 @@
       "@/*": [
         "./src/*"
       ],
+      "@doit/contracts": [
+        "../../packages/contracts/src"
+      ],
+      "@doit/tokens": [
+        "../../packages/design-tokens/src"
+      ],
       "@samyukt/contracts": [
         "../../packages/contracts/src"
       ],

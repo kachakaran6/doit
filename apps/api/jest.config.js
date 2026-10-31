@@ -14,6 +14,8 @@ module.exports = {
     ],
   },
   moduleNameMapper: {
+    '^@doit/contracts$': '<rootDir>/../../../packages/contracts/src',
+    '^@doit/tokens$': '<rootDir>/../../../packages/design-tokens/src',
     '^@samyukt/contracts$': '<rootDir>/../../../packages/contracts/src',
     '^@samyukt/tokens$': '<rootDir>/../../../packages/design-tokens/src',
   },

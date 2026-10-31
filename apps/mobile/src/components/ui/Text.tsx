@@ -1,7 +1,7 @@
 import React from 'react';
 import { Text as RNText, TextProps as RNTextProps, TextStyle, StyleSheet } from 'react-native';
 import { useTheme } from '../../theme/useTheme';
-import { TypographyVariant } from '@samyukt/tokens';
+import { TypographyVariant } from '@doit/tokens';
 
 export type TextColor =
   | 'primary'

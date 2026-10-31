@@ -5,9 +5,9 @@
 
 ## Current state
 
-- **Phase:** 6 — Hardening, QA & Release (COMPLETE)
-- **Last completed prompt:** P17b (green) — Gate G6 PASSED (Release Ready)
-- **Next prompt:** None — Project 100% complete across all phases
+- **Phase: Phase 2 — Multi-Platform Production
+- **Last completed prompt: R00 (green) — Gate G7 PASSED (Naming Migration @doit/*)
+- **Next prompt: W00 — Web Scaffold (apps/web Vite + React 18 + shared tokens)
 - **Branch in flight:** `main` (all features merged)
 - **Blocked on:** nothing
 - **Target Package Name:** `com.samyukt.doit` (Verified & Play Store ready)

@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, StyleSheet, ViewStyle } from 'react-native';
 import { useTheme } from '../../theme/useTheme';
-import { spacing as spacingTokens } from '@samyukt/tokens';
+import { spacing as spacingTokens } from '@doit/tokens';
 
 export type SpacingKey = keyof typeof spacingTokens;
 

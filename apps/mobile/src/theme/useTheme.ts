@@ -8,7 +8,7 @@ import {
   typography,
   elevation,
   AccentName,
-} from '@samyukt/tokens';
+} from '@doit/tokens';
 
 export type ThemeMode = 'system' | 'light' | 'dark';
 export type Accent = AccentName;

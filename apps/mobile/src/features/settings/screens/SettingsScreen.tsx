@@ -8,7 +8,7 @@ import { useAuthStore } from '../../auth/store';
 import { overlayService } from '../../../native/overlay';
 import { shakeDetector, ShakeSensitivity } from '../../../native/shake';
 import { outbox } from '../../../lib/outbox';
-import { AccentName } from '@samyukt/tokens';
+import { AccentName } from '@doit/tokens';
 import {
   Palette,
   Sun,

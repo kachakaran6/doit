@@ -1,5 +1,5 @@
 {
-  "name": "@samyukt/config",
+  "name": "@doit/config",
   "version": "0.1.0",
   "private": true,
   "files": [
@@ -8,4 +8,3 @@
     "prettier.config.mjs"
   ]
 }
-

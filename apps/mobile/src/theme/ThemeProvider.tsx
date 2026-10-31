@@ -8,7 +8,7 @@ import {
   buildThemeColors,
 } from './useTheme';
 import { ThemeStorage } from './theme.storage';
-import { spacing, radius, typography, elevation } from '@samyukt/tokens';
+import { spacing, radius, typography, elevation } from '@doit/tokens';
 
 export interface ThemeProviderProps {
   children: ReactNode;
