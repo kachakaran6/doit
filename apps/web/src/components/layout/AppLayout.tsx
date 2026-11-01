@@ -47,9 +47,11 @@ export function AppLayout() {
           <div className="p-4 border-b border-[var(--border)]">
             <div className="flex items-center justify-between cursor-pointer p-2 rounded-md hover:bg-[var(--surface-raised)] transition-colors">
               <div className="flex items-center gap-2.5">
-                <div className="w-7 h-7 rounded bg-[var(--accent)] text-[var(--accent-foreground)] font-bold text-xs flex items-center justify-center">
-                  D
-                </div>
+                <img
+                  src="/favicon.svg"
+                  alt="DoIt Logo"
+                  className="w-7 h-7 rounded object-contain border border-[var(--border)] bg-black/90 p-0.5 shadow-xs"
+                />
                 <div>
                   <div className="text-sm font-semibold text-[var(--text-primary)]">DoIt Core</div>
                   <div className="text-xs text-[var(--text-secondary)]">Production WS</div>

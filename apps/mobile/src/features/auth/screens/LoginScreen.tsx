@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import { View, StyleSheet, ScrollView, TouchableOpacity, Image } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Text, Button, Input } from '../../../components/ui';
 import { useTheme } from '../../../theme/useTheme';
@@ -99,11 +99,16 @@ export const LoginScreen: React.FC = () => {
                 borderColor: colors.border,
                 borderRadius: radius.md,
                 marginBottom: spacing.md,
+                overflow: 'hidden',
                 ...elevation.e1,
               },
             ]}
           >
-            <ShieldCheck size={28} color={colors.accentText} strokeWidth={2} />
+            <Image
+              source={require('../../../../assets/brand/icon-512.png')}
+              style={{ width: 50, height: 50, borderRadius: radius.md - 1 }}
+              resizeMode="contain"
+            />
           </View>
           <Text variant="display" style={{ textAlign: 'center', letterSpacing: -0.5 }}>
             DoIt
