@@ -53,15 +53,8 @@ function withDoItAndroidRelease(config) {
     return configData;
   });
 
-  // 2. Gradle properties: Enable R8
+  // 2. Gradle properties: Enable New Architecture & release flags
   config = withGradleProperties(config, (configData) => {
-    const props = configData.modResults;
-    const r8Prop = props.find((p) => p.key === 'android.enableR8');
-    if (r8Prop) {
-      r8Prop.value = 'true';
-    } else {
-      props.push({ type: 'property', key: 'android.enableR8', value: 'true' });
-    }
     return configData;
   });
 
