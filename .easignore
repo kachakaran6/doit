@@ -1,0 +1,11 @@
+# Ignore other apps and documentation in EAS build tarball
+apps/web/
+docs/
+assests/
+*.apk
+*.aab
+dist/
+dist-web/
+node_modules/
+.turbo/
+

@@ -1,0 +1,7 @@
+# EAS ignore for mobile
+dist/
+node_modules/
+.turbo/
+*.apk
+*.aab
+

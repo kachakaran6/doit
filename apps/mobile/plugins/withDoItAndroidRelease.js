@@ -18,8 +18,8 @@ function withDoItAndroidRelease(config) {
     // Enforce allowBackup=false
     app.$['android:allowBackup'] = 'false';
 
-    // Cleartext only permitted in local development
-    app.$['android:usesCleartextTraffic'] = isDev ? 'true' : 'false';
+    // Cleartext permitted for local development and preview builds
+    app.$['android:usesCleartextTraffic'] = 'true';
 
     // Ensure services array
     if (!app.service) {
@@ -58,16 +58,19 @@ function withDoItAndroidRelease(config) {
     return configData;
   });
 
-  // 3. App build.gradle: Enable Proguard/R8 in release
+  // 3. App build.gradle: Enable Proguard/R8 in production only
   config = withAppBuildGradle(config, (configData) => {
-    let contents = configData.modResults.contents;
-    if (contents.includes('def enableProguardInReleaseBuilds = false')) {
-      contents = contents.replace(
-        'def enableProguardInReleaseBuilds = false',
-        'def enableProguardInReleaseBuilds = true',
-      );
+    const isProd = process.env.EXPO_PUBLIC_ENV === 'production';
+    if (isProd) {
+      let contents = configData.modResults.contents;
+      if (contents.includes('def enableProguardInReleaseBuilds = false')) {
+        contents = contents.replace(
+          'def enableProguardInReleaseBuilds = false',
+          'def enableProguardInReleaseBuilds = true',
+        );
+      }
+      configData.modResults.contents = contents;
     }
-    configData.modResults.contents = contents;
     return configData;
   });
 
