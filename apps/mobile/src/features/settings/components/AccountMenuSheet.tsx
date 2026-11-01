@@ -35,17 +35,25 @@ export const AccountMenuSheet: React.FC<AccountMenuSheetProps> = ({
 
   const [healthStatus, setHealthStatus] = useState<string | null>(null);
   const [checkingHealth, setCheckingHealth] = useState(false);
+  const [activeUrl, setActiveUrl] = useState(http.getBaseUrl());
 
-  const handleCheckHealth = async () => {
+  const handleCheckHealth = async (urlToTest?: string) => {
     setCheckingHealth(true);
+    const target = urlToTest || activeUrl;
     try {
-      const res: any = await http.get('/health');
-      setHealthStatus(`API: ${res?.status || 'ok'} • DB: ${res?.database || 'connected'}`);
+      const res: any = await fetch(`${target}/health`).then((r) => r.json());
+      setHealthStatus(`Online (${res?.status || 'ok'}) • DB: ${res?.database || 'connected'}`);
     } catch (e: any) {
-      setHealthStatus(`Offline: ${e.message || 'Cannot connect'}`);
+      setHealthStatus(`Offline: Cannot reach ${target}`);
     } finally {
       setCheckingHealth(false);
     }
+  };
+
+  const handleSwitchServer = (url: string) => {
+    http.setBaseUrl(url);
+    setActiveUrl(url);
+    handleCheckHealth(url);
   };
 
   const handleLogout = () => {
@@ -258,9 +266,17 @@ export const AccountMenuSheet: React.FC<AccountMenuSheetProps> = ({
 
             {/* System Status Ping */}
             <View style={[styles.section, { borderTopColor: colors.border, marginTop: spacing.md, paddingTop: spacing.md }]}>
-              <Text variant="caption" color="secondary" style={styles.sectionTitle}>
-                SYSTEM CONNECTION
-              </Text>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: spacing.xs }}>
+                <Text variant="caption" color="secondary" style={styles.sectionTitle}>
+                  SERVER & CONNECTION
+                </Text>
+                <TouchableOpacity onPress={() => handleCheckHealth()}>
+                  <Text variant="caption" color="accent" style={{ fontSize: 11, fontWeight: '600' }}>
+                    {checkingHealth ? 'Testing...' : 'Test Connection'}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+
               <View
                 style={[
                   styles.diagCard,
@@ -279,20 +295,74 @@ export const AccountMenuSheet: React.FC<AccountMenuSheetProps> = ({
                   </Text>
                 </View>
 
-                {healthStatus ? (
-                  <Text variant="caption" color="primary" style={{ marginTop: 6, fontWeight: '600' }}>
+                <Text variant="caption" color="secondary" style={{ fontFamily: 'monospace', fontSize: 11, marginTop: 4 }}>
+                  {activeUrl}
+                </Text>
+
+                {healthStatus && (
+                  <Text
+                    variant="caption"
+                    style={{
+                      marginTop: 6,
+                      fontWeight: '600',
+                      color: healthStatus.includes('Online') || healthStatus.includes('ok') ? colors.success : colors.danger,
+                    }}
+                  >
                     {healthStatus}
                   </Text>
-                ) : (
-                  <Button
-                    title="Check API Status"
-                    variant="secondary"
-                    size="sm"
-                    loading={checkingHealth}
-                    style={{ marginTop: spacing.sm, alignSelf: 'flex-start' }}
-                    onPress={handleCheckHealth}
-                  />
                 )}
+
+                <View style={{ flexDirection: 'row', gap: spacing.xs, marginTop: spacing.sm }}>
+                  <TouchableOpacity
+                    style={[
+                      styles.accentChip,
+                      {
+                        borderColor: activeUrl.includes('192.168.1.67') ? colors.accent : colors.border,
+                        backgroundColor: activeUrl.includes('192.168.1.67') ? colors.surface : 'transparent',
+                        borderRadius: radius.xs,
+                        paddingHorizontal: 8,
+                        paddingVertical: 4,
+                      },
+                    ]}
+                    onPress={() => handleSwitchServer('http://192.168.1.67:3000/api/v1')}
+                  >
+                    <Text
+                      variant="caption"
+                      style={{
+                        fontSize: 10,
+                        fontWeight: activeUrl.includes('192.168.1.67') ? '600' : '400',
+                        color: activeUrl.includes('192.168.1.67') ? colors.accentText : colors.textSecondary,
+                      }}
+                    >
+                      Wi-Fi (192.168.1.67)
+                    </Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={[
+                      styles.accentChip,
+                      {
+                        borderColor: activeUrl.includes('localhost') ? colors.accent : colors.border,
+                        backgroundColor: activeUrl.includes('localhost') ? colors.surface : 'transparent',
+                        borderRadius: radius.xs,
+                        paddingHorizontal: 8,
+                        paddingVertical: 4,
+                      },
+                    ]}
+                    onPress={() => handleSwitchServer('http://localhost:3000/api/v1')}
+                  >
+                    <Text
+                      variant="caption"
+                      style={{
+                        fontSize: 10,
+                        fontWeight: activeUrl.includes('localhost') ? '600' : '400',
+                        color: activeUrl.includes('localhost') ? colors.accentText : colors.textSecondary,
+                      }}
+                    >
+                      USB (localhost)
+                    </Text>
+                  </TouchableOpacity>
+                </View>
               </View>
             </View>
 

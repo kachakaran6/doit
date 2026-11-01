@@ -4,7 +4,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Text, Button, Input } from '../../../components/ui';
 import { useTheme } from '../../../theme/useTheme';
 import { useLoginMutation, useRegisterMutation } from '../api/mutations';
-import { CheckCircle2, ShieldCheck } from 'lucide-react-native';
+import { CheckCircle2, ShieldCheck, Server, RefreshCw } from 'lucide-react-native';
+import { http } from '../../../lib/http';
 
 export const LoginScreen: React.FC = () => {
   const { colors, spacing, radius, elevation } = useTheme();
@@ -14,8 +15,32 @@ export const LoginScreen: React.FC = () => {
   const [password, setPassword] = useState('Password123!');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
+  const [activeUrl, setActiveUrl] = useState(http.getBaseUrl());
+  const [serverPing, setServerPing] = useState<string | null>(null);
+  const [pinging, setPinging] = useState(false);
+
   const loginMutation = useLoginMutation();
   const registerMutation = useRegisterMutation();
+
+  const handlePingServer = async (urlToTest?: string) => {
+    const targetUrl = urlToTest || activeUrl;
+    setPinging(true);
+    setServerPing(null);
+    try {
+      const res: any = await fetch(`${targetUrl}/health`).then((r) => r.json());
+      setServerPing(`Online (${res?.status || 'ok'}) • DB: ${res?.database || 'connected'}`);
+    } catch (e: any) {
+      setServerPing(`Cannot reach server at ${targetUrl}`);
+    } finally {
+      setPinging(false);
+    }
+  };
+
+  const handleSwitchServer = (newUrl: string) => {
+    http.setBaseUrl(newUrl);
+    setActiveUrl(newUrl);
+    handlePingServer(newUrl);
+  };
 
   const handleSubmit = async () => {
     setErrorMessage(null);
@@ -240,15 +265,15 @@ export const LoginScreen: React.FC = () => {
               styles.demoContainer,
               {
                 borderColor: colors.border,
-                marginTop: spacing['2xl'],
-                paddingTop: spacing.lg,
+                marginTop: spacing['xl'],
+                paddingTop: spacing.md,
               },
             ]}
           >
             <Text
               variant="caption"
               color="secondary"
-              style={{ textAlign: 'center', marginBottom: spacing.md, textTransform: 'uppercase', letterSpacing: 0.5 }}
+              style={{ textAlign: 'center', marginBottom: spacing.sm, textTransform: 'uppercase', letterSpacing: 0.5 }}
             >
               Demo Accounts
             </Text>
@@ -264,12 +289,110 @@ export const LoginScreen: React.FC = () => {
                 title="Bob (Tester)"
                 variant="secondary"
                 size="sm"
-                onPress={() => setDemoAccount('bob@doit.local')}
+                onPress={() => setDemoAccount('bob@samyukt.com')}
                 style={styles.demoBtn}
               />
             </View>
           </View>
         )}
+
+        {/* Server Endpoint Configuration */}
+        <View
+          style={[
+            styles.serverCard,
+            {
+              backgroundColor: colors.surfaceRaised,
+              borderColor: colors.border,
+              borderRadius: radius.md,
+              marginTop: spacing.lg,
+              padding: spacing.md,
+            },
+          ]}
+        >
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: spacing.xs }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <Server size={13} color={colors.textTertiary} />
+              <Text variant="caption" color="secondary" style={{ marginLeft: 5, fontWeight: '600', textTransform: 'uppercase' }}>
+                Backend Server
+              </Text>
+            </View>
+            <TouchableOpacity
+              onPress={() => handlePingServer()}
+              style={{ flexDirection: 'row', alignItems: 'center' }}
+            >
+              <RefreshCw size={11} color={colors.accentText} />
+              <Text variant="caption" color="accent" style={{ marginLeft: 4, fontSize: 11 }}>
+                {pinging ? 'Testing...' : 'Test Connection'}
+              </Text>
+            </TouchableOpacity>
+          </View>
+
+          <Text variant="caption" color="secondary" style={{ fontSize: 11, fontFamily: 'monospace', marginBottom: spacing.xs }}>
+            {activeUrl}
+          </Text>
+
+          {serverPing && (
+            <Text
+              variant="caption"
+              style={{
+                color: serverPing.includes('Online') ? colors.success : colors.danger,
+                fontSize: 11,
+                fontWeight: '600',
+                marginBottom: spacing.xs,
+              }}
+            >
+              {serverPing}
+            </Text>
+          )}
+
+          <View style={{ flexDirection: 'row', gap: spacing.xs, marginTop: spacing.xs }}>
+            <TouchableOpacity
+              style={[
+                styles.endpointBtn,
+                {
+                  borderRadius: radius.xs,
+                  borderColor: activeUrl.includes('192.168.1.67') ? colors.accent : colors.border,
+                  backgroundColor: activeUrl.includes('192.168.1.67') ? colors.surface : 'transparent',
+                },
+              ]}
+              onPress={() => handleSwitchServer('http://192.168.1.67:3000/api/v1')}
+            >
+              <Text
+                variant="caption"
+                style={{
+                  fontSize: 10,
+                  fontWeight: activeUrl.includes('192.168.1.67') ? '600' : '400',
+                  color: activeUrl.includes('192.168.1.67') ? colors.accentText : colors.textSecondary,
+                }}
+              >
+                Wi-Fi (192.168.1.67)
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[
+                styles.endpointBtn,
+                {
+                  borderRadius: radius.xs,
+                  borderColor: activeUrl.includes('localhost') ? colors.accent : colors.border,
+                  backgroundColor: activeUrl.includes('localhost') ? colors.surface : 'transparent',
+                },
+              ]}
+              onPress={() => handleSwitchServer('http://localhost:3000/api/v1')}
+            >
+              <Text
+                variant="caption"
+                style={{
+                  fontSize: 10,
+                  fontWeight: activeUrl.includes('localhost') ? '600' : '400',
+                  color: activeUrl.includes('localhost') ? colors.accentText : colors.textSecondary,
+                }}
+              >
+                USB (localhost)
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
       </ScrollView>
     </SafeAreaView>
   );
@@ -322,5 +445,14 @@ const styles = StyleSheet.create({
   },
   demoBtn: {
     flex: 1,
+  },
+  serverCard: {
+    borderWidth: 1,
+    width: '100%',
+  },
+  endpointBtn: {
+    paddingVertical: 5,
+    paddingHorizontal: 8,
+    borderWidth: 1,
   },
 });

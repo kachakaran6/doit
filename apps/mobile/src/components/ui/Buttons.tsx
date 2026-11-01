@@ -17,3 +17,4 @@ export interface IconButtonProps extends Omit<ButtonProps, 'variant'> {
 export const IconButton: React.FC<IconButtonProps> = (props) => {
   return <Button variant="icon" {...props} />;
 };
+

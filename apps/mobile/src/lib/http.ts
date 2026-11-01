@@ -6,18 +6,23 @@
  */
 
 import Constants from 'expo-constants';
+import * as SecureStore from 'expo-secure-store';
+import { Platform } from 'react-native';
 import { AuthStorage } from '../features/auth/auth.storage';
 
+const API_URL_KEY = 'com.samyukt.doit.api_url';
+
 function getDefaultBaseUrl(): string {
-  if (process.env.EXPO_PUBLIC_API_URL) {
-    return process.env.EXPO_PUBLIC_API_URL;
+  const envUrl = process.env.EXPO_PUBLIC_API_URL;
+  if (envUrl && !envUrl.includes('example.com')) {
+    return envUrl;
   }
   const hostUri = Constants.expoConfig?.hostUri;
   if (hostUri) {
     const host = hostUri.split(':')[0];
     return `http://${host}:3000/api/v1`;
   }
-  return 'http://10.0.2.2:3000/api/v1';
+  return 'http://192.168.1.67:3000/api/v1';
 }
 
 export class ApiError extends Error {
@@ -50,8 +55,39 @@ class HttpClient {
   public readonly failedRequests: FailedRequestLog[] = [];
   private isRefreshing: boolean = false;
 
+  constructor() {
+    this.loadPersistedBaseUrl();
+  }
+
+  private async loadPersistedBaseUrl() {
+    try {
+      if (Platform.OS === 'web') {
+        const saved = localStorage.getItem(API_URL_KEY);
+        if (saved && !saved.includes('example.com')) {
+          this.baseUrl = saved;
+        }
+        return;
+      }
+      const saved = await SecureStore.getItemAsync(API_URL_KEY).catch(() => null);
+      if (saved && !saved.includes('example.com')) {
+        this.baseUrl = saved;
+      }
+    } catch {
+      // Keep default
+    }
+  }
+
   setBaseUrl(url: string) {
     this.baseUrl = url.replace(/\/$/, '');
+    try {
+      if (Platform.OS === 'web') {
+        localStorage.setItem(API_URL_KEY, this.baseUrl);
+      } else {
+        SecureStore.setItemAsync(API_URL_KEY, this.baseUrl).catch(() => {});
+      }
+    } catch {
+      // ignore
+    }
   }
 
   getBaseUrl(): string {

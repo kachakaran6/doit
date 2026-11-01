@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, ScrollView, Alert, Platform } from 'react-native';
+import { View, StyleSheet, ScrollView, Alert, Platform, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { useTheme } from '../../../theme/useTheme';
@@ -28,7 +28,10 @@ import {
   LogOut,
   ShieldCheck,
   Sparkles,
+  Server,
+  RefreshCw,
 } from 'lucide-react-native';
+import { http } from '../../../lib/http';
 
 export const SettingsScreen: React.FC = () => {
   const { colors, spacing, radius, mode, accent, setMode, setAccent, elevation } = useTheme();
@@ -39,6 +42,29 @@ export const SettingsScreen: React.FC = () => {
   const [hasOverlayPerm, setHasOverlayPerm] = useState(false);
   const [sensitivity, setSensitivity] = useState<ShakeSensitivity>('medium');
   const [cacheSizeMb, setCacheSizeMb] = useState(14.8);
+  const [activeUrl, setActiveUrl] = useState(http.getBaseUrl());
+  const [pingStatus, setPingStatus] = useState<string | null>(null);
+  const [pinging, setPinging] = useState(false);
+
+  const handlePing = async (urlToTest?: string) => {
+    const target = urlToTest || activeUrl;
+    setPinging(true);
+    setPingStatus(null);
+    try {
+      const res: any = await fetch(`${target}/health`).then((r) => r.json());
+      setPingStatus(`Online (${res?.status || 'ok'}) • DB: ${res?.database || 'connected'}`);
+    } catch {
+      setPingStatus(`Unreachable at ${target}`);
+    } finally {
+      setPinging(false);
+    }
+  };
+
+  const handleSwitchServer = (url: string) => {
+    http.setBaseUrl(url);
+    setActiveUrl(url);
+    handlePing(url);
+  };
 
   useEffect(() => {
     overlayService.hasPermission().then(setHasOverlayPerm);
@@ -241,7 +267,64 @@ export const SettingsScreen: React.FC = () => {
           />
         </View>
 
-        {/* Section 3: Account Actions */}
+        {/* Section 3: Server Connection */}
+        <SectionHeader title="Server & Connection" />
+        <View
+          style={[
+            styles.groupedCard,
+            {
+              backgroundColor: colors.surface,
+              borderColor: colors.border,
+              borderRadius: radius.md,
+              marginBottom: spacing.lg,
+              padding: spacing.md,
+            },
+          ]}
+        >
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: spacing.xs }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <Server size={15} color={colors.textSecondary} />
+              <Text variant="label" style={{ marginLeft: 6 }}>
+                Active API Server
+              </Text>
+            </View>
+            <TouchableOpacity onPress={() => handlePing()} style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <RefreshCw size={12} color={colors.accentText} />
+              <Text variant="caption" color="accent" style={{ marginLeft: 4 }}>
+                {pinging ? 'Testing...' : 'Test'}
+              </Text>
+            </TouchableOpacity>
+          </View>
+          <Text variant="caption" color="secondary" style={{ fontFamily: 'monospace', fontSize: 11, marginBottom: spacing.xs }}>
+            {activeUrl}
+          </Text>
+          {pingStatus && (
+            <Text
+              variant="caption"
+              style={{
+                color: pingStatus.includes('Online') ? colors.success : colors.danger,
+                fontWeight: '600',
+                marginBottom: spacing.sm,
+              }}
+            >
+              {pingStatus}
+            </Text>
+          )}
+          <View style={{ flexDirection: 'row', gap: spacing.xs, marginTop: spacing.xs }}>
+            <Chip
+              label="Wi-Fi (192.168.1.67)"
+              selected={activeUrl.includes('192.168.1.67')}
+              onPress={() => handleSwitchServer('http://192.168.1.67:3000/api/v1')}
+            />
+            <Chip
+              label="USB (localhost)"
+              selected={activeUrl.includes('localhost')}
+              onPress={() => handleSwitchServer('http://localhost:3000/api/v1')}
+            />
+          </View>
+        </View>
+
+        {/* Section 4: Account Actions */}
         <View style={{ marginTop: spacing.md }}>
           <Button
             title="Log Out"
