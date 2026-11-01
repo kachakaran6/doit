@@ -11,7 +11,8 @@ export type RootStackParamList = {
   MainTabs: undefined;
   TaskDetail: { id: string };
   BugDetail: { id: string };
-  CaptureModal: { initialMode?: 'task' | 'bug' | 'voice' };
+  StickyBoard: undefined;
+  CaptureModal: { initialMode?: 'task' | 'bug' | 'voice' | 'sticky' };
   Settings: undefined;
   PendingSync: undefined;
   Notifications: undefined;

@@ -248,20 +248,23 @@ export const HomeScreen: React.FC = () => {
             <Text variant="body" color="secondary" style={styles.sectionHeaderTitle}>
               Stickies ▾
             </Text>
+            <TouchableOpacity onPress={() => (navigation as any).navigate('StickyBoard')}>
+              <Text variant="caption" color="secondary">
+                View board
+              </Text>
+            </TouchableOpacity>
           </View>
 
           {allStickies.length > 0 ? (
             <View style={styles.stickiesGrid}>
-              {allStickies.slice(0, 3).map((s) => (
+              {allStickies.slice(0, 4).map((s) => (
                 <StickyCard
                   key={s.id}
                   id={s.id}
                   body={s.body}
                   color={s.color}
                   isPinned={s.isPinned}
-                  
-                  
-                  onPress={() => {}}
+                  onPress={() => (navigation as any).navigate('StickyBoard')}
                 />
               ))}
             </View>
@@ -291,7 +294,7 @@ export const HomeScreen: React.FC = () => {
                   },
                 ]}
                 activeOpacity={0.7}
-                onPress={() => (navigation as any).navigate('CaptureModal', { initialMode: 'task' })}
+                onPress={() => (navigation as any).navigate('CaptureModal', { initialMode: 'sticky' })}
               >
                 <Text variant="body" style={{ fontWeight: '600' }}>
                   Create your first sticky

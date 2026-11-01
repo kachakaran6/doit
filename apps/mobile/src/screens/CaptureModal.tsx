@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { View, StyleSheet, ScrollView, Alert } from 'react-native';
+import { View, StyleSheet, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRoute, useNavigation, RouteProp } from '@react-navigation/native';
 import { Text, Button, Input, Chip, KeyboardAccessoryBar } from '../components/ui';
@@ -8,14 +8,15 @@ import { useTheme } from '../theme/useTheme';
 import { useKeyboardBar } from '../core/providers/KeyboardProvider';
 import { useCreateTaskMutation } from '../features/tasks/api/mutations';
 import { useCreateBugMutation } from '../features/bugs/api/mutations';
+import { useCreateStickyMutation } from '../features/stickies/api/mutations';
 import { useWorkspaceStore } from '../features/workspace';
 import { RootStackParamList } from '../navigation/types';
-import { X, Check, Bug, CheckSquare, Mic } from 'lucide-react-native';
+import { X, Check, Bug, CheckSquare, Mic, StickyNote } from 'lucide-react-native';
 
 type CaptureRouteProp = RouteProp<RootStackParamList, 'CaptureModal'>;
 
 export const CaptureModal: React.FC = () => {
-  const { colors, spacing, radius, elevation } = useTheme();
+  const { colors, spacing, radius } = useTheme();
   const navigation = useNavigation();
   const route = useRoute<CaptureRouteProp>();
   const initialMode = route.params?.initialMode ?? 'task';
@@ -23,7 +24,7 @@ export const CaptureModal: React.FC = () => {
   const activeProject = useWorkspaceStore((s) => s.activeProject);
   const projectId = activeProject?.id || 'default';
 
-  const [mode, setMode] = useState<'task' | 'bug' | 'voice'>(initialMode);
+  const [mode, setMode] = useState<'task' | 'bug' | 'voice' | 'sticky'>(initialMode);
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [dueDate, setDueDate] = useState<string | null>(null);
@@ -35,6 +36,7 @@ export const CaptureModal: React.FC = () => {
 
   const createTask = useCreateTaskMutation(projectId);
   const createBug = useCreateBugMutation(projectId);
+  const createSticky = useCreateStickyMutation(projectId);
 
   // Keep latest mutable state in ref to avoid recreating effect listeners
   const stateRef = useRef({
@@ -72,7 +74,11 @@ export const CaptureModal: React.FC = () => {
   const handleSave = useCallback(async () => {
     const current = stateRef.current;
     if (!current.title.trim()) {
-      setErrorMessage('Please enter a title or issue summary.');
+      setErrorMessage(
+        current.mode === 'sticky'
+          ? 'Please enter your note text.'
+          : 'Please enter a title or issue summary.'
+      );
       return;
     }
     setErrorMessage(null);
@@ -83,6 +89,13 @@ export const CaptureModal: React.FC = () => {
           title: current.title.trim(),
           description: current.description.trim() || undefined,
           severity: current.severity,
+        });
+      } else if (current.mode === 'sticky') {
+        const fullBody = current.description.trim()
+          ? `${current.title.trim()}\n${current.description.trim()}`
+          : current.title.trim();
+        await createSticky.mutateAsync({
+          body: fullBody,
         });
       } else {
         const dueAtIso = current.dueDate ? new Date(current.dueDate).toISOString() : undefined;
@@ -97,7 +110,7 @@ export const CaptureModal: React.FC = () => {
     } catch (err: any) {
       setErrorMessage(err.message || 'Failed to save. Please try again.');
     }
-  }, [createBug, createTask, navigation]);
+  }, [createBug, createTask, createSticky, navigation]);
   handleSaveRef.current = handleSave;
 
   // Keyboard action listener mounted once
@@ -123,7 +136,7 @@ export const CaptureModal: React.FC = () => {
     return () => setOnAction(undefined);
   }, [setOnAction]);
 
-  const isSaving = createTask.isPending || createBug.isPending;
+  const isSaving = createTask.isPending || createBug.isPending || createSticky.isPending;
 
   return (
     <SafeAreaView edges={['top', 'bottom']} style={[styles.safeArea, { backgroundColor: colors.bg }]}>
@@ -135,9 +148,16 @@ export const CaptureModal: React.FC = () => {
               {activeProject ? `${activeProject.key} • ${activeProject.name}` : 'Quick Capture'}
             </Text>
             <Text variant="h1" style={{ marginTop: 2 }}>
-              {mode === 'bug' ? 'Report Bug' : mode === 'voice' ? 'Voice Capture' : 'New Task'}
+              {mode === 'bug'
+                ? 'Report Bug'
+                : mode === 'sticky'
+                ? 'New Sticky Note'
+                : mode === 'voice'
+                ? 'Voice Capture'
+                : 'New Task'}
             </Text>
           </View>
+
           <Button
             title=""
             variant="ghost"
@@ -165,6 +185,15 @@ export const CaptureModal: React.FC = () => {
             onPress={() => {
               setMode('bug');
               setKeyboardContext('bug_desc');
+            }}
+          />
+          <Chip
+            label="Sticky Note"
+            selected={mode === 'sticky'}
+            leadingIcon={<StickyNote size={13} color={mode === 'sticky' ? colors.accentText : colors.textTertiary} />}
+            onPress={() => {
+              setMode('sticky');
+              setKeyboardContext('sticky_body');
             }}
           />
           <Chip
@@ -197,43 +226,55 @@ export const CaptureModal: React.FC = () => {
         {/* Input Fields */}
         <View style={[styles.inputGroup, { gap: spacing.md }]}>
           <Input
-            label={mode === 'bug' ? 'Issue Summary' : 'Task Title'}
-            placeholder={mode === 'bug' ? 'e.g. App crashes when tapping checkout' : 'e.g. Review pull request for auth'}
+            label={mode === 'bug' ? 'Issue Summary' : mode === 'sticky' ? 'Note Content' : 'Task Title'}
+            placeholder={
+              mode === 'bug'
+                ? 'e.g. App crashes when tapping checkout'
+                : mode === 'sticky'
+                ? 'e.g. Remember to check S3 bucket CORS policy'
+                : 'e.g. Review pull request for auth'
+            }
             value={title}
             onChangeText={(txt) => {
               setTitle(txt);
               if (errorMessage) setErrorMessage(null);
             }}
-            onFocus={() => setKeyboardContext(mode === 'bug' ? 'bug_desc' : 'task_title')}
+            onFocus={() =>
+              setKeyboardContext(mode === 'bug' ? 'bug_desc' : mode === 'sticky' ? 'sticky_body' : 'task_title')
+            }
             autoFocus
           />
 
-          <Input
-            label="Description & Context (Markdown)"
-            placeholder={
-              mode === 'bug'
-                ? 'Steps to reproduce:\n1. Open app\n2. Navigate to...\n3. Observe crash'
-                : 'Add acceptance criteria, links, or notes...'
-            }
-            value={description}
-            onChangeText={setDescription}
-            onFocus={() => setKeyboardContext(mode === 'bug' ? 'bug_desc' : 'task_desc')}
-            multiline
-            numberOfLines={4}
-          />
+          {mode !== 'sticky' && (
+            <Input
+              label="Description & Context (Markdown)"
+              placeholder={
+                mode === 'bug'
+                  ? 'Steps to reproduce:\n1. Open app\n2. Navigate to...\n3. Observe crash'
+                  : 'Add acceptance criteria, links, or notes...'
+              }
+              value={description}
+              onChangeText={setDescription}
+              onFocus={() => setKeyboardContext(mode === 'bug' ? 'bug_desc' : 'task_desc')}
+              multiline
+              numberOfLines={4}
+            />
+          )}
         </View>
 
         {/* Context Pickers */}
-        <View style={{ marginTop: spacing.lg, gap: spacing.md }}>
-          {mode === 'task' ? (
-            <>
-              <DueDatePicker value={dueDate} onChange={setDueDate} />
-              <PriorityPicker value={priority} onChange={setPriority} />
-            </>
-          ) : (
-            <SeverityPicker value={severity} onChange={setSeverity} />
-          )}
-        </View>
+        {mode !== 'sticky' && (
+          <View style={{ marginTop: spacing.lg, gap: spacing.md }}>
+            {mode === 'task' ? (
+              <>
+                <DueDatePicker value={dueDate} onChange={setDueDate} />
+                <PriorityPicker value={priority} onChange={setPriority} />
+              </>
+            ) : (
+              <SeverityPicker value={severity} onChange={setSeverity} />
+            )}
+          </View>
+        )}
 
         {/* Action Buttons */}
         <View style={[styles.actionRow, { gap: spacing.md, marginTop: spacing['2xl'] }]}>
@@ -244,7 +285,7 @@ export const CaptureModal: React.FC = () => {
             onPress={() => navigation.goBack()}
           />
           <Button
-            title={mode === 'bug' ? 'Submit Bug' : 'Create Task'}
+            title={mode === 'bug' ? 'Submit Bug' : mode === 'sticky' ? 'Save Sticky' : 'Create Task'}
             variant="primary"
             style={styles.actionBtn}
             disabled={!title.trim()}
