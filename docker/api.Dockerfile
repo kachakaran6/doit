@@ -14,7 +14,7 @@ RUN pnpm --filter @doit/contracts --filter @doit/tokens build
 RUN node scripts/sync-packages.mjs
 RUN pnpm --filter @doit/api exec prisma generate
 RUN pnpm --filter @doit/api build
-RUN pnpm --filter @doit/api deploy --prod /out
+RUN pnpm --filter @doit/api deploy --legacy --prod /out
 
 FROM base AS runner
 ENV NODE_ENV=production
