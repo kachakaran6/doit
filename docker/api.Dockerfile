@@ -29,5 +29,5 @@ RUN addgroup -S app && adduser -S app -G app && mkdir -p /app/uploads && mkdir -
 USER app
 EXPOSE 3000
 ENTRYPOINT ["/sbin/tini", "--"]
-CMD ["sh", "-c", "npx prisma migrate deploy && node dist/main.js"]
+CMD ["sh", "-c", "npx prisma db push --accept-data-loss && node dist/main.js"]
 
