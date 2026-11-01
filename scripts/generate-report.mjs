@@ -519,3 +519,4 @@ const html = `<!DOCTYPE html>
 
 fs.writeFileSync('k:/Doit/report.html', html, 'utf8');
 console.log('Successfully generated report.html at k:/Doit/report.html');
+

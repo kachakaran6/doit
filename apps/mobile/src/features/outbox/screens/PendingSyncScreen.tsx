@@ -1,12 +1,12 @@
 import React from 'react';
-import { View, StyleSheet, FlatList } from 'react-native';
+import { View, StyleSheet, FlatList, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { useTheme } from '../../../theme/useTheme';
-import { Text, Button, EmptyState } from '../../../components/ui';
+import { Text, Button, EmptyState, ScreenHeader } from '../../../components/ui';
 import { useOutbox } from '../../../core/providers/OutboxProvider';
 import { OutboxEntry } from '../../../lib/outbox';
-import { RotateCw, Trash2, CheckCircle2 } from 'lucide-react-native';
+import { RotateCw, Trash2, CheckCircle2, RefreshCw } from 'lucide-react-native';
 
 export const PendingSyncScreen: React.FC = () => {
   const { colors, spacing, radius, elevation } = useTheme();
@@ -25,6 +25,7 @@ export const PendingSyncScreen: React.FC = () => {
             borderColor: isFailed ? colors.danger : colors.border,
             borderRadius: radius.md,
             padding: spacing.md,
+            marginBottom: spacing.sm,
             ...elevation.e1,
           },
         ]}
@@ -33,13 +34,27 @@ export const PendingSyncScreen: React.FC = () => {
           <Text variant="caption" color="secondary">
             {item.method} {item.path}
           </Text>
-          <Text
-            variant="caption"
-            color={isFailed ? 'danger' : 'accent'}
-            style={{ fontWeight: '700' }}
+          <View
+            style={[
+              styles.statePill,
+              {
+                backgroundColor: isFailed ? colors.danger + '20' : colors.surfaceRaised,
+                borderColor: isFailed ? colors.danger : colors.border,
+                borderRadius: radius.pill,
+              },
+            ]}
           >
-            {item.state}
-          </Text>
+            <Text
+              variant="caption"
+              style={{
+                color: isFailed ? colors.danger : colors.textSecondary,
+                fontWeight: '600',
+                fontSize: 10,
+              }}
+            >
+              {item.state}
+            </Text>
+          </View>
         </View>
 
         <Text variant="bodyStrong" numberOfLines={1} style={{ marginTop: spacing.xs }}>
@@ -74,32 +89,42 @@ export const PendingSyncScreen: React.FC = () => {
 
   return (
     <SafeAreaView edges={['top', 'bottom']} style={[styles.container, { backgroundColor: colors.bg }]}>
-      <View style={[styles.header, { paddingHorizontal: spacing.lg, paddingTop: spacing.md }]}>
-        <View>
-          <Button title="← Back" variant="ghost" size="sm" onPress={() => navigation.goBack()} />
-          <Text variant="h1" style={{ marginTop: spacing.xs }}>
-            Sync Queue
-          </Text>
-          <Text variant="caption" color="secondary">
-            {entries.length} offline changes awaiting upload
-          </Text>
-        </View>
-        {entries.length > 0 && (
-          <Button
-            title="Sync All"
-            variant="primary"
-            size="sm"
-            onPress={() => flush()}
-          />
-        )}
+      <View style={{ paddingHorizontal: spacing.lg, paddingTop: spacing.xs }}>
+        <ScreenHeader
+          title="Sync Queue"
+          subtitle="Offline Mutations"
+          badge={entries.length}
+          onBack={() => navigation.goBack()}
+          rightAction={
+            entries.length > 0 ? (
+              <TouchableOpacity
+                style={[
+                  styles.syncAllBtn,
+                  {
+                    backgroundColor: colors.accent,
+                    borderRadius: radius.sm,
+                  },
+                ]}
+                onPress={() => flush()}
+              >
+                <RefreshCw size={14} color={colors.accentOnPrimary} />
+                <Text
+                  variant="label"
+                  style={{ color: colors.accentOnPrimary, marginLeft: 6, fontWeight: '600' }}
+                >
+                  Sync All
+                </Text>
+              </TouchableOpacity>
+            ) : null
+          }
+        />
       </View>
 
       {!entries.length ? (
         <EmptyState
+          illustration="no-tasks"
           title="All caught up"
-          body="Your local changes are fully synchronized with the server."
-          actionTitle="Back to Home"
-          onAction={() => navigation.goBack()}
+          body="Your local changes are fully synchronized with the cloud backend."
           style={{ marginTop: spacing['2xl'] }}
         />
       ) : (
@@ -107,7 +132,10 @@ export const PendingSyncScreen: React.FC = () => {
           data={entries}
           keyExtractor={(item) => item.id}
           renderItem={renderItem}
-          contentContainerStyle={{ padding: spacing.lg, gap: spacing.sm }}
+          contentContainerStyle={{
+            paddingHorizontal: spacing.lg,
+            paddingBottom: 64,
+          }}
         />
       )}
     </SafeAreaView>
@@ -118,12 +146,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 16,
-  },
   itemCard: {
     borderWidth: 1,
   },
@@ -132,8 +154,19 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
   },
+  statePill: {
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderWidth: 1,
+  },
   itemActions: {
     flexDirection: 'row',
     alignItems: 'center',
+  },
+  syncAllBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    height: 36,
+    paddingHorizontal: 12,
   },
 });

@@ -1,11 +1,19 @@
 import React from 'react';
-import { View, StyleSheet, FlatList, ScrollView, RefreshControl } from 'react-native';
+import { View, StyleSheet, FlatList, ScrollView, RefreshControl, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useTheme } from '../../../theme/useTheme';
-import { Text, Button, EmptyState, Skeleton, Chip } from '../../../components/ui';
-import { TaskRow } from '../../../components/patterns';
+import {
+  Text,
+  Button,
+  EmptyState,
+  Skeleton,
+  Chip,
+  ScreenHeader,
+  FilterControl,
+} from '../../../components/ui';
+import { TaskItem } from '../../../components/patterns';
 import { BoardColumn } from '../components/BoardColumn';
 import { TaskCreateSheet } from '../components/TaskCreateSheet';
 import { useTasksQuery } from '../api/queries';
@@ -15,9 +23,10 @@ import { useTaskStore } from '../store';
 import { useWorkspaceStore } from '../../workspace';
 import { RootStackParamList } from '../../../navigation/types';
 import { TaskStatus } from '../types';
+import { LayoutList, Columns3, Plus } from 'lucide-react-native';
 
 export const TaskListScreen: React.FC = () => {
-  const { colors, spacing } = useTheme();
+  const { colors, spacing, radius } = useTheme();
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { viewMode, setViewMode, isCreateSheetOpen, setCreateSheetOpen } = useTaskStore();
   const activeProject = useWorkspaceStore((s) => s.activeProject);
@@ -33,20 +42,18 @@ export const TaskListScreen: React.FC = () => {
     updateStatus.mutate({ id, status: nextStatus });
   };
 
-  // 1. Loading Skeleton state
   if (isLoading) {
     return (
       <SafeAreaView edges={['top']} style={[styles.container, { backgroundColor: colors.bg, padding: spacing.lg }]}>
         <Skeleton width="40%" height={28} style={{ marginBottom: spacing.lg }} />
-        <Skeleton width="100%" height={64} style={{ marginBottom: spacing.sm }} />
-        <Skeleton width="100%" height={64} style={{ marginBottom: spacing.sm }} />
-        <Skeleton width="100%" height={64} style={{ marginBottom: spacing.sm }} />
-        <Skeleton width="100%" height={64} />
+        <Skeleton width="100%" height={52} style={{ marginBottom: spacing.sm, borderRadius: radius.md }} />
+        <Skeleton width="100%" height={52} style={{ marginBottom: spacing.sm, borderRadius: radius.md }} />
+        <Skeleton width="100%" height={52} style={{ marginBottom: spacing.sm, borderRadius: radius.md }} />
+        <Skeleton width="100%" height={52} style={{ borderRadius: radius.md }} />
       </SafeAreaView>
     );
   }
 
-  // 2. Error state
   if (error) {
     return (
       <SafeAreaView edges={['top']} style={[styles.container, { backgroundColor: colors.bg, padding: spacing.lg }]}>
@@ -61,73 +68,91 @@ export const TaskListScreen: React.FC = () => {
     );
   }
 
+  const tabOptions = [
+    { key: 'all' as const, label: 'All' },
+    { key: 'my_day' as const, label: 'My Day' },
+    { key: 'inbox' as const, label: 'Inbox' },
+    { key: 'upcoming' as const, label: 'Upcoming' },
+  ];
+
   return (
     <SafeAreaView edges={['top']} style={[styles.container, { backgroundColor: colors.bg }]}>
-      {/* Top Header */}
-      <View style={[styles.header, { paddingHorizontal: spacing.lg, paddingTop: spacing.md }]}>
-        <View>
-          <Text variant="h1">Tasks</Text>
-          <Text variant="caption" color="secondary">
-            {filteredTasks.length} active items
-          </Text>
-        </View>
+      {/* Screen Header */}
+      <View style={{ paddingHorizontal: spacing.lg, paddingTop: spacing.xs }}>
+        <ScreenHeader
+          title="Tasks"
+          subtitle={activeProject ? activeProject.name : 'Workspace'}
+          badge={filteredTasks.length}
+          rightAction={
+            <View style={[styles.headerControls, { gap: spacing.xs }]}>
+              {/* Toggle List vs Kanban View */}
+              <TouchableOpacity
+                style={[
+                  styles.viewToggleBtn,
+                  {
+                    backgroundColor: colors.surface,
+                    borderColor: colors.border,
+                    borderRadius: radius.sm,
+                  },
+                ]}
+                onPress={() => setViewMode(viewMode === 'list' ? 'board' : 'list')}
+                accessibilityLabel={viewMode === 'list' ? 'Switch to Board view' : 'Switch to List view'}
+              >
+                {viewMode === 'list' ? (
+                  <Columns3 size={18} color={colors.textSecondary} />
+                ) : (
+                  <LayoutList size={18} color={colors.textSecondary} />
+                )}
+              </TouchableOpacity>
 
-        <View style={[styles.headerActions, { gap: spacing.xs }]}>
-          <Button
-            title={viewMode === 'list' ? 'Board' : 'List'}
-            variant="ghost"
-            size="sm"
-            onPress={() => setViewMode(viewMode === 'list' ? 'board' : 'list')}
-          />
-          <Button
-            title="+ New"
-            variant="primary"
-            size="sm"
-            onPress={() => setCreateSheetOpen(true)}
+              <TouchableOpacity
+                style={[
+                  styles.addBtn,
+                  {
+                    backgroundColor: colors.accent,
+                    borderRadius: radius.sm,
+                  },
+                ]}
+                onPress={() => setCreateSheetOpen(true)}
+                accessibilityLabel="Create task"
+              >
+                <Plus size={16} color={colors.accentOnPrimary} />
+                <Text
+                  variant="label"
+                  style={{ color: colors.accentOnPrimary, marginLeft: 4, fontWeight: '600' }}
+                >
+                  New
+                </Text>
+              </TouchableOpacity>
+            </View>
+          }
+        />
+
+        {/* Tab & Filter Bar */}
+        <View style={{ marginBottom: spacing.md }}>
+          <FilterControl
+            options={tabOptions}
+            selectedKey={activeTab}
+            onSelect={(key) => setActiveTab(key)}
           />
         </View>
       </View>
 
-      {/* Tabs / Filter Row */}
-      <View style={[styles.filterRow, { paddingHorizontal: spacing.lg, gap: spacing.xs, marginVertical: spacing.sm }]}>
-        <Chip
-          label="All"
-          selected={activeTab === 'all'}
-          onPress={() => setActiveTab('all')}
-        />
-        <Chip
-          label="My Day"
-          selected={activeTab === 'my_day'}
-          onPress={() => setActiveTab('my_day')}
-        />
-        <Chip
-          label="Inbox"
-          selected={activeTab === 'inbox'}
-          onPress={() => setActiveTab('inbox')}
-        />
-        <Chip
-          label="Upcoming"
-          selected={activeTab === 'upcoming'}
-          onPress={() => setActiveTab('upcoming')}
-        />
-      </View>
-
-      {/* 3. Empty state */}
+      {/* Main Content: List or Board */}
       {!filteredTasks.length ? (
         <EmptyState
           illustration="no-tasks"
-          title="No tasks here"
-          body="You have no tasks matching this filter. Tap + to add one."
+          title="No tasks found"
+          body="You have no tasks matching this view. Tap New to capture one."
           actionTitle="Create Task"
           onAction={() => setCreateSheetOpen(true)}
           style={{ marginTop: spacing['2xl'] }}
         />
       ) : viewMode === 'board' ? (
-        /* Board Kanban View */
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
-          contentContainerStyle={{ paddingHorizontal: spacing.lg, paddingBottom: 96 }}
+          contentContainerStyle={{ paddingHorizontal: spacing.lg, paddingBottom: 110 }}
         >
           <BoardColumn
             title="To Do"
@@ -159,12 +184,11 @@ export const TaskListScreen: React.FC = () => {
           />
         </ScrollView>
       ) : (
-        /* 4. List Data state */
         <FlatList
           data={filteredTasks}
           keyExtractor={(item) => item.id}
           renderItem={({ item }) => (
-            <TaskRow
+            <TaskItem
               id={item.id}
               humanId={item.humanId}
               title={item.title}
@@ -176,18 +200,22 @@ export const TaskListScreen: React.FC = () => {
               onToggleStatus={() => handleToggleStatus(item.id, item.status)}
             />
           )}
-          contentContainerStyle={{ paddingHorizontal: spacing.lg, paddingBottom: 96 }}
+          contentContainerStyle={{
+            paddingHorizontal: spacing.lg,
+            paddingBottom: 110,
+          }}
           refreshControl={
             <RefreshControl
               refreshing={isRefetching}
               onRefresh={() => refetch()}
               tintColor={colors.accent}
+              colors={[colors.accent]}
             />
           }
         />
       )}
 
-      {/* Quick Task Creation Sheet */}
+      {/* Task Creation Sheet */}
       <TaskCreateSheet
         isOpen={isCreateSheetOpen}
         onClose={() => setCreateSheetOpen(false)}
@@ -200,17 +228,21 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  headerActions: {
+  headerControls: {
     flexDirection: 'row',
     alignItems: 'center',
   },
-  filterRow: {
+  viewToggleBtn: {
+    width: 36,
+    height: 36,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  addBtn: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
+    alignItems: 'center',
+    height: 36,
+    paddingHorizontal: 12,
   },
 });

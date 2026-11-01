@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { Keyboard, KeyboardEvent, Platform } from 'react-native';
 
 export type KeyboardContextType =
@@ -36,7 +36,8 @@ export const KeyboardProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const [keyboardHeight, setKeyboardHeight] = useState(0);
   const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
   const [activeValues, setActiveValues] = useState<Record<string, any>>({});
-  const [actionHandler, setActionHandler] = useState<((actionId: string, payload?: any) => void) | undefined>();
+  const activeValuesRef = useRef<Record<string, any>>({});
+  const actionHandlerRef = useRef<((actionId: string, payload?: any) => void) | undefined>(undefined);
 
   useEffect(() => {
     const showSub = Keyboard.addListener(
@@ -62,6 +63,8 @@ export const KeyboardProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   }, []);
 
   const setActiveValue = useCallback((key: string, val: any) => {
+    if (activeValuesRef.current[key] === val) return;
+    activeValuesRef.current[key] = val;
     setActiveValues((prev) => {
       if (prev[key] === val) return prev;
       return { ...prev, [key]: val };
@@ -73,7 +76,11 @@ export const KeyboardProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   }, []);
 
   const setOnActionCallback = useCallback((handler?: (actionId: string, payload?: any) => void) => {
-    setActionHandler(() => handler);
+    actionHandlerRef.current = handler;
+  }, []);
+
+  const onActionCallback = useCallback((actionId: string, payload?: any) => {
+    actionHandlerRef.current?.(actionId, payload);
   }, []);
 
   return (
@@ -85,7 +92,7 @@ export const KeyboardProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         isKeyboardVisible,
         activeValues,
         setActiveValue,
-        onAction: actionHandler,
+        onAction: onActionCallback,
         setOnAction: setOnActionCallback,
       }}
     >

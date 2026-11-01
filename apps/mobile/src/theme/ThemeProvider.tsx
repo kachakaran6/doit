@@ -8,7 +8,7 @@ import {
   buildThemeColors,
 } from './useTheme';
 import { ThemeStorage } from './theme.storage';
-import { spacing, radius, typography, elevation } from '@doit/tokens';
+import { spacing, radius, typography, dimensions, elevation } from '@doit/tokens';
 
 export interface ThemeProviderProps {
   children: ReactNode;
@@ -59,6 +59,7 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({
       spacing,
       radius,
       typography,
+      dimensions,
       elevation,
       setMode,
       setAccent,

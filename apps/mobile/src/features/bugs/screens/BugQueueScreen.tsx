@@ -1,18 +1,25 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, FlatList, RefreshControl } from 'react-native';
+import { View, StyleSheet, FlatList, RefreshControl, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useTheme } from '../../../theme/useTheme';
-import { Text, Button, EmptyState, Skeleton, Chip } from '../../../components/ui';
+import {
+  Text,
+  Button,
+  EmptyState,
+  Skeleton,
+  ScreenHeader,
+  FilterControl,
+} from '../../../components/ui';
 import { BugRow } from '../../../components/patterns';
 import { useBugsQuery } from '../api/queries';
 import { useWorkspaceStore } from '../../workspace';
 import { RootStackParamList } from '../../../navigation/types';
-import { BugSeverity } from '../types';
+import { Plus } from 'lucide-react-native';
 
 export const BugQueueScreen: React.FC = () => {
-  const { colors, spacing } = useTheme();
+  const { colors, spacing, radius } = useTheme();
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const [selectedSeverity, setSelectedSeverity] = useState<string>('ALL');
   const activeProject = useWorkspaceStore((s) => s.activeProject);
@@ -26,19 +33,17 @@ export const BugQueueScreen: React.FC = () => {
     return true;
   });
 
-  // 1. Loading Skeleton state
   if (isLoading) {
     return (
       <SafeAreaView edges={['top']} style={[styles.container, { backgroundColor: colors.bg, padding: spacing.lg }]}>
         <Skeleton width="45%" height={28} style={{ marginBottom: spacing.lg }} />
-        <Skeleton width="100%" height={72} style={{ marginBottom: spacing.sm }} />
-        <Skeleton width="100%" height={72} style={{ marginBottom: spacing.sm }} />
-        <Skeleton width="100%" height={72} style={{ marginBottom: spacing.sm }} />
+        <Skeleton width="100%" height={68} style={{ marginBottom: spacing.sm, borderRadius: radius.md }} />
+        <Skeleton width="100%" height={68} style={{ marginBottom: spacing.sm, borderRadius: radius.md }} />
+        <Skeleton width="100%" height={68} style={{ borderRadius: radius.md }} />
       </SafeAreaView>
     );
   }
 
-  // 2. Error state
   if (error) {
     return (
       <SafeAreaView edges={['top']} style={[styles.container, { backgroundColor: colors.bg, padding: spacing.lg }]}>
@@ -53,64 +58,63 @@ export const BugQueueScreen: React.FC = () => {
     );
   }
 
+  const severityOptions = [
+    { key: 'ALL', label: 'All' },
+    { key: 'CRITICAL', label: 'Critical' },
+    { key: 'MAJOR', label: 'Major' },
+    { key: 'MINOR', label: 'Minor' },
+    { key: 'TRIVIAL', label: 'Trivial' },
+  ];
+
   return (
     <SafeAreaView edges={['top']} style={[styles.container, { backgroundColor: colors.bg }]}>
-      <View style={[styles.header, { paddingHorizontal: spacing.lg, paddingTop: spacing.md }]}>
-        <View>
-          <Text variant="h1">Bug Queue</Text>
-          <Text variant="caption" color="secondary">
-            {filteredBugs.length} reported issues
-          </Text>
+      <View style={{ paddingHorizontal: spacing.lg, paddingTop: spacing.xs }}>
+        <ScreenHeader
+          title="Bug Queue"
+          subtitle={activeProject ? activeProject.name : 'Workspace'}
+          badge={filteredBugs.length}
+          rightAction={
+            <TouchableOpacity
+              style={[
+                styles.reportBtn,
+                {
+                  backgroundColor: colors.accent,
+                  borderRadius: radius.sm,
+                },
+              ]}
+              onPress={() => navigation.navigate('CaptureModal', { initialMode: 'bug' })}
+              accessibilityLabel="Report bug"
+            >
+              <Plus size={16} color={colors.accentOnPrimary} />
+              <Text
+                variant="label"
+                style={{ color: colors.accentOnPrimary, marginLeft: 4, fontWeight: '600' }}
+              >
+                Report
+              </Text>
+            </TouchableOpacity>
+          }
+        />
+
+        <View style={{ marginBottom: spacing.md }}>
+          <FilterControl
+            options={severityOptions}
+            selectedKey={selectedSeverity}
+            onSelect={(key) => setSelectedSeverity(key)}
+          />
         </View>
-        <Button
-          title="+ Report"
-          variant="primary"
-          size="sm"
-          onPress={() => navigation.navigate('CaptureModal', { initialMode: 'bug' })}
-        />
       </View>
 
-      {/* Severity Filter Chips */}
-      <View style={[styles.chipRow, { paddingHorizontal: spacing.lg, gap: spacing.xs, marginVertical: spacing.sm }]}>
-        <Chip
-          label="All"
-          selected={selectedSeverity === 'ALL'}
-          onPress={() => setSelectedSeverity('ALL')}
-        />
-        <Chip
-          label="Critical"
-          selected={selectedSeverity === 'CRITICAL'}
-          onPress={() => setSelectedSeverity('CRITICAL')}
-        />
-        <Chip
-          label="Major"
-          selected={selectedSeverity === 'MAJOR'}
-          onPress={() => setSelectedSeverity('MAJOR')}
-        />
-        <Chip
-          label="Minor"
-          selected={selectedSeverity === 'MINOR'}
-          onPress={() => setSelectedSeverity('MINOR')}
-        />
-        <Chip
-          label="Trivial"
-          selected={selectedSeverity === 'TRIVIAL'}
-          onPress={() => setSelectedSeverity('TRIVIAL')}
-        />
-      </View>
-
-      {/* 3. Empty state */}
       {!filteredBugs.length ? (
         <EmptyState
           illustration="no-bugs"
-          title="Zero open bugs"
-          body="All clear! No issues found matching your current filter."
-          actionTitle="Report Issue"
+          title="No bugs reported"
+          body="All clear! No open bug reports matching this filter."
+          actionTitle="Report a Bug"
           onAction={() => navigation.navigate('CaptureModal', { initialMode: 'bug' })}
           style={{ marginTop: spacing['2xl'] }}
         />
       ) : (
-        /* 4. Bug List Data state */
         <FlatList
           data={filteredBugs}
           keyExtractor={(item) => item.id}
@@ -126,12 +130,16 @@ export const BugQueueScreen: React.FC = () => {
               onPress={() => navigation.navigate('BugDetail', { id: item.id })}
             />
           )}
-          contentContainerStyle={{ paddingHorizontal: spacing.lg, paddingBottom: 96 }}
+          contentContainerStyle={{
+            paddingHorizontal: spacing.lg,
+            paddingBottom: 110,
+          }}
           refreshControl={
             <RefreshControl
               refreshing={isRefetching}
               onRefresh={() => refetch()}
               tintColor={colors.accent}
+              colors={[colors.accent]}
             />
           }
         />
@@ -144,13 +152,10 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  header: {
+  reportBtn: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-  },
-  chipRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
+    height: 36,
+    paddingHorizontal: 12,
   },
 });

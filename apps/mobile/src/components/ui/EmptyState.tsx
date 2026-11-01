@@ -3,13 +3,22 @@ import { View, StyleSheet, ViewStyle } from 'react-native';
 import { useTheme } from '../../theme/useTheme';
 import { Text } from './Text';
 import { Button } from './Button';
+import {
+  CheckCircle2,
+  StickyNote,
+  Bug,
+  Search,
+  WifiOff,
+  FolderOpen,
+} from 'lucide-react-native';
 
 export type EmptyStateIllustration =
   | 'no-tasks'
   | 'no-stickies'
   | 'no-bugs'
   | 'no-results'
-  | 'offline';
+  | 'offline'
+  | 'no-projects';
 
 export interface EmptyStateProps {
   illustration?: EmptyStateIllustration;
@@ -21,7 +30,8 @@ export interface EmptyStateProps {
 }
 
 /**
- * Use EmptyState whenever a list, search result, or board has zero items.
+ * EmptyState adheres to Linear/Things 3 aesthetics:
+ * Muted monochrome iconography, clean typography hierarchy, restrained button.
  */
 export const EmptyState: React.FC<EmptyStateProps> = ({
   illustration = 'no-tasks',
@@ -33,35 +43,44 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
 }) => {
   const { colors, spacing, radius } = useTheme();
 
-  // Isometric glyph illustration container
-  const renderIllustration = () => {
-    let iconGlyph = '📋';
-    if (illustration === 'no-stickies') iconGlyph = '📌';
-    if (illustration === 'no-bugs') iconGlyph = '🐞';
-    if (illustration === 'no-results') iconGlyph = '🔍';
-    if (illustration === 'offline') iconGlyph = '📡';
+  const renderIcon = () => {
+    const iconSize = 24;
+    const iconColor = colors.textSecondary;
 
-    return (
-      <View
-        style={[
-          styles.illustrationContainer,
-          {
-            backgroundColor: colors.accentContainer,
-            borderRadius: radius.xl,
-            marginBottom: spacing.xl,
-          },
-        ]}
-      >
-        <Text style={{ fontSize: 40 }}>{iconGlyph}</Text>
-      </View>
-    );
+    switch (illustration) {
+      case 'no-stickies':
+        return <StickyNote size={iconSize} color={iconColor} strokeWidth={1.5} />;
+      case 'no-bugs':
+        return <Bug size={iconSize} color={iconColor} strokeWidth={1.5} />;
+      case 'no-results':
+        return <Search size={iconSize} color={iconColor} strokeWidth={1.5} />;
+      case 'offline':
+        return <WifiOff size={iconSize} color={iconColor} strokeWidth={1.5} />;
+      case 'no-projects':
+        return <FolderOpen size={iconSize} color={iconColor} strokeWidth={1.5} />;
+      case 'no-tasks':
+      default:
+        return <CheckCircle2 size={iconSize} color={iconColor} strokeWidth={1.5} />;
+    }
   };
 
   return (
-    <View style={[styles.container, { padding: spacing['2xl'] }, style]}>
-      {renderIllustration()}
+    <View style={[styles.container, { paddingVertical: spacing['3xl'] }, style]}>
+      <View
+        style={[
+          styles.iconContainer,
+          {
+            backgroundColor: colors.surfaceRaised,
+            borderColor: colors.border,
+            borderRadius: radius.md,
+            marginBottom: spacing.md,
+          },
+        ]}
+      >
+        {renderIcon()}
+      </View>
 
-      <Text variant="h2" align="center" style={{ marginBottom: spacing.sm }}>
+      <Text variant="h2" align="center" style={[styles.title, { marginBottom: spacing.xs }]}>
         {title}
       </Text>
 
@@ -69,17 +88,17 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
         variant="body"
         color="secondary"
         align="center"
-        style={{ marginBottom: spacing.xl, maxWidth: 300 }}
+        style={[styles.bodyText, { marginBottom: spacing.xl }]}
       >
         {body}
       </Text>
 
       {actionTitle && onAction && (
         <Button
-          variant="primary"
+          variant="secondary"
           title={actionTitle}
           onPress={onAction}
-          size="md"
+          size="sm"
         />
       )}
     </View>
@@ -91,11 +110,20 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     width: '100%',
+    paddingHorizontal: 24,
   },
-  illustrationContainer: {
-    width: 88,
-    height: 88,
+  iconContainer: {
+    width: 48,
+    height: 48,
     alignItems: 'center',
     justifyContent: 'center',
+    borderWidth: 1,
+  },
+  title: {
+    fontWeight: '600',
+  },
+  bodyText: {
+    maxWidth: 280,
+    lineHeight: 20,
   },
 });

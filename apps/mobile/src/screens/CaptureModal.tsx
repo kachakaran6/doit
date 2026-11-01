@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { View, StyleSheet, ScrollView } from 'react-native';
+import { View, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRoute, useNavigation, RouteProp } from '@react-navigation/native';
 import { Text, Button, Input, Chip, KeyboardAccessoryBar } from '../components/ui';
@@ -16,7 +16,7 @@ import { X, Check, Bug, CheckSquare, Mic, StickyNote } from 'lucide-react-native
 type CaptureRouteProp = RouteProp<RootStackParamList, 'CaptureModal'>;
 
 export const CaptureModal: React.FC = () => {
-  const { colors, spacing, radius } = useTheme();
+  const { colors, spacing, radius, elevation } = useTheme();
   const navigation = useNavigation();
   const route = useRoute<CaptureRouteProp>();
   const initialMode = route.params?.initialMode ?? 'task';
@@ -28,8 +28,8 @@ export const CaptureModal: React.FC = () => {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [dueDate, setDueDate] = useState<string | null>(null);
-  const [priority, setPriority] = useState<PriorityValue>('MEDIUM');
-  const [severity, setSeverity] = useState<SeverityValue>('MAJOR');
+  const [priority, setPriorityState] = useState<PriorityValue>('MEDIUM');
+  const [severity, setSeverityState] = useState<SeverityValue>('MAJOR');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const { setKeyboardContext, setOnAction, setActiveValue } = useKeyboardBar();
@@ -38,7 +38,17 @@ export const CaptureModal: React.FC = () => {
   const createBug = useCreateBugMutation(projectId);
   const createSticky = useCreateStickyMutation(projectId);
 
-  // Keep latest mutable state in ref to avoid recreating effect listeners
+  const setPriority = (p: PriorityValue) => {
+    setPriorityState(p);
+    setActiveValue('priority', p);
+  };
+
+  const setSeverity = (s: SeverityValue) => {
+    setSeverityState(s);
+    setActiveValue('severity', s);
+  };
+
+  // State ref for stable listener execution
   const stateRef = useRef({
     mode,
     title,
@@ -49,28 +59,16 @@ export const CaptureModal: React.FC = () => {
     projectId,
   });
 
-  useEffect(() => {
-    stateRef.current = {
-      mode,
-      title,
-      description,
-      dueDate,
-      priority,
-      severity,
-      projectId,
-    };
-  }, [mode, title, description, dueDate, priority, severity, projectId]);
+  stateRef.current = {
+    mode,
+    title,
+    description,
+    dueDate,
+    priority,
+    severity,
+    projectId,
+  };
 
-  // Sync active values into keyboard bar without infinite loop
-  useEffect(() => {
-    setActiveValue('priority', priority);
-  }, [priority, setActiveValue]);
-
-  useEffect(() => {
-    setActiveValue('severity', severity);
-  }, [severity, setActiveValue]);
-
-  const handleSaveRef = useRef<() => Promise<void>>(() => Promise.resolve());
   const handleSave = useCallback(async () => {
     const current = stateRef.current;
     if (!current.title.trim()) {
@@ -111,9 +109,11 @@ export const CaptureModal: React.FC = () => {
       setErrorMessage(err.message || 'Failed to save. Please try again.');
     }
   }, [createBug, createTask, createSticky, navigation]);
+
+  const handleSaveRef = useRef(handleSave);
   handleSaveRef.current = handleSave;
 
-  // Keyboard action listener mounted once
+  // Stable keyboard listener registered once
   useEffect(() => {
     setOnAction((actionId, payload) => {
       if (actionId === 'due_date') {
@@ -121,33 +121,52 @@ export const CaptureModal: React.FC = () => {
         if (payload === 'tomorrow') d.setDate(d.getDate() + 1);
         setDueDate(d.toISOString().split('T')[0] ?? null);
       } else if (actionId === 'pick_priority') {
-        setPriority((prev) =>
-          prev === 'LOW' ? 'MEDIUM' : prev === 'MEDIUM' ? 'HIGH' : prev === 'HIGH' ? 'URGENT' : 'LOW'
-        );
+        setPriorityState((prev) => {
+          const next = prev === 'LOW' ? 'MEDIUM' : prev === 'MEDIUM' ? 'HIGH' : prev === 'HIGH' ? 'URGENT' : 'LOW';
+          setActiveValue('priority', next);
+          return next;
+        });
       } else if (actionId === 'pick_severity') {
-        setSeverity((prev) =>
-          prev === 'CRITICAL' ? 'MAJOR' : prev === 'MAJOR' ? 'MINOR' : prev === 'MINOR' ? 'TRIVIAL' : 'CRITICAL'
-        );
+        setSeverityState((prev) => {
+          const next = prev === 'CRITICAL' ? 'MAJOR' : prev === 'MAJOR' ? 'MINOR' : prev === 'MINOR' ? 'TRIVIAL' : 'CRITICAL';
+          setActiveValue('severity', next);
+          return next;
+        });
       } else if (actionId === 'send') {
         handleSaveRef.current();
       }
     });
 
     return () => setOnAction(undefined);
-  }, [setOnAction]);
+  }, [setOnAction, setActiveValue]);
 
   const isSaving = createTask.isPending || createBug.isPending || createSticky.isPending;
 
   return (
     <SafeAreaView edges={['top', 'bottom']} style={[styles.safeArea, { backgroundColor: colors.bg }]}>
-      <ScrollView contentContainerStyle={[styles.container, { padding: spacing.lg, paddingBottom: 96 }]}>
+      <ScrollView
+        contentContainerStyle={[
+          styles.container,
+          {
+            paddingHorizontal: spacing.lg,
+            paddingTop: spacing.md,
+            paddingBottom: 96,
+          },
+        ]}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+      >
         {/* Header Bar */}
-        <View style={styles.header}>
-          <View>
-            <Text variant="caption" color="accent" style={{ fontWeight: '700', textTransform: 'uppercase' }}>
-              {activeProject ? `${activeProject.key} • ${activeProject.name}` : 'Quick Capture'}
+        <View style={[styles.header, { marginBottom: spacing.md }]}>
+          <View style={{ flex: 1 }}>
+            <Text
+              variant="caption"
+              color="secondary"
+              style={styles.headerSubtitle}
+            >
+              {activeProject ? `${activeProject.key} • ${activeProject.name}` : 'QUICK CAPTURE'}
             </Text>
-            <Text variant="h1" style={{ marginTop: 2 }}>
+            <Text variant="h1" style={{ marginTop: 2, fontWeight: '700' }}>
               {mode === 'bug'
                 ? 'Report Bug'
                 : mode === 'sticky'
@@ -158,17 +177,25 @@ export const CaptureModal: React.FC = () => {
             </Text>
           </View>
 
-          <Button
-            title=""
-            variant="ghost"
-            size="sm"
-            icon={<X size={20} color={colors.textPrimary} />}
+          <TouchableOpacity
             onPress={() => navigation.goBack()}
-          />
+            style={[
+              styles.closeBtn,
+              {
+                backgroundColor: colors.surface,
+                borderColor: colors.border,
+                borderRadius: radius.sm,
+              },
+            ]}
+            accessibilityRole="button"
+            accessibilityLabel="Close capture"
+          >
+            <X size={18} color={colors.textPrimary} />
+          </TouchableOpacity>
         </View>
 
         {/* Mode Selector Chips */}
-        <View style={[styles.modeRow, { gap: spacing.sm, marginVertical: spacing.md }]}>
+        <View style={[styles.modeRow, { gap: spacing.xs, marginBottom: spacing.lg }]}>
           <Chip
             label="Task"
             selected={mode === 'task'}
@@ -179,7 +206,7 @@ export const CaptureModal: React.FC = () => {
             }}
           />
           <Chip
-            label="Bug Report"
+            label="Bug"
             selected={mode === 'bug'}
             leadingIcon={<Bug size={13} color={mode === 'bug' ? colors.accentText : colors.textTertiary} />}
             onPress={() => {
@@ -188,7 +215,7 @@ export const CaptureModal: React.FC = () => {
             }}
           />
           <Chip
-            label="Sticky Note"
+            label="Sticky"
             selected={mode === 'sticky'}
             leadingIcon={<StickyNote size={13} color={mode === 'sticky' ? colors.accentText : colors.textTertiary} />}
             onPress={() => {
@@ -197,7 +224,7 @@ export const CaptureModal: React.FC = () => {
             }}
           />
           <Chip
-            label="Voice Note"
+            label="Voice"
             selected={mode === 'voice'}
             leadingIcon={<Mic size={13} color={mode === 'voice' ? colors.accentText : colors.textTertiary} />}
             onPress={() => setMode('voice')}
@@ -224,7 +251,7 @@ export const CaptureModal: React.FC = () => {
         )}
 
         {/* Input Fields */}
-        <View style={[styles.inputGroup, { gap: spacing.md }]}>
+        <View style={{ gap: spacing.md }}>
           <Input
             label={mode === 'bug' ? 'Issue Summary' : mode === 'sticky' ? 'Note Content' : 'Task Title'}
             placeholder={
@@ -247,7 +274,7 @@ export const CaptureModal: React.FC = () => {
 
           {mode !== 'sticky' && (
             <Input
-              label="Description & Context (Markdown)"
+              label="Description & Context"
               placeholder={
                 mode === 'bug'
                   ? 'Steps to reproduce:\n1. Open app\n2. Navigate to...\n3. Observe crash'
@@ -290,13 +317,13 @@ export const CaptureModal: React.FC = () => {
             style={styles.actionBtn}
             disabled={!title.trim()}
             loading={isSaving}
-            icon={<Check size={16} color={colors.accentText} />}
+            icon={<Check size={16} color={colors.accentOnPrimary} />}
             onPress={handleSave}
           />
         </View>
       </ScrollView>
 
-      {/* P14 Contextual Keyboard Accessory Bar */}
+      {/* Contextual Keyboard Accessory Bar */}
       <KeyboardAccessoryBar onSend={handleSave} />
     </SafeAreaView>
   );
@@ -312,8 +339,19 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 8,
+    alignItems: 'center',
+  },
+  headerSubtitle: {
+    textTransform: 'uppercase',
+    letterSpacing: 0.6,
+    fontWeight: '600',
+  },
+  closeBtn: {
+    width: 36,
+    height: 36,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   modeRow: {
     flexDirection: 'row',
@@ -321,9 +359,6 @@ const styles = StyleSheet.create({
   },
   errorCard: {
     borderWidth: 1,
-  },
-  inputGroup: {
-    width: '100%',
   },
   actionRow: {
     flexDirection: 'row',

@@ -1,0 +1,120 @@
+/* Starting point for packages/ui-web/src/theme.css (generated from @doit/tokens in the real build).
+   shadcn variable names. Brand accent => --primary. Mode: .dark on <html>. Accent: data-accent on <html>. */
+@import "tailwindcss";
+@custom-variant dark (&:is(.dark *));
+
+:root {
+  --radius: 0.75rem;
+  --background: #ffffff;
+  --foreground: #0f1012;
+  --card: #f7f7f8;
+  --card-foreground: #0f1012;
+  --popover: #ffffff;
+  --popover-foreground: #0f1012;
+  --muted: #f1f1f3;
+  --muted-foreground: #5f6168;
+  --accent: #eef1fe;            /* subtle hover/selected surface (tinted by accent below) */
+  --accent-foreground: #0f1012;
+  --secondary: #f1f1f3;
+  --secondary-foreground: #0f1012;
+  --border: #e6e7ea;
+  --input: #e6e7ea;
+  --ring: #2f64f0;
+  --primary: #2f64f0;           /* brand accent (blue default) */
+  --primary-foreground: #ffffff;
+  --destructive: #e5484d;
+  --success: #1f9d5c;
+  --warning: #d98a00;
+  --sidebar: #fafafa;
+  --sidebar-foreground: #0f1012;
+  --sidebar-primary: #2f64f0;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #eef1fe;
+  --sidebar-accent-foreground: #0f1012;
+  --sidebar-border: #e6e7ea;
+  --sidebar-ring: #2f64f0;
+}
+
+.dark {
+  --background: #101010;
+  --foreground: #f2f3f5;
+  --card: #17181a;
+  --card-foreground: #f2f3f5;
+  --popover: #1f2023;
+  --popover-foreground: #f2f3f5;
+  --muted: #1c1d20;
+  --muted-foreground: #9a9ca3;
+  --accent: #202431;
+  --accent-foreground: #f2f3f5;
+  --secondary: #1f2023;
+  --secondary-foreground: #f2f3f5;
+  --border: #2a2b2f;
+  --input: #2a2b2f;
+  --ring: #3f76ff;
+  --primary: #3f76ff;
+  --primary-foreground: #ffffff;
+  --destructive: #f0524f;
+  --success: #2fbf71;
+  --warning: #f5a524;
+  --sidebar: #141415;
+  --sidebar-foreground: #f2f3f5;
+  --sidebar-primary: #3f76ff;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #202431;
+  --sidebar-accent-foreground: #f2f3f5;
+  --sidebar-border: #2a2b2f;
+  --sidebar-ring: #3f76ff;
+}
+
+/* ---- Accents: override brand + tinted accent surface + ring (light) ---- */
+[data-accent="violet"] { --primary:#7c3aed; --ring:#7c3aed; --sidebar-primary:#7c3aed; --sidebar-ring:#7c3aed; --accent:#f1ecfe; --sidebar-accent:#f1ecfe; }
+[data-accent="green"]  { --primary:#16a34a; --ring:#16a34a; --sidebar-primary:#16a34a; --sidebar-ring:#16a34a; --accent:#e9f7ee; --sidebar-accent:#e9f7ee; }
+[data-accent="orange"] { --primary:#ea580c; --ring:#ea580c; --sidebar-primary:#ea580c; --sidebar-ring:#ea580c; --accent:#fdf0e7; --sidebar-accent:#fdf0e7; }
+[data-accent="rose"]   { --primary:#e11d48; --ring:#e11d48; --sidebar-primary:#e11d48; --sidebar-ring:#e11d48; --accent:#fdecef; --sidebar-accent:#fdecef; }
+
+/* ---- Accents (dark) ---- */
+.dark[data-accent="violet"] { --primary:#8b5cf6; --ring:#8b5cf6; --sidebar-primary:#8b5cf6; --sidebar-ring:#8b5cf6; --accent:#241f33; --sidebar-accent:#241f33; }
+.dark[data-accent="green"]  { --primary:#22c55e; --ring:#22c55e; --sidebar-primary:#22c55e; --sidebar-ring:#22c55e; --accent:#1b2a21; --sidebar-accent:#1b2a21; --primary-foreground:#04210f; }
+.dark[data-accent="orange"] { --primary:#f97316; --ring:#f97316; --sidebar-primary:#f97316; --sidebar-ring:#f97316; --accent:#2e2118; --sidebar-accent:#2e2118; --primary-foreground:#1c0a00; }
+.dark[data-accent="rose"]   { --primary:#f43f5e; --ring:#f43f5e; --sidebar-primary:#f43f5e; --sidebar-ring:#f43f5e; --accent:#2e1c21; --sidebar-accent:#2e1c21; }
+
+@theme inline {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-destructive: var(--destructive);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+}
+
+@layer base {
+  * { @apply border-border outline-ring/50; }
+  body { @apply bg-background text-foreground font-sans antialiased; }
+}

@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, Modal, TouchableOpacity, ScrollView, TextInput } from 'react-native';
+import { View, StyleSheet, Modal, TouchableOpacity, ScrollView } from 'react-native';
 import { useTheme } from '../../../theme/useTheme';
-import { Text, Button } from '../../../components/ui';
+import { Text, Button, Input } from '../../../components/ui';
 import { useWorkspaceStore } from '../store';
 import { useWorkspacesQuery } from '../queries';
 import { http } from '../../../lib/http';
-import { Check, Plus, X, Building2, KeyRound } from 'lucide-react-native';
+import { Check, Plus, X, Building2 } from 'lucide-react-native';
 
 interface WorkspaceSwitcherSheetProps {
   visible: boolean;
@@ -16,7 +16,7 @@ export const WorkspaceSwitcherSheet: React.FC<WorkspaceSwitcherSheetProps> = ({
   visible,
   onClose,
 }) => {
-  const { colors, spacing, radius } = useTheme();
+  const { colors, spacing, radius, elevation } = useTheme();
   const activeWorkspace = useWorkspaceStore((s) => s.activeWorkspace);
   const setActiveWorkspace = useWorkspaceStore((s) => s.setActiveWorkspace);
   const workspaces = useWorkspaceStore((s) => s.workspaces);
@@ -68,23 +68,50 @@ export const WorkspaceSwitcherSheet: React.FC<WorkspaceSwitcherSheetProps> = ({
           style={[
             styles.sheet,
             {
-              backgroundColor: colors.surfaceRaised,
+              backgroundColor: colors.surface,
               borderColor: colors.border,
               borderRadius: radius.xl,
               padding: spacing.lg,
+              ...elevation.e4,
             },
           ]}
         >
           {/* Header */}
-          <View style={styles.header}>
-            <Text variant="h2">Workspaces</Text>
-            <TouchableOpacity onPress={onClose} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-              <X size={20} color={colors.textSecondary} />
+          <View style={[styles.header, { marginBottom: spacing.md }]}>
+            <Text variant="h2" style={{ fontWeight: '700' }}>
+              Switch Workspace
+            </Text>
+            <TouchableOpacity
+              onPress={onClose}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              style={[
+                styles.closeBtn,
+                {
+                  backgroundColor: colors.surfaceRaised,
+                  borderColor: colors.border,
+                  borderRadius: radius.sm,
+                },
+              ]}
+              accessibilityRole="button"
+              accessibilityLabel="Close workspace switcher"
+            >
+              <X size={16} color={colors.textSecondary} />
             </TouchableOpacity>
           </View>
 
           {errorMsg && (
-            <View style={[styles.errorBox, { borderColor: colors.danger, backgroundColor: colors.surface }]}>
+            <View
+              style={[
+                styles.errorBox,
+                {
+                  borderColor: colors.danger,
+                  backgroundColor: colors.surfaceRaised,
+                  borderRadius: radius.sm,
+                  padding: spacing.md,
+                  marginBottom: spacing.md,
+                },
+              ]}
+            >
               <Text variant="caption" color="danger">
                 {errorMsg}
               </Text>
@@ -93,69 +120,80 @@ export const WorkspaceSwitcherSheet: React.FC<WorkspaceSwitcherSheetProps> = ({
 
           {/* List of workspaces */}
           <ScrollView style={styles.list} showsVerticalScrollIndicator={false}>
-            {workspaces.map((ws) => {
-              const isSelected = ws.id === activeWorkspace?.id;
-              const initial = (ws.name || 'W').charAt(0).toUpperCase();
+            <View style={{ gap: spacing.xs }}>
+              {workspaces.map((ws) => {
+                const isSelected = ws.id === activeWorkspace?.id;
+                const initial = (ws.name || 'W').charAt(0).toUpperCase();
 
-              return (
-                <TouchableOpacity
-                  key={ws.id}
-                  style={[
-                    styles.workspaceItem,
-                    {
-                      borderColor: isSelected ? colors.accent : colors.border,
-                      backgroundColor: isSelected ? colors.surface : colors.surfaceRaised,
-                      borderRadius: radius.md,
-                      padding: spacing.md,
-                    },
-                  ]}
-                  onPress={() => handleSelect(ws)}
-                >
-                  <View style={styles.itemLeft}>
-                    <View style={[styles.tileLogo, { backgroundColor: colors.accent, borderRadius: radius.sm }]}>
-                      <Text variant="body" style={{ color: colors.accentOnPrimary, fontWeight: '700' }}>
-                        {initial}
-                      </Text>
+                return (
+                  <TouchableOpacity
+                    key={ws.id}
+                    style={[
+                      styles.workspaceItem,
+                      {
+                        borderColor: isSelected ? colors.accent : colors.border,
+                        backgroundColor: isSelected ? colors.surfaceRaised : colors.surface,
+                        borderRadius: radius.md,
+                        padding: spacing.md,
+                      },
+                    ]}
+                    onPress={() => handleSelect(ws)}
+                    activeOpacity={0.7}
+                  >
+                    <View style={styles.itemLeft}>
+                      <View
+                        style={[
+                          styles.tileLogo,
+                          {
+                            backgroundColor: colors.surfaceRaised,
+                            borderColor: colors.border,
+                            borderRadius: radius.sm,
+                          },
+                        ]}
+                      >
+                        <Text variant="bodyStrong" style={{ color: colors.textPrimary }}>
+                          {initial}
+                        </Text>
+                      </View>
+                      <View style={{ marginLeft: spacing.md }}>
+                        <Text variant="bodyStrong" numberOfLines={1}>
+                          {ws.name}
+                        </Text>
+                        <Text variant="caption" color="secondary" style={{ marginTop: 1 }}>
+                          {ws.slug} • {ws.role || 'Member'}
+                        </Text>
+                      </View>
                     </View>
-                    <View style={{ marginLeft: spacing.md }}>
-                      <Text variant="body" style={{ fontWeight: '600' }}>
-                        {ws.name}
-                      </Text>
-                      <Text variant="caption" color="secondary">
-                        {ws.slug} • {ws.role || 'Member'}
-                      </Text>
-                    </View>
-                  </View>
 
-                  {isSelected && <Check size={18} color={colors.accentText} />}
-                </TouchableOpacity>
-              );
-            })}
+                    {isSelected && <Check size={18} color={colors.accentText} strokeWidth={2.5} />}
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
           </ScrollView>
 
           {/* Create Workspace input / button */}
           {isCreating ? (
-            <View style={[styles.createBox, { backgroundColor: colors.surface, borderRadius: radius.md, padding: spacing.md }]}>
-              <Text variant="caption" color="secondary" style={{ marginBottom: 6 }}>
-                New Workspace Name
-              </Text>
-              <TextInput
+            <View
+              style={[
+                styles.createBox,
+                {
+                  backgroundColor: colors.surfaceRaised,
+                  borderColor: colors.border,
+                  borderRadius: radius.md,
+                  padding: spacing.md,
+                  marginTop: spacing.md,
+                },
+              ]}
+            >
+              <Input
+                label="New Workspace Name"
                 value={newWsName}
                 onChangeText={setNewWsName}
                 placeholder="e.g. Acme Corp"
-                placeholderTextColor={colors.textTertiary}
-                style={[
-                  styles.textInput,
-                  {
-                    color: colors.textPrimary,
-                    borderColor: colors.border,
-                    borderRadius: radius.sm,
-                    padding: spacing.sm,
-                  },
-                ]}
                 autoFocus
               />
-              <View style={[styles.createActions, { marginTop: spacing.sm }]}>
+              <View style={[styles.createActions, { gap: spacing.sm, marginTop: spacing.md }]}>
                 <Button
                   title="Cancel"
                   variant="secondary"
@@ -164,6 +202,7 @@ export const WorkspaceSwitcherSheet: React.FC<WorkspaceSwitcherSheetProps> = ({
                     setIsCreating(false);
                     setErrorMsg(null);
                   }}
+                  style={{ flex: 1 }}
                 />
                 <Button
                   title="Create"
@@ -171,11 +210,12 @@ export const WorkspaceSwitcherSheet: React.FC<WorkspaceSwitcherSheetProps> = ({
                   size="sm"
                   loading={isSubmitting}
                   onPress={handleCreate}
+                  style={{ flex: 1 }}
                 />
               </View>
             </View>
           ) : (
-            <View style={[styles.footerActions, { marginTop: spacing.md, gap: spacing.sm }]}>
+            <View style={{ marginTop: spacing.md }}>
               <TouchableOpacity
                 style={[
                   styles.actionButton,
@@ -183,14 +223,15 @@ export const WorkspaceSwitcherSheet: React.FC<WorkspaceSwitcherSheetProps> = ({
                     borderColor: colors.border,
                     borderRadius: radius.md,
                     padding: spacing.md,
-                    backgroundColor: colors.surface,
+                    backgroundColor: colors.surfaceRaised,
                   },
                 ]}
                 onPress={() => setIsCreating(true)}
+                activeOpacity={0.7}
               >
                 <Plus size={18} color={colors.textPrimary} />
-                <Text variant="body" style={{ marginLeft: spacing.sm, fontWeight: '500' }}>
-                  Create workspace
+                <Text variant="bodyStrong" style={{ marginLeft: spacing.sm }}>
+                  Create Workspace
                 </Text>
               </TouchableOpacity>
             </View>
@@ -204,65 +245,63 @@ export const WorkspaceSwitcherSheet: React.FC<WorkspaceSwitcherSheetProps> = ({
 const styles = StyleSheet.create({
   backdrop: {
     flex: 1,
-    justifyContent: 'flex-end',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 20,
   },
   sheet: {
-    borderTopWidth: 1,
-    borderLeftWidth: 1,
-    borderRightWidth: 1,
+    width: '100%',
+    maxWidth: 420,
     maxHeight: '80%',
+    borderWidth: 1,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 16,
+  },
+  closeBtn: {
+    width: 32,
+    height: 32,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   errorBox: {
     borderWidth: 1,
-    padding: 10,
-    borderRadius: 8,
-    marginBottom: 12,
   },
   list: {
-    maxHeight: 260,
+    maxHeight: 280,
   },
   workspaceItem: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     borderWidth: 1,
-    marginBottom: 8,
   },
   itemLeft: {
     flexDirection: 'row',
     alignItems: 'center',
+    flex: 1,
   },
   tileLogo: {
     width: 36,
     height: 36,
     alignItems: 'center',
     justifyContent: 'center',
+    borderWidth: 1,
   },
   createBox: {
-    marginTop: 12,
-  },
-  textInput: {
     borderWidth: 1,
-    fontSize: 15,
   },
   createActions: {
     flexDirection: 'row',
-    justifyContent: 'flex-end',
-    gap: 8,
-  },
-  footerActions: {
-    flexDirection: 'column',
   },
   actionButton: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
     borderWidth: 1,
+    minHeight: 44,
   },
 });
-

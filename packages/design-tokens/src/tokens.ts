@@ -1,105 +1,112 @@
 /**
  * Samyukt Design Tokens
- * 03-DESIGN-SYSTEM.md specification implementation
+ * Master Design System - Linear / Plane / Things 3 / Notion Inspired
  */
 
 export const neutrals = {
   light: {
-    bg: '#FFFFFF',
-    bgSubtle: '#F6F7F9',
+    bg: '#F7F8FA',
+    bgSubtle: '#F1F2F5',
     surface: '#FFFFFF',
-    surfaceRaised: '#FFFFFF',
-    border: '#E4E6EB',
-    borderStrong: '#D0D3DA',
-    textPrimary: '#101114',
-    textSecondary: '#5B616E',
-    textTertiary: '#8B919E',
+    surfaceRaised: '#F1F2F5',
+    surfaceSubtle: '#E9EBEF',
+    border: '#E4E4E7',
+    borderStrong: '#D4D4D8',
+    textPrimary: '#18181B',
+    textSecondary: '#52525B',
+    textTertiary: '#8A8A94',
     overlay: 'rgba(0,0,0,0.32)',
   },
   dark: {
-    bg: '#101010',
-    bgSubtle: '#131417',
-    surface: '#17181A',
-    surfaceRaised: '#1E2025',
-    border: '#26282E',
-    borderStrong: '#33363D',
-    textPrimary: '#F2F3F5',
-    textSecondary: '#9BA1AC',
-    textTertiary: '#6B7280',
-    overlay: 'rgba(0,0,0,0.60)',
+    bg: '#101113',
+    bgSubtle: '#17191C',
+    surface: '#17191C',
+    surfaceRaised: '#1D2024',
+    surfaceSubtle: '#23262B',
+    border: '#2B2E33',
+    borderStrong: '#3A3E45',
+    textPrimary: '#F3F4F6',
+    textSecondary: '#A1A1AA',
+    textTertiary: '#71717A',
+    overlay: 'rgba(0,0,0,0.64)',
   },
 } as const;
 
 export const semantics = {
   light: {
-    success: '#0F9D58',
-    warning: '#B45309',
-    danger: '#D93025',
-    info: '#1A73E8',
+    success: '#16A34A',
+    warning: '#D97706',
+    danger: '#DC2626',
+    info: '#2563EB',
   },
   dark: {
-    success: '#34D399',
-    warning: '#FBBF24',
-    danger: '#F87171',
-    info: '#60A5FA',
+    success: '#22C55E',
+    warning: '#F59E0B',
+    danger: '#EF4444',
+    info: '#3B82F6',
   },
 } as const;
 
 export const accents = {
   indigo: {
     name: 'Indigo',
-    primary: '#4F46E5', // Measured contrast on light bg #FFFFFF: 4.6:1 (WCAG AA pass)
+    primary: '#5B5FC7',
+    primaryDark: '#7775D8',
     onPrimary: '#FFFFFF',
     containerLight: '#EEF0FE',
-    containerDark: '#1E1B4B',
-    softLight: '#E8EAFD',
-    softDark: '#1C1B3A',
-    accentTextLight: '#4338CA',
-    accentTextDark: '#818CF8', // Measured contrast on dark bg #101010: 7.8:1 (WCAG AAA pass)
+    containerDark: '#1E1F30',
+    softLight: '#F1F2FD',
+    softDark: '#1A1B29',
+    accentTextLight: '#4B4FA8',
+    accentTextDark: '#9B99E8',
   },
   teal: {
     name: 'Teal',
-    primary: '#0D9488', // Measured contrast on light bg #FFFFFF: 4.8:1 (WCAG AA pass)
+    primary: '#0D9488',
+    primaryDark: '#14B8A6',
     onPrimary: '#FFFFFF',
     containerLight: '#E6F7F5',
-    containerDark: '#0B2E2B',
-    softLight: '#DFF3F0',
-    softDark: '#0C2A27',
+    containerDark: '#0D2926',
+    softLight: '#EDFAF8',
+    softDark: '#0B2220',
     accentTextLight: '#0F766E',
-    accentTextDark: '#2DD4BF', // Measured contrast on dark bg #101010: 10.2:1 (WCAG AAA pass)
+    accentTextDark: '#2DD4BF',
   },
   amber: {
     name: 'Amber',
-    primary: '#B45309', // Measured contrast on light bg #FFFFFF: 5.1:1 (WCAG AA pass)
+    primary: '#D97706',
+    primaryDark: '#F59E0B',
     onPrimary: '#FFFFFF',
-    containerLight: '#FDF3E3',
-    containerDark: '#33230A',
-    softLight: '#FBEBD5',
-    softDark: '#2C1F0B',
-    accentTextLight: '#92400E',
-    accentTextDark: '#FBBF24', // Measured contrast on dark bg #101010: 11.4:1 (WCAG AAA pass)
+    containerLight: '#FEF3C7',
+    containerDark: '#2E200B',
+    softLight: '#FFFBEB',
+    softDark: '#241908',
+    accentTextLight: '#B45309',
+    accentTextDark: '#FBBF24',
   },
   rose: {
     name: 'Rose',
-    primary: '#BE123C', // Measured contrast on light bg #FFFFFF: 5.6:1 (WCAG AA pass)
+    primary: '#E11D48',
+    primaryDark: '#FB7185',
     onPrimary: '#FFFFFF',
-    containerLight: '#FDE9EE',
-    containerDark: '#3B0A18',
-    softLight: '#FBDCE4',
-    softDark: '#330B16',
-    accentTextLight: '#9F1239',
-    accentTextDark: '#FB7185', // Measured contrast on dark bg #101010: 6.9:1 (WCAG AA pass)
+    containerLight: '#FFE4E6',
+    containerDark: '#33121A',
+    softLight: '#FFF1F2',
+    softDark: '#270C13',
+    accentTextLight: '#BE123C',
+    accentTextDark: '#FDA4AF',
   },
   violet: {
     name: 'Violet',
-    primary: '#7C3AED', // Measured contrast on light bg #FFFFFF: 5.2:1 (WCAG AA pass)
+    primary: '#7C3AED',
+    primaryDark: '#A78BFA',
     onPrimary: '#FFFFFF',
-    containerLight: '#F2EBFE',
-    containerDark: '#241145',
-    softLight: '#EBE0FD',
-    softDark: '#20103D',
+    containerLight: '#EDE9FE',
+    containerDark: '#23143F',
+    softLight: '#F5F3FF',
+    softDark: '#1B0E33',
     accentTextLight: '#6D28D9',
-    accentTextDark: '#A78BFA', // Measured contrast on dark bg #101010: 8.4:1 (WCAG AAA pass)
+    accentTextDark: '#C4B5FD',
   },
 } as const;
 
@@ -114,10 +121,11 @@ export const spacing = {
   '2xl': 24,
   '3xl': 32,
   '4xl': 40,
-  '5xl': 56,
+  '5xl': 48,
 } as const;
 
 export const radius = {
+  xs: 4,
   sm: 8,
   md: 12,
   lg: 16,
@@ -126,45 +134,62 @@ export const radius = {
 } as const;
 
 export const typography = {
-  display: { fontSize: 32, lineHeight: 38, fontWeight: '700' as const },
+  display: { fontSize: 30, lineHeight: 36, fontWeight: '700' as const },
   h1: { fontSize: 24, lineHeight: 30, fontWeight: '600' as const },
-  h2: { fontSize: 20, lineHeight: 26, fontWeight: '600' as const },
-  h3: { fontSize: 17, lineHeight: 22, fontWeight: '600' as const },
-  body: { fontSize: 15, lineHeight: 21, fontWeight: '400' as const },
-  bodyStrong: { fontSize: 15, lineHeight: 21, fontWeight: '500' as const },
+  h2: { fontSize: 18, lineHeight: 24, fontWeight: '600' as const },
+  h3: { fontSize: 16, lineHeight: 22, fontWeight: '600' as const },
+  body: { fontSize: 15, lineHeight: 22, fontWeight: '400' as const },
+  bodyStrong: { fontSize: 15, lineHeight: 22, fontWeight: '500' as const },
+  secondary: { fontSize: 13, lineHeight: 18, fontWeight: '400' as const },
   label: { fontSize: 13, lineHeight: 18, fontWeight: '500' as const },
-  caption: { fontSize: 11, lineHeight: 15, fontWeight: '500' as const, letterSpacing: 0.4 },
+  caption: { fontSize: 11, lineHeight: 15, fontWeight: '500' as const, letterSpacing: 0.3 },
 } as const;
 
 export type TypographyVariant = keyof typeof typography;
 
+export const dimensions = {
+  buttonHeight: 44,
+  buttonHeightSm: 36,
+  inputHeight: 44,
+  rowHeight: 48,
+  rowHeightSm: 40,
+  touchTarget: 44,
+  iconXs: 14,
+  iconSm: 16,
+  iconMd: 20,
+  iconLg: 24,
+  iconXl: 28,
+  cardPadding: 16,
+  screenPadding: 16,
+} as const;
+
 export const elevation = {
   e1: {
-    shadowColor: '#101114',
+    shadowColor: '#000000',
     shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.06,
+    shadowOpacity: 0.04,
     shadowRadius: 2,
     elevation: 1,
   },
   e2: {
-    shadowColor: '#101114',
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    elevation: 4,
+  },
+  e3: {
+    shadowColor: '#000000',
     shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.14,
+    shadowOpacity: 0.12,
     shadowRadius: 24,
     elevation: 8,
   },
-  e3: {
-    shadowColor: '#101114',
-    shadowOffset: { width: 0, height: -8 },
-    shadowOpacity: 0.18,
-    shadowRadius: 32,
-    elevation: 12,
-  },
   e4: {
     shadowColor: '#000000',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.28,
-    shadowRadius: 20,
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.18,
+    shadowRadius: 32,
     elevation: 16,
   },
 } as const;

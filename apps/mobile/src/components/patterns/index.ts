@@ -1,6 +1,9 @@
 export * from './TaskRow';
+export { TaskRow as TaskItem } from './TaskRow';
 export * from './BugRow';
 export * from './StickyCard';
+export { StickyCard as StickyNote } from './StickyCard';
+export * from './ProjectItem';
 export * from './DueDatePicker';
 export * from './PriorityPicker';
 export * from './SeverityPicker';

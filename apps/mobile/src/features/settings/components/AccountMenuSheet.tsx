@@ -1,11 +1,21 @@
 import React, { useState } from 'react';
 import { View, StyleSheet, Modal, TouchableOpacity, ScrollView } from 'react-native';
 import { useTheme, ThemeMode, Accent } from '../../../theme/useTheme';
-import { Text, Button } from '../../../components/ui';
+import { Text, Button, Avatar, SettingsItem } from '../../../components/ui';
 import { useAuthStore } from '../../auth/store';
 import { useWorkspaceStore } from '../../workspace';
 import { http } from '../../../lib/http';
-import { X, Moon, Sun, Monitor, Shield, LogOut, Settings as SettingsIcon, Wrench } from 'lucide-react-native';
+import {
+  X,
+  Moon,
+  Sun,
+  Monitor,
+  Settings as SettingsIcon,
+  LogOut,
+  ShieldCheck,
+  ChevronRight,
+  Server,
+} from 'lucide-react-native';
 
 interface AccountMenuSheetProps {
   visible: boolean;
@@ -18,20 +28,13 @@ export const AccountMenuSheet: React.FC<AccountMenuSheetProps> = ({
   onClose,
   onNavigateSettings,
 }) => {
-  const { colors, spacing, radius, mode, setMode, accent, setAccent } = useTheme();
+  const { colors, spacing, radius, mode, setMode, accent, setAccent, elevation } = useTheme();
   const user = useAuthStore((s) => s.user);
   const logout = useAuthStore((s) => s.logout);
   const activeWorkspace = useWorkspaceStore((s) => s.activeWorkspace);
 
   const [healthStatus, setHealthStatus] = useState<string | null>(null);
   const [checkingHealth, setCheckingHealth] = useState(false);
-
-  const userInitials = (user?.fullName || user?.email || 'U')
-    .split(' ')
-    .map((w) => w[0])
-    .join('')
-    .toUpperCase()
-    .slice(0, 2);
 
   const handleCheckHealth = async () => {
     setCheckingHealth(true);
@@ -70,50 +73,108 @@ export const AccountMenuSheet: React.FC<AccountMenuSheetProps> = ({
           style={[
             styles.sheet,
             {
-              backgroundColor: colors.surfaceRaised,
+              backgroundColor: colors.surface,
               borderColor: colors.border,
               borderRadius: radius.xl,
               padding: spacing.lg,
+              ...elevation.e4,
             },
           ]}
         >
-          {/* Header */}
-          <View style={styles.header}>
+          {/* Header with User Info */}
+          <View style={[styles.header, { marginBottom: spacing.lg }]}>
             <View style={styles.userInfo}>
-              <View style={[styles.avatarCircle, { backgroundColor: colors.accent, borderRadius: radius.pill }]}>
-                <Text variant="body" style={{ color: colors.accentOnPrimary, fontWeight: '700', fontSize: 16 }}>
-                  {userInitials}
+              <Avatar
+                name={user?.fullName || user?.email || 'User'}
+                size="md"
+              />
+              <View style={{ marginLeft: spacing.md, flex: 1 }}>
+                <Text variant="h2" numberOfLines={1}>
+                  {user?.fullName || 'Active User'}
                 </Text>
-              </View>
-              <View style={{ marginLeft: spacing.md }}>
-                <Text variant="h2">{user?.fullName || 'User'}</Text>
-                <Text variant="caption" color="secondary">
+                <Text variant="caption" color="secondary" numberOfLines={1}>
                   {user?.email || 'user@doit.local'}
                 </Text>
               </View>
             </View>
 
-            <TouchableOpacity onPress={onClose} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-              <X size={20} color={colors.textSecondary} />
+            <TouchableOpacity
+              onPress={onClose}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              style={[
+                styles.closeBtn,
+                {
+                  backgroundColor: colors.surfaceRaised,
+                  borderColor: colors.border,
+                  borderRadius: radius.sm,
+                },
+              ]}
+              accessibilityRole="button"
+              accessibilityLabel="Close account menu"
+            >
+              <X size={16} color={colors.textSecondary} />
             </TouchableOpacity>
           </View>
 
           <ScrollView style={styles.body} showsVerticalScrollIndicator={false}>
+            {/* Direct Settings Link Button */}
+            {onNavigateSettings && (
+              <TouchableOpacity
+                style={[
+                  styles.settingsNavButton,
+                  {
+                    backgroundColor: colors.surfaceRaised,
+                    borderColor: colors.border,
+                    borderRadius: radius.md,
+                    paddingHorizontal: spacing.md,
+                    paddingVertical: spacing.md,
+                    marginBottom: spacing.lg,
+                  },
+                ]}
+                onPress={() => {
+                  onClose();
+                  onNavigateSettings();
+                }}
+                activeOpacity={0.7}
+              >
+                <View style={styles.settingsNavLeft}>
+                  <SettingsIcon size={18} color={colors.textPrimary} />
+                  <Text variant="bodyStrong" style={{ marginLeft: spacing.md }}>
+                    Settings & Preferences
+                  </Text>
+                </View>
+                <ChevronRight size={16} color={colors.textTertiary} />
+              </TouchableOpacity>
+            )}
+
             {/* Appearance Section */}
-            <View style={[styles.section, { borderTopColor: colors.border }]}>
+            <View style={[styles.section, { borderTopColor: colors.border, paddingTop: spacing.md }]}>
               <Text variant="caption" color="secondary" style={styles.sectionTitle}>
                 THEME MODE
               </Text>
-              <View style={[styles.pillSelector, { backgroundColor: colors.surface, borderRadius: radius.md, padding: 4 }]}>
+              <View
+                style={[
+                  styles.pillSelector,
+                  {
+                    backgroundColor: colors.surfaceRaised,
+                    borderRadius: radius.md,
+                    padding: 3,
+                  },
+                ]}
+              >
                 <TouchableOpacity
                   style={[
                     styles.selectorBtn,
                     { borderRadius: radius.sm },
-                    mode === 'dark' && { backgroundColor: colors.surfaceRaised },
+                    mode === 'dark' && {
+                      backgroundColor: colors.surface,
+                      borderColor: colors.border,
+                      borderWidth: 1,
+                    },
                   ]}
                   onPress={() => setMode('dark')}
                 >
-                  <Moon size={14} color={mode === 'dark' ? colors.textPrimary : colors.textTertiary} />
+                  <Moon size={13} color={mode === 'dark' ? colors.textPrimary : colors.textTertiary} />
                   <Text variant="caption" style={{ marginLeft: 6, fontWeight: mode === 'dark' ? '600' : '400' }}>
                     Dark
                   </Text>
@@ -123,11 +184,15 @@ export const AccountMenuSheet: React.FC<AccountMenuSheetProps> = ({
                   style={[
                     styles.selectorBtn,
                     { borderRadius: radius.sm },
-                    mode === 'light' && { backgroundColor: colors.surfaceRaised },
+                    mode === 'light' && {
+                      backgroundColor: colors.surface,
+                      borderColor: colors.border,
+                      borderWidth: 1,
+                    },
                   ]}
                   onPress={() => setMode('light')}
                 >
-                  <Sun size={14} color={mode === 'light' ? colors.textPrimary : colors.textTertiary} />
+                  <Sun size={13} color={mode === 'light' ? colors.textPrimary : colors.textTertiary} />
                   <Text variant="caption" style={{ marginLeft: 6, fontWeight: mode === 'light' ? '600' : '400' }}>
                     Light
                   </Text>
@@ -137,11 +202,15 @@ export const AccountMenuSheet: React.FC<AccountMenuSheetProps> = ({
                   style={[
                     styles.selectorBtn,
                     { borderRadius: radius.sm },
-                    mode === 'system' && { backgroundColor: colors.surfaceRaised },
+                    mode === 'system' && {
+                      backgroundColor: colors.surface,
+                      borderColor: colors.border,
+                      borderWidth: 1,
+                    },
                   ]}
                   onPress={() => setMode('system')}
                 >
-                  <Monitor size={14} color={mode === 'system' ? colors.textPrimary : colors.textTertiary} />
+                  <Monitor size={13} color={mode === 'system' ? colors.textPrimary : colors.textTertiary} />
                   <Text variant="caption" style={{ marginLeft: 6, fontWeight: mode === 'system' ? '600' : '400' }}>
                     System
                   </Text>
@@ -150,11 +219,11 @@ export const AccountMenuSheet: React.FC<AccountMenuSheetProps> = ({
             </View>
 
             {/* Accent Colors */}
-            <View style={[styles.section, { borderTopColor: colors.border }]}>
+            <View style={[styles.section, { borderTopColor: colors.border, marginTop: spacing.md, paddingTop: spacing.md }]}>
               <Text variant="caption" color="secondary" style={styles.sectionTitle}>
                 BRAND ACCENT
               </Text>
-              <View style={styles.accentRow}>
+              <View style={[styles.accentRow, { gap: spacing.xs }]}>
                 {accentOptions.map((opt) => {
                   const isSelected = accent === opt.key;
                   return (
@@ -164,10 +233,10 @@ export const AccountMenuSheet: React.FC<AccountMenuSheetProps> = ({
                         styles.accentChip,
                         {
                           borderColor: isSelected ? colors.accent : colors.border,
-                          backgroundColor: isSelected ? colors.surface : colors.surfaceRaised,
+                          backgroundColor: isSelected ? colors.surfaceRaised : 'transparent',
                           borderRadius: radius.pill,
                           paddingHorizontal: spacing.sm + 4,
-                          paddingVertical: 6,
+                          paddingVertical: 5,
                         },
                       ]}
                       onPress={() => setAccent(opt.key)}
@@ -176,7 +245,7 @@ export const AccountMenuSheet: React.FC<AccountMenuSheetProps> = ({
                         variant="caption"
                         style={{
                           color: isSelected ? colors.accentText : colors.textSecondary,
-                          fontWeight: isSelected ? '700' : '500',
+                          fontWeight: isSelected ? '600' : '400',
                         }}
                       >
                         {opt.name}
@@ -187,68 +256,62 @@ export const AccountMenuSheet: React.FC<AccountMenuSheetProps> = ({
               </View>
             </View>
 
-            {/* Developer Diagnostics (visible in dev and preview builds only) */}
-            {process.env.EXPO_PUBLIC_ENV !== 'production' && (
-              <View style={[styles.section, { borderTopColor: colors.border }]}>
-                <Text variant="caption" color="secondary" style={styles.sectionTitle}>
-                  DEVELOPER DIAGNOSTICS
-                </Text>
-                <View style={[styles.diagCard, { backgroundColor: colors.surface, borderColor: colors.border, borderRadius: radius.md, padding: spacing.md }]}>
-                  <Text variant="caption" color="secondary">
-                    API: {http.getBaseUrl()}
-                  </Text>
-                  <Text variant="caption" color="secondary" style={{ marginTop: 2 }}>
-                    Workspace: {activeWorkspace?.name || 'None'} ({activeWorkspace?.id?.slice(0, 8) || 'none'})
-                  </Text>
-                  {healthStatus ? (
-                    <Text variant="caption" color="primary" style={{ marginTop: 4, fontWeight: '600' }}>
-                      {healthStatus}
-                    </Text>
-                  ) : (
-                    <Button
-                      title="Ping /health"
-                      variant="secondary"
-                      size="sm"
-                      loading={checkingHealth}
-                      style={{ marginTop: spacing.sm, alignSelf: 'flex-start' }}
-                      onPress={handleCheckHealth}
-                    />
-                  )}
-                </View>
-              </View>
-            )}
-
-            {/* Detailed Settings Link */}
-            {onNavigateSettings && (
-              <TouchableOpacity
-                style={[styles.settingsRow, { borderColor: colors.border, borderRadius: radius.md, backgroundColor: colors.surface, padding: spacing.md, marginTop: spacing.md }]}
-                onPress={() => {
-                  onClose();
-                  onNavigateSettings();
-                }}
-              >
-                <SettingsIcon size={18} color={colors.textPrimary} />
-                <Text variant="body" style={{ marginLeft: spacing.sm, fontWeight: '500' }}>
-                  All Settings & Capabilities
-                </Text>
-              </TouchableOpacity>
-            )}
-
-            {/* Log Out Button */}
-            <View style={{ marginTop: spacing.lg, marginBottom: spacing.md }}>
-              <TouchableOpacity
+            {/* System Status Ping */}
+            <View style={[styles.section, { borderTopColor: colors.border, marginTop: spacing.md, paddingTop: spacing.md }]}>
+              <Text variant="caption" color="secondary" style={styles.sectionTitle}>
+                SYSTEM CONNECTION
+              </Text>
+              <View
                 style={[
-                  styles.logoutBtn,
+                  styles.diagCard,
                   {
-                    backgroundColor: colors.surface,
-                    borderColor: colors.danger,
+                    backgroundColor: colors.surfaceRaised,
+                    borderColor: colors.border,
                     borderRadius: radius.md,
                     padding: spacing.md,
                   },
                 ]}
+              >
+                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                  <Server size={14} color={colors.textTertiary} />
+                  <Text variant="caption" color="secondary" style={{ marginLeft: 6 }}>
+                    Workspace: {activeWorkspace?.name || 'Default'}
+                  </Text>
+                </View>
+
+                {healthStatus ? (
+                  <Text variant="caption" color="primary" style={{ marginTop: 6, fontWeight: '600' }}>
+                    {healthStatus}
+                  </Text>
+                ) : (
+                  <Button
+                    title="Check API Status"
+                    variant="secondary"
+                    size="sm"
+                    loading={checkingHealth}
+                    style={{ marginTop: spacing.sm, alignSelf: 'flex-start' }}
+                    onPress={handleCheckHealth}
+                  />
+                )}
+              </View>
+            </View>
+
+            {/* Log Out Button */}
+            <View style={{ marginTop: spacing.lg, marginBottom: spacing.xs }}>
+              <TouchableOpacity
+                style={[
+                  styles.logoutBtn,
+                  {
+                    backgroundColor: colors.surfaceRaised,
+                    borderColor: colors.danger,
+                    borderRadius: radius.md,
+                    paddingVertical: spacing.md,
+                    paddingHorizontal: spacing.md,
+                  },
+                ]}
                 onPress={handleLogout}
               >
-                <LogOut size={18} color={colors.danger} />
+                <LogOut size={16} color={colors.danger} />
                 <Text variant="body" color="danger" style={{ marginLeft: spacing.sm, fontWeight: '600' }}>
                   Log Out
                 </Text>
@@ -264,41 +327,53 @@ export const AccountMenuSheet: React.FC<AccountMenuSheetProps> = ({
 const styles = StyleSheet.create({
   backdrop: {
     flex: 1,
-    justifyContent: 'flex-end',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 20,
   },
   sheet: {
-    borderTopWidth: 1,
-    borderLeftWidth: 1,
-    borderRightWidth: 1,
+    width: '100%',
+    maxWidth: 420,
     maxHeight: '85%',
+    borderWidth: 1,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 16,
   },
   userInfo: {
     flexDirection: 'row',
     alignItems: 'center',
+    flex: 1,
   },
-  avatarCircle: {
-    width: 44,
-    height: 44,
+  closeBtn: {
+    width: 32,
+    height: 32,
+    borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
   },
   body: {
-    maxHeight: 480,
+    width: '100%',
+  },
+  settingsNavButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    borderWidth: 1,
+  },
+  settingsNavLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   section: {
-    borderTopWidth: 1,
-    paddingTop: 12,
-    marginTop: 12,
+    borderTopWidth: StyleSheet.hairlineWidth,
   },
   sectionTitle: {
+    textTransform: 'uppercase',
     letterSpacing: 0.6,
-    fontWeight: '700',
+    fontWeight: '600',
     marginBottom: 8,
   },
   pillSelector: {
@@ -307,24 +382,18 @@ const styles = StyleSheet.create({
   selectorBtn: {
     flex: 1,
     flexDirection: 'row',
+    height: 34,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 8,
   },
   accentRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 8,
   },
   accentChip: {
     borderWidth: 1,
   },
   diagCard: {
-    borderWidth: 1,
-  },
-  settingsRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
     borderWidth: 1,
   },
   logoutBtn: {

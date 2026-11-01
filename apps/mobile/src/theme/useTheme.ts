@@ -6,6 +6,7 @@ import {
   spacing,
   radius,
   typography,
+  dimensions,
   elevation,
   AccentName,
 } from '@doit/tokens';
@@ -19,6 +20,7 @@ export interface ThemeColors {
   bgSubtle: string;
   surface: string;
   surfaceRaised: string;
+  surfaceSubtle: string;
   border: string;
   borderStrong: string;
   textPrimary: string;
@@ -48,6 +50,7 @@ export interface ThemeContextValue {
   spacing: typeof spacing;
   radius: typeof radius;
   typography: typeof typography;
+  dimensions: typeof dimensions;
   elevation: typeof elevation;
   setMode: (mode: ThemeMode) => void;
   setAccent: (accent: Accent) => void;
@@ -61,7 +64,7 @@ export function buildThemeColors(resolvedTheme: 'light' | 'dark', accent: Accent
   return {
     ...neutral,
     ...semantic,
-    accent: accentFamily.primary,
+    accent: resolvedTheme === 'dark' ? accentFamily.primaryDark : accentFamily.primary,
     accentOnPrimary: accentFamily.onPrimary,
     accentContainer: resolvedTheme === 'dark' ? accentFamily.containerDark : accentFamily.containerLight,
     accentSoft: resolvedTheme === 'dark' ? accentFamily.softDark : accentFamily.softLight,

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Text as RNText, TextProps as RNTextProps, TextStyle, StyleSheet } from 'react-native';
+import { Text as RNText, TextProps as RNTextProps, TextStyle, StyleSheet, StyleProp } from 'react-native';
 import { useTheme } from '../../theme/useTheme';
 import { TypographyVariant } from '@doit/tokens';
 
@@ -17,7 +17,7 @@ export interface TextProps extends RNTextProps {
   variant?: TypographyVariant;
   color?: TextColor;
   align?: 'left' | 'center' | 'right';
-  style?: TextStyle | TextStyle[];
+  style?: StyleProp<TextStyle>;
   children?: React.ReactNode;
 }
 
@@ -51,21 +51,18 @@ export const Text: React.FC<TextProps> = ({
   return (
     <RNText
       style={[
-        styles.base,
-        variantStyle,
-        { color: textColor, textAlign: align },
+        {
+          fontSize: variantStyle.fontSize,
+          lineHeight: variantStyle.lineHeight,
+          fontWeight: variantStyle.fontWeight,
+          color: textColor,
+          textAlign: align,
+        },
         style,
       ]}
-      maxFontSizeMultiplier={1.5}
       {...rest}
     >
       {children}
     </RNText>
   );
 };
-
-const styles = StyleSheet.create({
-  base: {
-    includeFontPadding: false,
-  },
-});
