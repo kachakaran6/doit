@@ -38,4 +38,9 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     ],
   },
   plugins: ['./plugins/withDoItAndroidRelease'],
+  extra: {
+    eas: {
+      projectId: '6f333f94-6549-403c-abf3-02c77c6f8be2',
+    },
+  },
 });
