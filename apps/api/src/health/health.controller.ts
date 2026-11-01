@@ -1,9 +1,19 @@
 import { Controller, Get } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
-import { Ping, PingSchema } from '@doit/contracts';
+import { z } from 'zod';
 import { PrismaService } from '../infra/prisma/prisma.service';
 import { StorageService } from '../infra/storage/storage.service';
 import { QueueService } from '../infra/queue/queue.service';
+
+export const PingSchema = z.object({
+  status: z.literal('ok'),
+  db: z.enum(['up', 'down']).optional(),
+  version: z.string(),
+  uptime: z.number(),
+  timestamp: z.string(),
+});
+
+export type Ping = z.infer<typeof PingSchema>;
 
 export interface ReadinessResponse {
   db: 'up' | 'down';
