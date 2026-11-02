@@ -6,48 +6,87 @@ export interface OverlayService {
   isAvailable(): boolean;
   hasPermission(): Promise<boolean>;
   requestPermission(): Promise<void>;
+  openDeviceSpecificSettings(): Promise<void>;
+  isXiaomiDevice(): Promise<boolean>;
   startBubble(): Promise<boolean>;
   stopBubble(): Promise<boolean>;
+  isBubbleRunning(): Promise<boolean>;
+  getRunningState(): boolean;
 }
 
 class OverlayServiceImpl implements OverlayService {
   private isRunning: boolean = false;
 
   isAvailable(): boolean {
-    // Only available on Android; returns false on iOS per specification
     return Platform.OS === 'android';
   }
 
   async hasPermission(): Promise<boolean> {
     if (!this.isAvailable()) return false;
-    if (OverlayServiceModule?.hasPermission) {
-      return OverlayServiceModule.hasPermission();
+    try {
+      if (OverlayServiceModule?.hasPermission) {
+        return await OverlayServiceModule.hasPermission();
+      }
+    } catch {
+      // Ignore
     }
     return false;
   }
 
   async requestPermission(): Promise<void> {
     if (!this.isAvailable()) return;
-    if (OverlayServiceModule?.requestPermission) {
-      return OverlayServiceModule.requestPermission();
+    try {
+      if (OverlayServiceModule?.requestPermission) {
+        await OverlayServiceModule.requestPermission();
+        return;
+      }
+    } catch {
+      // Ignore and fallback
     }
-    // Fallback to system application settings
+    // Fallback to application settings
     Linking.openSettings();
+  }
+
+  async openDeviceSpecificSettings(): Promise<void> {
+    if (!this.isAvailable()) return;
+    try {
+      if (OverlayServiceModule?.openDeviceSpecificSettings) {
+        await OverlayServiceModule.openDeviceSpecificSettings();
+        return;
+      }
+    } catch {
+      // Ignore
+    }
+    Linking.openSettings();
+  }
+
+  async isXiaomiDevice(): Promise<boolean> {
+    if (!this.isAvailable()) return false;
+    try {
+      if (OverlayServiceModule?.isDeviceXiaomi) {
+        return await OverlayServiceModule.isDeviceXiaomi();
+      }
+    } catch {
+      // Ignore
+    }
+    return false;
   }
 
   async startBubble(): Promise<boolean> {
     if (!this.isAvailable()) return false;
     try {
       if (OverlayServiceModule?.startBubble) {
-        await OverlayServiceModule.startBubble();
-        this.isRunning = true;
-        return true;
+        const success = await OverlayServiceModule.startBubble();
+        this.isRunning = success;
+        return success;
       }
-      this.isRunning = true;
-      return true;
-    } catch {
+    } catch (e: any) {
+      if (e?.code === 'PERMISSION_DENIED') {
+        throw new Error('SYSTEM_ALERT_WINDOW permission is required');
+      }
       return false;
     }
+    return false;
   }
 
   async stopBubble(): Promise<boolean> {
@@ -61,6 +100,20 @@ class OverlayServiceImpl implements OverlayService {
     } catch {
       return false;
     }
+  }
+
+  async isBubbleRunning(): Promise<boolean> {
+    if (!this.isAvailable()) return false;
+    try {
+      if (OverlayServiceModule?.isBubbleRunning) {
+        const running = await OverlayServiceModule.isBubbleRunning();
+        this.isRunning = running;
+        return running;
+      }
+    } catch {
+      // Ignore
+    }
+    return this.isRunning;
   }
 
   getRunningState(): boolean {

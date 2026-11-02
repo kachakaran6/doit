@@ -7,6 +7,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.1.0+3] - 2026-11-02 — Native Floating Bubble & Accelerometer Shake Architecture Fix
+
+### Fixed & Implemented
+- **Critical Issue A: Floating Overlay Bubble & Permission Detection**:
+  - Injected native Kotlin classes (`OverlayPackage`, `OverlayServiceModule`, `BubbleService`) via custom Expo Config Plugin into Android source tree.
+  - Implemented actual `Settings.canDrawOverlays(context)` native checking replacing fallback stubs.
+  - Added direct intent routing to `Settings.ACTION_MANAGE_OVERLAY_PERMISSION` (`package:com.samyukt.doit`) with specialized Xiaomi/MIUI/HyperOS fallback (`miui.intent.action.APP_PERM_EDITOR`).
+  - Created real 56dp circular floating bubble view with DoIt branding, drop shadow, dragging, screen-edge snapping, and single-tap launch to quick capture.
+  - Registered Android 14+ `specialUse` foreground service with ongoing notification controls.
+- **Critical Issue B: Shake-to-Add Motion Detection**:
+  - Integrated `expo-sensors` hardware accelerometer sampling at 20Hz (50ms interval).
+  - Fixed critical mathematical bug in direction reversal algorithm where scalar norm sign was checked instead of dominant motion axis vector ($\Delta X, \Delta Y, \Delta Z$).
+  - Added `ShakeCaptureProvider` with battery-safe foreground lifecycle (automatically pauses sensor when app is backgrounded).
+  - Added dedicated "Test Shake Sensor" diagnostic modal in Settings with live motion delta bar, threshold gauge, and haptic confirmation.
+  - Configurable sensitivity: Low ($21\text{ m/s}^2$), Medium ($14.5\text{ m/s}^2$), High ($10\text{ m/s}^2$), with 1200ms debounce.
+- **Backend & Cloud Architecture**:
+  - Updated production backend target to `https://doit.samyukt.pro/api/v1` while preserving local server support for local dev.
+- **Android Release Build 3**:
+  - Incremented `versionCode: 3` (`0.1.0+3`).
+
+---
+
 ## [0.1.0+2] - 2026-11-02 — Quick Capture Guide & Hardware Settings Polish
 
 ### Added

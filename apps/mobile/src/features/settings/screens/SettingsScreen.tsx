@@ -14,7 +14,8 @@ import {
 } from '../../../components/ui';
 import { useAuthStore } from '../../auth/store';
 import { overlayService } from '../../../native/overlay';
-import { shakeDetector, ShakeSensitivity } from '../../../native/shake';
+import { useShakeCapture } from '../../../core/providers/ShakeCaptureProvider';
+import { ShakeSensitivity } from '../../../native/shake';
 import { outbox } from '../../../lib/outbox';
 import { AccentName } from '@doit/tokens';
 import {
@@ -39,16 +40,25 @@ import {
 } from 'lucide-react-native';
 import { http } from '../../../lib/http';
 import { QuickCaptureGuideSheet } from '../components/QuickCaptureGuideSheet';
+import { ShakeTestModal } from '../components/ShakeTestModal';
 
 export const SettingsScreen: React.FC = () => {
   const { colors, spacing, radius, mode, accent, setMode, setAccent, elevation } = useTheme();
   const navigation = useNavigation();
   const { user, logout } = useAuthStore();
+  const {
+    shakeEnabled,
+    setShakeEnabled,
+    sensitivity,
+    setSensitivity,
+    isAvailable: sensorAvailable,
+  } = useShakeCapture();
 
   const [bubbleEnabled, setBubbleEnabled] = useState(overlayService.getRunningState());
   const [hasOverlayPerm, setHasOverlayPerm] = useState(false);
+  const [isXiaomi, setIsXiaomi] = useState(false);
   const [guideVisible, setGuideVisible] = useState(false);
-  const [sensitivity, setSensitivity] = useState<ShakeSensitivity>('medium');
+  const [shakeTestVisible, setShakeTestVisible] = useState(false);
   const [cacheSizeMb, setCacheSizeMb] = useState(14.8);
   const [activeUrl, setActiveUrl] = useState(http.getBaseUrl());
   const [pingStatus, setPingStatus] = useState<string | null>(null);
@@ -58,7 +68,10 @@ export const SettingsScreen: React.FC = () => {
     try {
       const perm = await overlayService.hasPermission();
       setHasOverlayPerm(perm);
-      setBubbleEnabled(overlayService.getRunningState());
+      const running = await overlayService.isBubbleRunning();
+      setBubbleEnabled(running);
+      const xiaomi = await overlayService.isXiaomiDevice();
+      setIsXiaomi(xiaomi);
     } catch {
       // ignore
     }
@@ -107,6 +120,16 @@ export const SettingsScreen: React.FC = () => {
           'Android requires special permission to show the floating Quick Capture bubble above other apps.\n\nTap "Open Settings", locate DoIt, and turn ON "Allow display over other apps".',
           [
             { text: 'Cancel', style: 'cancel' },
+            ...(isXiaomi
+              ? [
+                  {
+                    text: 'MIUI Permissions',
+                    onPress: async () => {
+                      await overlayService.openDeviceSpecificSettings();
+                    },
+                  },
+                ]
+              : []),
             {
               text: 'Open Settings',
               onPress: async () => {
@@ -121,11 +144,15 @@ export const SettingsScreen: React.FC = () => {
         );
         return;
       }
-      const started = await overlayService.startBubble();
-      if (started) {
-        setBubbleEnabled(true);
-      } else {
-        Alert.alert('Error', 'Could not start overlay service.');
+      try {
+        const started = await overlayService.startBubble();
+        if (started) {
+          setBubbleEnabled(true);
+        } else {
+          Alert.alert('Error', 'Could not start overlay service.');
+        }
+      } catch (err: any) {
+        Alert.alert('Error', err?.message || 'Could not start overlay bubble.');
       }
     } else {
       await overlayService.stopBubble();
@@ -133,51 +160,38 @@ export const SettingsScreen: React.FC = () => {
     }
   };
 
-  const handleTestCapture = () => {
-    (navigation as any).navigate('CaptureModal');
-  };
-
   const handleClearCache = () => {
-    setCacheSizeMb(0);
-    Alert.alert('Cache Cleared', 'Temporary images and cached responses have been cleared.');
+    Alert.alert('Clear Cache', 'Are you sure you want to clear temporary offline caches?', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Clear',
+        style: 'destructive',
+        onPress: () => {
+          setCacheSizeMb(0.0);
+          Alert.alert('Cleared', 'Offline storage cache has been reset.');
+        },
+      },
+    ]);
   };
 
   const handleSignOut = () => {
-    Alert.alert('Sign Out', 'Are you sure you want to log out of your account?', [
+    Alert.alert('Sign Out', 'Are you sure you want to sign out?', [
       { text: 'Cancel', style: 'cancel' },
       {
         text: 'Sign Out',
         style: 'destructive',
-        onPress: () => {
-          logout();
-          (navigation as any).reset({
-            index: 0,
-            routes: [{ name: 'Auth' }],
-          });
+        onPress: async () => {
+          await logout();
         },
       },
     ]);
   };
 
   return (
-    <SafeAreaView edges={['top', 'bottom']} style={[styles.container, { backgroundColor: colors.bg }]}>
-      <ScrollView
-        contentContainerStyle={[
-          styles.scrollContent,
-          {
-            paddingHorizontal: spacing.lg,
-            paddingTop: spacing.xs,
-            paddingBottom: 64,
-          },
-        ]}
-        showsVerticalScrollIndicator={false}
-      >
-        <ScreenHeader
-          title="Settings"
-          subtitle="Preferences & Account"
-          onBack={() => navigation.goBack()}
-        />
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.bg }]} edges={['top']}>
+      <ScreenHeader title="Settings" />
 
+      <ScrollView contentContainerStyle={{ padding: spacing.md, paddingBottom: 60 }}>
         {/* User Profile Card */}
         <View
           style={[
@@ -185,31 +199,25 @@ export const SettingsScreen: React.FC = () => {
             {
               backgroundColor: colors.surface,
               borderColor: colors.border,
-              borderRadius: radius.lg,
-              padding: spacing.lg,
+              borderRadius: radius.md,
               marginBottom: spacing.lg,
               ...elevation.e1,
             },
           ]}
         >
-          <View style={styles.profileRow}>
-            <Avatar
-              name={user?.fullName || user?.email || 'User'}
-              size="lg"
-            />
-            <View style={{ flex: 1, marginLeft: spacing.md }}>
-              <Text variant="h2" numberOfLines={1}>
-                {user?.fullName || 'Active User'}
+          <Avatar name={user?.fullName || user?.email || 'User'} size="md" />
+          <View style={{ marginLeft: spacing.md, flex: 1 }}>
+            <Text variant="h2" style={{ fontSize: 16, fontWeight: '700' }}>
+              {user?.fullName || 'Active User'}
+            </Text>
+            <Text variant="caption" color="secondary" numberOfLines={1}>
+              {user?.email || 'user@example.com'}
+            </Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 4 }}>
+              <ShieldCheck size={12} color={colors.accentText} />
+              <Text variant="caption" color="accent" style={{ marginLeft: 4, fontWeight: '600', fontSize: 11 }}>
+                Verified Account
               </Text>
-              <Text variant="caption" color="secondary" numberOfLines={1}>
-                {user?.email || 'user@doit.local'}
-              </Text>
-              <View style={[styles.roleBadge, { backgroundColor: colors.surfaceRaised, borderColor: colors.border, borderRadius: radius.xs }]}>
-                <ShieldCheck size={11} color={colors.accentText} />
-                <Text variant="caption" color="accent" style={{ fontSize: 10, fontWeight: '600', marginLeft: 4 }}>
-                  Verified Account
-                </Text>
-              </View>
             </View>
           </View>
         </View>
@@ -228,21 +236,20 @@ export const SettingsScreen: React.FC = () => {
             },
           ]}
         >
+          {/* Color Mode */}
           <View style={{ padding: spacing.md }}>
-            <Text variant="caption" color="secondary" style={{ marginBottom: spacing.sm, textTransform: 'uppercase' }}>
+            <Text variant="caption" color="secondary" style={{ textTransform: 'uppercase', marginBottom: spacing.xs, fontWeight: '600', fontSize: 11 }}>
               Color Mode
             </Text>
             <View style={{ flexDirection: 'row', gap: spacing.xs }}>
               <Chip
                 label="Dark"
                 selected={mode === 'dark'}
-                leadingIcon={<Moon size={12} color={mode === 'dark' ? colors.accentText : colors.textTertiary} />}
                 onPress={() => setMode('dark')}
               />
               <Chip
                 label="Light"
                 selected={mode === 'light'}
-                leadingIcon={<Sun size={12} color={mode === 'light' ? colors.accentText : colors.textTertiary} />}
                 onPress={() => setMode('light')}
               />
               <Chip
@@ -253,8 +260,9 @@ export const SettingsScreen: React.FC = () => {
             </View>
           </View>
 
+          {/* Accent Color */}
           <View style={{ padding: spacing.md, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.border }}>
-            <Text variant="caption" color="secondary" style={{ marginBottom: spacing.sm, textTransform: 'uppercase' }}>
+            <Text variant="caption" color="secondary" style={{ textTransform: 'uppercase', marginBottom: spacing.xs, fontWeight: '600', fontSize: 11 }}>
               Brand Accent
             </Text>
             <View style={{ flexDirection: 'row', gap: spacing.xs, flexWrap: 'wrap' }}>
@@ -297,44 +305,83 @@ export const SettingsScreen: React.FC = () => {
           ]}
         >
           {/* Permission Status Banner if missing */}
-          {!hasOverlayPerm && Platform.OS === 'android' && (
+          {!hasOverlayPerm && Platform.OS === 'android' ? (
             <View
               style={{
                 backgroundColor: 'rgba(245, 158, 11, 0.1)',
                 borderBottomWidth: 1,
                 borderBottomColor: 'rgba(245, 158, 11, 0.3)',
                 padding: spacing.md,
-                flexDirection: 'row',
-                alignItems: 'center',
-                justifyContent: 'space-between',
               }}
             >
-              <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1, marginRight: spacing.sm }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
                 <AlertTriangle size={16} color={colors.warning} />
                 <View style={{ marginLeft: 8, flex: 1 }}>
                   <Text variant="caption" style={{ fontWeight: '700', color: colors.warning }}>
-                    Permission Needed
+                    Overlay Permission Required
                   </Text>
                   <Text variant="caption" color="secondary" style={{ fontSize: 11 }}>
-                    Enable "Display over other apps" to activate floating bubble.
+                    Enable "Display over other apps" to allow the floating capture bubble.
                   </Text>
                 </View>
               </View>
-              <TouchableOpacity
-                onPress={() => overlayService.requestPermission()}
-                style={{
-                  backgroundColor: colors.surfaceRaised,
-                  paddingHorizontal: 8,
-                  paddingVertical: 5,
-                  borderRadius: radius.sm,
-                  borderWidth: 1,
-                  borderColor: colors.border,
-                }}
-              >
-                <Text variant="caption" color="accent" style={{ fontWeight: '700', fontSize: 11 }}>
-                  Enable
-                </Text>
-              </TouchableOpacity>
+
+              <View style={{ flexDirection: 'row', gap: 8, marginTop: 4 }}>
+                <TouchableOpacity
+                  onPress={() => overlayService.requestPermission()}
+                  style={{
+                    backgroundColor: colors.surfaceRaised,
+                    paddingHorizontal: 12,
+                    paddingVertical: 6,
+                    borderRadius: radius.sm,
+                    borderWidth: 1,
+                    borderColor: colors.border,
+                    flex: 1,
+                    alignItems: 'center',
+                  }}
+                >
+                  <Text variant="caption" color="accent" style={{ fontWeight: '700' }}>
+                    Grant Permission
+                  </Text>
+                </TouchableOpacity>
+
+                {isXiaomi && (
+                  <TouchableOpacity
+                    onPress={() => overlayService.openDeviceSpecificSettings()}
+                    style={{
+                      backgroundColor: colors.surfaceRaised,
+                      paddingHorizontal: 12,
+                      paddingVertical: 6,
+                      borderRadius: radius.sm,
+                      borderWidth: 1,
+                      borderColor: colors.border,
+                      flex: 1,
+                      alignItems: 'center',
+                    }}
+                  >
+                    <Text variant="caption" color="secondary" style={{ fontWeight: '700' }}>
+                      MIUI / HyperOS
+                    </Text>
+                  </TouchableOpacity>
+                )}
+              </View>
+            </View>
+          ) : (
+            <View
+              style={{
+                backgroundColor: 'rgba(34, 197, 94, 0.08)',
+                borderBottomWidth: 1,
+                borderBottomColor: 'rgba(34, 197, 94, 0.25)',
+                paddingHorizontal: spacing.md,
+                paddingVertical: spacing.sm,
+                flexDirection: 'row',
+                alignItems: 'center',
+              }}
+            >
+              <CheckCircle2 size={15} color={colors.success} />
+              <Text variant="caption" style={{ color: colors.success, fontWeight: '700', marginLeft: 6 }}>
+                Overlay Permission Granted • System-wide capture enabled
+              </Text>
             </View>
           )}
 
@@ -344,9 +391,9 @@ export const SettingsScreen: React.FC = () => {
             label="Floating Overlay Bubble"
             description={
               bubbleEnabled
-                ? "Active on screen • Tap to capture from any app"
+                ? 'Active on screen • Tap to capture from any app'
                 : hasOverlayPerm
-                ? "Permission granted • Ready to enable"
+                ? 'Permission granted • Ready to enable'
                 : "Requires 'Display over other apps' permission"
             }
             isSwitch
@@ -354,52 +401,51 @@ export const SettingsScreen: React.FC = () => {
             onSwitchChange={handleToggleBubble}
           />
 
-          {/* Shake-to-Report Sensitivity Item */}
-          <View style={{ padding: spacing.md, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.border }}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: spacing.xs }}>
-              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                <Smartphone size={18} color={colors.textSecondary} />
-                <View style={{ marginLeft: 12 }}>
-                  <Text variant="label" style={{ fontWeight: '600' }}>
-                    Shake to Report Bug
-                  </Text>
-                  <Text variant="caption" color="secondary">
-                    Flick wrist 2-3 times to snapshot &amp; triage issues
-                  </Text>
-                </View>
+          {/* Shake-to-Report Item */}
+          <SettingsItem
+            icon={<Smartphone size={18} color={shakeEnabled ? colors.accentText : colors.textSecondary} />}
+            label="Shake to Report Bug"
+            description={
+              shakeEnabled
+                ? `Active in foreground • ${sensitivity.toUpperCase()} sensitivity`
+                : 'Disabled • Toggle to enable wrist flick capture'
+            }
+            isSwitch
+            switchValue={shakeEnabled}
+            onSwitchChange={(val) => setShakeEnabled(val)}
+          />
+
+          {/* Shake Sensitivity Tuning */}
+          {shakeEnabled && (
+            <View style={{ padding: spacing.md, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.border }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: spacing.xs }}>
+                <Text variant="caption" color="secondary" style={{ textTransform: 'uppercase', fontSize: 10, fontWeight: '700' }}>
+                  Shake Sensitivity Threshold:
+                </Text>
+                <Text variant="caption" color="accent" style={{ fontWeight: '600' }}>
+                  {sensitivity === 'high' ? '10 m/s² (Easy)' : sensitivity === 'low' ? '21 m/s² (Firm)' : '14.5 m/s² (Standard)'}
+                </Text>
+              </View>
+
+              <View style={{ flexDirection: 'row', gap: spacing.xs, marginTop: spacing.xs }}>
+                <Chip
+                  label="Low (Firm)"
+                  selected={sensitivity === 'low'}
+                  onPress={() => setSensitivity('low')}
+                />
+                <Chip
+                  label="Medium"
+                  selected={sensitivity === 'medium'}
+                  onPress={() => setSensitivity('medium')}
+                />
+                <Chip
+                  label="High (Sensitive)"
+                  selected={sensitivity === 'high'}
+                  onPress={() => setSensitivity('high')}
+                />
               </View>
             </View>
-
-            <View style={{ flexDirection: 'row', gap: spacing.xs, marginTop: spacing.sm, alignItems: 'center' }}>
-              <Text variant="caption" color="secondary" style={{ marginRight: 4, textTransform: 'uppercase', fontSize: 10 }}>
-                Sensitivity:
-              </Text>
-              <Chip
-                label="Low"
-                selected={sensitivity === 'low'}
-                onPress={() => {
-                  setSensitivity('low');
-                  shakeDetector.setSensitivity('low');
-                }}
-              />
-              <Chip
-                label="Medium"
-                selected={sensitivity === 'medium'}
-                onPress={() => {
-                  setSensitivity('medium');
-                  shakeDetector.setSensitivity('medium');
-                }}
-              />
-              <Chip
-                label="High"
-                selected={sensitivity === 'high'}
-                onPress={() => {
-                  setSensitivity('high');
-                  shakeDetector.setSensitivity('high');
-                }}
-              />
-            </View>
-          </View>
+          )}
 
           {/* Interactive Test & Guide Links */}
           <View
@@ -413,7 +459,7 @@ export const SettingsScreen: React.FC = () => {
             }}
           >
             <TouchableOpacity
-              onPress={handleTestCapture}
+              onPress={() => setShakeTestVisible(true)}
               style={{
                 flex: 1,
                 flexDirection: 'row',
@@ -426,9 +472,9 @@ export const SettingsScreen: React.FC = () => {
                 borderColor: colors.border,
               }}
             >
-              <Zap size={13} color={colors.accentText} />
+              <Activity size={13} color={colors.accentText} />
               <Text variant="caption" color="accent" style={{ fontWeight: '600', marginLeft: 4 }}>
-                Test Quick Capture
+                Test Shake Sensor
               </Text>
             </TouchableOpacity>
 
@@ -458,13 +504,18 @@ export const SettingsScreen: React.FC = () => {
             icon={<HardDrive size={18} color={colors.textSecondary} />}
             label="Offline Storage & Cache"
             description={`${cacheSizeMb.toFixed(1)} MB stored locally on device`}
-            value="Clear"
             onPress={handleClearCache}
           />
         </View>
 
-        {/* Section 3: Server Connection */}
-        <SectionHeader title="Server & Connection" />
+        {/* Section 3: Server & Connection */}
+        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: spacing.xs }}>
+          <SectionHeader title="Server & Connection" />
+          <TouchableOpacity onPress={() => handlePing()} disabled={pinging} style={{ padding: 4 }}>
+            <RefreshCw size={14} color={pinging ? colors.accent : colors.textSecondary} />
+          </TouchableOpacity>
+        </View>
+
         <View
           style={[
             styles.groupedCard,
@@ -472,28 +523,21 @@ export const SettingsScreen: React.FC = () => {
               backgroundColor: colors.surface,
               borderColor: colors.border,
               borderRadius: radius.md,
-              marginBottom: spacing.lg,
               padding: spacing.md,
+              marginBottom: spacing.lg,
             },
           ]}
         >
-          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: spacing.xs }}>
-            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-              <Server size={15} color={colors.textSecondary} />
-              <Text variant="label" style={{ marginLeft: 6 }}>
-                Active API Endpoint
-              </Text>
-            </View>
-            <TouchableOpacity onPress={() => handlePing()} style={{ flexDirection: 'row', alignItems: 'center' }}>
-              <RefreshCw size={12} color={colors.accentText} />
-              <Text variant="caption" color="accent" style={{ marginLeft: 4 }}>
-                {pinging ? 'Testing...' : 'Test Connection'}
-              </Text>
-            </TouchableOpacity>
+          <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: spacing.xs }}>
+            <Server size={16} color={colors.accentText} />
+            <Text variant="label" style={{ fontWeight: '600', marginLeft: spacing.xs }}>
+              Active API Endpoint
+            </Text>
           </View>
-          <Text variant="caption" color="secondary" style={{ fontFamily: 'monospace', fontSize: 11, marginBottom: spacing.xs }}>
+          <Text variant="caption" color="secondary" numberOfLines={1} style={{ marginBottom: spacing.xs, fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace' }}>
             {activeUrl}
           </Text>
+
           {pingStatus && (
             <Text
               variant="caption"
@@ -508,9 +552,9 @@ export const SettingsScreen: React.FC = () => {
           )}
           <View style={{ flexDirection: 'row', gap: spacing.xs, marginTop: spacing.xs, flexWrap: 'wrap' }}>
             <Chip
-              label="Production (Cloud)"
-              selected={activeUrl.includes('doit-api.137.23.49.73.sslip.io')}
-              onPress={() => handleSwitchServer('https://doit-api.137.23.49.73.sslip.io/api/v1')}
+              label="Production (doit.samyukt.pro)"
+              selected={activeUrl.includes('doit.samyukt.pro')}
+              onPress={() => handleSwitchServer('https://doit.samyukt.pro/api/v1')}
             />
             <Chip
               label="Wi-Fi (192.168.1.67)"
@@ -536,16 +580,19 @@ export const SettingsScreen: React.FC = () => {
         </View>
       </ScrollView>
 
-      {/* Hardware & Quick Capture Guide Modal */}
+      {/* Guide Sheet Modal */}
       <QuickCaptureGuideSheet
         visible={guideVisible}
         onClose={() => setGuideVisible(false)}
         hasOverlayPerm={hasOverlayPerm}
         onRequestPermission={() => overlayService.requestPermission()}
         onTestBubble={handleToggleBubble}
-        onTestCapture={handleTestCapture}
+        onTestCapture={() => (navigation as any).navigate('CaptureModal')}
         bubbleEnabled={bubbleEnabled}
       />
+
+      {/* Shake Sensor Diagnostic Modal */}
+      <ShakeTestModal visible={shakeTestVisible} onClose={() => setShakeTestVisible(false)} />
     </SafeAreaView>
   );
 };
@@ -554,24 +601,11 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  scrollContent: {
-    flexGrow: 1,
-  },
   profileCard: {
-    borderWidth: 1,
-  },
-  profileRow: {
     flexDirection: 'row',
     alignItems: 'center',
-  },
-  roleBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    alignSelf: 'flex-start',
+    padding: 16,
     borderWidth: 1,
-    marginTop: 4,
   },
   groupedCard: {
     borderWidth: 1,

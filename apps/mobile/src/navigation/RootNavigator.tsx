@@ -14,6 +14,8 @@ import { useAuthStore } from '../features/auth/store';
 import { useVersionPolicy } from '../features/system/useVersionPolicy';
 import { ForceUpdateScreen } from '../features/system/ForceUpdateScreen';
 
+import { navigationRef } from './navigationRef';
+
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
 const linking: LinkingOptions<RootStackParamList> = {
@@ -60,7 +62,7 @@ export const RootNavigator: React.FC = () => {
 
   return (
     <NavBarScrollProvider>
-      <NavigationContainer linking={linking}>
+      <NavigationContainer ref={navigationRef} linking={linking}>
         <Stack.Navigator
           initialRouteName={isAuthenticated ? 'MainTabs' : 'Auth'}
           screenOptions={{

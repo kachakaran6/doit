@@ -5,6 +5,7 @@ import { queryClient } from './src/lib/queryClient';
 import { ThemeProvider } from './src/theme/ThemeProvider';
 import { KeyboardProvider } from './src/core/providers/KeyboardProvider';
 import { OutboxProvider } from './src/core/providers/OutboxProvider';
+import { ShakeCaptureProvider } from './src/core/providers/ShakeCaptureProvider';
 import { RootNavigator } from './src/navigation/RootNavigator';
 
 export default function App() {
@@ -14,7 +15,9 @@ export default function App() {
         <ThemeProvider>
           <OutboxProvider>
             <KeyboardProvider>
-              <RootNavigator />
+              <ShakeCaptureProvider>
+                <RootNavigator />
+              </ShakeCaptureProvider>
             </KeyboardProvider>
           </OutboxProvider>
         </ThemeProvider>
