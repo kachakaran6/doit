@@ -21,7 +21,7 @@
         "buildType": "apk"
       },
       "env": {
-        "EXPO_PUBLIC_API_URL": "https://doit-api.kachakaran.me/api/v1",
+        "EXPO_PUBLIC_API_URL": "https://doit-api.137.23.49.73.sslip.io/api/v1",
         "EXPO_PUBLIC_ENV": "preview"
       }
     },
@@ -31,7 +31,7 @@
         "buildType": "apk"
       },
       "env": {
-        "EXPO_PUBLIC_API_URL": "https://doit-api.kachakaran.me/api/v1",
+        "EXPO_PUBLIC_API_URL": "https://doit-api.137.23.49.73.sslip.io/api/v1",
         "EXPO_PUBLIC_ENV": "production"
       }
     }
