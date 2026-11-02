@@ -68,3 +68,4 @@ CertUtil -hashfile "DoIt-v0.1.0-build1.apk" SHA256 > "DoIt-v0.1.0-build1.apk.sha
 # Linux / macOS
 sha256sum DoIt-v0.1.0-build1.apk > DoIt-v0.1.0-build1.apk.sha256
 ```
+

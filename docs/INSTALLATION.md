@@ -71,3 +71,4 @@ Expected output:
 ```json
 {"status":"ok","db":"up","version":"0.1.0"}
 ```
+

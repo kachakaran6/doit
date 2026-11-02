@@ -1,28 +1,28 @@
-# DoIt v0.1.0 — First Production Release (Build 1)
+# DoIt v0.1.0 — Release Build 2 (v0.1.0+2)
 
-Welcome to the first official production release of **DoIt** (`v0.1.0+1`), a precision personal and team productivity platform engineered for speed, focus, and durability.
+This release (`v0.1.0+2`) introduces comprehensive in-app guidance, permission monitoring, and hardware controls for DoIt's native capture tools: the **Floating Overlay Bubble** and **Shake-to-Report Bug** motion sensor.
 
 ---
 
-## What's New in v0.1.0+1
+## What's New in v0.1.0+2
 
-### 📱 Android Native Experience (`apps/mobile`)
-- **Linear-Grade Precision Interface**: Fully revamped dark theme built on a neutral graphite foundation (`#101113` background, `#17191C` card surfaces, `#7775D8` restrained indigo accent).
-- **Task Hub & Kanban Board**: Drag-and-drop state transitions, custom sorting, priority flags (`LOW`, `MEDIUM`, `HIGH`, `URGENT`), and hierarchical project categorization.
-- **Sticky Notes**: Fast 2-column masonry scratchpad for unstructured notes, thoughts, and quick capture.
-- **Voice Memos & Audio Capture**: High-fidelity native audio recording with background transcription support.
-- **Offline-First Synchronization**: Optimistic UI mutations cached locally with automatic background retry and conflict resolution.
-- **Floating Signature Navbar**: Ergonomic thumb-zone bottom navigation with 56dp quick-action hub.
+### 🎯 Floating Quick Capture Bubble Guide & Status Monitoring
+- **Real-Time Permission Banner**: Directly displays whether Android's "Display over other apps" (`SYSTEM_ALERT_WINDOW`) permission is granted.
+- **One-Tap System Settings Shortcut**: Opens Android's native overlay permission manager for DoIt without navigating through nested device menus.
+- **Step-by-Step Instructions**:
+  - How to enable and launch the background bubble service.
+  - How to drag the bubble across screen edges and dock it smoothly.
+  - How to tap the bubble from any running application (browser, chat, email) to immediately log tasks, bugs, or voice notes.
+  - How to dismiss or hide the bubble when not in use.
+- **OEM Background Optimization Guide**: Dedicated troubleshooting steps for Samsung One UI, Xiaomi HyperOS/MIUI, and OnePlus OxygenOS to prevent aggressive background process termination.
 
-### 🌐 Scalable Backend Infrastructure (`apps/api`)
-- **Production Deployment on Coolify**: Self-hosted NestJS 10 modular monolith running in an Alpine container under `tini` supervision.
-- **PostgreSQL 16 & Prisma ORM**: Auto-synchronizing relational data models with strict schema constraints and indexed queries.
-- **Zero-Downtime TLS**: Integrated with Caddy Reverse Proxy for automated Let's Encrypt certificates and HTTP/2 + HTTP/3 support.
-- **Enterprise-Grade Security**:
-  - Argon2id cryptographic password hashing.
-  - Rotating JWT Access & Refresh token family with device session revocation.
-  - Rate limiting (60 req/min per IP) and strict CORS policies.
-  - Non-root container runtime (`app:app`).
+### 📳 Shake-to-Report Sensor Controls
+- **Interactive Sensitivity Tuning**: Toggle between `Low`, `Medium`, and `High` accelerometer thresholds.
+- **Motion Sensor Explanation**: High-pass gravity filtering requiring 3 direction reversals within 400ms to eliminate false positives from walking or pocket movements.
+- **In-App Test Trigger**: One-tap "Test Quick Capture" button inside Settings to preview the capture flow immediately.
+
+### 🌐 Cloud API Connectivity
+- Added **Production (Cloud)** server endpoint chip (`https://doit-api.137.23.49.73.sslip.io/api/v1`) directly into the Settings connection manager with live ping diagnostics.
 
 ---
 
@@ -30,23 +30,16 @@ Welcome to the first official production release of **DoIt** (`v0.1.0+1`), a pre
 
 | Asset | Type | Description |
 | :--- | :--- | :--- |
-| `DoIt-v0.1.0-build1.apk` | Android APK | Signed standalone installable APK (`com.samyukt.doit`, version `0.1.0`, build `1`) |
-| `DoIt-v0.1.0-build1.apk.sha256` | Checksum | SHA-256 integrity hash |
+| `DoIt-v0.1.0-build2.apk` | Android APK | Standalone production APK (`com.samyukt.doit`, version `0.1.0`, `versionCode: 2`) |
+| `DoIt-v0.1.0-build2.apk.sha256` | Checksum | Cryptographic SHA-256 verification hash |
 
 ---
 
-## 🚀 Installation & Getting Started
+## 🚀 Installation & Verification
 
-1. Download `DoIt-v0.1.0-build1.apk` on your Android device (Android 9.0+).
-2. Allow installation from unknown sources when prompted.
-3. Launch DoIt and connect to the live cloud backend or self-host your own instance using Docker Compose.
-
----
-
-## 📚 Technical Documentation
-
-- [Architecture & Topology Specification](docs/ARCHITECTURE.md)
-- [REST API & OpenAPI Specification](docs/API.md)
-- [Production Deployment Guide](docs/PRODUCTION-DEPLOYMENT.md)
-- [Release Engineering & Versioning Guide](docs/RELEASE-GUIDE.md)
-- [End-User & Self-Host Installation Guide](docs/INSTALLATION.md)
+1. Download `DoIt-v0.1.0-build2.apk` on your Android device (Android 9.0+).
+2. Allow installation from unknown sources if prompted.
+3. Verify integrity:
+   ```powershell
+   Get-FileHash -Algorithm SHA256 .\DoIt-v0.1.0-build2.apk
+   ```

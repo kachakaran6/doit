@@ -129,3 +129,4 @@ Authorization: Bearer <access_token>
   "mimeType": "image/png"
 }
 ```
+

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, ScrollView, Alert, Platform, TouchableOpacity } from 'react-native';
+import { View, StyleSheet, ScrollView, Alert, Platform, TouchableOpacity, AppState } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { useTheme } from '../../../theme/useTheme';
@@ -30,8 +30,15 @@ import {
   Sparkles,
   Server,
   RefreshCw,
+  HelpCircle,
+  CheckCircle2,
+  AlertTriangle,
+  ExternalLink,
+  Zap,
+  Layers,
 } from 'lucide-react-native';
 import { http } from '../../../lib/http';
+import { QuickCaptureGuideSheet } from '../components/QuickCaptureGuideSheet';
 
 export const SettingsScreen: React.FC = () => {
   const { colors, spacing, radius, mode, accent, setMode, setAccent, elevation } = useTheme();
@@ -40,11 +47,34 @@ export const SettingsScreen: React.FC = () => {
 
   const [bubbleEnabled, setBubbleEnabled] = useState(overlayService.getRunningState());
   const [hasOverlayPerm, setHasOverlayPerm] = useState(false);
+  const [guideVisible, setGuideVisible] = useState(false);
   const [sensitivity, setSensitivity] = useState<ShakeSensitivity>('medium');
   const [cacheSizeMb, setCacheSizeMb] = useState(14.8);
   const [activeUrl, setActiveUrl] = useState(http.getBaseUrl());
   const [pingStatus, setPingStatus] = useState<string | null>(null);
   const [pinging, setPinging] = useState(false);
+
+  const checkPermissions = async () => {
+    try {
+      const perm = await overlayService.hasPermission();
+      setHasOverlayPerm(perm);
+      setBubbleEnabled(overlayService.getRunningState());
+    } catch {
+      // ignore
+    }
+  };
+
+  useEffect(() => {
+    checkPermissions();
+    const subscription = AppState.addEventListener('change', (nextAppState) => {
+      if (nextAppState === 'active') {
+        checkPermissions();
+      }
+    });
+    return () => {
+      subscription.remove();
+    };
+  }, []);
 
   const handlePing = async (urlToTest?: string) => {
     const target = urlToTest || activeUrl;
@@ -52,7 +82,9 @@ export const SettingsScreen: React.FC = () => {
     setPingStatus(null);
     try {
       const res: any = await fetch(`${target}/health`).then((r) => r.json());
-      setPingStatus(`Online (${res?.status || 'ok'}) • DB: ${res?.database || 'connected'}`);
+      const isOk = res?.status === 'ok' || res?.data?.status === 'ok';
+      const dbStatus = res?.db || res?.data?.db || 'connected';
+      setPingStatus(isOk ? `Online (${res?.data?.version || '0.1.0'}) • DB: ${dbStatus}` : 'Unexpected response');
     } catch {
       setPingStatus(`Unreachable at ${target}`);
     } finally {
@@ -66,33 +98,43 @@ export const SettingsScreen: React.FC = () => {
     handlePing(url);
   };
 
-  useEffect(() => {
-    overlayService.hasPermission().then(setHasOverlayPerm);
-  }, []);
-
   const handleToggleBubble = async () => {
     if (!bubbleEnabled) {
       const hasPerm = await overlayService.hasPermission();
       if (!hasPerm) {
         Alert.alert(
-          'Overlay Permission Needed',
-          'DoIt needs permission to display over other apps so you can report bugs with one tap.',
+          'Display Over Other Apps Required',
+          'Android requires special permission to show the floating Quick Capture bubble above other apps.\n\nTap "Open Settings", locate DoIt, and turn ON "Allow display over other apps".',
           [
             { text: 'Cancel', style: 'cancel' },
             {
               text: 'Open Settings',
-              onPress: () => overlayService.requestPermission(),
+              onPress: async () => {
+                await overlayService.requestPermission();
+              },
+            },
+            {
+              text: 'View Guide',
+              onPress: () => setGuideVisible(true),
             },
           ]
         );
         return;
       }
-      await overlayService.startBubble();
-      setBubbleEnabled(true);
+      const started = await overlayService.startBubble();
+      if (started) {
+        setBubbleEnabled(true);
+      } else {
+        Alert.alert('Error', 'Could not start overlay service.');
+      }
     } else {
       await overlayService.stopBubble();
       setBubbleEnabled(false);
     }
+  };
+
+  const handleTestCapture = () => {
+    (navigation as any).navigate('CaptureModal');
   };
 
   const handleClearCache = () => {
@@ -228,8 +270,20 @@ export const SettingsScreen: React.FC = () => {
           </View>
         </View>
 
-        {/* Section 2: Mobile Hardware Features */}
-        <SectionHeader title="Device Integration" />
+        {/* Section 2: Floating Quick Capture Bubble & Shake Sensor */}
+        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: spacing.xs }}>
+          <SectionHeader title="Quick Capture & Hardware Integration" />
+          <TouchableOpacity
+            onPress={() => setGuideVisible(true)}
+            style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 4, paddingHorizontal: 8 }}
+          >
+            <HelpCircle size={14} color={colors.accentText} />
+            <Text variant="caption" color="accent" style={{ fontWeight: '600', marginLeft: 4 }}>
+              How to Use Guide
+            </Text>
+          </TouchableOpacity>
+        </View>
+
         <View
           style={[
             styles.groupedCard,
@@ -242,26 +296,168 @@ export const SettingsScreen: React.FC = () => {
             },
           ]}
         >
+          {/* Permission Status Banner if missing */}
+          {!hasOverlayPerm && Platform.OS === 'android' && (
+            <View
+              style={{
+                backgroundColor: 'rgba(245, 158, 11, 0.1)',
+                borderBottomWidth: 1,
+                borderBottomColor: 'rgba(245, 158, 11, 0.3)',
+                padding: spacing.md,
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+              }}
+            >
+              <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1, marginRight: spacing.sm }}>
+                <AlertTriangle size={16} color={colors.warning} />
+                <View style={{ marginLeft: 8, flex: 1 }}>
+                  <Text variant="caption" style={{ fontWeight: '700', color: colors.warning }}>
+                    Permission Needed
+                  </Text>
+                  <Text variant="caption" color="secondary" style={{ fontSize: 11 }}>
+                    Enable "Display over other apps" to activate floating bubble.
+                  </Text>
+                </View>
+              </View>
+              <TouchableOpacity
+                onPress={() => overlayService.requestPermission()}
+                style={{
+                  backgroundColor: colors.surfaceRaised,
+                  paddingHorizontal: 8,
+                  paddingVertical: 5,
+                  borderRadius: radius.sm,
+                  borderWidth: 1,
+                  borderColor: colors.border,
+                }}
+              >
+                <Text variant="caption" color="accent" style={{ fontWeight: '700', fontSize: 11 }}>
+                  Enable
+                </Text>
+              </TouchableOpacity>
+            </View>
+          )}
+
+          {/* Floating Bubble Switch Item */}
           <SettingsItem
-            icon={<Activity size={18} color={colors.textSecondary} />}
+            icon={<Layers size={18} color={bubbleEnabled ? colors.accentText : colors.textSecondary} />}
             label="Floating Overlay Bubble"
-            description="Report issues over other apps"
+            description={
+              bubbleEnabled
+                ? "Active on screen • Tap to capture from any app"
+                : hasOverlayPerm
+                ? "Permission granted • Ready to enable"
+                : "Requires 'Display over other apps' permission"
+            }
             isSwitch
             switchValue={bubbleEnabled}
             onSwitchChange={handleToggleBubble}
           />
-          <SettingsItem
-            icon={<Smartphone size={18} color={colors.textSecondary} />}
-            label="Shake to Report"
-            description={`Sensitivity: ${sensitivity.toUpperCase()}`}
-            onPress={() => {
-              setSensitivity((prev) => (prev === 'low' ? 'medium' : prev === 'medium' ? 'high' : 'low'));
+
+          {/* Shake-to-Report Sensitivity Item */}
+          <View style={{ padding: spacing.md, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.border }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: spacing.xs }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                <Smartphone size={18} color={colors.textSecondary} />
+                <View style={{ marginLeft: 12 }}>
+                  <Text variant="label" style={{ fontWeight: '600' }}>
+                    Shake to Report Bug
+                  </Text>
+                  <Text variant="caption" color="secondary">
+                    Flick wrist 2-3 times to snapshot &amp; triage issues
+                  </Text>
+                </View>
+              </View>
+            </View>
+
+            <View style={{ flexDirection: 'row', gap: spacing.xs, marginTop: spacing.sm, alignItems: 'center' }}>
+              <Text variant="caption" color="secondary" style={{ marginRight: 4, textTransform: 'uppercase', fontSize: 10 }}>
+                Sensitivity:
+              </Text>
+              <Chip
+                label="Low"
+                selected={sensitivity === 'low'}
+                onPress={() => {
+                  setSensitivity('low');
+                  shakeDetector.setSensitivity('low');
+                }}
+              />
+              <Chip
+                label="Medium"
+                selected={sensitivity === 'medium'}
+                onPress={() => {
+                  setSensitivity('medium');
+                  shakeDetector.setSensitivity('medium');
+                }}
+              />
+              <Chip
+                label="High"
+                selected={sensitivity === 'high'}
+                onPress={() => {
+                  setSensitivity('high');
+                  shakeDetector.setSensitivity('high');
+                }}
+              />
+            </View>
+          </View>
+
+          {/* Interactive Test & Guide Links */}
+          <View
+            style={{
+              flexDirection: 'row',
+              padding: spacing.sm,
+              gap: spacing.xs,
+              backgroundColor: colors.surfaceRaised,
+              borderTopWidth: StyleSheet.hairlineWidth,
+              borderTopColor: colors.border,
             }}
-          />
+          >
+            <TouchableOpacity
+              onPress={handleTestCapture}
+              style={{
+                flex: 1,
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'center',
+                paddingVertical: 8,
+                backgroundColor: colors.surface,
+                borderRadius: radius.sm,
+                borderWidth: 1,
+                borderColor: colors.border,
+              }}
+            >
+              <Zap size={13} color={colors.accentText} />
+              <Text variant="caption" color="accent" style={{ fontWeight: '600', marginLeft: 4 }}>
+                Test Quick Capture
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              onPress={() => setGuideVisible(true)}
+              style={{
+                flex: 1,
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'center',
+                paddingVertical: 8,
+                backgroundColor: colors.surface,
+                borderRadius: radius.sm,
+                borderWidth: 1,
+                borderColor: colors.border,
+              }}
+            >
+              <HelpCircle size={13} color={colors.textSecondary} />
+              <Text variant="caption" color="secondary" style={{ fontWeight: '600', marginLeft: 4 }}>
+                Read Detailed Guide
+              </Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* Cache Storage */}
           <SettingsItem
             icon={<HardDrive size={18} color={colors.textSecondary} />}
             label="Offline Storage & Cache"
-            description={`${cacheSizeMb.toFixed(1)} MB stored locally`}
+            description={`${cacheSizeMb.toFixed(1)} MB stored locally on device`}
             value="Clear"
             onPress={handleClearCache}
           />
@@ -285,13 +481,13 @@ export const SettingsScreen: React.FC = () => {
             <View style={{ flexDirection: 'row', alignItems: 'center' }}>
               <Server size={15} color={colors.textSecondary} />
               <Text variant="label" style={{ marginLeft: 6 }}>
-                Active API Server
+                Active API Endpoint
               </Text>
             </View>
             <TouchableOpacity onPress={() => handlePing()} style={{ flexDirection: 'row', alignItems: 'center' }}>
               <RefreshCw size={12} color={colors.accentText} />
               <Text variant="caption" color="accent" style={{ marginLeft: 4 }}>
-                {pinging ? 'Testing...' : 'Test'}
+                {pinging ? 'Testing...' : 'Test Connection'}
               </Text>
             </TouchableOpacity>
           </View>
@@ -310,7 +506,12 @@ export const SettingsScreen: React.FC = () => {
               {pingStatus}
             </Text>
           )}
-          <View style={{ flexDirection: 'row', gap: spacing.xs, marginTop: spacing.xs }}>
+          <View style={{ flexDirection: 'row', gap: spacing.xs, marginTop: spacing.xs, flexWrap: 'wrap' }}>
+            <Chip
+              label="Production (Cloud)"
+              selected={activeUrl.includes('doit-api.137.23.49.73.sslip.io')}
+              onPress={() => handleSwitchServer('https://doit-api.137.23.49.73.sslip.io/api/v1')}
+            />
             <Chip
               label="Wi-Fi (192.168.1.67)"
               selected={activeUrl.includes('192.168.1.67')}
@@ -334,6 +535,17 @@ export const SettingsScreen: React.FC = () => {
           />
         </View>
       </ScrollView>
+
+      {/* Hardware & Quick Capture Guide Modal */}
+      <QuickCaptureGuideSheet
+        visible={guideVisible}
+        onClose={() => setGuideVisible(false)}
+        hasOverlayPerm={hasOverlayPerm}
+        onRequestPermission={() => overlayService.requestPermission()}
+        onTestBubble={handleToggleBubble}
+        onTestCapture={handleTestCapture}
+        bubbleEnabled={bubbleEnabled}
+      />
     </SafeAreaView>
   );
 };

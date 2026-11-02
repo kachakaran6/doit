@@ -98,3 +98,4 @@ erDiagram
 1. **Network Isolation**: The PostgreSQL container exposes no public ports; communication is restricted to the internal Docker network `coolify`.
 2. **Secret Management**: All secrets (`DATABASE_URL`, `JWT_SECRET`, `JWT_REFRESH_SECRET`) are injected as runtime environment variables through Coolify.
 3. **Storage Sanitization**: File uploads are verified for MIME magic bytes and UUID-renamed prior to writing to persistent storage.
+

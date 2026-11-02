@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.1.0+2] - 2026-11-02 — Quick Capture Guide & Hardware Settings Polish
+
+### Added
+- **Hardware & Quick Capture Guide Modal (`QuickCaptureGuideSheet`)**:
+  - Detailed visual guides for the Floating Overlay Bubble and Shake-to-Report systems.
+  - Interactive "Grant Permission" workflow for Android `SYSTEM_ALERT_WINDOW` ("Display over other apps").
+  - Step-by-step instructions for dragging, docking, and one-tap capturing from any external app.
+  - OEM-specific battery optimization guides (Samsung One UI, Xiaomi HyperOS, OnePlus OxygenOS).
+- **Settings Screen Integration**:
+  - Real-time permission status banner with instant redirection to Android system overlay settings.
+  - Shake sensitivity selector (`Low`, `Medium`, `High`) with physical motion sensor tuning.
+  - Interactive "Test Quick Capture" trigger directly inside Settings.
+  - Added "Production (Cloud)" API endpoint chip (`https://doit-api.137.23.49.73.sslip.io/api/v1`) with live latency and database status pinging.
+- **Android Release Build 2**:
+  - Incremented `versionCode: 2` (release `0.1.0+2`) adhering strictly to the monotonically increasing release progression protocol.
+
+---
+
 ## [0.1.0+1] - 2026-11-01 — First Production Release
 
 ### Added

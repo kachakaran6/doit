@@ -107,3 +107,4 @@ When a new commit is pushed to `main`:
 3. Automated database migrations execute on startup.
 4. Caddy routes traffic to the new container once the `/api/v1/health` check passes.
 5. Old container is gracefully stopped after a 5-second drain period.
+
