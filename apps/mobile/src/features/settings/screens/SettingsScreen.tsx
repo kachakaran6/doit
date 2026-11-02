@@ -334,22 +334,23 @@ export const SettingsScreen: React.FC = () => {
                 </View>
               </View>
 
-              <View style={{ flexDirection: 'row', gap: 8, marginTop: 4 }}>
+              <View style={{ flexDirection: 'row', gap: 6, marginTop: 4, flexWrap: 'wrap' }}>
                 <TouchableOpacity
                   onPress={() => overlayService.requestPermission()}
                   style={{
                     backgroundColor: colors.surfaceRaised,
-                    paddingHorizontal: 12,
-                    paddingVertical: 6,
+                    paddingHorizontal: 10,
+                    paddingVertical: 7,
                     borderRadius: radius.sm,
                     borderWidth: 1,
                     borderColor: colors.border,
                     flex: 1,
+                    minWidth: 120,
                     alignItems: 'center',
                   }}
                 >
                   <Text variant="caption" color="accent" style={{ fontWeight: '700' }}>
-                    Grant Permission
+                    1. Display Over Apps
                   </Text>
                 </TouchableOpacity>
 
@@ -358,20 +359,57 @@ export const SettingsScreen: React.FC = () => {
                     onPress={() => overlayService.openDeviceSpecificSettings()}
                     style={{
                       backgroundColor: colors.surfaceRaised,
-                      paddingHorizontal: 12,
-                      paddingVertical: 6,
+                      paddingHorizontal: 10,
+                      paddingVertical: 7,
                       borderRadius: radius.sm,
                       borderWidth: 1,
                       borderColor: colors.border,
                       flex: 1,
+                      minWidth: 120,
                       alignItems: 'center',
                     }}
                   >
                     <Text variant="caption" color="secondary" style={{ fontWeight: '700' }}>
-                      MIUI / HyperOS
+                      2. MIUI Pop-ups
                     </Text>
                   </TouchableOpacity>
                 )}
+
+                <TouchableOpacity
+                  onPress={() => overlayService.openAppSettings()}
+                  style={{
+                    backgroundColor: colors.surfaceRaised,
+                    paddingHorizontal: 10,
+                    paddingVertical: 7,
+                    borderRadius: radius.sm,
+                    borderWidth: 1,
+                    borderColor: colors.border,
+                    flex: 1,
+                    minWidth: 120,
+                    alignItems: 'center',
+                  }}
+                >
+                  <Text variant="caption" color="secondary" style={{ fontWeight: '700' }}>
+                    3. App Info (3-Dots ⋮)
+                  </Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  onPress={() => setGuideVisible(true)}
+                  style={{
+                    backgroundColor: colors.accent,
+                    paddingHorizontal: 12,
+                    paddingVertical: 7,
+                    borderRadius: radius.sm,
+                    alignItems: 'center',
+                    width: '100%',
+                    marginTop: 2,
+                  }}
+                >
+                  <Text variant="caption" style={{ fontWeight: '700', color: colors.accentOnPrimary }}>
+                    📖 Read Step-by-Step Setup Guide
+                  </Text>
+                </TouchableOpacity>
               </View>
             </View>
           ) : (
@@ -392,6 +430,14 @@ export const SettingsScreen: React.FC = () => {
               </Text>
             </View>
           )}
+
+          {/* Dedicated How-To Guide Item */}
+          <SettingsItem
+            icon={<HelpCircle size={18} color={colors.accentText} />}
+            label="How to Use Floating Bubble & Shake"
+            description="Complete setup guide for Xiaomi / HyperOS & gesture capture instructions"
+            onPress={() => setGuideVisible(true)}
+          />
 
           {/* Floating Bubble Switch Item */}
           <SettingsItem

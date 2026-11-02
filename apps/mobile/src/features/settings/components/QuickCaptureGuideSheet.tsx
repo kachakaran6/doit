@@ -185,21 +185,21 @@ export const QuickCaptureGuideSheet: React.FC<QuickCaptureGuideSheetProps> = ({
             <View style={[styles.stepCard, { backgroundColor: colors.surface, borderColor: colors.border, borderRadius: radius.md, padding: spacing.md, marginBottom: spacing.sm }]}>
               <View style={styles.stepHeader}>
                 <View style={[styles.stepBadge, { backgroundColor: colors.surfaceRaised, borderColor: colors.border }]}>
-                  <Text variant="caption" color="accent" style={{ fontWeight: '700' }}>2</Text>
+                  <Text variant="caption" color="accent" style={{ fontWeight: '700' }}>4</Text>
                 </View>
                 <Text variant="label" style={{ fontWeight: '600', marginLeft: spacing.sm }}>
                   Turn On the Floating Switch
                 </Text>
               </View>
               <Text variant="body" color="secondary" style={{ fontSize: 13, marginTop: 4 }}>
-                In DoIt Settings &gt; Device Integration, toggle "Floating Overlay Bubble" to ON. A sleek circular icon will appear on your screen and dock to the side.
+                In DoIt Settings &gt; Quick Capture, toggle "Floating Overlay Bubble" to ON. A sleek circular icon will appear on your screen and dock to the side.
               </Text>
             </View>
 
             <View style={[styles.stepCard, { backgroundColor: colors.surface, borderColor: colors.border, borderRadius: radius.md, padding: spacing.md, marginBottom: spacing.sm }]}>
               <View style={styles.stepHeader}>
                 <View style={[styles.stepBadge, { backgroundColor: colors.surfaceRaised, borderColor: colors.border }]}>
-                  <Text variant="caption" color="accent" style={{ fontWeight: '700' }}>3</Text>
+                  <Text variant="caption" color="accent" style={{ fontWeight: '700' }}>5</Text>
                 </View>
                 <Text variant="label" style={{ fontWeight: '600', marginLeft: spacing.sm }}>
                   One-Tap Capture From Any App
@@ -213,7 +213,7 @@ export const QuickCaptureGuideSheet: React.FC<QuickCaptureGuideSheetProps> = ({
             <View style={[styles.stepCard, { backgroundColor: colors.surface, borderColor: colors.border, borderRadius: radius.md, padding: spacing.md, marginBottom: spacing.md }]}>
               <View style={styles.stepHeader}>
                 <View style={[styles.stepBadge, { backgroundColor: colors.surfaceRaised, borderColor: colors.border }]}>
-                  <Text variant="caption" color="accent" style={{ fontWeight: '700' }}>4</Text>
+                  <Text variant="caption" color="accent" style={{ fontWeight: '700' }}>6</Text>
                 </View>
                 <Text variant="label" style={{ fontWeight: '600', marginLeft: spacing.sm }}>
                   Drag to Move or Dismiss

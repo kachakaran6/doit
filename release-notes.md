@@ -1,45 +1,41 @@
-# DoIt v0.1.0 — Release Build 3 (v0.1.0+3)
+# DoIt v0.1.0 — Release Build 3 (`0.1.0+3`)
 
-This release (`v0.1.0+3`) resolves two critical Android native features:
-1. **Floating Quick Capture Bubble**: Complete native Android module injection, verified overlay permission detection (`Settings.canDrawOverlays`), Xiaomi/MIUI/HyperOS permission routing, and a 56dp draggable floating bubble overlay running system-wide.
-2. **Shake-to-Add Motion Detection**: Full hardware accelerometer integration, corrected directional reversal vector math, foreground lifecycle management, and an interactive diagnostic tester in Settings.
-3. **Cloud Backend Target**: Live production backend connected to `https://doit.samyukt.pro/api/v1`.
+Production-grade release of DoIt featuring a complete Quick Capture redesign, full backend integration with the live deployment at `https://doit.samyukt.pro/api/v1`, Xiaomi/MIUI overlay permission detection & deep-linking resolution, and resolution of the sticky note HTTP 500 error.
 
 ---
 
-## Technical Fixes & Root Cause Resolutions
+## What's New & Fixed in Build 3
 
-### 🎯 Critical Issue A: Floating Quick Capture Bubble
-- **Native Module Injection**: Wrote and wired `OverlayPackage.kt`, `OverlayServiceModule.kt`, and `BubbleService.kt` via `@expo/config-plugins` (`withDoItAndroidRelease.js`). `NativeModules.OverlayServiceModule` is now compiled and registered in `MainApplication.kt`.
-- **Permission Detection & Routing**:
-  - Replaced generic fallback with native `Settings.canDrawOverlays(context)`.
-  - Direct intent routing via `Settings.ACTION_MANAGE_OVERLAY_PERMISSION` (`package:com.samyukt.doit`).
-  - Dedicated Xiaomi/MIUI/HyperOS fallback using `miui.intent.action.APP_PERM_EDITOR` targeting `com.miui.securitycenter`.
-- **System-Wide Floating Bubble**:
-  - 56dp circular overlay (`WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY`) with DoIt branding and drop shadow.
-  - Fluid drag handling, boundary clamping, and screen edge snapping.
-  - Foreground service declaration with Android 14+ `specialUse` type and ongoing notification controls.
+### 1. Complete Quick Capture Form Redesign
+- **Unified Form Architecture**: All four capture modalities (**Task**, **Bug**, **Sticky**, and **Voice**) now share a unified design token system, responsive pill selector, header kicker (`activeProject.key • name`), and touch targets.
+- **Task Capture**: Includes quick due-date shortcuts (*Today*, *Tomorrow*, *Next Week*, *Clear*) and visual priority selector (*Low*, *Medium*, *High*, *Urgent*).
+- **Bug Reporting**: Multi-line reproduction steps, severity selector (*Critical*, *Major*, *Minor*, *Trivial*), and automatic device diagnostics badge.
+- **Sticky Notes**: Full multi-line text input, 5 brand color accent selectors (*Amber*, *Indigo*, *Teal*, *Rose*, *Violet*), and "Pin to Top" toggle switch.
+- **Voice Capture**: Native audio recording using `expo-av`, live duration timer (`mm:ss`), audio playback preview, multi-lingual support (*en-IN*, *hi-IN*, *auto*), and direct upload to `/voice`.
 
-### 📳 Critical Issue B: Shake-to-Add Motion Detection
-- **Hardware Sensor Subscription**: Installed and integrated `expo-sensors` (`Accelerometer`) sampling at 20Hz (50ms interval).
-- **Directional Reversal Bug Fix**: Fixed a critical mathematical bug where Euclidean scalar norm was used for sign checks (which was always positive). Implemented dominant motion axis sign tracking ($\Delta X, \Delta Y, \Delta Z$) to reliably detect alternating wrist flicks.
-- **Global Foreground Lifecycle**: `ShakeCaptureProvider` listens while the app is in the foreground and automatically pauses when backgrounded, preserving battery life and complying with Android 14 sensor policies.
-- **Interactive Shake Diagnostic Modal**: Added "Test Shake Sensor" action in Settings showing live motion delta gauge, threshold progress bar, reversal counter, and haptic confirmation without creating tasks/bugs.
-- **Configurable Sensitivity**:
-  - High: 10.0 m/s² (gentle wrist flick)
-  - Medium: 14.5 m/s² (standard deliberate flick)
-  - Low: 21.0 m/s² (firm shake)
-  - Cooldown: 1200ms debounce preventing duplicate triggers.
+### 2. Xiaomi / MIUI / HyperOS Overlay Permission Resolution
+- **Root Cause Identified**: Xiaomi splits background and overlay permissions between standard Android `SYSTEM_ALERT_WINDOW` (`Settings.canDrawOverlays`) and MIUI's custom AppOps permissions under "Other permissions" (`OP_BACKGROUND_START_ACTIVITY` / `PermissionsEditorActivity`). Users enabling "Display pop-up windows" in MIUI were still blocked because Android's system overlay toggle was untouched or restricted.
+- **Native Dual AppOps Check**: `OverlayServiceModule.kt` checks both `Settings.canDrawOverlays(context)` and `AppOpsManager.checkOpNoThrow(OP_SYSTEM_ALERT_WINDOW, ...)` for seamless detection.
+- **Multi-Action Guidance**: In-app dialogs and the updated **Quick Capture Hardware Guide** provide dedicated one-tap deep links for:
+  1. Standard Android **"Display Over Other Apps"** toggle
+  2. Xiaomi **"MIUI Other Permissions"** (for background pop-up windows)
+  3. **"App Info & Security"** (to unlock Android 13+ "Restricted Settings" via 3-dot ⋮ menu)
 
-### 🌐 Cloud Backend Integration
-- Production and preview builds target `https://doit.samyukt.pro/api/v1`.
-- Local development continues to use local server/database (`http://localhost:3000/api/v1` or local Wi-Fi IP).
+### 3. Sticky Note HTTP 500 Bug Fix
+- **Root Cause Identified**: Mobile clients with unselected active project defaulted to `projectId: 'default'`. Passing `'default'` into Prisma's PostgreSQL query crashed with `invalid input syntax for type uuid: "default"`.
+- **Backend Fix**: `stickies.service.ts` now mirrors `tasks.service.ts` with automatic fallback to the user's primary workspace project when `projectId === 'default'`.
+- **DTO Hardening**: `stickies.dto.ts` now handles case-insensitive accents (`AMBER`, `amber`) and maps `isPinned` -> `pinned`.
+- **Frontend Store Fix**: `useWorkspaceStore` automatically initializes `activeProject` to the first available project in the workspace.
+
+### 4. Dynamic Android Status Bar
+- Dynamic light/dark theme synchronization using `StatusBar.setBackgroundColor` and `StatusBar.setBarStyle`.
+- Set `userInterfaceStyle: 'automatic'` in `app.config.ts` so Android cleanly transitions without hardcoded dark status bars in light mode.
 
 ---
 
-## 📦 Release Assets & Verification
-
-| Asset | Type | Description |
-| :--- | :--- | :--- |
-| `DoIt-v0.1.0-build3.apk` | Android APK | Standalone production APK (`com.samyukt.doit`, version `0.1.0`, `versionCode: 3`) |
-| `DoIt-v0.1.0-build3.apk.sha256` | Checksum | Cryptographic SHA-256 verification hash |
+## Verification & Artifacts
+- **Package Name**: `com.samyukt.doit`
+- **Application Version**: `0.1.0`
+- **Version Code**: `3`
+- **EAS Build Target**: Android Production APK (`internal` distribution)
+- **Production API**: `https://doit.samyukt.pro/api/v1`

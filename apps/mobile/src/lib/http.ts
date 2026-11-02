@@ -12,9 +12,17 @@ import { AuthStorage } from '../features/auth/auth.storage';
 
 const API_URL_KEY = 'com.samyukt.doit.api_url';
 
+export const PRODUCTION_API_URL = 'https://doit.samyukt.pro/api/v1';
+
 function getDefaultBaseUrl(): string {
+  // In release / production builds, always strictly use the live production API URL
+  if (!__DEV__) {
+    return PRODUCTION_API_URL;
+  }
+
+  // In local development, use EXPO_PUBLIC_API_URL or local backend fallback
   const envUrl = process.env.EXPO_PUBLIC_API_URL;
-  if (envUrl && !envUrl.includes('example.com')) {
+  if (envUrl && !envUrl.includes('example.com') && !envUrl.includes('staging-api')) {
     return envUrl;
   }
   const hostUri = Constants.expoConfig?.hostUri;
@@ -61,15 +69,20 @@ class HttpClient {
 
   private async loadPersistedBaseUrl() {
     try {
+      if (!__DEV__) {
+        // Enforce the production live API URL for all release builds
+        this.baseUrl = PRODUCTION_API_URL;
+        return;
+      }
       if (Platform.OS === 'web') {
         const saved = localStorage.getItem(API_URL_KEY);
-        if (saved && !saved.includes('example.com')) {
+        if (saved && !saved.includes('example.com') && !saved.includes('staging-api')) {
           this.baseUrl = saved;
         }
         return;
       }
       const saved = await SecureStore.getItemAsync(API_URL_KEY).catch(() => null);
-      if (saved && !saved.includes('example.com')) {
+      if (saved && !saved.includes('example.com') && !saved.includes('staging-api')) {
         this.baseUrl = saved;
       }
     } catch {
