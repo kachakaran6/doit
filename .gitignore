@@ -11,6 +11,7 @@ out/
 *.tsbuildinfo
 *.apk
 *.aab
+*.sha256
 
 # Mobile / Expo / Android / iOS
 .expo/
