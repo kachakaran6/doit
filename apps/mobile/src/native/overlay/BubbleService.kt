@@ -7,15 +7,21 @@ import android.app.PendingIntent
 import android.app.Service
 import android.content.Context
 import android.content.Intent
-import android.graphics.Canvas
+import android.content.SharedPreferences
+import android.content.res.ColorStateList
 import android.graphics.Color
-import android.graphics.Paint
-import android.graphics.Path
 import android.graphics.PixelFormat
 import android.graphics.drawable.GradientDrawable
+import android.graphics.drawable.RippleDrawable
+import android.hardware.Sensor
+import android.hardware.SensorEvent
+import android.hardware.SensorEventListener
+import android.hardware.SensorManager
 import android.net.Uri
 import android.os.Build
+import android.os.Handler
 import android.os.IBinder
+import android.os.Looper
 import android.os.VibrationEffect
 import android.os.Vibrator
 import android.util.DisplayMetrics
@@ -23,19 +29,62 @@ import android.util.TypedValue
 import android.view.Gravity
 import android.view.MotionEvent
 import android.view.View
+import android.view.ViewGroup
 import android.view.WindowManager
+import android.widget.CheckBox
+import android.widget.EditText
 import android.widget.FrameLayout
+import android.widget.ImageView
+import android.widget.LinearLayout
+import android.widget.TextView
+import android.widget.Toast
 import androidx.core.app.NotificationCompat
+import com.samyukt.doit.R
+import org.json.JSONObject
+import java.io.File
+import java.io.FileInputStream
+import java.io.OutputStream
+import java.net.HttpURLConnection
+import java.net.URL
+import java.nio.charset.StandardCharsets
 
 /**
- * Android Foreground Service hosting the 56dp draggable Quick Capture Bubble.
- * Runs system-wide above other applications.
+ * Android Foreground Service hosting:
+ * 1. 44dp draggable floating Quick Capture bubble using official app icon
+ * 2. Background accelerometer shake detector outside DoIt
+ * 3. Compact Shake Prompt dialog ("Report a Bug" / "Create a Task" / "Cancel")
+ * 4. Compact Quick Capture modal overlay with clean screenshot attachment
  */
-class BubbleService : Service() {
+class BubbleService : Service(), SensorEventListener {
 
     private var windowManager: WindowManager? = null
+    private var sensorManager: SensorManager? = null
+    private var accelerometer: Sensor? = null
+    private var prefs: SharedPreferences? = null
+
+    // Overlay Views
     private var bubbleContainer: FrameLayout? = null
-    private var params: WindowManager.LayoutParams? = null
+    private var bubbleParams: WindowManager.LayoutParams? = null
+
+    private var promptContainer: LinearLayout? = null
+    private var promptParams: WindowManager.LayoutParams? = null
+
+    private var modalContainer: LinearLayout? = null
+    private var modalParams: WindowManager.LayoutParams? = null
+
+    // Shake Detection State
+    private var shakeEnabled: Boolean = true
+    private var shakeSensitivity: String = "medium"
+    private var lastShakeTimestamp: Long = 0
+    private var lastSign: Float = 0f
+    private var reversalCount: Int = 0
+    private var lastReversalTimestamp: Long = 0
+
+    // Capture Modal State
+    private var currentMode: String = "TASK" // "TASK" or "BUG"
+    private var activeEditText: EditText? = null
+    private var activeCheckBox: CheckBox? = null
+    private var isSubmitting: Boolean = false
 
     companion object {
         const val CHANNEL_ID = "doit_quick_capture_overlay"
@@ -45,16 +94,59 @@ class BubbleService : Service() {
 
         @Volatile
         var isRunning: Boolean = false
+
+        @Volatile
+        var instance: BubbleService? = null
+
+        fun hideOverlays() {
+            instance?.let { s ->
+                Handler(Looper.getMainLooper()).post {
+                    s.bubbleContainer?.visibility = View.GONE
+                    s.promptContainer?.visibility = View.GONE
+                    s.modalContainer?.visibility = View.GONE
+                }
+            }
+        }
+
+        fun restoreOverlays() {
+            instance?.let { s ->
+                Handler(Looper.getMainLooper()).post {
+                    s.bubbleContainer?.visibility = View.VISIBLE
+                    if (s.modalContainer != null) {
+                        s.modalContainer?.visibility = View.VISIBLE
+                    }
+                }
+            }
+        }
+
+        fun updateShakeConfig(enabled: Boolean, sensitivity: String?) {
+            instance?.let { s ->
+                s.shakeEnabled = enabled
+                if (!sensitivity.isNullOrEmpty()) {
+                    s.shakeSensitivity = sensitivity
+                }
+            }
+        }
     }
 
     override fun onBind(intent: Intent?): IBinder? = null
 
     override fun onCreate() {
         super.onCreate()
+        instance = this
         isRunning = true
+        windowManager = getSystemService(Context.WINDOW_SERVICE) as WindowManager
+        sensorManager = getSystemService(Context.SENSOR_SERVICE) as? SensorManager
+        accelerometer = sensorManager?.getDefaultSensor(Sensor.TYPE_ACCELEROMETER)
+        prefs = getSharedPreferences("doit_overlay_prefs", Context.MODE_PRIVATE)
+
+        shakeEnabled = prefs?.getBoolean("shake_enabled", true) ?: true
+        shakeSensitivity = prefs?.getString("shake_sensitivity", "medium") ?: "medium"
+
         createNotificationChannel()
         startForeground(NOTIFICATION_ID, createNotification())
         createBubbleView()
+        registerShakeSensor()
     }
 
     private fun dpToPx(dp: Float): Int {
@@ -101,8 +193,8 @@ class BubbleService : Service() {
 
         return NotificationCompat.Builder(this, CHANNEL_ID)
             .setContentTitle("DoIt Quick Capture is active")
-            .setContentText("Tap floating bubble to add task or report bug")
-            .setSmallIcon(android.R.drawable.ic_menu_edit)
+            .setContentText("Tap floating bubble or shake to add task or report bug")
+            .setSmallIcon(R.mipmap.ic_launcher_round)
             .setContentIntent(openPendingIntent)
             .addAction(android.R.drawable.ic_menu_close_clear_cancel, "Hide Bubble", stopPendingIntent)
             .setOngoing(true)
@@ -110,67 +202,65 @@ class BubbleService : Service() {
             .build()
     }
 
-    private fun createBubbleView() {
-        windowManager = getSystemService(Context.WINDOW_SERVICE) as WindowManager
-        val bubbleSizePx = dpToPx(56f)
-
-        val layoutType = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+    private fun getOverlayLayoutType(): Int {
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
         } else {
             @Suppress("DEPRECATION")
             WindowManager.LayoutParams.TYPE_PHONE
         }
+    }
 
-        params = WindowManager.LayoutParams(
+    // ==========================================
+    // 1. FLOATING BUBBLE (44dp with App Icon)
+    // ==========================================
+
+    private fun createBubbleView() {
+        val bubbleSizePx = dpToPx(44f)
+
+        bubbleParams = WindowManager.LayoutParams(
             bubbleSizePx,
             bubbleSizePx,
-            layoutType,
+            getOverlayLayoutType(),
             WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
                     WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
             PixelFormat.TRANSLUCENT
         ).apply {
             gravity = Gravity.TOP or Gravity.START
-            x = 16
-            y = dpToPx(180f)
+            x = dpToPx(12f)
+            y = dpToPx(200f)
         }
 
-        // Circular background drawable
+        // Circular card background: #17191C, border 1.5dp #7775D8
         val bgDrawable = GradientDrawable().apply {
             shape = GradientDrawable.OVAL
-            setColor(Color.parseColor("#17191C")) // Primary surface dark
-            setStroke(dpToPx(2f), Color.parseColor("#7775D8")) // Indigo accent border
+            setColor(Color.parseColor("#17191C"))
+            setStroke(dpToPx(1.5f), Color.parseColor("#7775D8"))
         }
 
-        bubbleContainer = object : FrameLayout(this) {
-            private val checkPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-                color = Color.WHITE
-                style = Paint.Style.STROKE
-                strokeWidth = dpToPx(3f).toFloat()
-                strokeCap = Paint.Cap.ROUND
-                strokeJoin = Paint.Join.ROUND
-            }
-            private val checkPath = Path()
-
-            override fun onDraw(canvas: Canvas) {
-                super.onDraw(canvas)
-                val w = width.toFloat()
-                val h = height.toFloat()
-                // Draw crisp stylized checkmark centered in bubble
-                checkPath.reset()
-                checkPath.moveTo(w * 0.30f, h * 0.50f)
-                checkPath.lineTo(w * 0.44f, h * 0.65f)
-                checkPath.lineTo(w * 0.72f, h * 0.35f)
-                canvas.drawPath(checkPath, checkPaint)
-            }
-        }.apply {
+        bubbleContainer = FrameLayout(this).apply {
             background = bgDrawable
-            setWillNotDraw(false)
+            val p = dpToPx(6f)
+            setPadding(p, p, p, p)
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
                 elevation = dpToPx(8f).toFloat()
             }
         }
 
-        // Set up interactive touch and drag handling
+        val appIcon = ImageView(this).apply {
+            setImageResource(R.mipmap.ic_launcher_round)
+            scaleType = ImageView.ScaleType.FIT_CENTER
+        }
+        bubbleContainer?.addView(
+            appIcon,
+            FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.MATCH_PARENT,
+                FrameLayout.LayoutParams.MATCH_PARENT,
+                Gravity.CENTER
+            )
+        )
+
+        // Drag & Touch Handling
         bubbleContainer?.setOnTouchListener(object : View.OnTouchListener {
             private var initialX = 0
             private var initialY = 0
@@ -180,7 +270,7 @@ class BubbleService : Service() {
             private var isDragging = false
 
             override fun onTouch(v: View, event: MotionEvent): Boolean {
-                val currentParams = params ?: return false
+                val currentParams = bubbleParams ?: return false
 
                 when (event.action) {
                     MotionEvent.ACTION_DOWN -> {
@@ -196,7 +286,7 @@ class BubbleService : Service() {
                         val dx = (event.rawX - initialTouchX).toInt()
                         val dy = (event.rawY - initialTouchY).toInt()
 
-                        if (!isDragging && (Math.abs(dx) > dpToPx(8f) || Math.abs(dy) > dpToPx(8f))) {
+                        if (!isDragging && (Math.abs(dx) > dpToPx(6f) || Math.abs(dy) > dpToPx(6f))) {
                             isDragging = true
                         }
 
@@ -216,13 +306,11 @@ class BubbleService : Service() {
                             (event.rawY - initialTouchY).toDouble()
                         )
 
-                        if (!isDragging && duration < 350 && movedDist < dpToPx(12f)) {
-                            // User clicked the bubble
-                            triggerHaptic()
+                        if (!isDragging && duration < 350 && movedDist < dpToPx(10f)) {
+                            triggerHaptic(40)
                             onBubbleTapped()
                         } else {
-                            // User finished dragging -> snap to screen edge
-                            snapToNearestEdge()
+                            snapBubbleToEdge()
                         }
                         return true
                     }
@@ -232,38 +320,23 @@ class BubbleService : Service() {
         })
 
         try {
-            params?.let { windowManager?.addView(bubbleContainer, it) }
-        } catch (e: Exception) {
+            bubbleParams?.let { windowManager?.addView(bubbleContainer, it) }
+        } catch (_: Exception) {
             stopSelf()
         }
     }
 
-    private fun triggerHaptic() {
-        try {
-            val vibrator = getSystemService(Context.VIBRATOR_SERVICE) as? Vibrator
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                vibrator?.vibrate(VibrationEffect.createOneShot(40, VibrationEffect.DEFAULT_AMPLITUDE))
-            } else {
-                @Suppress("DEPRECATION")
-                vibrator?.vibrate(40)
-            }
-        } catch (_: Exception) {}
-    }
-
-    private fun snapToNearestEdge() {
-        val currentParams = params ?: return
+    private fun snapBubbleToEdge() {
+        val currentParams = bubbleParams ?: return
         val displayMetrics = resources.displayMetrics
         val screenWidth = displayMetrics.widthPixels
         val screenHeight = displayMetrics.heightPixels
-        val bubbleSize = dpToPx(56f)
-        val margin = dpToPx(12f)
-        val minTop = dpToPx(48f) // Below status bar
-        val maxTop = screenHeight - bubbleSize - dpToPx(72f) // Above navigation bar
+        val bubbleSize = dpToPx(44f)
+        val margin = dpToPx(10f)
+        val minTop = dpToPx(48f)
+        val maxTop = screenHeight - bubbleSize - dpToPx(72f)
 
-        // Clamp Y
         currentParams.y = currentParams.y.coerceIn(minTop, maxTop)
-
-        // Snap X to left or right margin
         currentParams.x = if (currentParams.x + (bubbleSize / 2) < screenWidth / 2) {
             margin
         } else {
@@ -276,24 +349,682 @@ class BubbleService : Service() {
     }
 
     private fun onBubbleTapped() {
-        try {
-            // First try direct deep link into Quick Capture modal
-            val deepLinkIntent = Intent(Intent.ACTION_VIEW, Uri.parse("doit://capture?mode=bug")).apply {
-                setPackage(packageName)
-                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+        // Tapping bubble opens the native compact capture modal directly over other apps
+        showCompactModal("TASK")
+    }
+
+    // ==========================================
+    // 2. BACKGROUND SHAKE DETECTION
+    // ==========================================
+
+    private fun registerShakeSensor() {
+        accelerometer?.let {
+            sensorManager?.registerListener(this, it, SensorManager.SENSOR_DELAY_UI)
+        }
+    }
+
+    override fun onSensorChanged(event: SensorEvent?) {
+        if (event == null || !shakeEnabled) return
+
+        val now = System.currentTimeMillis()
+        if (now - lastShakeTimestamp < 2500) return // Cooldown
+
+        val x = event.values[0]
+        val y = event.values[1]
+        val z = event.values[2]
+
+        val totalMagnitude = Math.sqrt((x * x + y * y + z * z).toDouble()).toFloat()
+        val dynamicMagnitude = Math.abs(totalMagnitude - 9.80665f)
+
+        val threshold = when (shakeSensitivity) {
+            "low" -> 21.0f
+            "high" -> 10.0f
+            else -> 14.5f
+        }
+
+        if (dynamicMagnitude > threshold) {
+            val sign = if (x > 0) 1f else -1f
+            if (lastSign != 0f && sign != lastSign && (now - lastReversalTimestamp < 500)) {
+                reversalCount++
+            } else if (now - lastReversalTimestamp >= 500) {
+                reversalCount = 1
             }
-            startActivity(deepLinkIntent)
-        } catch (_: Exception) {
-            // Fallback to app launch intent with extra
-            val launchIntent = packageManager.getLaunchIntentForPackage(packageName)?.apply {
-                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP
-                putExtra("openQuickCapture", true)
-                putExtra("initialMode", "bug")
-            }
-            if (launchIntent != null) {
-                startActivity(launchIntent)
+            lastSign = sign
+            lastReversalTimestamp = now
+
+            if (reversalCount >= 2) {
+                lastShakeTimestamp = now
+                reversalCount = 0
+                lastSign = 0f
+                onShakeDetected()
             }
         }
+    }
+
+    override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) {}
+
+    private fun onShakeDetected() {
+        Handler(Looper.getMainLooper()).post {
+            triggerHaptic(60)
+            // If already displaying modal or prompt, don't overlap
+            if (modalContainer != null || promptContainer != null) return@post
+            showShakePrompt()
+        }
+    }
+
+    // ==========================================
+    // 3. SHAKE CHOICE PROMPT ("Bug", "Task", "Cancel")
+    // ==========================================
+
+    private fun showShakePrompt() {
+        dismissShakePrompt()
+        val wm = windowManager ?: return
+
+        val widthPx = dpToPx(300f)
+        promptParams = WindowManager.LayoutParams(
+            widthPx,
+            WindowManager.LayoutParams.WRAP_CONTENT,
+            getOverlayLayoutType(),
+            WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL or WindowManager.LayoutParams.FLAG_WATCH_OUTSIDE_TOUCH,
+            PixelFormat.TRANSLUCENT
+        ).apply {
+            gravity = Gravity.CENTER
+        }
+
+        promptContainer = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            background = GradientDrawable().apply {
+                shape = GradientDrawable.RECTANGLE
+                cornerRadius = dpToPx(16f).toFloat()
+                setColor(Color.parseColor("#181A1F"))
+                setStroke(dpToPx(1.2f), Color.parseColor("#2C2E35"))
+            }
+            val p = dpToPx(18f)
+            setPadding(p, p, p, p)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                elevation = dpToPx(16f).toFloat()
+            }
+        }
+
+        // Title
+        val titleView = TextView(this).apply {
+            text = "Quick Capture"
+            setTextColor(Color.WHITE)
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 17f)
+            setTypeface(typeface, android.graphics.Typeface.BOLD)
+        }
+        promptContainer?.addView(titleView)
+
+        // Subtitle
+        val subtitleView = TextView(this).apply {
+            text = "What would you like to add?"
+            setTextColor(Color.parseColor("#9EA3AE"))
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 13f)
+            val lp = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            ).apply {
+                topMargin = dpToPx(4f)
+                bottomMargin = dpToPx(16f)
+            }
+            layoutParams = lp
+        }
+        promptContainer?.addView(subtitleView)
+
+        // Button 1: Report a Bug
+        val bugBtn = createPromptButton("🐞 Report a Bug", Color.parseColor("#261B20"), Color.parseColor("#E05656")) {
+            dismissShakePrompt()
+            showCompactModal("BUG")
+        }
+        promptContainer?.addView(bugBtn)
+
+        // Spacer
+        promptContainer?.addView(View(this).apply {
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                dpToPx(8f)
+            )
+        })
+
+        // Button 2: Create a Task
+        val taskBtn = createPromptButton("📝 Create a Task", Color.parseColor("#1E2033"), Color.parseColor("#7775D8")) {
+            dismissShakePrompt()
+            showCompactModal("TASK")
+        }
+        promptContainer?.addView(taskBtn)
+
+        // Spacer
+        promptContainer?.addView(View(this).apply {
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                dpToPx(10f)
+            )
+        })
+
+        // Button 3: Cancel
+        val cancelBtn = TextView(this).apply {
+            text = "Cancel"
+            setTextColor(Color.parseColor("#7A7E89"))
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 14f)
+            gravity = Gravity.CENTER
+            val pV = dpToPx(8f)
+            setPadding(0, pV, 0, pV)
+            setOnClickListener {
+                dismissShakePrompt()
+            }
+        }
+        promptContainer?.addView(cancelBtn)
+
+        try {
+            promptParams?.let { wm.addView(promptContainer, it) }
+        } catch (_: Exception) {}
+    }
+
+    private fun createPromptButton(text: String, bgColor: Int, textColor: Int, onClick: () -> Unit): LinearLayout {
+        return LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER
+            background = GradientDrawable().apply {
+                shape = GradientDrawable.RECTANGLE
+                cornerRadius = dpToPx(10f).toFloat()
+                setColor(bgColor)
+                setStroke(dpToPx(1f), textColor)
+            }
+            val p = dpToPx(12f)
+            setPadding(p, p, p, p)
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            )
+            isClickable = true
+            isFocusable = true
+            setOnClickListener { onClick() }
+
+            val tv = TextView(context).apply {
+                this.text = text
+                setTextColor(textColor)
+                setTextSize(TypedValue.COMPLEX_UNIT_SP, 14.5f)
+                setTypeface(typeface, android.graphics.Typeface.BOLD)
+                gravity = Gravity.CENTER
+            }
+            addView(tv)
+        }
+    }
+
+    private fun dismissShakePrompt() {
+        try {
+            promptContainer?.let { windowManager?.removeView(it) }
+        } catch (_: Exception) {}
+        promptContainer = null
+    }
+
+    // ==========================================
+    // 4. COMPACT QUICK CAPTURE MODAL OVERLAY
+    // ==========================================
+
+    private fun showCompactModal(initialMode: String) {
+        dismissShakePrompt()
+        dismissCompactModal()
+
+        val wm = windowManager ?: return
+        currentMode = initialMode.uppercase()
+        isSubmitting = false
+
+        val displayMetrics = resources.displayMetrics
+        val screenWidth = displayMetrics.widthPixels
+        val modalWidth = Math.min((screenWidth * 0.90f).toInt(), dpToPx(350f))
+
+        modalParams = WindowManager.LayoutParams(
+            modalWidth,
+            WindowManager.LayoutParams.WRAP_CONTENT,
+            getOverlayLayoutType(),
+            WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL or WindowManager.LayoutParams.FLAG_WATCH_OUTSIDE_TOUCH,
+            PixelFormat.TRANSLUCENT
+        ).apply {
+            gravity = Gravity.TOP or Gravity.CENTER_HORIZONTAL
+            y = dpToPx(100f)
+        }
+
+        modalContainer = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            background = GradientDrawable().apply {
+                shape = GradientDrawable.RECTANGLE
+                cornerRadius = dpToPx(18f).toFloat()
+                setColor(Color.parseColor("#15171B"))
+                setStroke(dpToPx(1.2f), Color.parseColor("#282B32"))
+            }
+            val p = dpToPx(16f)
+            setPadding(p, p, p, p)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                elevation = dpToPx(20f).toFloat()
+            }
+        }
+
+        // Header: "DoIt Quick Capture" + Close button
+        val headerLayout = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            )
+        }
+
+        val headerTitle = TextView(this).apply {
+            text = "DoIt Quick Capture"
+            setTextColor(Color.WHITE)
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 15f)
+            setTypeface(typeface, android.graphics.Typeface.BOLD)
+            layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+        }
+        headerLayout.addView(headerTitle)
+
+        val closeBtn = TextView(this).apply {
+            text = "✕"
+            setTextColor(Color.parseColor("#9EA3AE"))
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 16f)
+            val pC = dpToPx(6f)
+            setPadding(pC, pC, pC, pC)
+            setOnClickListener {
+                dismissCompactModal()
+            }
+        }
+        headerLayout.addView(closeBtn)
+        modalContainer?.addView(headerLayout)
+
+        // Type Toggle Pills: Task / Bug
+        val toggleLayout = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            val lp = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            ).apply {
+                topMargin = dpToPx(12f)
+                bottomMargin = dpToPx(12f)
+            }
+            layoutParams = lp
+        }
+
+        val taskPill = createModePill("📝 Task", currentMode == "TASK")
+        val bugPill = createModePill("🐞 Bug", currentMode == "BUG")
+
+        taskPill.setOnClickListener {
+            currentMode = "TASK"
+            updatePillStyle(taskPill, true)
+            updatePillStyle(bugPill, false)
+        }
+        bugPill.setOnClickListener {
+            currentMode = "BUG"
+            updatePillStyle(bugPill, true)
+            updatePillStyle(taskPill, false)
+        }
+
+        toggleLayout.addView(taskPill, LinearLayout.LayoutParams(0, dpToPx(34f), 1f).apply { marginEnd = dpToPx(6f) })
+        toggleLayout.addView(bugPill, LinearLayout.LayoutParams(0, dpToPx(34f), 1f).apply { marginStart = dpToPx(6f) })
+        modalContainer?.addView(toggleLayout)
+
+        // Multiline Input Field
+        val inputBg = GradientDrawable().apply {
+            shape = GradientDrawable.RECTANGLE
+            cornerRadius = dpToPx(10f).toFloat()
+            setColor(Color.parseColor("#1F2126"))
+            setStroke(dpToPx(1f), Color.parseColor("#30333C"))
+        }
+
+        activeEditText = EditText(this).apply {
+            background = inputBg
+            hint = "What do you want to capture?"
+            setHintTextColor(Color.parseColor("#696E79"))
+            setTextColor(Color.WHITE)
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 14f)
+            val pI = dpToPx(12f)
+            setPadding(pI, pI, pI, pI)
+            minLines = 2
+            maxLines = 4
+            gravity = Gravity.TOP or Gravity.START
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            ).apply {
+                bottomMargin = dpToPx(12f)
+            }
+        }
+        modalContainer?.addView(activeEditText)
+
+        // Screenshot Checkbox Row
+        activeCheckBox = CheckBox(this).apply {
+            text = "Attach current screen screenshot"
+            setTextColor(Color.parseColor("#D0D4DD"))
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 13f)
+            isChecked = true
+            buttonTintList = ColorStateList.valueOf(Color.parseColor("#7775D8"))
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            ).apply {
+                bottomMargin = dpToPx(16f)
+            }
+        }
+        modalContainer?.addView(activeCheckBox)
+
+        // Actions Row: [ Cancel ] [ Submit ]
+        val actionsLayout = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            )
+        }
+
+        val cancelAction = TextView(this).apply {
+            text = "Cancel"
+            setTextColor(Color.parseColor("#8E93A0"))
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 14f)
+            gravity = Gravity.CENTER
+            val pA = dpToPx(10f)
+            setPadding(pA, pA, pA, pA)
+            setOnClickListener {
+                dismissCompactModal()
+            }
+        }
+        actionsLayout.addView(cancelAction, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
+
+        val submitAction = TextView(this).apply {
+            text = "Submit"
+            setTextColor(Color.WHITE)
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 14.5f)
+            setTypeface(typeface, android.graphics.Typeface.BOLD)
+            gravity = Gravity.CENTER
+            background = GradientDrawable().apply {
+                shape = GradientDrawable.RECTANGLE
+                cornerRadius = dpToPx(10f).toFloat()
+                setColor(Color.parseColor("#7775D8"))
+            }
+            val pS = dpToPx(11f)
+            setPadding(dpToPx(18f), pS, dpToPx(18f), pS)
+            setOnClickListener {
+                handleSubmit()
+            }
+        }
+        actionsLayout.addView(submitAction, LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT))
+
+        modalContainer?.addView(actionsLayout)
+
+        try {
+            modalParams?.let { wm.addView(modalContainer, it) }
+        } catch (_: Exception) {}
+    }
+
+    private fun createModePill(title: String, isSelected: Boolean): TextView {
+        return TextView(this).apply {
+            text = title
+            gravity = Gravity.CENTER
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 13.5f)
+            setTypeface(typeface, if (isSelected) android.graphics.Typeface.BOLD else android.graphics.Typeface.NORMAL)
+            updatePillStyle(this, isSelected)
+        }
+    }
+
+    private fun updatePillStyle(view: TextView, isSelected: Boolean) {
+        val bg = GradientDrawable().apply {
+            shape = GradientDrawable.RECTANGLE
+            cornerRadius = dpToPx(8f).toFloat()
+            if (isSelected) {
+                setColor(Color.parseColor("#7775D8"))
+            } else {
+                setColor(Color.parseColor("#202227"))
+                setStroke(dpToPx(1f), Color.parseColor("#2D3037"))
+            }
+        }
+        view.background = bg
+        view.setTextColor(if (isSelected) Color.WHITE else Color.parseColor("#9EA3AE"))
+    }
+
+    private fun dismissCompactModal() {
+        try {
+            modalContainer?.let { windowManager?.removeView(it) }
+        } catch (_: Exception) {}
+        modalContainer = null
+        activeEditText = null
+        activeCheckBox = null
+    }
+
+    // ==========================================
+    // 5. SUBMISSION & CLEAN SCREENSHOT PIPELINE
+    // ==========================================
+
+    private fun handleSubmit() {
+        if (isSubmitting) return
+        val titleText = activeEditText?.text?.toString()?.trim() ?: ""
+        if (titleText.isEmpty()) {
+            Toast.makeText(this, "Please enter a title or description", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        val shouldAttachScreenshot = activeCheckBox?.isChecked ?: false
+        val mode = currentMode
+        isSubmitting = true
+
+        if (shouldAttachScreenshot) {
+            // Check if we have consent
+            if (!ScreenshotHelper.hasProjectionConsent()) {
+                ScreenshotCaptureActivity.requestPermission(this, callback = { granted ->
+                    if (granted) {
+                        proceedWithCleanCaptureAndSubmit(titleText, mode, true)
+                    } else {
+                        // User denied screenshot permission -> still submit task without screenshot
+                        proceedWithCleanCaptureAndSubmit(titleText, mode, false)
+                    }
+                })
+                return
+            }
+            proceedWithCleanCaptureAndSubmit(titleText, mode, true)
+        } else {
+            proceedWithCleanCaptureAndSubmit(titleText, mode, false)
+        }
+    }
+
+    private fun proceedWithCleanCaptureAndSubmit(titleText: String, mode: String, captureShot: Boolean) {
+        if (captureShot) {
+            // Step A: Hide overlays completely so screenshot is 100% clean
+            modalContainer?.visibility = View.GONE
+            promptContainer?.visibility = View.GONE
+            bubbleContainer?.visibility = View.GONE
+
+            ScreenshotHelper.captureCleanScreen(
+                this,
+                onPreCapture = {
+                    // Already hidden
+                },
+                onPostCapture = {
+                    // Handled below
+                },
+                callback = object : ScreenshotHelper.ScreenshotCallback {
+                    override fun onSuccess(file: File) {
+                        // Dismiss modal and restore bubble
+                        dismissCompactModal()
+                        bubbleContainer?.visibility = View.VISIBLE
+                        showToastForMode(mode)
+                        submitToBackend(titleText, mode, file)
+                    }
+
+                    override fun onError(error: String) {
+                        dismissCompactModal()
+                        bubbleContainer?.visibility = View.VISIBLE
+                        showToastForMode(mode)
+                        submitToBackend(titleText, mode, null)
+                    }
+                }
+            )
+        } else {
+            dismissCompactModal()
+            bubbleContainer?.visibility = View.VISIBLE
+            showToastForMode(mode)
+            submitToBackend(titleText, mode, null)
+        }
+    }
+
+    private fun showToastForMode(mode: String) {
+        val msg = if (mode == "BUG") "✓ Bug reported in DoIt" else "✓ Task captured in DoIt"
+        Toast.makeText(this, msg, Toast.LENGTH_LONG).show()
+    }
+
+    private fun submitToBackend(title: String, mode: String, screenshotFile: File?) {
+        Thread {
+            try {
+                val sp = prefs ?: getSharedPreferences("doit_overlay_prefs", Context.MODE_PRIVATE)
+                val token = sp.getString("auth_token", null)
+                val rawBaseUrl = sp.getString("base_url", "https://doit.samyukt.pro/api/v1") ?: "https://doit.samyukt.pro/api/v1"
+                val baseUrl = rawBaseUrl.trimEnd('/')
+                var projectId = sp.getString("project_id", null)
+
+                if (token.isNullOrEmpty()) {
+                    // Not authenticated yet
+                    return@Thread
+                }
+
+                // If project ID is missing, auto-fetch first available project
+                if (projectId.isNullOrEmpty()) {
+                    val pUrl = URL("$baseUrl/projects")
+                    val pConn = (pUrl.openConnection() as HttpURLConnection).apply {
+                        requestMethod = "GET"
+                        setRequestProperty("Authorization", "Bearer $token")
+                        connectTimeout = 8000
+                        readTimeout = 8000
+                    }
+                    if (pConn.responseCode in 200..299) {
+                        val body = pConn.inputStream.bufferedReader().use { it.readText() }
+                        val arr = org.json.JSONArray(body)
+                        if (arr.length() > 0) {
+                            projectId = arr.getJSONObject(0).optString("id")
+                            sp.edit().putString("project_id", projectId).apply()
+                        }
+                    }
+                    pConn.disconnect()
+                }
+
+                val targetProjectId = if (!projectId.isNullOrEmpty()) projectId else "default"
+
+                // 1. Create Task / Bug
+                val taskUrl = URL("$baseUrl/projects/$targetProjectId/tasks")
+                val taskConn = (taskUrl.openConnection() as HttpURLConnection).apply {
+                    requestMethod = "POST"
+                    setRequestProperty("Authorization", "Bearer $token")
+                    setRequestProperty("Content-Type", "application/json")
+                    doOutput = true
+                    connectTimeout = 10000
+                    readTimeout = 10000
+                }
+
+                val payload = JSONObject().apply {
+                    put("title", title)
+                    put("type", mode)
+                    put("source", "OVERLAY")
+                    put("priority", "MEDIUM")
+                }
+
+                taskConn.outputStream.use { os ->
+                    os.write(payload.toString().toByteArray(StandardCharsets.UTF_8))
+                }
+
+                val taskCode = taskConn.responseCode
+                var createdTaskId: String? = null
+                if (taskCode in 200..299) {
+                    val resp = taskConn.inputStream.bufferedReader().use { it.readText() }
+                    val jsonResp = JSONObject(resp)
+                    createdTaskId = jsonResp.optString("id")
+                }
+                taskConn.disconnect()
+
+                // 2. Upload screenshot if exists and task was created
+                if (screenshotFile != null && screenshotFile.exists() && !createdTaskId.isNullOrEmpty()) {
+                    val sizeBytes = screenshotFile.length()
+
+                    // Step 2a: Init upload
+                    val initUrl = URL("$baseUrl/uploads/init")
+                    val initConn = (initUrl.openConnection() as HttpURLConnection).apply {
+                        requestMethod = "POST"
+                        setRequestProperty("Authorization", "Bearer $token")
+                        setRequestProperty("Content-Type", "application/json")
+                        doOutput = true
+                        connectTimeout = 10000
+                        readTimeout = 10000
+                    }
+                    val initPayload = JSONObject().apply {
+                        put("contentType", "image/jpeg")
+                        put("sizeBytes", sizeBytes)
+                        put("purpose", mode)
+                    }
+                    initConn.outputStream.use { it.write(initPayload.toString().toByteArray(StandardCharsets.UTF_8)) }
+
+                    if (initConn.responseCode in 200..299) {
+                        val initResp = JSONObject(initConn.inputStream.bufferedReader().use { it.readText() })
+                        val uploadId = initResp.optString("uploadId")
+                        val putUrlStr = initResp.optString("putUrl")
+
+                        initConn.disconnect()
+
+                        // Step 2b: PUT raw image bytes
+                        if (putUrlStr.isNotEmpty()) {
+                            val putUrl = URL(if (putUrlStr.startsWith("/")) "$baseUrl$putUrlStr" else putUrlStr)
+                            val putConn = (putUrl.openConnection() as HttpURLConnection).apply {
+                                requestMethod = "PUT"
+                                setRequestProperty("Content-Type", "image/jpeg")
+                                doOutput = true
+                                setFixedLengthStreamingMode(sizeBytes.toInt())
+                                connectTimeout = 15000
+                                readTimeout = 15000
+                            }
+                            FileInputStream(screenshotFile).use { fis ->
+                                putConn.outputStream.use { pos ->
+                                    fis.copyTo(pos)
+                                }
+                            }
+                            val putCode = putConn.responseCode
+                            putConn.disconnect()
+
+                            // Step 2c: Complete upload
+                            if (putCode in 200..299) {
+                                val compUrl = URL("$baseUrl/uploads/$uploadId/complete")
+                                val compConn = (compUrl.openConnection() as HttpURLConnection).apply {
+                                    requestMethod = "POST"
+                                    setRequestProperty("Authorization", "Bearer $token")
+                                    setRequestProperty("Content-Type", "application/json")
+                                    doOutput = true
+                                    connectTimeout = 10000
+                                    readTimeout = 10000
+                                }
+                                val compPayload = JSONObject().apply {
+                                    put("taskId", createdTaskId)
+                                }
+                                compConn.outputStream.use { it.write(compPayload.toString().toByteArray(StandardCharsets.UTF_8)) }
+                                compConn.responseCode
+                                compConn.disconnect()
+                            }
+                        }
+                    } else {
+                        initConn.disconnect()
+                    }
+                    // Clean up temp screenshot file
+                    try { screenshotFile.delete() } catch (_: Exception) {}
+                }
+            } catch (e: Exception) {
+                // Log silently
+            }
+        }.start()
+    }
+
+    private fun triggerHaptic(durationMs: Long) {
+        try {
+            val vibrator = getSystemService(Context.VIBRATOR_SERVICE) as? Vibrator
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                vibrator?.vibrate(VibrationEffect.createOneShot(durationMs, VibrationEffect.DEFAULT_AMPLITUDE))
+            } else {
+                @Suppress("DEPRECATION")
+                vibrator?.vibrate(durationMs)
+            }
+        } catch (_: Exception) {}
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -307,6 +1038,12 @@ class BubbleService : Service() {
     override fun onDestroy() {
         super.onDestroy()
         isRunning = false
+        instance = null
+        try {
+            sensorManager?.unregisterListener(this)
+        } catch (_: Exception) {}
+        dismissShakePrompt()
+        dismissCompactModal()
         try {
             bubbleContainer?.let { windowManager?.removeView(it) }
         } catch (_: Exception) {}

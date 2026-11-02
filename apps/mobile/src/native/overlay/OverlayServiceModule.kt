@@ -7,10 +7,12 @@ import android.net.Uri
 import android.os.Build
 import android.os.Process
 import android.provider.Settings
+import com.facebook.react.bridge.Arguments
 import com.facebook.react.bridge.Promise
 import com.facebook.react.bridge.ReactApplicationContext
 import com.facebook.react.bridge.ReactContextBaseJavaModule
 import com.facebook.react.bridge.ReactMethod
+import java.io.File
 
 class OverlayServiceModule(private val reactContext: ReactApplicationContext) :
     ReactContextBaseJavaModule(reactContext) {
@@ -96,7 +98,6 @@ class OverlayServiceModule(private val reactContext: ReactApplicationContext) :
     fun requestPermission(promise: Promise) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             try {
-                // Direct package overlay permission intent
                 val intent = Intent(
                     Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
                     Uri.parse("package:${reactContext.packageName}")
@@ -107,14 +108,12 @@ class OverlayServiceModule(private val reactContext: ReactApplicationContext) :
                 promise.resolve(true)
             } catch (e: Exception) {
                 try {
-                    // Fallback without package URI if OEM restricts package targeting
                     val intent = Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION).apply {
                         addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                     }
                     reactContext.startActivity(intent)
                     promise.resolve(true)
                 } catch (e2: Exception) {
-                    // Final fallback: System Application Details Settings
                     try {
                         val intent = Intent(
                             Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
@@ -157,7 +156,6 @@ class OverlayServiceModule(private val reactContext: ReactApplicationContext) :
 
     @ReactMethod
     fun openDeviceSpecificSettings(promise: Promise) {
-        // Targeted intent for Xiaomi / MIUI / HyperOS permissions editor
         val manufacturer = Build.MANUFACTURER.lowercase()
         if (manufacturer.contains("xiaomi") || manufacturer.contains("poco") || manufacturer.contains("redmi")) {
             try {
@@ -170,7 +168,7 @@ class OverlayServiceModule(private val reactContext: ReactApplicationContext) :
                 promise.resolve(true)
                 return
             } catch (_: Exception) {
-                // Fallthrough to standard app details
+                // Fallthrough
             }
         }
 
@@ -222,5 +220,101 @@ class OverlayServiceModule(private val reactContext: ReactApplicationContext) :
     @ReactMethod
     fun isBubbleRunning(promise: Promise) {
         promise.resolve(BubbleService.isRunning)
+    }
+
+    @ReactMethod
+    fun syncAuthCredentials(token: String?, baseUrl: String?, projectId: String?, promise: Promise) {
+        try {
+            val prefs = reactContext.getSharedPreferences("doit_overlay_prefs", Context.MODE_PRIVATE)
+            prefs.edit().apply {
+                putString("auth_token", token)
+                putString("base_url", baseUrl ?: "https://doit.samyukt.pro/api/v1")
+                putString("project_id", projectId)
+                apply()
+            }
+            promise.resolve(true)
+        } catch (e: Exception) {
+            promise.reject("SYNC_FAILED", e.message)
+        }
+    }
+
+    @ReactMethod
+    fun setShakeEnabled(enabled: Boolean, sensitivity: String?, promise: Promise) {
+        try {
+            val prefs = reactContext.getSharedPreferences("doit_overlay_prefs", Context.MODE_PRIVATE)
+            prefs.edit().apply {
+                putBoolean("shake_enabled", enabled)
+                if (!sensitivity.isNullOrEmpty()) {
+                    putString("shake_sensitivity", sensitivity)
+                }
+                apply()
+            }
+            BubbleService.updateShakeConfig(enabled, sensitivity)
+            promise.resolve(true)
+        } catch (e: Exception) {
+            promise.reject("CONFIG_FAILED", e.message)
+        }
+    }
+
+    @ReactMethod
+    fun hasScreenshotPermission(promise: Promise) {
+        promise.resolve(ScreenshotHelper.hasProjectionConsent())
+    }
+
+    @ReactMethod
+    fun requestScreenshotPermission(promise: Promise) {
+        try {
+            val activity = currentActivity ?: reactContext
+            ScreenshotCaptureActivity.requestPermission(activity, promise)
+        } catch (e: Exception) {
+            promise.reject("PROJECTION_REQUEST_ERROR", e.message)
+        }
+    }
+
+    @ReactMethod
+    fun captureCleanScreenshot(promise: Promise) {
+        if (!ScreenshotHelper.hasProjectionConsent()) {
+            promise.reject("NO_PROJECTION_CONSENT", "MediaProjection permission required")
+            return
+        }
+
+        try {
+            ScreenshotHelper.captureCleanScreen(
+                reactContext,
+                onPreCapture = {
+                    BubbleService.hideOverlays()
+                },
+                onPostCapture = {
+                    BubbleService.restoreOverlays()
+                },
+                callback = object : ScreenshotHelper.ScreenshotCallback {
+                    override fun onSuccess(file: File) {
+                        val map = Arguments.createMap().apply {
+                            putString("uri", "file://${file.absolutePath}")
+                            putString("name", file.name)
+                            putInt("sizeBytes", file.length().toInt())
+                            putString("mimeType", "image/jpeg")
+                        }
+                        promise.resolve(map)
+                    }
+
+                    override fun onError(error: String) {
+                        promise.reject("SCREENSHOT_FAILED", error)
+                    }
+                }
+            )
+        } catch (e: Exception) {
+            promise.reject("CAPTURE_FAILED", e.message)
+        }
+    }
+
+    @ReactMethod
+    fun pickImageFromGallery(promise: Promise) {
+        try {
+            val activity = currentActivity ?: reactContext
+            ImagePickerActivity.pickImage(activity, promise)
+        } catch (e: Exception) {
+            promise.reject("PICKER_ERROR", e.message)
+        }
     }
 }

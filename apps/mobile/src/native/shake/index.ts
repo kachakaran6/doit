@@ -1,5 +1,6 @@
 import { AppState, AppStateStatus, Vibration, Platform } from 'react-native';
 import { Accelerometer } from 'expo-sensors';
+import { overlayService } from '../overlay';
 
 export type ShakeSensitivity = 'low' | 'medium' | 'high';
 
@@ -66,6 +67,7 @@ export class ShakeDetector {
     this.config.sensitivity = sensitivity;
     this.lastDiagnostic.threshold = this.getThreshold();
     this.notifyDiagnostics();
+    overlayService.setShakeEnabled(this.isListening, sensitivity);
   }
 
   public getThreshold(): number {
@@ -192,6 +194,7 @@ export class ShakeDetector {
     if (!this.isAvailable) {
       this.isListening = false;
       this.notifyDiagnostics();
+      overlayService.setShakeEnabled(false, this.config.sensitivity);
       return false;
     }
 
@@ -227,6 +230,7 @@ export class ShakeDetector {
     this.reversalTimestamps = [];
     this.lastSign = 0;
     this.notifyDiagnostics();
+    overlayService.setShakeEnabled(true, this.config.sensitivity);
     return true;
   }
 
@@ -246,6 +250,7 @@ export class ShakeDetector {
       }
       this.isListening = false;
       this.notifyDiagnostics();
+      overlayService.setShakeEnabled(false, this.config.sensitivity);
     }
   }
 

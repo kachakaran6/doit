@@ -12,7 +12,8 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRoute, useNavigation, RouteProp } from '@react-navigation/native';
 import { Audio } from 'expo-av';
-import { Text, Button, Input, Chip, KeyboardAccessoryBar } from '../components/ui';
+import { Text, Button, Input, Chip, KeyboardAccessoryBar, AttachmentSection, AttachmentItem } from '../components/ui';
+import { http } from '../lib/http';
 import {
   DueDatePicker,
   PriorityPicker,
@@ -68,6 +69,8 @@ export const CaptureModal: React.FC = () => {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [attachments, setAttachments] = useState<AttachmentItem[]>([]);
+  const [isUploadingAttachments, setIsUploadingAttachments] = useState(false);
 
   // Task-specific
   const [dueDate, setDueDate] = useState<string | null>(null);
@@ -233,6 +236,7 @@ export const CaptureModal: React.FC = () => {
     recordDurationMs,
     voiceLanguage,
     projectId,
+    attachments,
   });
 
   stateRef.current = {
@@ -248,6 +252,7 @@ export const CaptureModal: React.FC = () => {
     recordDurationMs,
     voiceLanguage,
     projectId,
+    attachments,
   };
 
   const handleSave = useCallback(async () => {
@@ -274,8 +279,10 @@ export const CaptureModal: React.FC = () => {
     setErrorMessage(null);
 
     try {
+      let createdId: string | null = null;
+
       if (current.mode === 'bug') {
-        await createBug.mutateAsync({
+        const res = await createBug.mutateAsync({
           title: current.title.trim(),
           description: current.description.trim() || undefined,
           severity: current.severity,
@@ -286,6 +293,7 @@ export const CaptureModal: React.FC = () => {
             package: 'com.samyukt.doit',
           },
         });
+        createdId = res?.id || null;
       } else if (current.mode === 'sticky') {
         const fullBody = current.description.trim()
           ? `${current.title.trim()}\n${current.description.trim()}`
@@ -303,15 +311,45 @@ export const CaptureModal: React.FC = () => {
         });
       } else {
         const dueAtIso = current.dueDate ? new Date(current.dueDate).toISOString() : undefined;
-        await createTask.mutateAsync({
+        const res = await createTask.mutateAsync({
           title: current.title.trim(),
           description: current.description.trim() || undefined,
           dueDate: dueAtIso,
           priority: current.priority,
         });
+        createdId = res?.id || null;
       }
+
+      if (createdId && current.attachments.length > 0) {
+        setIsUploadingAttachments(true);
+        for (const item of current.attachments) {
+          try {
+            const initRes = await http.post<{ uploadId: string; putUrl: string; key: string }>('/uploads/init', {
+              contentType: item.mimeType || 'image/jpeg',
+              sizeBytes: item.sizeBytes,
+              purpose: current.mode === 'bug' ? 'BUG' : 'TASK',
+            });
+            const putTarget = initRes.putUrl.startsWith('/') ? `${http.getBaseUrl()}${initRes.putUrl}` : initRes.putUrl;
+            const resp = await fetch(item.uri);
+            const blob = await resp.blob();
+            await fetch(putTarget, {
+              method: 'PUT',
+              headers: { 'Content-Type': item.mimeType || 'image/jpeg' },
+              body: blob,
+            });
+            await http.post(`/uploads/${initRes.uploadId}/complete`, {
+              [current.mode === 'bug' ? 'bugId' : 'taskId']: createdId,
+            });
+          } catch (uploadErr) {
+            console.warn('[CaptureModal] Attachment upload error:', uploadErr);
+          }
+        }
+        setIsUploadingAttachments(false);
+      }
+
       navigation.goBack();
     } catch (err: any) {
+      setIsUploadingAttachments(false);
       setErrorMessage(err.message || 'Failed to save. Please try again.');
     }
   }, [createBug, createTask, createSticky, createVoiceNote, navigation]);
@@ -364,7 +402,8 @@ export const CaptureModal: React.FC = () => {
     createTask.isPending ||
     createBug.isPending ||
     createSticky.isPending ||
-    createVoiceNote.isPending;
+    createVoiceNote.isPending ||
+    isUploadingAttachments;
 
   const isSubmitDisabled =
     isSaving ||
@@ -762,6 +801,15 @@ export const CaptureModal: React.FC = () => {
               )}
             </View>
           )}
+
+          {/* Attachment Section across all capture modes */}
+          <AttachmentSection
+            attachments={attachments}
+            onAddAttachment={(item) => setAttachments((prev) => [...prev, item])}
+            onRemoveAttachment={(index) =>
+              setAttachments((prev) => prev.filter((_, i) => i !== index))
+            }
+          />
 
           {/* Bottom Action Row */}
           <View style={[styles.actionRow, { gap: spacing.md, marginTop: spacing['2xl'] }]}>

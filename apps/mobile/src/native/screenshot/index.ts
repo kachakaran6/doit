@@ -1,40 +1,32 @@
-import { Platform } from 'react-native';
+import { overlayService, CleanScreenshotResult } from '../overlay';
 
 export interface ScreenshotResult {
   uri: string;
-  width: number;
-  height: number;
+  width?: number;
+  height?: number;
   sizeBytes: number;
-  mimeType: 'image/jpeg';
+  mimeType: string;
+  name?: string;
 }
 
 export class ScreenshotService {
-  private hasProjectionConsent: boolean = false;
-
   public async requestProjectionConsent(): Promise<boolean> {
-    // In Android: MediaProjection consent is requested once per session
-    this.hasProjectionConsent = true;
-    return true;
+    return await overlayService.requestScreenshotPermission();
   }
 
-  public hasConsent(): boolean {
-    return this.hasProjectionConsent;
+  public async hasConsent(): Promise<boolean> {
+    return await overlayService.hasScreenshotPermission();
   }
 
-  public revokeConsent() {
-    this.hasProjectionConsent = false;
-  }
+  public revokeConsent(): void {}
 
-  /**
-   * Captures screen and returns downscaled JPEG q80 with max 1440px long edge per §12 / P13
-   */
   public async captureScreen(): Promise<ScreenshotResult> {
+    const res: CleanScreenshotResult = await overlayService.captureCleanScreenshot();
     return {
-      uri: `file:///data/user/0/com.samyukt.doit/cache/shot-${Date.now()}.jpg`,
-      width: 1080,
-      height: 1440,
-      sizeBytes: 182400,
-      mimeType: 'image/jpeg',
+      uri: res.uri,
+      sizeBytes: res.sizeBytes,
+      mimeType: res.mimeType,
+      name: res.name,
     };
   }
 }

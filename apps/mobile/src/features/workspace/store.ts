@@ -1,5 +1,7 @@
 import { create } from 'zustand';
 import { WorkspaceItem, ProjectItem } from './types';
+import { overlayService } from '../../native/overlay';
+import { useAuthStore } from '../auth';
 
 interface WorkspaceState {
   workspaces: WorkspaceItem[];
@@ -27,16 +29,31 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
         ? currentProject
         : activeWorkspace?.projects?.[0] || null;
 
+    if (activeProject) {
+      const token = useAuthStore.getState().accessToken;
+      overlayService.syncAuthCredentials(token, 'https://doit.samyukt.pro/api/v1', activeProject.id);
+    }
+
     set({
       workspaces,
       activeWorkspace,
       activeProject,
     });
   },
-  setActiveWorkspace: (ws) =>
+  setActiveWorkspace: (ws) => {
+    const proj = ws.projects?.[0] || null;
+    if (proj) {
+      const token = useAuthStore.getState().accessToken;
+      overlayService.syncAuthCredentials(token, 'https://doit.samyukt.pro/api/v1', proj.id);
+    }
     set({
       activeWorkspace: ws,
-      activeProject: ws.projects?.[0] || null,
-    }),
-  setActiveProject: (p) => set({ activeProject: p }),
+      activeProject: proj,
+    });
+  },
+  setActiveProject: (p) => {
+    const token = useAuthStore.getState().accessToken;
+    overlayService.syncAuthCredentials(token, 'https://doit.samyukt.pro/api/v1', p.id);
+    set({ activeProject: p });
+  },
 }));

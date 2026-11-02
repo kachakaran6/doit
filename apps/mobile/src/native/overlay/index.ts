@@ -2,6 +2,22 @@ import { Platform, NativeModules, Linking } from 'react-native';
 
 const { OverlayServiceModule } = NativeModules;
 
+export interface CleanScreenshotResult {
+  uri: string;
+  name: string;
+  sizeBytes: number;
+  mimeType: string;
+}
+
+export interface GalleryImageResult {
+  uri: string;
+  name: string;
+  sizeBytes: number;
+  mimeType: string;
+  width?: number;
+  height?: number;
+}
+
 export interface OverlayService {
   isAvailable(): boolean;
   hasPermission(): Promise<boolean>;
@@ -15,6 +31,12 @@ export interface OverlayService {
   stopBubble(): Promise<boolean>;
   isBubbleRunning(): Promise<boolean>;
   getRunningState(): boolean;
+  syncAuthCredentials(token: string | null, baseUrl?: string, projectId?: string | null): Promise<void>;
+  setShakeEnabled(enabled: boolean, sensitivity?: string): Promise<void>;
+  hasScreenshotPermission(): Promise<boolean>;
+  requestScreenshotPermission(): Promise<boolean>;
+  captureCleanScreenshot(): Promise<CleanScreenshotResult>;
+  pickImageFromGallery(): Promise<GalleryImageResult>;
 }
 
 class OverlayServiceImpl implements OverlayService {
@@ -58,7 +80,6 @@ class OverlayServiceImpl implements OverlayService {
     } catch {
       // Ignore and fallback
     }
-    // Fallback to application settings
     Linking.openSettings();
   }
 
@@ -150,6 +171,56 @@ class OverlayServiceImpl implements OverlayService {
 
   getRunningState(): boolean {
     return this.isRunning;
+  }
+
+  async syncAuthCredentials(token: string | null, baseUrl: string = 'https://doit.samyukt.pro/api/v1', projectId: string | null = null): Promise<void> {
+    if (!this.isAvailable() || !OverlayServiceModule?.syncAuthCredentials) return;
+    try {
+      await OverlayServiceModule.syncAuthCredentials(token, baseUrl, projectId);
+    } catch (e) {
+      console.warn('[OverlayService] Failed to sync auth credentials:', e);
+    }
+  }
+
+  async setShakeEnabled(enabled: boolean, sensitivity: string = 'medium'): Promise<void> {
+    if (!this.isAvailable() || !OverlayServiceModule?.setShakeEnabled) return;
+    try {
+      await OverlayServiceModule.setShakeEnabled(enabled, sensitivity);
+    } catch (e) {
+      console.warn('[OverlayService] Failed to set shake config:', e);
+    }
+  }
+
+  async hasScreenshotPermission(): Promise<boolean> {
+    if (!this.isAvailable() || !OverlayServiceModule?.hasScreenshotPermission) return false;
+    try {
+      return await OverlayServiceModule.hasScreenshotPermission();
+    } catch {
+      return false;
+    }
+  }
+
+  async requestScreenshotPermission(): Promise<boolean> {
+    if (!this.isAvailable() || !OverlayServiceModule?.requestScreenshotPermission) return false;
+    try {
+      return await OverlayServiceModule.requestScreenshotPermission();
+    } catch {
+      return false;
+    }
+  }
+
+  async captureCleanScreenshot(): Promise<CleanScreenshotResult> {
+    if (!this.isAvailable() || !OverlayServiceModule?.captureCleanScreenshot) {
+      throw new Error('Screenshot service not available on this platform');
+    }
+    return await OverlayServiceModule.captureCleanScreenshot();
+  }
+
+  async pickImageFromGallery(): Promise<GalleryImageResult> {
+    if (!this.isAvailable() || !OverlayServiceModule?.pickImageFromGallery) {
+      throw new Error('Gallery picker not available on this platform');
+    }
+    return await OverlayServiceModule.pickImageFromGallery();
   }
 }
 

@@ -20,3 +20,4 @@ export * from './FloatingNavBar';
 export * from './KeyboardChip';
 export * from './KeyboardAccessoryBar';
 export * from './SyncStatusIndicator';
+export * from './AttachmentSection';
