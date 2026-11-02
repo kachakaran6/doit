@@ -1,9 +1,11 @@
 package com.samyukt.doit.overlay
 
+import android.app.AppOpsManager
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.os.Build
+import android.os.Process
 import android.provider.Settings
 import com.facebook.react.bridge.Promise
 import com.facebook.react.bridge.ReactApplicationContext
@@ -23,11 +25,71 @@ class OverlayServiceModule(private val reactContext: ReactApplicationContext) :
     @ReactMethod
     fun hasPermission(promise: Promise) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            val canDraw = Settings.canDrawOverlays(reactContext)
-            promise.resolve(canDraw)
+            try {
+                val canDraw = Settings.canDrawOverlays(reactContext)
+                if (canDraw) {
+                    promise.resolve(true)
+                    return
+                }
+
+                // Dual check: AppOpsManager OPSTR_SYSTEM_ALERT_WINDOW (op 24)
+                val appOps = reactContext.getSystemService(Context.APP_OPS_SERVICE) as? AppOpsManager
+                if (appOps != null) {
+                    val mode = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                        appOps.unsafeCheckOpNoThrow(
+                            AppOpsManager.OPSTR_SYSTEM_ALERT_WINDOW,
+                            Process.myUid(),
+                            reactContext.packageName
+                        )
+                    } else {
+                        @Suppress("DEPRECATION")
+                        appOps.checkOpNoThrow(
+                            AppOpsManager.OPSTR_SYSTEM_ALERT_WINDOW,
+                            Process.myUid(),
+                            reactContext.packageName
+                        )
+                    }
+                    if (mode == AppOpsManager.MODE_ALLOWED) {
+                        promise.resolve(true)
+                        return
+                    }
+                }
+                promise.resolve(false)
+            } catch (e: Exception) {
+                promise.resolve(Settings.canDrawOverlays(reactContext))
+            }
         } else {
             promise.resolve(true)
         }
+    }
+
+    @ReactMethod
+    fun hasMiuiPopupPermission(promise: Promise) {
+        val manufacturer = Build.MANUFACTURER.lowercase()
+        val isXiaomi = manufacturer.contains("xiaomi") || manufacturer.contains("poco") || manufacturer.contains("redmi")
+        if (!isXiaomi) {
+            promise.resolve(true)
+            return
+        }
+
+        try {
+            val appOps = reactContext.getSystemService(Context.APP_OPS_SERVICE) as? AppOpsManager
+            if (appOps != null) {
+                // MIUI custom op 10021 = OP_BACKGROUND_START_ACTIVITY ("Display pop-up windows while running in the background")
+                val method = AppOpsManager::class.java.getMethod(
+                    "checkOpNoThrow",
+                    Int::class.javaPrimitiveType,
+                    Int::class.javaPrimitiveType,
+                    String::class.java
+                )
+                val result = method.invoke(appOps, 10021, Process.myUid(), reactContext.packageName) as Int
+                promise.resolve(result == AppOpsManager.MODE_ALLOWED)
+                return
+            }
+        } catch (_: Exception) {
+            // Reflection fallback
+        }
+        promise.resolve(true)
     }
 
     @ReactMethod
@@ -73,6 +135,27 @@ class OverlayServiceModule(private val reactContext: ReactApplicationContext) :
     }
 
     @ReactMethod
+    fun openOverlaySettings(promise: Promise) {
+        requestPermission(promise)
+    }
+
+    @ReactMethod
+    fun openAppSettings(promise: Promise) {
+        try {
+            val intent = Intent(
+                Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+                Uri.parse("package:${reactContext.packageName}")
+            ).apply {
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            }
+            reactContext.startActivity(intent)
+            promise.resolve(true)
+        } catch (e: Exception) {
+            promise.reject("SETTINGS_ERROR", e.message)
+        }
+    }
+
+    @ReactMethod
     fun openDeviceSpecificSettings(promise: Promise) {
         // Targeted intent for Xiaomi / MIUI / HyperOS permissions editor
         val manufacturer = Build.MANUFACTURER.lowercase()
@@ -91,19 +174,7 @@ class OverlayServiceModule(private val reactContext: ReactApplicationContext) :
             }
         }
 
-        // Generic fallback to Application Details
-        try {
-            val intent = Intent(
-                Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
-                Uri.parse("package:${reactContext.packageName}")
-            ).apply {
-                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-            }
-            reactContext.startActivity(intent)
-            promise.resolve(true)
-        } catch (e: Exception) {
-            promise.reject("SETTINGS_ERROR", e.message)
-        }
+        openAppSettings(promise)
     }
 
     @ReactMethod

@@ -7,7 +7,7 @@ export function useCreateStickyMutation(projectId: string = 'default') {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (payload: { body: string; color?: string; isPinned?: boolean }) => {
+    mutationFn: async (payload: { body: string; color?: string; pinned?: boolean; isPinned?: boolean }) => {
       return http.post<StickyViewModel>(`/projects/${projectId}/stickies`, payload);
     },
     onMutate: async (newSticky) => {

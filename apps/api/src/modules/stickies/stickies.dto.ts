@@ -1,12 +1,22 @@
 import { z } from 'zod';
 
-export const AccentEnum = z.enum(['INDIGO', 'TEAL', 'AMBER', 'ROSE', 'VIOLET']);
+export const AccentEnum = z.preprocess(
+  (val) => (typeof val === 'string' ? val.toUpperCase() : val),
+  z.enum(['INDIGO', 'TEAL', 'AMBER', 'ROSE', 'VIOLET'])
+);
 
-export const CreateStickySchema = z.object({
-  body: z.string().trim().min(1, 'Body is required').max(5000, 'Body cannot exceed 5000 characters'),
-  color: AccentEnum.default('AMBER'),
-  pinned: z.boolean().default(false),
-});
+export const CreateStickySchema = z
+  .object({
+    body: z.string().trim().min(1, 'Body is required').max(5000, 'Body cannot exceed 5000 characters'),
+    color: AccentEnum.default('AMBER'),
+    pinned: z.boolean().optional(),
+    isPinned: z.boolean().optional(),
+  })
+  .transform((data) => ({
+    body: data.body,
+    color: data.color,
+    pinned: data.pinned ?? data.isPinned ?? false,
+  }));
 
 export type CreateStickyDto = z.infer<typeof CreateStickySchema>;
 

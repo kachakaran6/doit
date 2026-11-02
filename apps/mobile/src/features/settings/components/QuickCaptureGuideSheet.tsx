@@ -22,9 +22,12 @@ export interface QuickCaptureGuideSheetProps {
   onClose: () => void;
   hasOverlayPerm: boolean;
   onRequestPermission: () => void;
+  onOpenMiuiPermissions?: () => void;
+  onOpenAppSettings?: () => void;
   onTestBubble: () => void;
   onTestCapture: () => void;
   bubbleEnabled: boolean;
+  isXiaomi?: boolean;
 }
 
 export const QuickCaptureGuideSheet: React.FC<QuickCaptureGuideSheetProps> = ({
@@ -32,9 +35,12 @@ export const QuickCaptureGuideSheet: React.FC<QuickCaptureGuideSheetProps> = ({
   onClose,
   hasOverlayPerm,
   onRequestPermission,
+  onOpenMiuiPermissions,
+  onOpenAppSettings,
   onTestBubble,
   onTestCapture,
   bubbleEnabled,
+  isXiaomi,
 }) => {
   const { colors, spacing, radius, elevation } = useTheme();
   const [activeTab, setActiveTab] = useState<'bubble' | 'shake' | 'troubleshoot'>('bubble');
@@ -99,21 +105,39 @@ export const QuickCaptureGuideSheet: React.FC<QuickCaptureGuideSheetProps> = ({
               </View>
 
               {!hasOverlayPerm && (
-                <View style={{ marginTop: spacing.sm }}>
+                <View style={{ marginTop: spacing.sm, gap: spacing.xs }}>
                   <Button
-                    title="Grant Permission in Android Settings"
+                    title="1. Open 'Display Over Other Apps'"
                     variant="primary"
                     size="sm"
                     icon={<Settings size={14} color={colors.accentOnPrimary} />}
                     onPress={onRequestPermission}
                   />
+                  {isXiaomi && onOpenMiuiPermissions && (
+                    <Button
+                      title="2. Open MIUI Other Permissions"
+                      variant="secondary"
+                      size="sm"
+                      icon={<Shield size={14} color={colors.accentText} />}
+                      onPress={onOpenMiuiPermissions}
+                    />
+                  )}
+                  {onOpenAppSettings && (
+                    <Button
+                      title="3. App Info (If Restricted Setting)"
+                      variant="ghost"
+                      size="sm"
+                      icon={<Move size={14} color={colors.textSecondary} />}
+                      onPress={onOpenAppSettings}
+                    />
+                  )}
                 </View>
               )}
             </View>
 
             {/* Step-by-Step Instructions */}
             <Text variant="h3" style={{ marginBottom: spacing.sm }}>
-              How to Use the Floating Bubble
+              How to Enable & Use the Floating Bubble
             </Text>
 
             <View style={[styles.stepCard, { backgroundColor: colors.surface, borderColor: colors.border, borderRadius: radius.md, padding: spacing.md, marginBottom: spacing.sm }]}>
@@ -126,7 +150,35 @@ export const QuickCaptureGuideSheet: React.FC<QuickCaptureGuideSheetProps> = ({
                 </Text>
               </View>
               <Text variant="body" color="secondary" style={{ fontSize: 13, marginTop: 4 }}>
-                Tap the "Grant Permission" button above. In Android's system settings page, find "DoIt" and switch "Allow display over other apps" to ON.
+                Tap button 1 above. Locate "DoIt" in Android's system list and turn ON "Allow display over other apps".
+              </Text>
+            </View>
+
+            <View style={[styles.stepCard, { backgroundColor: colors.surface, borderColor: colors.border, borderRadius: radius.md, padding: spacing.md, marginBottom: spacing.sm }]}>
+              <View style={styles.stepHeader}>
+                <View style={[styles.stepBadge, { backgroundColor: colors.surfaceRaised, borderColor: colors.border }]}>
+                  <Text variant="caption" color="accent" style={{ fontWeight: '700' }}>2</Text>
+                </View>
+                <Text variant="label" style={{ fontWeight: '600', marginLeft: spacing.sm }}>
+                  Xiaomi / Poco / MIUI Extra Step
+                </Text>
+              </View>
+              <Text variant="body" color="secondary" style={{ fontSize: 13, marginTop: 4 }}>
+                In Xiaomi MIUI / HyperOS, you MUST also enable "Display pop-up windows while running in the background" under Other permissions. Without this, Xiaomi blocks background overlays.
+              </Text>
+            </View>
+
+            <View style={[styles.stepCard, { backgroundColor: colors.surface, borderColor: colors.border, borderRadius: radius.md, padding: spacing.md, marginBottom: spacing.sm }]}>
+              <View style={styles.stepHeader}>
+                <View style={[styles.stepBadge, { backgroundColor: colors.surfaceRaised, borderColor: colors.border }]}>
+                  <Text variant="caption" color="accent" style={{ fontWeight: '700' }}>3</Text>
+                </View>
+                <Text variant="label" style={{ fontWeight: '600', marginLeft: spacing.sm }}>
+                  Android 13+ "Restricted Setting"?
+                </Text>
+              </View>
+              <Text variant="body" color="secondary" style={{ fontSize: 13, marginTop: 4 }}>
+                If Android grays out the toggle: Tap "App Info", tap the 3 dots (⋮) in the top-right corner, select "Allow restricted settings", confirm with your fingerprint/PIN, then return and toggle the permission ON.
               </Text>
             </View>
 

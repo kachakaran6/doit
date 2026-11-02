@@ -4,7 +4,7 @@ export const VoiceLanguageEnum = z.enum(['en-IN', 'hi-IN', 'mr-IN', 'ta-IN', 'te
 
 export const CreateVoiceNoteSchema = z.object({
   language: VoiceLanguageEnum.default('en-IN'),
-  durationMs: z
+  durationMs: z.coerce
     .number()
     .int('Duration must be an integer')
     .min(1, 'Duration must be positive')

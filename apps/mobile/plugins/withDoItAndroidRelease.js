@@ -20,6 +20,28 @@ function withDoItAndroidRelease(config) {
   config = withAndroidManifest(config, (configData) => {
     const manifest = configData.modResults.manifest;
 
+    if (!manifest['uses-permission']) {
+      manifest['uses-permission'] = [];
+    }
+
+    const requiredPermissions = [
+      'android.permission.SYSTEM_ALERT_WINDOW',
+      'android.permission.FOREGROUND_SERVICE',
+      'android.permission.FOREGROUND_SERVICE_SPECIAL_USE',
+      'android.permission.POST_NOTIFICATIONS',
+      'android.permission.VIBRATE',
+      'android.permission.HIGH_SAMPLING_RATE_SENSORS',
+      'android.permission.RECORD_AUDIO',
+    ];
+
+    for (const perm of requiredPermissions) {
+      if (!manifest['uses-permission'].some((p) => p.$ && p.$['android:name'] === perm)) {
+        manifest['uses-permission'].push({
+          $: { 'android:name': perm },
+        });
+      }
+    }
+
     if (!manifest.application) {
       manifest.application = [{}];
     }

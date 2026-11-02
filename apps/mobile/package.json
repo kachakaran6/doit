@@ -11,7 +11,7 @@
     "build:apk": "eas build -p android --profile preview",
     "build:apk:local": "expo prebuild --platform android --clean && cd android && ./gradlew assembleRelease",
     "build:aab": "eas build -p android --profile production",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "node --max-old-space-size=4096 ../../node_modules/typescript/bin/tsc --noEmit",
     "lint": "eslint \"src/**/*.ts\" \"src/**/*.tsx\" App.tsx",
     "test": "node -e \"console.log('Mobile tests ready')\""
   },
@@ -21,6 +21,7 @@
     "@react-navigation/native-stack": "^7.21.0",
     "@tanstack/react-query": "^5.105.0",
     "expo": "~52.0.37",
+    "expo-av": "~15.0.2",
     "expo-secure-store": "~14.0.1",
     "expo-sensors": "~14.0.2",
     "expo-status-bar": "~2.0.1",

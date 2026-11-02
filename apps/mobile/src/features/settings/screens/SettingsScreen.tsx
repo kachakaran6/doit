@@ -117,13 +117,21 @@ export const SettingsScreen: React.FC = () => {
       if (!hasPerm) {
         Alert.alert(
           'Display Over Other Apps Required',
-          'Android requires special permission to show the floating Quick Capture bubble above other apps.\n\nTap "Open Settings", locate DoIt, and turn ON "Allow display over other apps".',
+          isXiaomi
+            ? 'Xiaomi/MIUI requires two permissions for the floating bubble:\n\n1. "Display Over Other Apps" (Android system toggle)\n2. "Display pop-up windows while running in the background" (MIUI Other permissions)\n\nIf the toggle is grayed out, tap App Info, tap 3 dots (⋮) at top right, and choose "Allow restricted settings".'
+            : 'Android requires permission to display the floating Quick Capture bubble over other apps.\n\nIf the option is grayed out, tap App Info, tap 3 dots (⋮) at top right, and choose "Allow restricted settings".',
           [
             { text: 'Cancel', style: 'cancel' },
+            {
+              text: 'Grant "Display Over Apps"',
+              onPress: async () => {
+                await overlayService.openOverlaySettings();
+              },
+            },
             ...(isXiaomi
               ? [
                   {
-                    text: 'MIUI Permissions',
+                    text: 'MIUI Pop-ups',
                     onPress: async () => {
                       await overlayService.openDeviceSpecificSettings();
                     },
@@ -131,13 +139,13 @@ export const SettingsScreen: React.FC = () => {
                 ]
               : []),
             {
-              text: 'Open Settings',
+              text: 'App Info & Security',
               onPress: async () => {
-                await overlayService.requestPermission();
+                await overlayService.openAppSettings();
               },
             },
             {
-              text: 'View Guide',
+              text: 'Setup Guide',
               onPress: () => setGuideVisible(true),
             },
           ]
@@ -585,10 +593,13 @@ export const SettingsScreen: React.FC = () => {
         visible={guideVisible}
         onClose={() => setGuideVisible(false)}
         hasOverlayPerm={hasOverlayPerm}
-        onRequestPermission={() => overlayService.requestPermission()}
+        onRequestPermission={() => overlayService.openOverlaySettings()}
+        onOpenMiuiPermissions={() => overlayService.openDeviceSpecificSettings()}
+        onOpenAppSettings={() => overlayService.openAppSettings()}
         onTestBubble={handleToggleBubble}
         onTestCapture={() => (navigation as any).navigate('CaptureModal')}
         bubbleEnabled={bubbleEnabled}
+        isXiaomi={isXiaomi}
       />
 
       {/* Shake Sensor Diagnostic Modal */}

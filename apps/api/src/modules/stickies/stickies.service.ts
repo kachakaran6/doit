@@ -17,16 +17,30 @@ export class StickiesService {
   constructor(private readonly prisma: PrismaService) {}
 
   async create(projectId: string, userId: string, dto: CreateStickyDto) {
-    const project = await this.prisma.project.findUnique({
-      where: { id: projectId },
-    });
+    let targetProjectId = projectId;
+    let project = null;
+
+    if (projectId === 'default') {
+      const firstMembership = await this.prisma.membership.findFirst({
+        where: { userId },
+        include: { workspace: { include: { projects: { take: 1 } } } },
+      });
+      if (firstMembership?.workspace?.projects[0]) {
+        project = firstMembership.workspace.projects[0];
+        targetProjectId = project.id;
+      }
+    } else {
+      project = await this.prisma.project.findUnique({
+        where: { id: projectId },
+      });
+    }
 
     if (!project) {
       throw new AppError(ErrorCode.PROJECT_NOT_FOUND, 'Project not found.', 404);
     }
 
     const latest = await this.prisma.sticky.findFirst({
-      where: { projectId },
+      where: { projectId: targetProjectId },
       orderBy: { order: 'desc' },
       select: { order: true },
     });
@@ -35,7 +49,7 @@ export class StickiesService {
 
     const sticky = await this.prisma.sticky.create({
       data: {
-        projectId,
+        projectId: targetProjectId,
         authorId: userId,
         body: dto.body.trim(),
         color: (dto.color as AccentName) || AccentName.AMBER,
@@ -52,8 +66,14 @@ export class StickiesService {
   }
 
   async findAll(projectId: string, pinned?: boolean) {
+    let targetProjectId = projectId;
+    if (projectId === 'default') {
+      const firstProject = await this.prisma.project.findFirst({ select: { id: true } });
+      if (firstProject) targetProjectId = firstProject.id;
+    }
+
     const where: Prisma.StickyWhereInput = {
-      projectId,
+      projectId: targetProjectId,
       deletedAt: null,
     };
 

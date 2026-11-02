@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo, ReactNode } from 'react';
-import { useColorScheme } from 'react-native';
+import { useColorScheme, StatusBar as RNStatusBar, Platform } from 'react-native';
+import { StatusBar as ExpoStatusBar } from 'expo-status-bar';
 import {
   ThemeContext,
   ThemeMode,
@@ -50,6 +51,18 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({
     return buildThemeColors(resolvedTheme, accent);
   }, [resolvedTheme, accent]);
 
+  // Synchronize Android and iOS System Status Bar with active theme
+  useEffect(() => {
+    if (Platform.OS === 'android') {
+      try {
+        RNStatusBar.setBackgroundColor(colors.bg, true);
+        RNStatusBar.setBarStyle(resolvedTheme === 'light' ? 'dark-content' : 'light-content', true);
+      } catch {
+        // Ignore on platforms without native statusbar control
+      }
+    }
+  }, [resolvedTheme, colors.bg]);
+
   const contextValue: ThemeContextValue = useMemo(
     () => ({
       mode,
@@ -67,5 +80,14 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({
     [mode, resolvedTheme, accent, colors],
   );
 
-  return <ThemeContext.Provider value={contextValue}>{children}</ThemeContext.Provider>;
+  return (
+    <ThemeContext.Provider value={contextValue}>
+      <ExpoStatusBar
+        style={resolvedTheme === 'light' ? 'dark' : 'light'}
+        backgroundColor={colors.bg}
+        translucent={false}
+      />
+      {children}
+    </ThemeContext.Provider>
+  );
 };

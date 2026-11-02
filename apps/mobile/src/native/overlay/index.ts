@@ -5,7 +5,10 @@ const { OverlayServiceModule } = NativeModules;
 export interface OverlayService {
   isAvailable(): boolean;
   hasPermission(): Promise<boolean>;
+  hasMiuiPopupPermission(): Promise<boolean>;
   requestPermission(): Promise<void>;
+  openOverlaySettings(): Promise<void>;
+  openAppSettings(): Promise<void>;
   openDeviceSpecificSettings(): Promise<void>;
   isXiaomiDevice(): Promise<boolean>;
   startBubble(): Promise<boolean>;
@@ -33,6 +36,18 @@ class OverlayServiceImpl implements OverlayService {
     return false;
   }
 
+  async hasMiuiPopupPermission(): Promise<boolean> {
+    if (!this.isAvailable()) return true;
+    try {
+      if (OverlayServiceModule?.hasMiuiPopupPermission) {
+        return await OverlayServiceModule.hasMiuiPopupPermission();
+      }
+    } catch {
+      // Ignore
+    }
+    return true;
+  }
+
   async requestPermission(): Promise<void> {
     if (!this.isAvailable()) return;
     try {
@@ -44,6 +59,23 @@ class OverlayServiceImpl implements OverlayService {
       // Ignore and fallback
     }
     // Fallback to application settings
+    Linking.openSettings();
+  }
+
+  async openOverlaySettings(): Promise<void> {
+    return this.requestPermission();
+  }
+
+  async openAppSettings(): Promise<void> {
+    if (!this.isAvailable()) return;
+    try {
+      if (OverlayServiceModule?.openAppSettings) {
+        await OverlayServiceModule.openAppSettings();
+        return;
+      }
+    } catch {
+      // Ignore
+    }
     Linking.openSettings();
   }
 

@@ -21,12 +21,22 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
         ? currentActive
         : workspaces[0] || null;
 
+    const currentProject = get().activeProject;
+    const activeProject =
+      currentProject && activeWorkspace?.projects?.some((p) => p.id === currentProject.id)
+        ? currentProject
+        : activeWorkspace?.projects?.[0] || null;
+
     set({
       workspaces,
       activeWorkspace,
+      activeProject,
     });
   },
-  setActiveWorkspace: (ws) => set({ activeWorkspace: ws }),
+  setActiveWorkspace: (ws) =>
+    set({
+      activeWorkspace: ws,
+      activeProject: ws.projects?.[0] || null,
+    }),
   setActiveProject: (p) => set({ activeProject: p }),
 }));
-
