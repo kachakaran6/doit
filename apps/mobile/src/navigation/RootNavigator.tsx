@@ -9,6 +9,7 @@ import { SettingsScreen } from '../features/settings';
 import { PendingSyncScreen } from '../features/outbox/screens/PendingSyncScreen';
 import { NotificationsScreen } from '../features/notifications';
 import { ComponentGallery } from '../core/dev/ComponentGallery';
+import { FoundationGallery } from '../core/dev/FoundationGallery';
 import { NavBarScrollProvider } from './nav-bar-scroll.context';
 import { useAuthStore } from '../features/auth/store';
 import { useWorkspaceStore } from '../features/workspace/store';
@@ -40,6 +41,7 @@ const linking: LinkingOptions<RootStackParamList> = {
       PendingSync: 'sync',
       Notifications: 'notifications',
       DevGallery: 'dev/gallery',
+      FoundationGallery: 'dev/foundation',
     },
   },
 };
@@ -97,6 +99,7 @@ export const RootNavigator: React.FC = () => {
                 }}
               />
               <Stack.Screen name="DevGallery" component={ComponentGallery} />
+              <Stack.Screen name="FoundationGallery" component={FoundationGallery} />
             </>
           )}
         </Stack.Navigator>

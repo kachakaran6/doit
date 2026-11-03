@@ -1,12 +1,19 @@
 import React from 'react';
-import { Text as RNText, TextProps as RNTextProps, TextStyle, StyleSheet, StyleProp } from 'react-native';
+import {
+  Text as RNText,
+  TextProps as RNTextProps,
+  TextStyle,
+  StyleProp,
+  Platform,
+} from 'react-native';
 import { useTheme } from '../../theme/useTheme';
-import { TypographyVariant } from '@doit/tokens';
+import { TypographyVariant, computeTracking, FONT_FAMILY } from '@doit/tokens';
 
 export type TextColor =
   | 'primary'
   | 'secondary'
   | 'tertiary'
+  | 'muted'
   | 'accent'
   | 'danger'
   | 'success'
@@ -22,7 +29,8 @@ export interface TextProps extends RNTextProps {
 }
 
 /**
- * Use Text for all typography rendering in the app. Raw React Native <Text> is prohibited in feature code.
+ * DoIt Premium Text Component (03-TYPE-SYSTEM.md)
+ * Strict variant-only typography API with optical tracking and tabular numeral enforcement.
  */
 export const Text: React.FC<TextProps> = ({
   variant = 'body',
@@ -35,10 +43,11 @@ export const Text: React.FC<TextProps> = ({
   const { colors, typography } = useTheme();
 
   const colorMap: Record<TextColor, string> = {
-    primary: colors.textPrimary,
+    primary: colors.textPrimary || colors.text,
     secondary: colors.textSecondary,
     tertiary: colors.textTertiary,
-    accent: colors.accentText,
+    muted: colors.textMuted || colors.textTertiary,
+    accent: colors.accentText || colors.accent,
     danger: colors.danger,
     success: colors.success,
     warning: colors.warning,
@@ -47,16 +56,34 @@ export const Text: React.FC<TextProps> = ({
 
   const variantStyle = typography[variant] || typography.body;
   const textColor = colorMap[color] || colors.textPrimary;
+  const tracking = computeTracking(variantStyle.fontSize);
+
+  const resolvedFontFamily =
+    variantStyle.fontWeight === '600'
+      ? 'Inter-SemiBold'
+      : variantStyle.fontWeight === '500'
+      ? 'Inter-Medium'
+      : 'Inter-Regular';
 
   return (
     <RNText
       style={[
         {
+          fontFamily: resolvedFontFamily,
           fontSize: variantStyle.fontSize,
           lineHeight: variantStyle.lineHeight,
           fontWeight: variantStyle.fontWeight,
+          letterSpacing: tracking,
           color: textColor,
           textAlign: align,
+          ...(variant === 'eyebrow' ? { textTransform: 'uppercase' as const } : {}),
+          ...(variant === 'numeric'
+            ? {
+                fontVariant: ['tabular-nums' as const],
+                // On Android fontFeatureSettings helps guarantee tabular numerals
+                ...(Platform.OS === 'android' ? { fontFeatureSettings: '"tnum"' } : {}),
+              }
+            : {}),
         },
         style,
       ]}

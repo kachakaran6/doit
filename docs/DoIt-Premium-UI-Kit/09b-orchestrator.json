@@ -1,0 +1,118 @@
+{
+  "project": "Samyukt DoIt",
+  "kit": "Premium UI",
+  "version": "1.0.0",
+  "loop": {
+    "protocol": [
+      "build",
+      "capture",
+      "score",
+      "diagnose",
+      "fix"
+    ],
+    "passScore": 18,
+    "maxScore": 24,
+    "maxIterations": 6,
+    "fixesPerIteration": 1,
+    "screenshotsPerScreen": 6
+  },
+  "prompts": [
+    {
+      "id": "P-00",
+      "file": "09-PROMPTS/P-00-foundation.md",
+      "title": "Surface ladder, type scale, tokens",
+      "deps": [],
+      "gate": "G-P0"
+    },
+    {
+      "id": "P-01",
+      "file": "09-PROMPTS/P-01-primitives.md",
+      "title": "Primitives",
+      "deps": [
+        "P-00"
+      ],
+      "gate": "G-P1"
+    },
+    {
+      "id": "P-02",
+      "file": "09-PROMPTS/P-02-shell.md",
+      "title": "Shell, navbar, insets, sheets",
+      "deps": [
+        "P-01"
+      ],
+      "gate": "G-P2"
+    },
+    {
+      "id": "P-03",
+      "file": "09-PROMPTS/P-03-home.md",
+      "title": "Home",
+      "deps": [
+        "P-02"
+      ]
+    },
+    {
+      "id": "P-04",
+      "file": "09-PROMPTS/P-04-tasks.md",
+      "title": "Tasks list + board",
+      "deps": [
+        "P-02"
+      ]
+    },
+    {
+      "id": "P-05",
+      "file": "09-PROMPTS/P-05-bugs-search.md",
+      "title": "Bug Queue + Search",
+      "deps": [
+        "P-02"
+      ]
+    },
+    {
+      "id": "P-06",
+      "file": "09-PROMPTS/P-06-capture-settings.md",
+      "title": "Capture, Settings, Account",
+      "deps": [
+        "P-02"
+      ],
+      "gate": "G-P3"
+    },
+    {
+      "id": "P-07",
+      "file": "09-PROMPTS/P-07-motion.md",
+      "title": "Motion & response",
+      "deps": [
+        "P-03",
+        "P-04",
+        "P-05",
+        "P-06"
+      ]
+    },
+    {
+      "id": "P-08",
+      "file": "09-PROMPTS/P-08-review.md",
+      "title": "Full review & sign-off",
+      "deps": [
+        "P-07"
+      ],
+      "gate": "G-P4"
+    }
+  ],
+  "gates": [
+    "G-P0",
+    "G-P1",
+    "G-P2",
+    "G-P3",
+    "G-P4"
+  ],
+  "review": "10-REVIEW.md",
+  "principles": "01-PREMIUM-PRINCIPLES.md",
+  "exclusiveResources": [
+    {
+      "path": "components/ui",
+      "prompts": [
+        "P-00",
+        "P-01"
+      ],
+      "note": "single author"
+    }
+  ]
+}

@@ -98,3 +98,31 @@ export function useUpdateTaskStatusMutation(projectId: string = 'default') {
     },
   });
 }
+
+
+export function useDeleteTaskMutation(projectId: string = 'default') {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (id: string) => {
+      return http.delete(`/tasks/${id}`);
+    },
+    onMutate: async (id: string) => {
+      await queryClient.cancelQueries({ queryKey: taskKeys.lists() });
+      const previousTasks = queryClient.getQueryData<TaskViewModel[]>(taskKeys.list({ projectId })) || [];
+      queryClient.setQueryData<TaskViewModel[]>(
+        taskKeys.list({ projectId }),
+        previousTasks.filter((t) => t.id !== id)
+      );
+      return { previousTasks };
+    },
+    onError: (_err, _id, context) => {
+      if (context?.previousTasks) {
+        queryClient.setQueryData(taskKeys.list({ projectId }), context.previousTasks);
+      }
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: taskKeys.lists() });
+    },
+  });
+}

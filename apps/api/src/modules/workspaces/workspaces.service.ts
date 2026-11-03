@@ -9,18 +9,14 @@ export class WorkspacesService {
   constructor(private readonly prisma: PrismaService) {}
 
   async create(userId: string, dto: CreateWorkspaceDto) {
-    const slug =
-      dto.slug ||
-      `${dto.name.toLowerCase().replace(/[^a-z0-9]/g, '')}-${Math.random().toString(36).substring(2, 6)}`;
+    let baseSlug = (dto.slug || dto.name.toLowerCase().replace(/[^a-z0-9]/g, '')) || 'ws';
+    if (baseSlug.length > 20) baseSlug = baseSlug.slice(0, 20);
+    let slug = `${baseSlug}-${Math.random().toString(36).substring(2, 7)}`;
 
-    const existing = await this.prisma.workspace.findUnique({
-      where: { slug },
-    });
-
-    if (existing) {
-      throw new AppError(ErrorCode.CONFLICT, 'Workspace slug is already in use.', 409, [
-        { field: 'slug', issue: 'already_taken' },
-      ]);
+    let existing = await this.prisma.workspace.findUnique({ where: { slug } });
+    while (existing) {
+      slug = `${baseSlug}-${Math.random().toString(36).substring(2, 7)}`;
+      existing = await this.prisma.workspace.findUnique({ where: { slug } });
     }
 
     const workspace = await this.prisma.workspace.create({
@@ -34,13 +30,26 @@ export class WorkspacesService {
             role: 'OWNER',
           },
         },
+        projects: {
+          create: {
+            name: 'General',
+            key: 'GEN',
+          },
+        },
       },
       include: {
         memberships: true,
+        projects: true,
+        _count: {
+          select: {
+            projects: true,
+            memberships: true,
+          },
+        },
       },
     });
 
-    return workspace;
+    return { ...workspace, role: 'OWNER' };
   }
 
   async findAll(userId: string) {

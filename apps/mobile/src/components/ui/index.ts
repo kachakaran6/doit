@@ -1,4 +1,6 @@
 export * from './Text';
+export * from './Surface';
+export * from './Divider';
 export * from './Button';
 export * from './Buttons';
 export * from './Chip';

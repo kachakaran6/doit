@@ -36,4 +36,25 @@ export default [
       '@typescript-eslint/no-unused-vars': ['warn', { argsIgnorePattern: '^_', varsIgnorePattern: '^_' }],
     },
   },
+  {
+    // DoIt Premium UI Kit P-00 Lint Rule:
+    // fontSize / fontFamily / fontWeight outside Text.tsx fails
+    files: ['apps/mobile/src/components/ui/**/*.tsx'],
+    ignores: [
+      'apps/mobile/src/components/ui/Text.tsx',
+    ],
+    rules: {
+      'no-restricted-syntax': [
+        'error',
+        {
+          selector: "Property[key.name='fontSize']",
+          message: "Direct 'fontSize' is forbidden outside Text.tsx. Use <Text variant=\"...\"> instead (03-TYPE-SYSTEM.md).",
+        },
+        {
+          selector: "Property[key.name='fontFamily']",
+          message: "Direct 'fontFamily' is forbidden outside Text.tsx. Use <Text variant=\"...\"> instead (03-TYPE-SYSTEM.md).",
+        },
+      ],
+    },
+  },
 ];

@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import { View, StyleSheet, ScrollView, TouchableOpacity, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRoute, useNavigation, RouteProp } from '@react-navigation/native';
 import { useTheme } from '../../../theme/useTheme';
@@ -13,9 +13,9 @@ import {
 } from '../../../components/ui';
 import { AttachmentGallery } from '../../../components/patterns';
 import { useTaskDetailQuery } from '../api/queries';
-import { useUpdateTaskStatusMutation } from '../api/mutations';
+import { useUpdateTaskStatusMutation, useDeleteTaskMutation } from '../api/mutations';
 import { RootStackParamList } from '../../../navigation/types';
-import { CheckCircle2, Clock, Flag, Tag, Check, Calendar } from 'lucide-react-native';
+import { CheckCircle2, Clock, Flag, Tag, Check, Calendar, Trash2 } from 'lucide-react-native';
 
 type DetailRouteProp = RouteProp<RootStackParamList, 'TaskDetail'>;
 
@@ -27,6 +27,29 @@ export const TaskDetailScreen: React.FC = () => {
 
   const { data: task, isLoading, error, refetch } = useTaskDetailQuery(id);
   const updateStatus = useUpdateTaskStatusMutation(task?.projectId || 'default');
+  const deleteTask = useDeleteTaskMutation(task?.projectId || 'default');
+
+  const handleConfirmDelete = () => {
+    Alert.alert(
+      'Move to Trash',
+      'Are you sure you want to move this task to trash?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Move to Trash',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await deleteTask.mutateAsync(task!.id);
+              navigation.goBack();
+            } catch (err: any) {
+              Alert.alert('Error', err?.message || 'Could not move task to trash.');
+            }
+          },
+        },
+      ]
+    );
+  };
 
   if (isLoading) {
     return (
@@ -78,25 +101,41 @@ export const TaskDetailScreen: React.FC = () => {
           title={task.humanId}
           onBack={() => navigation.goBack()}
           rightAction={
-            <View
-              style={[
-                styles.statusBadge,
-                {
-                  backgroundColor: isDone ? colors.success + '20' : colors.surfaceRaised,
-                  borderColor: isDone ? colors.success : colors.border,
-                  borderRadius: radius.pill,
-                },
-              ]}
-            >
-              <Text
-                variant="caption"
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+              <View
+                style={[
+                  styles.statusBadge,
+                  {
+                    backgroundColor: isDone ? colors.success + '20' : colors.surfaceRaised,
+                    borderColor: isDone ? colors.success : colors.border,
+                    borderRadius: radius.pill,
+                  },
+                ]}
+              >
+                <Text
+                  variant="caption"
+                  style={{
+                    color: isDone ? colors.success : colors.textSecondary,
+                    fontWeight: '600',
+                  }}
+                >
+                  {task.status}
+                </Text>
+              </View>
+              <TouchableOpacity
+                activeOpacity={0.7}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                onPress={handleConfirmDelete}
                 style={{
-                  color: isDone ? colors.success : colors.textSecondary,
-                  fontWeight: '600',
+                  padding: 6,
+                  borderRadius: radius.sm,
+                  backgroundColor: colors.surfaceRaised,
+                  borderWidth: StyleSheet.hairlineWidth,
+                  borderColor: colors.border,
                 }}
               >
-                {task.status}
-              </Text>
+                <Trash2 size={16} color={colors.danger} />
+              </TouchableOpacity>
             </View>
           }
         />
@@ -202,14 +241,21 @@ export const TaskDetailScreen: React.FC = () => {
           <AttachmentGallery title="Attachments" attachments={task.attachments} />
         ) : null}
 
-        {/* Status Action Button */}
-        <View style={{ marginTop: spacing.xl }}>
+        {/* Status & Trash Action Buttons */}
+        <View style={{ marginTop: spacing.xl, gap: spacing.md }}>
           <Button
             title={isDone ? 'Mark as Incomplete' : 'Mark as Done'}
             variant={isDone ? 'secondary' : 'primary'}
             icon={isDone ? undefined : <Check size={16} color={colors.accentOnPrimary} />}
             loading={updateStatus.isPending}
             onPress={handleToggleDone}
+          />
+          <Button
+            title="Move to Trash"
+            variant="danger"
+            icon={<Trash2 size={16} color="#FFF" />}
+            loading={deleteTask.isPending}
+            onPress={handleConfirmDelete}
           />
         </View>
       </ScrollView>

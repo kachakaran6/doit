@@ -17,4 +17,5 @@ export type RootStackParamList = {
   PendingSync: undefined;
   Notifications: undefined;
   DevGallery?: undefined;
+  FoundationGallery?: undefined;
 };

@@ -5,3 +5,4 @@ const targetPath = process.argv[2] || 'C:/Users/karan/.gemini/antigravity/brain/
 const buffer = execSync('adb -s 3086027538000H5 exec-out screencap -p');
 fs.writeFileSync(targetPath, buffer);
 console.log(`Saved screenshot (${buffer.length} bytes) to ${targetPath}`);
+

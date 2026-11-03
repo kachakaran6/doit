@@ -918,7 +918,12 @@ class BubbleService : Service(), SensorEventListener {
                 if (taskCode in 200..299) {
                     val resp = taskConn.inputStream.bufferedReader().use { it.readText() }
                     val jsonResp = JSONObject(resp)
-                    createdTaskId = jsonResp.optString("id")
+                    createdTaskId = if (jsonResp.has("task")) {
+                        jsonResp.getJSONObject("task").optString("id")
+                    } else {
+                        jsonResp.optString("id")
+                    }
+                    android.util.Log.d("BubbleService", "Created " + mode + " successfully: id=" + createdTaskId)
                 }
                 taskConn.disconnect()
 

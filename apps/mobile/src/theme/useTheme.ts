@@ -15,17 +15,22 @@ export type ThemeMode = 'system' | 'light' | 'dark';
 export type Accent = AccentName;
 
 export interface ThemeColors {
-  // Neutrals
-  bg: string;
+  // Neutrals (Ladder L0-L3)
+  bg: string;             // L0 Canvas
   bgSubtle: string;
-  surface: string;
-  surfaceRaised: string;
+  surface: string;        // L1 Cards, list rows
+  surfaceRaised: string;  // L2 Inputs, chips, stat tiles
+  surfaceOverlay: string; // L3 Selected chips, pressed states
   surfaceSubtle: string;
   border: string;
+  borderSubtle: string;
   borderStrong: string;
+  highlight: string;      // Top edge 1px highlight
+  text: string;
   textPrimary: string;
   textSecondary: string;
   textTertiary: string;
+  textMuted: string;
   overlay: string;
 
   // Semantics

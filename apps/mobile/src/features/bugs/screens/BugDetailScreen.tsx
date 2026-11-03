@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, StyleSheet, ScrollView } from 'react-native';
+import { View, StyleSheet, ScrollView, TouchableOpacity, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRoute, useNavigation, RouteProp } from '@react-navigation/native';
 import { useTheme } from '../../../theme/useTheme';
@@ -14,10 +14,10 @@ import {
 import { BugAutoContextCard } from '../components/BugAutoContextCard';
 import { SeverityPicker, AttachmentGallery } from '../../../components/patterns';
 import { useBugDetailQuery } from '../api/queries';
-import { useUpdateBugStatusMutation } from '../api/mutations';
+import { useUpdateBugStatusMutation, useDeleteBugMutation } from '../api/mutations';
 import { RootStackParamList } from '../../../navigation/types';
 import { BugStatus } from '../types';
-import { CheckCircle2, AlertTriangle, ShieldAlert } from 'lucide-react-native';
+import { CheckCircle2, AlertTriangle, ShieldAlert, Trash2 } from 'lucide-react-native';
 
 type BugRouteProp = RouteProp<RootStackParamList, 'BugDetail'>;
 
@@ -29,6 +29,29 @@ export const BugDetailScreen: React.FC = () => {
 
   const { data: bug, isLoading, error } = useBugDetailQuery(id);
   const updateStatus = useUpdateBugStatusMutation('default');
+  const deleteBug = useDeleteBugMutation('default');
+
+  const handleConfirmDelete = () => {
+    Alert.alert(
+      'Move to Trash',
+      'Are you sure you want to move this bug to trash?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Move to Trash',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await deleteBug.mutateAsync(bug!.id);
+              navigation.goBack();
+            } catch (err: any) {
+              Alert.alert('Error', err?.message || 'Could not move bug to trash.');
+            }
+          },
+        },
+      ]
+    );
+  };
 
   if (isLoading) {
     return (
@@ -178,13 +201,20 @@ export const BugDetailScreen: React.FC = () => {
           <AttachmentGallery title="Screenshots & Attachments" attachments={bug.attachments} />
         ) : null}
 
-        {/* Action Button */}
-        <View style={{ marginTop: spacing.xl }}>
+        {/* Status & Trash Action Buttons */}
+        <View style={{ marginTop: spacing.xl, gap: spacing.md }}>
           <Button
             title={isResolved ? 'Re-open Bug' : 'Mark as Resolved'}
             variant={isResolved ? 'secondary' : 'primary'}
             loading={updateStatus.isPending}
             onPress={handleToggleResolve}
+          />
+          <Button
+            title="Move to Trash"
+            variant="danger"
+            icon={<Trash2 size={16} color="#FFF" />}
+            loading={deleteBug.isPending}
+            onPress={handleConfirmDelete}
           />
         </View>
       </ScrollView>

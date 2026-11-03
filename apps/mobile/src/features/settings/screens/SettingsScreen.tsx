@@ -623,7 +623,16 @@ export const SettingsScreen: React.FC = () => {
           </View>
         </View>
 
-        {/* Section 4: Account Actions */}
+        {/* Section 4: Developer Tools */}
+        <View style={{ marginTop: spacing.md }}>
+          <Button
+            title="Foundation Gallery (P-00)"
+            variant="secondary"
+            onPress={() => (navigation as any).navigate('FoundationGallery')}
+          />
+        </View>
+
+        {/* Section 5: Account Actions */}
         <View style={{ marginTop: spacing.md }}>
           <Button
             title="Log Out"

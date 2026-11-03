@@ -1,40 +1,45 @@
 @layer theme {
   :root {
-    /* surfaces */
-    --color-bg:             247 248 250;
-    --color-bg-subtle:      241 242 245;
-    --color-surface:        255 255 255;
-    --color-surface-raised: 241 242 245;
-    --color-surface-subtle: 233 235 239;
-    --color-border:         228 228 231;
-    --color-border-strong:  212 212 216;
+    /* 02-SURFACE-SYSTEM.md Light surfaces */
+    --color-bg:              255 255 255; /* L0 */
+    --color-bg-subtle:       246 247 249;
+    --color-surface:         255 255 255; /* L1 */
+    --color-surface-raised:  246 247 249; /* L2 */
+    --color-surface-overlay: 236 238 242; /* L3 */
+    --color-surface-subtle:  246 247 249;
+    --color-border:          228 230 235;
+    --color-border-subtle:   236 238 242;
+    --color-border-strong:   212 215 224;
+    --color-highlight:       0 0 0 / 0.03;
 
-    /* text */
-    --color-text:           24 24 27;
-    --color-text-secondary: 82 82 91;
-    --color-text-tertiary:  138 138 148;
+    /* Text */
+    --color-text:            17 18 21;
+    --color-text-secondary:  107 112 123;
+    --color-text-tertiary:   157 162 173;
+    --color-text-muted:      157 162 173;
 
-    /* semantic */
+    /* Semantic */
     --color-success: 22 163 74;
     --color-warning: 217 119 6;
     --color-danger:  220 38 38;
     --color-info:    37 99 235;
 
-    /* accent */
+    /* Accent */
     --color-accent:            91 95 199;
     --color-accent-on:         255 255 255;
     --color-accent-container:  238 240 254;
     --color-accent-soft:       241 242 253;
     --color-accent-text:       75 79 168;
 
-    /* radius, space, type */
+    /* Radius by role (02-SURFACE-SYSTEM.md §2.6) */
     --radius-xs: 4px;
-    --radius-sm: 8px;
-    --radius-md: 12px;
-    --radius-lg: 16px;
-    --radius-xl: 20px;
+    --radius-sm: 12px;
+    --radius-md: 16px;
+    --radius-lg: 20px;
+    --radius-xl: 28px;
     --radius-pill: 999px;
 
+    /* 4pt Spacing */
     --space-xs: 4px;
     --space-sm: 8px;
     --space-md: 12px;
@@ -49,17 +54,23 @@
   }
 
   .dark {
-    --color-bg:             16 17 19;
-    --color-bg-subtle:      23 25 28;
-    --color-surface:        23 25 28;
-    --color-surface-raised: 29 32 36;
-    --color-surface-subtle: 35 38 43;
-    --color-border:         43 46 51;
-    --color-border-strong:  58 62 69;
+    /* 02-SURFACE-SYSTEM.md Dark surfaces */
+    --color-bg:              8 9 10;     /* L0 #08090A */
+    --color-bg-subtle:       15 16 18;
+    --color-surface:         15 16 18;   /* L1 #0F1012 */
+    --color-surface-raised:  22 24 27;   /* L2 #16181B */
+    --color-surface-overlay: 29 32 36;   /* L3 #1D2024 */
+    --color-surface-subtle:  22 24 27;
+    --color-border:          255 255 255 / 0.08;
+    --color-border-subtle:   255 255 255 / 0.05;
+    --color-border-strong:   255 255 255 / 0.12;
+    --color-highlight:       255 255 255 / 0.06;
 
-    --color-text:           243 244 246;
-    --color-text-secondary: 161 161 170;
-    --color-text-tertiary:  113 113 122;
+    /* Text */
+    --color-text:            244 245 246;
+    --color-text-secondary:  143 148 160;
+    --color-text-tertiary:   92 96 106;
+    --color-text-muted:      92 96 106;
 
     --color-success: 34 197 94;
     --color-warning: 245 158 11;

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, Modal, TouchableOpacity, ScrollView } from 'react-native';
+import { View, StyleSheet, Modal, TouchableOpacity, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
 import { useTheme } from '../../../theme/useTheme';
 import { Text, Button, Input } from '../../../components/ui';
 import { useWorkspaceStore } from '../store';
@@ -40,8 +40,7 @@ export const WorkspaceSwitcherSheet: React.FC<WorkspaceSwitcherSheetProps> = ({
     setIsSubmitting(true);
     setErrorMsg(null);
     try {
-      const slug = newWsName.toLowerCase().replace(/[^a-z0-9]/g, '-').slice(0, 24);
-      const res: any = await http.post('/workspaces', { name: newWsName.trim(), slug });
+      const res: any = await http.post('/workspaces', { name: newWsName.trim() });
       await refetch();
       if (res) {
         setActiveWorkspace(res);
@@ -58,11 +57,15 @@ export const WorkspaceSwitcherSheet: React.FC<WorkspaceSwitcherSheetProps> = ({
 
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
-      <TouchableOpacity
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={[styles.backdrop, { backgroundColor: colors.overlay }]}
-        activeOpacity={1}
-        onPress={onClose}
       >
+        <TouchableOpacity
+          style={StyleSheet.absoluteFill}
+          activeOpacity={1}
+          onPress={onClose}
+        />
         <TouchableOpacity
           activeOpacity={1}
           style={[
@@ -192,6 +195,8 @@ export const WorkspaceSwitcherSheet: React.FC<WorkspaceSwitcherSheetProps> = ({
                 onChangeText={setNewWsName}
                 placeholder="e.g. Acme Corp"
                 autoFocus
+                returnKeyType="done"
+                onSubmitEditing={handleCreate}
               />
               <View style={[styles.createActions, { gap: spacing.sm, marginTop: spacing.md }]}>
                 <Button
@@ -237,7 +242,7 @@ export const WorkspaceSwitcherSheet: React.FC<WorkspaceSwitcherSheetProps> = ({
             </View>
           )}
         </TouchableOpacity>
-      </TouchableOpacity>
+      </KeyboardAvoidingView>
     </Modal>
   );
 };
@@ -252,7 +257,7 @@ const styles = StyleSheet.create({
   sheet: {
     width: '100%',
     maxWidth: 420,
-    maxHeight: '80%',
+    maxHeight: '88%',
     borderWidth: 1,
   },
   header: {

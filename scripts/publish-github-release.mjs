@@ -3,33 +3,39 @@ import path from 'path';
 
 const TOKEN = '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';
 const REPO = 'kachakaran6/doit';
-const TAG = 'v0.1.0+7';
-const RELEASE_NAME = 'DoIt v0.1.0 — Release Build 7 (Screenshot Attachment Upload & Detail Gallery)';
-const APK_PATH = 'K:/Doit/DoIt-v0.1.0-build7.apk';
-const SHA_PATH = 'K:/Doit/DoIt-v0.1.0-build7.apk.sha256';
+const TAG = 'v0.1.0+10';
+const RELEASE_NAME = 'DoIt v0.1.0 — Release Build 10 (Screenshot Upload Fix, Move to Trash, Workspace Fix)';
+const APK_PATH = 'K:/Doit/DoIt-v0.1.0-build10.apk';
+const SHA_PATH = 'K:/Doit/DoIt-v0.1.0-build10.apk.sha256';
 
-const RELEASE_BODY = `## DoIt v0.1.0 — Release Build 7
+const RELEASE_BODY = `## DoIt v0.1.0 — Release Build 10
 
-### What's New & Fixed
-- **Task & Bug Detail Attachment Gallery**:
-  - Implemented reusable, theme-aligned \`AttachmentGallery\` component in both Task Detail and Bug Detail screens.
-  - Image thumbnails with loading spinner, aspect ratio preservation, rounded corners, and subtle borders.
-  - Tap any thumbnail to open the smooth **Full-Screen Image Viewer Modal** with high-resolution view, file dimensions, file size, MIME type, and quick close.
-- **Root-Cause Fix for Capture Upload**:
-  - Fixed mutation payload unwrap in \`CaptureModal.tsx\`: mutations return \`{ task: { id } }\`, extracting \`res?.task?.id || res?.id\` to guarantee attachments are properly associated with created tasks and bugs.
-  - Normalized MIME type (\`image/jpeg\`) and guaranteed positive byte size validation before presigned upload initialization.
-- **Backend Storage URL Generation**:
-  - Injected \`StorageService\` into \`TasksService.findOne\`.
-  - Generates authenticated signed URLs (\`url\` and \`thumbUrl\`) for all attachments on Tasks and Bugs.
-- **Attachment Association Fix**:
-  - Mapped \`bugId\` and \`taskId\` in \`AttachmentsService.completeUpload\` to eliminate foreign key mismatch, ensuring bug attachments are permanently attached to the corresponding Task record.
-- **Native Binary File Upload**:
-  - Added native streaming \`uploadFile\` in \`OverlayServiceModule\` so React Native streams files directly to presigned PUT URLs without bridge blob crashes on Android.
-- **Target Backend**:
-  - Pointed strictly to \`https://doit.samyukt.pro/api/v1\`.
+### Key Fixes & Features Delivered:
 
-### Download
-- **APK**: \`DoIt-v0.1.0-build7.apk\` (~35 MB)
+1. **Native Quick-Capture & Shake Screenshot Upload**:
+   - Fixed taskId extraction in native \`BubbleService.kt\` when submitting tasks/bugs via the floating bubble or shake capture. Now safely reads \`jsonResp.getJSONObject("task").optString("id")\`.
+   - Guaranteed upload and association of screenshot attachments directly to created Tasks and Bugs.
+   - Attachments render cleanly in Task Detail and Bug Detail with high-resolution thumbnail and tap-to-expand modal viewer.
+
+2. **Move Card to Trash**:
+   - Added \`useDeleteTaskMutation\` and \`useDeleteBugMutation\` communicating with \`DELETE /tasks/:id\`.
+   - Added a red **"Move to Trash"** button with destructive confirmation dialog in both Task Detail and Bug Detail screens.
+   - Added a quick-access Trash icon in the screen header.
+   - Verified end-to-end task deletion on physical Android device.
+
+3. **Workspace Creation Fix**:
+   - Fixed \`WorkspacesService.create\` to auto-generate unique collision-free slugs and automatically create the default \`General\` project (\`GEN\`) with \`projects: true\`.
+   - Prevents the "Project not found" error when creating tasks or bugs in newly created workspaces.
+   - Refined \`WorkspaceSwitcherSheet\` with \`KeyboardAvoidingView\`, flexible scrolling, and keyboard done action so Create/Cancel buttons are never clipped.
+
+4. **DoIt Premium UI Kit — Foundation (P-00)**:
+   - 4-step surface ladder (L0: \`#08090A\`, L1: \`#0F1012\`, L2: \`#16181B\`, L3: \`#1D2024\`).
+   - Optical typography scale with computed size-specific tracking, tabular numerals, and Inter 400/500/600 font family.
+   - \`Surface\` component with 1px top highlight and zero card borders.
+   - \`FoundationGallery\` developer screen reachable via deep link \`samyukt://dev/foundation\` and Settings screen.
+
+### Download:
+- **APK**: \`DoIt-v0.1.0-build10.apk\`
 `;
 
 async function main() {
@@ -59,6 +65,7 @@ async function main() {
       },
       body: JSON.stringify({
         tag_name: TAG,
+        target_commitish: 'main',
         name: RELEASE_NAME,
         body: RELEASE_BODY,
         draft: false,
@@ -67,10 +74,10 @@ async function main() {
     });
 
     if (!createRes.ok) {
-      const err = await createRes.text();
-      throw new Error(`Failed to create release: ${createRes.status} ${err}`);
+      const errText = await createRes.text();
+      console.error('Failed to create release:', createRes.status, errText);
+      process.exit(1);
     }
-
     releaseData = await createRes.json();
     console.log(`Created release successfully: ID ${releaseData.id}`);
   }
@@ -78,77 +85,59 @@ async function main() {
   const uploadUrlTemplate = releaseData.upload_url;
   const uploadBaseUrl = uploadUrlTemplate.split('{')[0];
 
-  // Upload APK
-  const apkName = path.basename(APK_PATH);
-  console.log(`2. Uploading ${apkName}...`);
-  const apkBytes = fs.readFileSync(APK_PATH);
+  console.log('2. Preparing assets to upload...');
+  const filesToUpload = [
+    { name: path.basename(APK_PATH), path: APK_PATH, contentType: 'application/vnd.android.package-archive' },
+    { name: path.basename(SHA_PATH), path: SHA_PATH, contentType: 'text/plain' },
+  ];
 
-  // Check if asset already exists
-  const existingAsset = releaseData.assets?.find((a) => a.name === apkName);
-  if (existingAsset) {
-    console.log(`Deleting existing asset ${apkName} (ID ${existingAsset.id})...`);
-    await fetch(`https://api.github.com/repos/${REPO}/releases/assets/${existingAsset.id}`, {
-      method: 'DELETE',
-      headers: {
-        Authorization: `Bearer ${TOKEN}`,
-        'User-Agent': 'DoIt-Release-Uploader',
-      },
-    });
+  for (const asset of releaseData.assets || []) {
+    console.log(`Checking existing asset: ${asset.name} (ID: ${asset.id})`);
+    for (const file of filesToUpload) {
+      if (asset.name === file.name) {
+        console.log(`Deleting old asset ${asset.name}...`);
+        await fetch(`https://api.github.com/repos/${REPO}/releases/assets/${asset.id}`, {
+          method: 'DELETE',
+          headers: {
+            Authorization: `Bearer ${TOKEN}`,
+            'User-Agent': 'DoIt-Release-Uploader',
+          },
+        });
+      }
+    }
   }
 
-  const uploadApkRes = await fetch(`${uploadBaseUrl}?name=${apkName}`, {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${TOKEN}`,
-      'User-Agent': 'DoIt-Release-Uploader',
-      'Content-Type': 'application/vnd.android.package-archive',
-      'Content-Length': apkBytes.length.toString(),
-    },
-    body: apkBytes,
-  });
-
-  if (!uploadApkRes.ok) {
-    const err = await uploadApkRes.text();
-    throw new Error(`Failed to upload APK: ${uploadApkRes.status} ${err}`);
-  }
-  const apkAsset = await uploadApkRes.json();
-  console.log(`APK uploaded successfully! Download URL: ${apkAsset.browser_download_url}`);
-
-  // Upload SHA-256
-  if (fs.existsSync(SHA_PATH)) {
-    console.log('3. Uploading SHA-256 checksum...');
-    const shaBytes = fs.readFileSync(SHA_PATH);
-    const shaName = path.basename(SHA_PATH);
-
-    const existingSha = releaseData.assets?.find((a) => a.name === shaName);
-    if (existingSha) {
-      console.log(`Deleting existing asset ${shaName}...`);
-      await fetch(`https://api.github.com/repos/${REPO}/releases/assets/${existingSha.id}`, {
-        method: 'DELETE',
-        headers: {
-          Authorization: `Bearer ${TOKEN}`,
-          'User-Agent': 'DoIt-Release-Uploader',
-        },
-      });
+  for (const file of filesToUpload) {
+    if (!fs.existsSync(file.path)) {
+      console.error(`File does not exist: ${file.path}`);
+      continue;
     }
 
-    const uploadShaRes = await fetch(`${uploadBaseUrl}?name=${shaName}`, {
+    const fileBuffer = fs.readFileSync(file.path);
+    const uploadUrl = `${uploadBaseUrl}?name=${encodeURIComponent(file.name)}`;
+    console.log(`Uploading ${file.name} (${fileBuffer.length} bytes)...`);
+
+    const uploadRes = await fetch(uploadUrl, {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${TOKEN}`,
         'User-Agent': 'DoIt-Release-Uploader',
-        'Content-Type': 'text/plain',
-        'Content-Length': shaBytes.length.toString(),
+        'Content-Type': file.contentType,
+        'Content-Length': fileBuffer.length.toString(),
       },
-      body: shaBytes,
+      body: fileBuffer,
     });
 
-    if (uploadShaRes.ok) {
-      console.log('SHA-256 uploaded successfully!');
+    if (uploadRes.ok) {
+      const uploadedData = await uploadRes.json();
+      console.log(`✔ Successfully uploaded ${file.name} (ID: ${uploadedData.id}, Download: ${uploadedData.browser_download_url})`);
+    } else {
+      const err = await uploadRes.text();
+      console.error(`✖ Failed to upload ${file.name}:`, uploadRes.status, err);
     }
   }
 
-  console.log('=== Release complete ===');
+  console.log('All done! Release is live at:', releaseData.html_url);
 }
 
 main().catch((err) => {

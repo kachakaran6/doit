@@ -80,3 +80,31 @@ export function useUpdateBugStatusMutation(projectId: string = 'default') {
     },
   });
 }
+
+
+export function useDeleteBugMutation(projectId: string = 'default') {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (id: string) => {
+      return http.delete(`/tasks/${id}`);
+    },
+    onMutate: async (id: string) => {
+      await queryClient.cancelQueries({ queryKey: bugKeys.lists() });
+      const previous = queryClient.getQueryData<BugViewModel[]>(bugKeys.list({ projectId })) || [];
+      queryClient.setQueryData<BugViewModel[]>(
+        bugKeys.list({ projectId }),
+        previous.filter((b) => b.id !== id)
+      );
+      return { previous };
+    },
+    onError: (_err, _id, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(bugKeys.list({ projectId }), context.previous);
+      }
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: bugKeys.lists() });
+    },
+  });
+}

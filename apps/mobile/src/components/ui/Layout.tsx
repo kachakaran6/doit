@@ -1,41 +1,63 @@
 import React from 'react';
-import { View, StyleSheet, ViewStyle } from 'react-native';
+import { View, StyleSheet, StyleProp, ViewStyle } from 'react-native';
 import { useTheme } from '../../theme/useTheme';
-import { spacing as spacingTokens } from '@doit/tokens';
+import { spacing as tokenSpacing } from '@doit/tokens';
 
-export type SpacingKey = keyof typeof spacingTokens;
+export type SpacingKey = keyof typeof tokenSpacing;
 
 export interface StackProps {
   gap?: SpacingKey;
-  children: React.ReactNode;
-  style?: ViewStyle;
+  align?: 'flex-start' | 'center' | 'flex-end' | 'stretch';
+  justify?: 'flex-start' | 'center' | 'flex-end' | 'space-between' | 'space-around';
+  style?: StyleProp<ViewStyle>;
+  children?: React.ReactNode;
 }
 
 /**
- * Use Stack to arrange children vertically with uniform gap token spacing.
+ * Use Stack for vertical component ordering with predictable 8-pt rhythm.
  */
-export const Stack: React.FC<StackProps> = ({ gap = 'md', children, style }) => {
+export const Stack: React.FC<StackProps> = ({
+  gap = 'md',
+  align = 'stretch',
+  justify = 'flex-start',
+  style,
+  children,
+}) => {
   const { spacing } = useTheme();
-  return <View style={[{ gap: spacing[gap] }, style]}>{children}</View>;
+  return (
+    <View
+      style={[
+        {
+          flexDirection: 'column',
+          alignItems: align,
+          justifyContent: justify,
+          gap: spacing[gap],
+        },
+        style,
+      ]}
+    >
+      {children}
+    </View>
+  );
 };
 
 export interface RowProps {
   gap?: SpacingKey;
-  align?: 'flex-start' | 'center' | 'flex-end';
-  justify?: 'flex-start' | 'center' | 'flex-end' | 'space-between';
-  children: React.ReactNode;
-  style?: ViewStyle;
+  align?: 'flex-start' | 'center' | 'flex-end' | 'stretch';
+  justify?: 'flex-start' | 'center' | 'flex-end' | 'space-between' | 'space-around';
+  style?: StyleProp<ViewStyle>;
+  children?: React.ReactNode;
 }
 
 /**
- * Use Row to arrange children horizontally with uniform gap token spacing.
+ * Use Row for horizontal component alignment.
  */
 export const Row: React.FC<RowProps> = ({
-  gap = 'sm',
+  gap = 'md',
   align = 'center',
   justify = 'flex-start',
-  children,
   style,
+  children,
 }) => {
   const { spacing } = useTheme();
   return (
@@ -75,25 +97,4 @@ export const Spacer: React.FC<SpacerProps> = ({ size = 'md', horizontal = false 
   );
 };
 
-export interface DividerProps {
-  style?: ViewStyle;
-}
-
-/**
- * Use Divider for 1px hairline separation between sections or list rows.
- */
-export const Divider: React.FC<DividerProps> = ({ style }) => {
-  const { colors } = useTheme();
-  return (
-    <View
-      style={[
-        {
-          height: StyleSheet.hairlineWidth,
-          backgroundColor: colors.border,
-          width: '100%',
-        },
-        style,
-      ]}
-    />
-  );
-};
+export { Divider, DividerProps } from './Divider';
