@@ -290,7 +290,7 @@ export const CaptureModal: React.FC = () => {
       let createdId: string | null = null;
 
       if (current.mode === 'bug') {
-        const res = await createBug.mutateAsync({
+        const res: any = await createBug.mutateAsync({
           title: current.title.trim(),
           description: current.description.trim() || undefined,
           severity: current.severity,
@@ -301,7 +301,7 @@ export const CaptureModal: React.FC = () => {
             package: 'com.samyukt.doit',
           },
         });
-        createdId = res?.id || null;
+        createdId = res?.task?.id || res?.id || null;
       } else if (current.mode === 'sticky') {
         const fullBody = current.description.trim()
           ? `${current.title.trim()}\n${current.description.trim()}`
@@ -319,26 +319,30 @@ export const CaptureModal: React.FC = () => {
         });
       } else {
         const dueAtIso = current.dueDate ? new Date(current.dueDate).toISOString() : undefined;
-        const res = await createTask.mutateAsync({
+        const res: any = await createTask.mutateAsync({
           title: current.title.trim(),
           description: current.description.trim() || undefined,
           dueDate: dueAtIso,
           priority: current.priority,
         });
-        createdId = res?.id || null;
+        createdId = res?.task?.id || res?.id || null;
       }
 
       if (createdId && current.attachments.length > 0) {
         setIsUploadingAttachments(true);
         for (const item of current.attachments) {
           try {
+            const normalizedMime =
+              !item.mimeType || item.mimeType === 'image/jpg' ? 'image/jpeg' : item.mimeType;
+            const sizeBytes = item.sizeBytes && item.sizeBytes > 0 ? item.sizeBytes : 1024;
+
             const initRes = await http.post<{ uploadId: string; putUrl: string; key: string }>('/uploads/init', {
-              contentType: item.mimeType || 'image/jpeg',
-              sizeBytes: item.sizeBytes,
+              contentType: normalizedMime,
+              sizeBytes,
               purpose: current.mode === 'bug' ? 'BUG' : 'TASK',
             });
             const putTarget = initRes.putUrl.startsWith('/') ? `${http.getBaseUrl()}${initRes.putUrl}` : initRes.putUrl;
-            await overlayService.uploadFile(item.uri, putTarget, item.mimeType || 'image/jpeg');
+            await overlayService.uploadFile(item.uri, putTarget, normalizedMime);
             await http.post(`/uploads/${initRes.uploadId}/complete`, {
               taskId: createdId,
             });

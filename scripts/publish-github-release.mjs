@@ -3,18 +3,21 @@ import path from 'path';
 
 const TOKEN = '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';
 const REPO = 'kachakaran6/doit';
-const TAG = 'v0.1.0+6';
-const RELEASE_NAME = 'DoIt v0.1.0 — Release Build 6 (Task & Bug Attachment Gallery & Detail Rendering)';
-const APK_PATH = 'K:/Doit/DoIt-v0.1.0-build6.apk';
-const SHA_PATH = 'K:/Doit/DoIt-v0.1.0-build6.apk.sha256';
+const TAG = 'v0.1.0+7';
+const RELEASE_NAME = 'DoIt v0.1.0 — Release Build 7 (Screenshot Attachment Upload & Detail Gallery)';
+const APK_PATH = 'K:/Doit/DoIt-v0.1.0-build7.apk';
+const SHA_PATH = 'K:/Doit/DoIt-v0.1.0-build7.apk.sha256';
 
-const RELEASE_BODY = `## DoIt v0.1.0 — Release Build 6
+const RELEASE_BODY = `## DoIt v0.1.0 — Release Build 7
 
 ### What's New & Fixed
 - **Task & Bug Detail Attachment Gallery**:
   - Implemented reusable, theme-aligned \`AttachmentGallery\` component in both Task Detail and Bug Detail screens.
   - Image thumbnails with loading spinner, aspect ratio preservation, rounded corners, and subtle borders.
   - Tap any thumbnail to open the smooth **Full-Screen Image Viewer Modal** with high-resolution view, file dimensions, file size, MIME type, and quick close.
+- **Root-Cause Fix for Capture Upload**:
+  - Fixed mutation payload unwrap in \`CaptureModal.tsx\`: mutations return \`{ task: { id } }\`, extracting \`res?.task?.id || res?.id\` to guarantee attachments are properly associated with created tasks and bugs.
+  - Normalized MIME type (\`image/jpeg\`) and guaranteed positive byte size validation before presigned upload initialization.
 - **Backend Storage URL Generation**:
   - Injected \`StorageService\` into \`TasksService.findOne\`.
   - Generates authenticated signed URLs (\`url\` and \`thumbUrl\`) for all attachments on Tasks and Bugs.
@@ -26,7 +29,7 @@ const RELEASE_BODY = `## DoIt v0.1.0 — Release Build 6
   - Pointed strictly to \`https://doit.samyukt.pro/api/v1\`.
 
 ### Download
-- **APK**: \`DoIt-v0.1.0-build6.apk\` (~35 MB)
+- **APK**: \`DoIt-v0.1.0-build7.apk\` (~35 MB)
 `;
 
 async function main() {
@@ -76,9 +79,9 @@ async function main() {
   const uploadBaseUrl = uploadUrlTemplate.split('{')[0];
 
   // Upload APK
-  console.log('2. Uploading DoIt-v0.1.0-build6.apk...');
+  const apkName = path.basename(APK_PATH);
+  console.log(`2. Uploading ${apkName}...`);
   const apkBytes = fs.readFileSync(APK_PATH);
-  const apkName = 'DoIt-v0.1.0-build6.apk';
 
   // Check if asset already exists
   const existingAsset = releaseData.assets?.find((a) => a.name === apkName);
@@ -115,7 +118,7 @@ async function main() {
   if (fs.existsSync(SHA_PATH)) {
     console.log('3. Uploading SHA-256 checksum...');
     const shaBytes = fs.readFileSync(SHA_PATH);
-    const shaName = 'DoIt-v0.1.0-build6.apk.sha256';
+    const shaName = path.basename(SHA_PATH);
 
     const existingSha = releaseData.assets?.find((a) => a.name === shaName);
     if (existingSha) {
