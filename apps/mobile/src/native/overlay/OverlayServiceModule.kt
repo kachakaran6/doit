@@ -258,51 +258,19 @@ class OverlayServiceModule(private val reactContext: ReactApplicationContext) :
 
     @ReactMethod
     fun hasScreenshotPermission(promise: Promise) {
-        promise.resolve(ScreenshotHelper.hasProjectionConsent())
+        promise.resolve(true)
     }
 
     @ReactMethod
     fun requestScreenshotPermission(promise: Promise) {
-        try {
-            val activity = currentActivity ?: reactContext
-            ScreenshotCaptureActivity.requestPermission(activity, promise)
-        } catch (e: Exception) {
-            promise.reject("PROJECTION_REQUEST_ERROR", e.message)
-        }
+        promise.resolve(true)
     }
 
     @ReactMethod
     fun captureCleanScreenshot(promise: Promise) {
-        if (!ScreenshotHelper.hasProjectionConsent()) {
-            promise.reject("NO_PROJECTION_CONSENT", "MediaProjection permission required")
-            return
-        }
-
         try {
-            ScreenshotHelper.captureCleanScreen(
-                reactContext,
-                onPreCapture = {
-                    BubbleService.hideOverlays()
-                },
-                onPostCapture = {
-                    BubbleService.restoreOverlays()
-                },
-                callback = object : ScreenshotHelper.ScreenshotCallback {
-                    override fun onSuccess(file: File) {
-                        val map = Arguments.createMap().apply {
-                            putString("uri", "file://${file.absolutePath}")
-                            putString("name", file.name)
-                            putInt("sizeBytes", file.length().toInt())
-                            putString("mimeType", "image/jpeg")
-                        }
-                        promise.resolve(map)
-                    }
-
-                    override fun onError(error: String) {
-                        promise.reject("SCREENSHOT_FAILED", error)
-                    }
-                }
-            )
+            val activity = currentActivity ?: reactContext
+            ScreenshotCaptureActivity.captureCleanScreen(activity, promise)
         } catch (e: Exception) {
             promise.reject("CAPTURE_FAILED", e.message)
         }

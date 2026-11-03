@@ -144,7 +144,15 @@ class BubbleService : Service(), SensorEventListener {
         shakeSensitivity = prefs?.getString("shake_sensitivity", "medium") ?: "medium"
 
         createNotificationChannel()
-        startForeground(NOTIFICATION_ID, createNotification())
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            startForeground(
+                NOTIFICATION_ID,
+                createNotification(),
+                android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE
+            )
+        } else {
+            startForeground(NOTIFICATION_ID, createNotification())
+        }
         createBubbleView()
         registerShakeSensor()
     }
@@ -807,56 +815,12 @@ class BubbleService : Service(), SensorEventListener {
         isSubmitting = true
 
         if (shouldAttachScreenshot) {
-            // Check if we have consent
-            if (!ScreenshotHelper.hasProjectionConsent()) {
-                ScreenshotCaptureActivity.requestPermission(this, callback = { granted ->
-                    if (granted) {
-                        proceedWithCleanCaptureAndSubmit(titleText, mode, true)
-                    } else {
-                        // User denied screenshot permission -> still submit task without screenshot
-                        proceedWithCleanCaptureAndSubmit(titleText, mode, false)
-                    }
-                })
-                return
-            }
-            proceedWithCleanCaptureAndSubmit(titleText, mode, true)
-        } else {
-            proceedWithCleanCaptureAndSubmit(titleText, mode, false)
-        }
-    }
-
-    private fun proceedWithCleanCaptureAndSubmit(titleText: String, mode: String, captureShot: Boolean) {
-        if (captureShot) {
-            // Step A: Hide overlays completely so screenshot is 100% clean
-            modalContainer?.visibility = View.GONE
-            promptContainer?.visibility = View.GONE
-            bubbleContainer?.visibility = View.GONE
-
-            ScreenshotHelper.captureCleanScreen(
-                this,
-                onPreCapture = {
-                    // Already hidden
-                },
-                onPostCapture = {
-                    // Handled below
-                },
-                callback = object : ScreenshotHelper.ScreenshotCallback {
-                    override fun onSuccess(file: File) {
-                        // Dismiss modal and restore bubble
-                        dismissCompactModal()
-                        bubbleContainer?.visibility = View.VISIBLE
-                        showToastForMode(mode)
-                        submitToBackend(titleText, mode, file)
-                    }
-
-                    override fun onError(error: String) {
-                        dismissCompactModal()
-                        bubbleContainer?.visibility = View.VISIBLE
-                        showToastForMode(mode)
-                        submitToBackend(titleText, mode, null)
-                    }
-                }
-            )
+            ScreenshotCaptureActivity.captureCleanScreen(this, callback = { file ->
+                dismissCompactModal()
+                bubbleContainer?.visibility = View.VISIBLE
+                showToastForMode(mode)
+                submitToBackend(titleText, mode, file)
+            })
         } else {
             dismissCompactModal()
             bubbleContainer?.visibility = View.VISIBLE
