@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { WorkspaceItem, ProjectItem } from './types';
 import { overlayService } from '../../native/overlay';
 import { useAuthStore } from '../auth';
+import { http } from '../../lib/http';
 
 interface WorkspaceState {
   workspaces: WorkspaceItem[];
@@ -10,6 +11,7 @@ interface WorkspaceState {
   setWorkspaces: (workspaces: WorkspaceItem[]) => void;
   setActiveWorkspace: (ws: WorkspaceItem) => void;
   setActiveProject: (p: ProjectItem) => void;
+  fetchAndInitializeWorkspaces: () => Promise<void>;
 }
 
 export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
@@ -55,5 +57,15 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
     const token = useAuthStore.getState().accessToken;
     overlayService.syncAuthCredentials(token, 'https://doit.samyukt.pro/api/v1', p.id);
     set({ activeProject: p });
+  },
+  fetchAndInitializeWorkspaces: async () => {
+    try {
+      const res = await http.get<WorkspaceItem[]>('/workspaces');
+      if (Array.isArray(res) && res.length > 0) {
+        get().setWorkspaces(res);
+      }
+    } catch (e) {
+      console.warn('Failed to prefetch workspaces:', e);
+    }
   },
 }));

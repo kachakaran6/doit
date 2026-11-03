@@ -11,6 +11,7 @@ import { NotificationsScreen } from '../features/notifications';
 import { ComponentGallery } from '../core/dev/ComponentGallery';
 import { NavBarScrollProvider } from './nav-bar-scroll.context';
 import { useAuthStore } from '../features/auth/store';
+import { useWorkspaceStore } from '../features/workspace/store';
 import { useVersionPolicy } from '../features/system/useVersionPolicy';
 import { ForceUpdateScreen } from '../features/system/ForceUpdateScreen';
 
@@ -50,6 +51,12 @@ export const RootNavigator: React.FC = () => {
   useEffect(() => {
     useAuthStore.getState().initAuth().catch(() => {});
   }, []);
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      useWorkspaceStore.getState().fetchAndInitializeWorkspaces().catch(() => {});
+    }
+  }, [isAuthenticated]);
 
   if (versionPolicy.checked && versionPolicy.needsUpdate) {
     return (

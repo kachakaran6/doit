@@ -1,0 +1,349 @@
+package com.samyukt.doit.overlay
+
+import android.app.AppOpsManager
+import android.content.Context
+import android.content.Intent
+import android.net.Uri
+import android.os.Build
+import android.os.Process
+import android.provider.Settings
+import com.facebook.react.bridge.Arguments
+import com.facebook.react.bridge.Promise
+import com.facebook.react.bridge.ReactApplicationContext
+import com.facebook.react.bridge.ReactContextBaseJavaModule
+import com.facebook.react.bridge.ReactMethod
+import android.graphics.Bitmap
+import android.graphics.Rect
+import android.os.Handler
+import android.os.Looper
+import android.view.PixelCopy
+import java.io.File
+import java.io.FileOutputStream
+
+class OverlayServiceModule(private val reactContext: ReactApplicationContext) :
+    ReactContextBaseJavaModule(reactContext) {
+
+    override fun getName(): String = "OverlayServiceModule"
+
+    @ReactMethod
+    fun isAvailable(promise: Promise) {
+        promise.resolve(Build.VERSION.SDK_INT >= Build.VERSION_CODES.M)
+    }
+
+    @ReactMethod
+    fun hasPermission(promise: Promise) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            try {
+                val canDraw = Settings.canDrawOverlays(reactContext)
+                if (canDraw) {
+                    promise.resolve(true)
+                    return
+                }
+
+                // Dual check: AppOpsManager OPSTR_SYSTEM_ALERT_WINDOW (op 24)
+                val appOps = reactContext.getSystemService(Context.APP_OPS_SERVICE) as? AppOpsManager
+                if (appOps != null) {
+                    val mode = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                        appOps.unsafeCheckOpNoThrow(
+                            AppOpsManager.OPSTR_SYSTEM_ALERT_WINDOW,
+                            Process.myUid(),
+                            reactContext.packageName
+                        )
+                    } else {
+                        @Suppress("DEPRECATION")
+                        appOps.checkOpNoThrow(
+                            AppOpsManager.OPSTR_SYSTEM_ALERT_WINDOW,
+                            Process.myUid(),
+                            reactContext.packageName
+                        )
+                    }
+                    if (mode == AppOpsManager.MODE_ALLOWED) {
+                        promise.resolve(true)
+                        return
+                    }
+                }
+                promise.resolve(false)
+            } catch (e: Exception) {
+                promise.resolve(Settings.canDrawOverlays(reactContext))
+            }
+        } else {
+            promise.resolve(true)
+        }
+    }
+
+    @ReactMethod
+    fun hasMiuiPopupPermission(promise: Promise) {
+        val manufacturer = Build.MANUFACTURER.lowercase()
+        val isXiaomi = manufacturer.contains("xiaomi") || manufacturer.contains("poco") || manufacturer.contains("redmi")
+        if (!isXiaomi) {
+            promise.resolve(true)
+            return
+        }
+
+        try {
+            val appOps = reactContext.getSystemService(Context.APP_OPS_SERVICE) as? AppOpsManager
+            if (appOps != null) {
+                // MIUI custom op 10021 = OP_BACKGROUND_START_ACTIVITY ("Display pop-up windows while running in the background")
+                val method = AppOpsManager::class.java.getMethod(
+                    "checkOpNoThrow",
+                    Int::class.javaPrimitiveType,
+                    Int::class.javaPrimitiveType,
+                    String::class.java
+                )
+                val result = method.invoke(appOps, 10021, Process.myUid(), reactContext.packageName) as Int
+                promise.resolve(result == AppOpsManager.MODE_ALLOWED)
+                return
+            }
+        } catch (_: Exception) {
+            // Reflection fallback
+        }
+        promise.resolve(true)
+    }
+
+    @ReactMethod
+    fun requestPermission(promise: Promise) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            try {
+                val intent = Intent(
+                    Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                    Uri.parse("package:${reactContext.packageName}")
+                ).apply {
+                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                }
+                reactContext.startActivity(intent)
+                promise.resolve(true)
+            } catch (e: Exception) {
+                try {
+                    val intent = Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION).apply {
+                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    }
+                    reactContext.startActivity(intent)
+                    promise.resolve(true)
+                } catch (e2: Exception) {
+                    try {
+                        val intent = Intent(
+                            Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+                            Uri.parse("package:${reactContext.packageName}")
+                        ).apply {
+                            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                        }
+                        reactContext.startActivity(intent)
+                        promise.resolve(true)
+                    } catch (e3: Exception) {
+                        promise.reject("ACTIVITY_NOT_FOUND", e3.message)
+                    }
+                }
+            }
+        } else {
+            promise.resolve(true)
+        }
+    }
+
+    @ReactMethod
+    fun openOverlaySettings(promise: Promise) {
+        requestPermission(promise)
+    }
+
+    @ReactMethod
+    fun openAppSettings(promise: Promise) {
+        try {
+            val intent = Intent(
+                Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+                Uri.parse("package:${reactContext.packageName}")
+            ).apply {
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            }
+            reactContext.startActivity(intent)
+            promise.resolve(true)
+        } catch (e: Exception) {
+            promise.reject("SETTINGS_ERROR", e.message)
+        }
+    }
+
+    @ReactMethod
+    fun openDeviceSpecificSettings(promise: Promise) {
+        val manufacturer = Build.MANUFACTURER.lowercase()
+        if (manufacturer.contains("xiaomi") || manufacturer.contains("poco") || manufacturer.contains("redmi")) {
+            try {
+                val miuiIntent = Intent("miui.intent.action.APP_PERM_EDITOR").apply {
+                    setClassName("com.miui.securitycenter", "com.miui.permcenter.permissions.PermissionsEditorActivity")
+                    putExtra("extra_pkgname", reactContext.packageName)
+                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                }
+                reactContext.startActivity(miuiIntent)
+                promise.resolve(true)
+                return
+            } catch (_: Exception) {
+                // Fallthrough
+            }
+        }
+
+        openAppSettings(promise)
+    }
+
+    @ReactMethod
+    fun isDeviceXiaomi(promise: Promise) {
+        val manufacturer = Build.MANUFACTURER.lowercase()
+        val isXiaomi = manufacturer.contains("xiaomi") || manufacturer.contains("poco") || manufacturer.contains("redmi")
+        promise.resolve(isXiaomi)
+    }
+
+    @ReactMethod
+    fun startBubble(promise: Promise) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && !Settings.canDrawOverlays(reactContext)) {
+            promise.reject("PERMISSION_DENIED", "SYSTEM_ALERT_WINDOW permission is required")
+            return
+        }
+
+        try {
+            val serviceIntent = Intent(reactContext, BubbleService::class.java).apply {
+                action = BubbleService.ACTION_START
+            }
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                reactContext.startForegroundService(serviceIntent)
+            } else {
+                reactContext.startService(serviceIntent)
+            }
+            promise.resolve(true)
+        } catch (e: Exception) {
+            promise.reject("SERVICE_START_FAILED", e.message)
+        }
+    }
+
+    @ReactMethod
+    fun stopBubble(promise: Promise) {
+        try {
+            val serviceIntent = Intent(reactContext, BubbleService::class.java).apply {
+                action = BubbleService.ACTION_STOP
+            }
+            reactContext.startService(serviceIntent)
+            promise.resolve(true)
+        } catch (e: Exception) {
+            promise.reject("SERVICE_STOP_FAILED", e.message)
+        }
+    }
+
+    @ReactMethod
+    fun isBubbleRunning(promise: Promise) {
+        promise.resolve(BubbleService.isRunning)
+    }
+
+    @ReactMethod
+    fun syncAuthCredentials(token: String?, baseUrl: String?, projectId: String?, promise: Promise) {
+        try {
+            val prefs = reactContext.getSharedPreferences("doit_overlay_prefs", Context.MODE_PRIVATE)
+            prefs.edit().apply {
+                putString("auth_token", token)
+                putString("base_url", baseUrl ?: "https://doit.samyukt.pro/api/v1")
+                putString("project_id", projectId)
+                apply()
+            }
+            promise.resolve(true)
+        } catch (e: Exception) {
+            promise.reject("SYNC_FAILED", e.message)
+        }
+    }
+
+    @ReactMethod
+    fun setShakeEnabled(enabled: Boolean, sensitivity: String?, promise: Promise) {
+        try {
+            val prefs = reactContext.getSharedPreferences("doit_overlay_prefs", Context.MODE_PRIVATE)
+            prefs.edit().apply {
+                putBoolean("shake_enabled", enabled)
+                if (!sensitivity.isNullOrEmpty()) {
+                    putString("shake_sensitivity", sensitivity)
+                }
+                apply()
+            }
+            BubbleService.updateShakeConfig(enabled, sensitivity)
+            promise.resolve(true)
+        } catch (e: Exception) {
+            promise.reject("CONFIG_FAILED", e.message)
+        }
+    }
+
+    @ReactMethod
+    fun hasScreenshotPermission(promise: Promise) {
+        promise.resolve(true)
+    }
+
+    @ReactMethod
+    fun requestScreenshotPermission(promise: Promise) {
+        promise.resolve(true)
+    }
+
+    @ReactMethod
+    fun captureCleanScreenshot(promise: Promise) {
+        val activity = currentActivity
+        if (activity != null && !activity.isFinishing && Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val window = activity.window
+            val decorView = window.decorView
+            val width = decorView.width
+            val height = decorView.height
+
+            if (width > 0 && height > 0) {
+                val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
+                val location = IntArray(2)
+                try {
+                    decorView.getLocationInSurface(location)
+                    val rect = Rect(location[0], location[1], location[0] + width, location[1] + height)
+
+                    PixelCopy.request(
+                        window,
+                        rect,
+                        bitmap,
+                        { copyResult ->
+                            if (copyResult == PixelCopy.SUCCESS) {
+                                try {
+                                    val outFile = File(
+                                        reactContext.cacheDir,
+                                        "screenshot_${System.currentTimeMillis()}.jpg"
+                                    )
+                                    FileOutputStream(outFile).use { fos ->
+                                        bitmap.compress(Bitmap.CompressFormat.JPEG, 90, fos)
+                                    }
+                                    bitmap.recycle()
+
+                                    val map = Arguments.createMap().apply {
+                                        putString("uri", "file://${outFile.absolutePath}")
+                                        putString("name", outFile.name)
+                                        putInt("sizeBytes", outFile.length().toInt())
+                                        putString("mimeType", "image/jpeg")
+                                        putInt("width", width)
+                                        putInt("height", height)
+                                    }
+                                    promise.resolve(map)
+                                } catch (e: Exception) {
+                                    promise.reject("SAVE_FAILED", e.message)
+                                }
+                            } else {
+                                ScreenshotCaptureActivity.captureCleanScreen(activity, promise)
+                            }
+                        },
+                        Handler(Looper.getMainLooper())
+                    )
+                    return
+                } catch (e: Exception) {
+                    // Fall through to ScreenshotCaptureActivity
+                }
+            }
+        }
+
+        try {
+            val act = activity ?: reactContext
+            ScreenshotCaptureActivity.captureCleanScreen(act, promise)
+        } catch (e: Exception) {
+            promise.reject("CAPTURE_FAILED", e.message)
+        }
+    }
+
+    @ReactMethod
+    fun pickImageFromGallery(promise: Promise) {
+        try {
+            val activity = currentActivity ?: reactContext
+            ImagePickerActivity.pickImage(activity, promise)
+        } catch (e: Exception) {
+            promise.reject("PICKER_ERROR", e.message)
+        }
+    }
+}

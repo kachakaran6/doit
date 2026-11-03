@@ -48,11 +48,13 @@ export class WorkspaceMemberGuard implements CanActivate {
           where: { userId },
           include: { workspace: { include: { projects: { take: 1 } } } },
         });
-        if (firstMembership?.workspace?.projects[0]) {
+        if (firstMembership) {
           workspaceId = firstMembership.workspaceId;
-          const resolvedId = firstMembership.workspace.projects[0].id;
-          if (request.params['projectId']) request.params['projectId'] = resolvedId;
-          if (request.params['id'] === 'default') request.params['id'] = resolvedId;
+          if (firstMembership.workspace?.projects[0]) {
+            const resolvedId = firstMembership.workspace.projects[0].id;
+            if (request.params['projectId']) request.params['projectId'] = resolvedId;
+            if (request.params['id'] === 'default') request.params['id'] = resolvedId;
+          }
         }
       } else {
         const project = await this.prisma.project.findUnique({
@@ -68,6 +70,13 @@ export class WorkspaceMemberGuard implements CanActivate {
           });
           if (task?.project) {
             workspaceId = task.project.workspaceId;
+          } else {
+            const firstMembership = await this.prisma.membership.findFirst({
+              where: { userId },
+            });
+            if (firstMembership) {
+              workspaceId = firstMembership.workspaceId;
+            }
           }
         }
       }

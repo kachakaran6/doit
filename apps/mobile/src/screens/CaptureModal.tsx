@@ -111,6 +111,13 @@ export const CaptureModal: React.FC = () => {
     setActiveValue('severity', s);
   };
 
+  // Ensure activeProject is populated
+  useEffect(() => {
+    if (!activeProject) {
+      useWorkspaceStore.getState().fetchAndInitializeWorkspaces().catch(() => {});
+    }
+  }, [activeProject]);
+
   // Clean up sound and recording on unmount
   useEffect(() => {
     return () => {

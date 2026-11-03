@@ -18,25 +18,54 @@ export class StickiesService {
 
   async create(projectId: string, userId: string, dto: CreateStickyDto) {
     let targetProjectId = projectId;
-    let project = null;
+    let project: { id: string } | null = null;
 
-    if (projectId === 'default') {
-      const firstMembership = await this.prisma.membership.findFirst({
-        where: { userId },
-        include: { workspace: { include: { projects: { take: 1 } } } },
-      });
-      if (firstMembership?.workspace?.projects[0]) {
-        project = firstMembership.workspace.projects[0];
-        targetProjectId = project.id;
-      }
-    } else {
+    if (projectId && projectId !== 'default') {
       project = await this.prisma.project.findUnique({
         where: { id: projectId },
+        select: { id: true },
       });
+      if (project) targetProjectId = project.id;
     }
 
     if (!project) {
-      throw new AppError(ErrorCode.PROJECT_NOT_FOUND, 'Project not found.', 404);
+      let firstMembership = await this.prisma.membership.findFirst({
+        where: { userId },
+        include: { workspace: { include: { projects: { take: 1 } } } },
+      });
+
+      if (!firstMembership) {
+        const user = await this.prisma.user.findUnique({ where: { id: userId } });
+        const name = user?.name ? `${user.name}'s Workspace` : 'Personal Workspace';
+        const slug = `ws-${userId.slice(0, 8)}-${Date.now().toString(36)}`;
+        const ws = await this.prisma.workspace.create({
+          data: {
+            name,
+            slug,
+            ownerId: userId,
+            memberships: { create: { userId, role: 'OWNER' } },
+            projects: { create: { name: 'General', key: 'GEN' } },
+          },
+          include: { projects: { take: 1 } },
+        });
+        project = ws.projects[0];
+        targetProjectId = project.id;
+      } else {
+        if (firstMembership.workspace.projects.length > 0) {
+          project = firstMembership.workspace.projects[0];
+          targetProjectId = project.id;
+        } else {
+          project = await this.prisma.project.create({
+            data: {
+              workspaceId: firstMembership.workspaceId,
+              name: 'General',
+              key: 'GEN',
+            },
+            select: { id: true },
+          });
+          targetProjectId = project.id;
+        }
+      }
     }
 
     const latest = await this.prisma.sticky.findFirst({

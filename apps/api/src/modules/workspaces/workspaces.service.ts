@@ -44,11 +44,12 @@ export class WorkspacesService {
   }
 
   async findAll(userId: string) {
-    const memberships = await this.prisma.membership.findMany({
+    let memberships = await this.prisma.membership.findMany({
       where: { userId },
       include: {
         workspace: {
           include: {
+            projects: true,
             _count: {
               select: {
                 projects: true,
@@ -59,6 +60,55 @@ export class WorkspacesService {
         },
       },
     });
+
+    if (memberships.length === 0) {
+      const user = await this.prisma.user.findUnique({ where: { id: userId } });
+      const name = user?.name ? `${user.name}'s Workspace` : 'Personal Workspace';
+      const slug = `ws-${userId.slice(0, 8)}-${Date.now().toString(36)}`;
+      const newWs = await this.prisma.workspace.create({
+        data: {
+          name,
+          slug,
+          ownerId: userId,
+          memberships: {
+            create: {
+              userId,
+              role: 'OWNER',
+            },
+          },
+          projects: {
+            create: {
+              name: 'General',
+              key: 'GEN',
+            },
+          },
+        },
+        include: {
+          projects: true,
+          _count: {
+            select: {
+              projects: true,
+              memberships: true,
+            },
+          },
+        },
+      });
+      return [{ ...newWs, role: 'OWNER' }];
+    }
+
+    // Ensure each workspace has at least one project
+    for (const m of memberships) {
+      if (!m.workspace.projects || m.workspace.projects.length === 0) {
+        const defaultProj = await this.prisma.project.create({
+          data: {
+            workspaceId: m.workspace.id,
+            name: 'General',
+            key: 'GEN',
+          },
+        });
+        m.workspace.projects = [defaultProj];
+      }
+    }
 
     return memberships.map((m) => ({
       ...m.workspace,
