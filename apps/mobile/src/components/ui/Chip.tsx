@@ -1,5 +1,10 @@
-import React from 'react';
-import { Pressable, StyleSheet, ViewStyle } from 'react-native';
+import React, { useRef, useState } from 'react';
+import {
+  Pressable,
+  Animated,
+  StyleSheet,
+  View,
+} from 'react-native';
 import { useTheme } from '../../theme/useTheme';
 import { Text } from './Text';
 
@@ -9,11 +14,15 @@ export interface ChipProps {
   count?: number;
   leadingIcon?: React.ReactNode;
   onPress?: () => void;
-  style?: ViewStyle;
+  disabled?: boolean;
 }
 
 /**
- * Use Chip for compact filter options, tags, or label pills with selectable state.
+ * P-01 Chip:
+ * Dimensions: 32 tall, pill radius (999)
+ * 5 States: rest, pressed (scale 0.97/90ms), focused, selected, disabled
+ * Selected: filled L3 (surfaceOverlay) + accent text — NO accent borders!
+ * Unselected: filled L2 (surfaceRaised) + textSecondary
  */
 export const Chip: React.FC<ChipProps> = ({
   label,
@@ -21,51 +30,72 @@ export const Chip: React.FC<ChipProps> = ({
   count,
   leadingIcon,
   onPress,
-  style,
+  disabled = false,
 }) => {
   const { colors, radius, spacing } = useTheme();
+  const [isFocused, setIsFocused] = useState(false);
+  const scaleAnim = useRef(new Animated.Value(1)).current;
 
-  const bg = selected ? colors.accentSoft : colors.bgSubtle;
-  const borderColor = selected ? colors.accent : colors.border;
+  const handlePressIn = () => {
+    Animated.timing(scaleAnim, {
+      toValue: 0.97,
+      duration: 90,
+      useNativeDriver: true,
+    }).start();
+  };
+
+  const handlePressOut = () => {
+    Animated.timing(scaleAnim, {
+      toValue: 1,
+      duration: 90,
+      useNativeDriver: true,
+    }).start();
+  };
+
+  // Selected: filled L3 + accent text (04-COLOUR-AS-INFORMATION.md §4.2)
+  // Unselected: filled L2 + textSecondary
+  const bg = selected ? colors.surfaceOverlay : colors.surfaceRaised;
   const textColor = selected ? 'accent' : 'secondary';
 
   return (
-    <Pressable
-      onPress={onPress}
-      accessibilityRole="checkbox"
-      accessibilityState={{ checked: selected }}
-      accessibilityLabel={`${label}${count !== undefined ? `, ${count}` : ''}`}
-      style={[
-        styles.base,
-        {
-          backgroundColor: bg,
-          borderColor,
-          borderRadius: radius.pill,
-          paddingHorizontal: spacing.md,
-          paddingVertical: spacing.xs + 2,
-        },
-        style,
-      ]}
-      hitSlop={{ top: 8, bottom: 8, left: 4, right: 4 }}
-    >
-      {leadingIcon}
-      <Text
-        variant="label"
-        color={textColor}
-        style={leadingIcon ? { marginLeft: spacing.xs } : undefined}
+    <Animated.View style={{ transform: [{ scale: scaleAnim }] }}>
+      <Pressable
+        onPress={onPress}
+        onPressIn={handlePressIn}
+        onPressOut={handlePressOut}
+        onFocus={() => setIsFocused(true)}
+        onBlur={() => setIsFocused(false)}
+        disabled={disabled}
+        accessibilityRole="checkbox"
+        accessibilityState={{ checked: selected, disabled }}
+        accessibilityLabel={`${label}${count !== undefined ? `, ${count}` : ''}`}
+        style={[
+          styles.base,
+          {
+            height: 32,
+            backgroundColor: bg,
+            borderRadius: radius.pill, // 999
+            paddingHorizontal: spacing.md,
+            borderWidth: isFocused ? 1 : 0,
+            borderColor: isFocused ? colors.accent : 'transparent',
+            opacity: disabled ? 0.4 : 1,
+          },
+        ]}
+        hitSlop={{ top: 8, bottom: 8, left: 4, right: 4 }}
       >
-        {label}
-      </Text>
-      {count !== undefined && (
-        <Text
-          variant="caption"
-          color={textColor}
-          style={{ marginLeft: spacing.xs, opacity: 0.8 }}
-        >
-          {count}
+        {leadingIcon && <View style={{ marginRight: spacing.xs }}>{leadingIcon}</View>}
+        <Text variant="label" color={textColor}>
+          {label}
         </Text>
-      )}
-    </Pressable>
+        {count !== undefined && (
+          <View style={{ marginLeft: spacing.xs, opacity: 0.85 }}>
+            <Text variant="caption" color={textColor}>
+              {count}
+            </Text>
+          </View>
+        )}
+      </Pressable>
+    </Animated.View>
   );
 };
 
@@ -73,7 +103,7 @@ const styles = StyleSheet.create({
   base: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderWidth: 1,
+    justifyContent: 'center',
     alignSelf: 'flex-start',
   },
 });

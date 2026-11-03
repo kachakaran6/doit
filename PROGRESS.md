@@ -6,9 +6,9 @@
 ## Current state
 
 - **Phase: Phase 2 — Multi-Platform Production
-- **Last completed prompt: R00 (green) — Gate G7 PASSED (Naming Migration @doit/*)
-- **Next prompt: W00 — Web Scaffold (apps/web Vite + React 18 + shared tokens)
-- **Branch in flight:** `main` (all features merged)
+- **Last completed prompt:** P-01 — Primitives (Gate G-P1 PASSED 24/24)
+- **Next prompt:** P-02 — Shell (navbar, insets, sheet, header anatomy)
+- **Branch in flight:** `feat/p-01-01-primitives`
 - **Blocked on:** nothing
 - **Target Package Name:** `com.samyukt.doit` (Verified & Play Store ready)
 
@@ -16,6 +16,8 @@
 
 | Prompt | Step reached | Notes |
 |---|---|---|
+| P-01 | Completed & verified | DoIt Premium UI Kit — Primitives: Button (primary/secondary/ghost/danger × sm/md/lg × 5 states, radius 16, no caller style), IconButton (40×40, radius 12), Field/Input (48 tall, radius 12, label above, error state, selectionColor=accent, dark keyboard), Chip (32 tall, pill, selected=filled L3 + accent text, no border), AccentChip (12px colour swatch), Checkbox (28 visual, 44 hit area), semantic markers (PriorityDot, DueText, SeverityBadge, LabelPill), Avatar & WorkspaceTile via accentFor with white initials, Row (§6.3 density fix, 44 checkbox, meta row, title, labels, trailing avatar, Surface L1, minHeight 96/124), SectionHeader (eyebrow, count pill, accent link), EmptyState (bare 64 icon, no rounded box), and Skeleton/RowSkeleton. Gate G-P1 PASSED (24/24). |
+| P-00 | Completed & verified | DoIt Premium UI Kit — Foundation: 4-step surface ladder (L0 #08090A, L1 #0F1012, L2 #16181B, L3 #1D2024), optical type scale with computed size-dependent tracking, tabular numeric display, top highlight without card borders, Surface, Divider, FoundationGallery. Gate G-P0 PASSED (24/24). |
 | P17b | Completed & verified | QA, Performance, Hardening, Release: `docs/QA-REPORT.md` full device matrix execution, cold start <1.9s, median capture 4.2s, ProGuard/R8 release rules, iOS `PrivacyInfo.xcprivacy`, Google Play / App Store listing copy and justifications `docs/STORE-LISTING.md`, `CHANGELOG.md` |
 | P17 | Completed & verified | Notifications & Settings: FCM service and device registration endpoints in `apps/api/src/modules/notifications/`, notifications inbox screen, Settings screen (Light/Dark/System theme toggle, 5 WCAG AA/AAA accent swatches, bubble overlay toggle, shake sensitivity picker, voice language picker, local storage cache clear, account logout, about) |
 | P16 | Completed & verified | Offline Outbox, Sync & Realtime: `src/lib/outbox.ts` persistent FIFO queue with backoff (1s, 4s, 16s) and 4xx discard, `OutboxProvider.tsx`, `PendingSyncScreen.tsx`, honest sync indicator dot in header, and `realtime.ts` Socket.io client with query key invalidation |
@@ -37,6 +39,8 @@
 
 | Date | Decision | Why |
 |---|---|---|
+| P-01 | Completed & verified | DoIt Premium UI Kit — Primitives: Button (primary/secondary/ghost/danger × sm/md/lg × 5 states, radius 16, no caller style), IconButton (40×40, radius 12), Field/Input (48 tall, radius 12, label above, error state, selectionColor=accent, dark keyboard), Chip (32 tall, pill, selected=filled L3 + accent text, no border), AccentChip (12px colour swatch), Checkbox (28 visual, 44 hit area), semantic markers (PriorityDot, DueText, SeverityBadge, LabelPill), Avatar & WorkspaceTile via accentFor with white initials, Row (§6.3 density fix, 44 checkbox, meta row, title, labels, trailing avatar, Surface L1, minHeight 96/124), SectionHeader (eyebrow, count pill, accent link), EmptyState (bare 64 icon, no rounded box), and Skeleton/RowSkeleton. Gate G-P1 PASSED (24/24). |
+| P-00 | Completed & verified | DoIt Premium UI Kit — Foundation: 4-step surface ladder (L0 #08090A, L1 #0F1012, L2 #16181B, L3 #1D2024), optical type scale with computed size-dependent tracking, tabular numeric display, top highlight without card borders, Surface, Divider, FoundationGallery. Gate G-P0 PASSED (24/24). |
 | 2026-10-30 | Android package name set to `com.samyukt.doit` | Standard reverse-DNS Play Store convention |
 | 2026-10-30 | Turborepo + pnpm hoisted node-linker | exFAT filesystem compatibility without directory symlinks |
 | 2026-10-30 | WorkspaceMemberGuard route resolution | Inspects `:workspaceId`, `:projectId`, or resource `:id` dynamically to prevent client-supplied body tampering |
@@ -53,6 +57,8 @@
 
 | Where | What | Remove when |
 |---|---|---|
+| P-01 | Completed & verified | DoIt Premium UI Kit — Primitives: Button (primary/secondary/ghost/danger × sm/md/lg × 5 states, radius 16, no caller style), IconButton (40×40, radius 12), Field/Input (48 tall, radius 12, label above, error state, selectionColor=accent, dark keyboard), Chip (32 tall, pill, selected=filled L3 + accent text, no border), AccentChip (12px colour swatch), Checkbox (28 visual, 44 hit area), semantic markers (PriorityDot, DueText, SeverityBadge, LabelPill), Avatar & WorkspaceTile via accentFor with white initials, Row (§6.3 density fix, 44 checkbox, meta row, title, labels, trailing avatar, Surface L1, minHeight 96/124), SectionHeader (eyebrow, count pill, accent link), EmptyState (bare 64 icon, no rounded box), and Skeleton/RowSkeleton. Gate G-P1 PASSED (24/24). |
+| P-00 | Completed & verified | DoIt Premium UI Kit — Foundation: 4-step surface ladder (L0 #08090A, L1 #0F1012, L2 #16181B, L3 #1D2024), optical type scale with computed size-dependent tracking, tabular numeric display, top highlight without card borders, Surface, Divider, FoundationGallery. Gate G-P0 PASSED (24/24). |
 | `infra/realtime/realtime.gateway.ts` | Realtime Gateway event emitter | Production Socket.io cluster deployment |
 
 ## Backlog discovered (do not build without asking)
@@ -65,6 +71,8 @@
 
 | # | Issue | Severity | Owner |
 |---|---|---|---|
+| P-01 | Completed & verified | DoIt Premium UI Kit — Primitives: Button (primary/secondary/ghost/danger × sm/md/lg × 5 states, radius 16, no caller style), IconButton (40×40, radius 12), Field/Input (48 tall, radius 12, label above, error state, selectionColor=accent, dark keyboard), Chip (32 tall, pill, selected=filled L3 + accent text, no border), AccentChip (12px colour swatch), Checkbox (28 visual, 44 hit area), semantic markers (PriorityDot, DueText, SeverityBadge, LabelPill), Avatar & WorkspaceTile via accentFor with white initials, Row (§6.3 density fix, 44 checkbox, meta row, title, labels, trailing avatar, Surface L1, minHeight 96/124), SectionHeader (eyebrow, count pill, accent link), EmptyState (bare 64 icon, no rounded box), and Skeleton/RowSkeleton. Gate G-P1 PASSED (24/24). |
+| P-00 | Completed & verified | DoIt Premium UI Kit — Foundation: 4-step surface ladder (L0 #08090A, L1 #0F1012, L2 #16181B, L3 #1D2024), optical type scale with computed size-dependent tracking, tabular numeric display, top highlight without card borders, Surface, Divider, FoundationGallery. Gate G-P0 PASSED (24/24). |
 | — | None | — | — |
 
 ## Environment notes
@@ -76,6 +84,8 @@
 
 | Gate | Result | Date | Evidence |
 |---|---|---|---|
+| P-01 | Completed & verified | DoIt Premium UI Kit — Primitives: Button (primary/secondary/ghost/danger × sm/md/lg × 5 states, radius 16, no caller style), IconButton (40×40, radius 12), Field/Input (48 tall, radius 12, label above, error state, selectionColor=accent, dark keyboard), Chip (32 tall, pill, selected=filled L3 + accent text, no border), AccentChip (12px colour swatch), Checkbox (28 visual, 44 hit area), semantic markers (PriorityDot, DueText, SeverityBadge, LabelPill), Avatar & WorkspaceTile via accentFor with white initials, Row (§6.3 density fix, 44 checkbox, meta row, title, labels, trailing avatar, Surface L1, minHeight 96/124), SectionHeader (eyebrow, count pill, accent link), EmptyState (bare 64 icon, no rounded box), and Skeleton/RowSkeleton. Gate G-P1 PASSED (24/24). |
+| P-00 | Completed & verified | DoIt Premium UI Kit — Foundation: 4-step surface ladder (L0 #08090A, L1 #0F1012, L2 #16181B, L3 #1D2024), optical type scale with computed size-dependent tracking, tabular numeric display, top highlight without card borders, Surface, Divider, FoundationGallery. Gate G-P0 PASSED (24/24). |
 | G0 | pass | 2026-10-30 | `pnpm lint`, `pnpm typecheck`, `pnpm test`, `pnpm build` all green; GET `/api/v1/health` returned 200 `{ status: "ok", version: "0.1.0" }` |
 | G1 | pass | 2026-10-30 | All P01-P08 endpoints in §6.2-6.8 implemented and registered in Swagger; 65 unit tests passing across 17 test suites; idempotent seed tested; Bruno collection committed; no Prisma model leaked |
 | G2 | pass | 2026-10-30 | `ComponentGallery` renders full token & component suite across light/dark and 5 accents; `node scripts/check-tokens.mjs` verified to reject any hex/rgba outside theme; contrast ratios documented ≥4.5:1 |

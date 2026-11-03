@@ -6,10 +6,10 @@ import {
   StyleSheet,
   Vibration,
 } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import { useTheme } from '../../theme/useTheme';
 import { useNavBarScroll } from '../../navigation/nav-bar-scroll.context';
+import { useBottomInsets } from '../../layout/useBottomInsets';
 import { Text } from './Text';
 import {
   Home as HomeIcon,
@@ -25,9 +25,14 @@ export interface FloatingNavBarProps extends BottomTabBarProps {
 }
 
 /**
- * Standardized NavigationBar matching Linear / Things 3 precision:
- * Sleek, unified floating capsule with 44px touch targets, subtle active states,
- * and no awkward overlapping button artifacts.
+ * P-02 FloatingNavBar:
+ * 09-PROMPTS/P-02-shell.md
+ * - Height: 64, Pill radius (999)
+ * - Margins: 16 horizontal, safe + 8 bottom (from useBottomInsets)
+ * - Surface at 92% opacity, soft shadow 0 8px 32px rgba(0,0,0,0.55)
+ * - ZERO border (no border outline)
+ * - Centre 50-52px accent capture circle cleanly inside the 64 pill (does not overlap edges)
+ * - Active item in accent, inactive item in textSecondary
  */
 export const FloatingNavBar: React.FC<FloatingNavBarProps> = ({
   state,
@@ -35,8 +40,8 @@ export const FloatingNavBar: React.FC<FloatingNavBarProps> = ({
   onCapturePress,
   onCaptureLongPress,
 }) => {
-  const { colors, radius, spacing, elevation } = useTheme();
-  const insets = useSafeAreaInsets();
+  const { colors, radius, resolvedTheme } = useTheme();
+  const { navbarBottom, navbarHeight } = useBottomInsets();
   const { translateY } = useNavBarScroll();
 
   const currentRouteName = state.routes[state.index]?.name;
@@ -64,12 +69,15 @@ export const FloatingNavBar: React.FC<FloatingNavBarProps> = ({
     }
   };
 
+  const isDark = resolvedTheme === 'dark';
+
   return (
     <Animated.View
       style={[
         styles.wrapper,
         {
-          bottom: insets.bottom > 0 ? insets.bottom + 4 : spacing.md,
+          bottom: navbarBottom,
+          height: navbarHeight,
           transform: [{ translateY }],
         },
       ]}
@@ -79,10 +87,9 @@ export const FloatingNavBar: React.FC<FloatingNavBarProps> = ({
         style={[
           styles.pillContainer,
           {
-            backgroundColor: colors.surface,
-            borderColor: colors.border,
+            backgroundColor: isDark ? 'rgba(15, 16, 18, 0.94)' : 'rgba(255, 255, 255, 0.96)',
             borderRadius: radius.pill,
-            ...elevation.e3,
+            height: navbarHeight,
           },
         ]}
       >
@@ -96,7 +103,7 @@ export const FloatingNavBar: React.FC<FloatingNavBarProps> = ({
         >
           <HomeIcon
             size={20}
-            color={currentRouteName === 'Home' ? colors.accentText : colors.textTertiary}
+            color={currentRouteName === 'Home' ? colors.accent : colors.textSecondary}
             strokeWidth={currentRouteName === 'Home' ? 2.2 : 1.75}
           />
           <Text
@@ -104,7 +111,7 @@ export const FloatingNavBar: React.FC<FloatingNavBarProps> = ({
             style={[
               styles.tabLabel,
               {
-                color: currentRouteName === 'Home' ? colors.accentText : colors.textTertiary,
+                color: currentRouteName === 'Home' ? colors.accent : colors.textSecondary,
                 fontWeight: currentRouteName === 'Home' ? '600' : '400',
               },
             ]}
@@ -123,7 +130,7 @@ export const FloatingNavBar: React.FC<FloatingNavBarProps> = ({
         >
           <TasksIcon
             size={20}
-            color={currentRouteName === 'Tasks' ? colors.accentText : colors.textTertiary}
+            color={currentRouteName === 'Tasks' ? colors.accent : colors.textSecondary}
             strokeWidth={currentRouteName === 'Tasks' ? 2.2 : 1.75}
           />
           <Text
@@ -131,7 +138,7 @@ export const FloatingNavBar: React.FC<FloatingNavBarProps> = ({
             style={[
               styles.tabLabel,
               {
-                color: currentRouteName === 'Tasks' ? colors.accentText : colors.textTertiary,
+                color: currentRouteName === 'Tasks' ? colors.accent : colors.textSecondary,
                 fontWeight: currentRouteName === 'Tasks' ? '600' : '400',
               },
             ]}
@@ -140,7 +147,7 @@ export const FloatingNavBar: React.FC<FloatingNavBarProps> = ({
           </Text>
         </Pressable>
 
-        {/* Center: Quick Capture Button */}
+        {/* Center: Quick Capture Button (Inside the pill, no overlap) */}
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="Quick capture task or long press for bug"
@@ -154,7 +161,7 @@ export const FloatingNavBar: React.FC<FloatingNavBarProps> = ({
             },
           ]}
         >
-          <PlusIcon size={20} color={colors.accentOnPrimary} strokeWidth={2.5} />
+          <PlusIcon size={22} color="#FFFFFF" strokeWidth={2.5} />
         </Pressable>
 
         {/* Tab 3: Bugs */}
@@ -167,7 +174,7 @@ export const FloatingNavBar: React.FC<FloatingNavBarProps> = ({
         >
           <BugsIcon
             size={20}
-            color={currentRouteName === 'Bugs' ? colors.accentText : colors.textTertiary}
+            color={currentRouteName === 'Bugs' ? colors.accent : colors.textSecondary}
             strokeWidth={currentRouteName === 'Bugs' ? 2.2 : 1.75}
           />
           <Text
@@ -175,7 +182,7 @@ export const FloatingNavBar: React.FC<FloatingNavBarProps> = ({
             style={[
               styles.tabLabel,
               {
-                color: currentRouteName === 'Bugs' ? colors.accentText : colors.textTertiary,
+                color: currentRouteName === 'Bugs' ? colors.accent : colors.textSecondary,
                 fontWeight: currentRouteName === 'Bugs' ? '600' : '400',
               },
             ]}
@@ -194,7 +201,7 @@ export const FloatingNavBar: React.FC<FloatingNavBarProps> = ({
         >
           <SearchIcon
             size={20}
-            color={currentRouteName === 'Search' ? colors.accentText : colors.textTertiary}
+            color={currentRouteName === 'Search' ? colors.accent : colors.textSecondary}
             strokeWidth={currentRouteName === 'Search' ? 2.2 : 1.75}
           />
           <Text
@@ -202,7 +209,7 @@ export const FloatingNavBar: React.FC<FloatingNavBarProps> = ({
             style={[
               styles.tabLabel,
               {
-                color: currentRouteName === 'Search' ? colors.accentText : colors.textTertiary,
+                color: currentRouteName === 'Search' ? colors.accent : colors.textSecondary,
                 fontWeight: currentRouteName === 'Search' ? '600' : '400',
               },
             ]}
@@ -215,43 +222,52 @@ export const FloatingNavBar: React.FC<FloatingNavBarProps> = ({
   );
 };
 
-export { FloatingNavBar as NavigationBar };
+export { FloatingNavBar as NavigationBar, FloatingNavBar as NavBar };
 
 const styles = StyleSheet.create({
   wrapper: {
     position: 'absolute',
-    left: 20,
-    right: 20,
+    left: 16,
+    right: 16,
+    zIndex: 100,
     alignItems: 'center',
     justifyContent: 'center',
-    zIndex: 100,
   },
   pillContainer: {
+    width: '100%',
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    width: '100%',
-    maxWidth: 420,
-    height: 56,
-    borderWidth: 1,
+    justifyContent: 'space-around',
     paddingHorizontal: 8,
+    // Soft shadow 0 8px 32px rgba(0,0,0,0.55) without card borders
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.55,
+    shadowRadius: 32,
+    elevation: 12,
   },
   tabItem: {
     flex: 1,
-    height: '100%',
+    height: 52,
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: 4,
   },
   tabLabel: {
     fontSize: 10,
-    marginTop: 2,
+    marginTop: 3,
+    letterSpacing: 0.2,
   },
   centerCaptureBtn: {
-    width: 38,
-    height: 38,
+    width: 48,
+    height: 48,
     alignItems: 'center',
     justifyContent: 'center',
     marginHorizontal: 4,
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.35,
+    shadowRadius: 12,
+    elevation: 6,
   },
 });

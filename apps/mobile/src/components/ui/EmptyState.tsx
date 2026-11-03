@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, StyleSheet, ViewStyle } from 'react-native';
+import { View, StyleSheet, StyleProp, ViewStyle } from 'react-native';
 import { useTheme } from '../../theme/useTheme';
 import { Text } from './Text';
 import { Button } from './Button';
@@ -26,12 +26,13 @@ export interface EmptyStateProps {
   body: string;
   actionTitle?: string;
   onAction?: () => void;
-  style?: ViewStyle;
+  style?: StyleProp<ViewStyle>;
 }
 
 /**
- * EmptyState adheres to Linear/Things 3 aesthetics:
- * Muted monochrome iconography, clean typography hierarchy, restrained button.
+ * P-01 EmptyState:
+ * Bare 64 icon in textMuted — NO rounded container (09-PROMPTS/P-01-primitives.md).
+ * Title in h3, body in secondary, optional action button.
  */
 export const EmptyState: React.FC<EmptyStateProps> = ({
   illustration = 'no-tasks',
@@ -41,65 +42,55 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
   onAction,
   style,
 }) => {
-  const { colors, spacing, radius } = useTheme();
+  const { colors, spacing } = useTheme();
 
   const renderIcon = () => {
-    const iconSize = 24;
-    const iconColor = colors.textSecondary;
+    const iconSize = 64; // Bare 64 icon per spec
+    const iconColor = colors.textMuted;
 
     switch (illustration) {
       case 'no-stickies':
-        return <StickyNote size={iconSize} color={iconColor} strokeWidth={1.5} />;
+        return <StickyNote size={iconSize} color={iconColor} strokeWidth={1.2} />;
       case 'no-bugs':
-        return <Bug size={iconSize} color={iconColor} strokeWidth={1.5} />;
+        return <Bug size={iconSize} color={iconColor} strokeWidth={1.2} />;
       case 'no-results':
-        return <Search size={iconSize} color={iconColor} strokeWidth={1.5} />;
+        return <Search size={iconSize} color={iconColor} strokeWidth={1.2} />;
       case 'offline':
-        return <WifiOff size={iconSize} color={iconColor} strokeWidth={1.5} />;
+        return <WifiOff size={iconSize} color={iconColor} strokeWidth={1.2} />;
       case 'no-projects':
-        return <FolderOpen size={iconSize} color={iconColor} strokeWidth={1.5} />;
+        return <FolderOpen size={iconSize} color={iconColor} strokeWidth={1.2} />;
       case 'no-tasks':
       default:
-        return <CheckCircle2 size={iconSize} color={iconColor} strokeWidth={1.5} />;
+        return <CheckCircle2 size={iconSize} color={iconColor} strokeWidth={1.2} />;
     }
   };
 
   return (
     <View style={[styles.container, { paddingVertical: spacing['3xl'] }, style]}>
-      <View
-        style={[
-          styles.iconContainer,
-          {
-            backgroundColor: colors.surfaceRaised,
-            borderColor: colors.border,
-            borderRadius: radius.md,
-            marginBottom: spacing.md,
-          },
-        ]}
-      >
+      {/* Bare 64 icon without rounded box */}
+      <View style={{ marginBottom: spacing.lg, alignItems: 'center' }}>
         {renderIcon()}
       </View>
 
-      <Text variant="h2" align="center" style={[styles.title, { marginBottom: spacing.xs }]}>
+      <Text variant="h3" align="center" style={{ marginBottom: spacing.xs }}>
         {title}
       </Text>
 
-      <Text
-        variant="body"
-        color="secondary"
-        align="center"
-        style={[styles.bodyText, { marginBottom: spacing.xl }]}
-      >
-        {body}
-      </Text>
+      <View style={{ maxWidth: 300, marginBottom: actionTitle ? spacing.xl : 0 }}>
+        <Text variant="body" color="secondary" align="center">
+          {body}
+        </Text>
+      </View>
 
       {actionTitle && onAction && (
-        <Button
-          variant="secondary"
-          title={actionTitle}
-          onPress={onAction}
-          size="sm"
-        />
+        <View style={{ marginTop: spacing.md }}>
+          <Button
+            title={actionTitle}
+            variant="secondary"
+            size="md"
+            onPress={onAction}
+          />
+        </View>
       )}
     </View>
   );
@@ -109,21 +100,7 @@ const styles = StyleSheet.create({
   container: {
     alignItems: 'center',
     justifyContent: 'center',
-    width: '100%',
     paddingHorizontal: 24,
-  },
-  iconContainer: {
-    width: 48,
-    height: 48,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-  },
-  title: {
-    fontWeight: '600',
-  },
-  bodyText: {
-    maxWidth: 280,
-    lineHeight: 20,
+    width: '100%',
   },
 });

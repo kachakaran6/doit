@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, StyleSheet, FlatList, ScrollView, RefreshControl, TouchableOpacity } from 'react-native';
+import { View, StyleSheet, FlatList, ScrollView, RefreshControl, TouchableOpacity, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -17,7 +17,7 @@ import { TaskItem } from '../../../components/patterns';
 import { BoardColumn } from '../components/BoardColumn';
 import { TaskCreateSheet } from '../components/TaskCreateSheet';
 import { useTasksQuery } from '../api/queries';
-import { useUpdateTaskStatusMutation } from '../api/mutations';
+import { useUpdateTaskStatusMutation, useDeleteTaskMutation } from '../api/mutations';
 import { useTaskFilters } from '../hooks/useTaskFilters';
 import { useTaskStore } from '../store';
 import { useWorkspaceStore } from '../../workspace';
@@ -36,10 +36,32 @@ export const TaskListScreen: React.FC = () => {
   const { activeTab, setActiveTab, selectedStatus, setSelectedStatus, filteredTasks } =
     useTaskFilters(tasks || []);
   const updateStatus = useUpdateTaskStatusMutation(projectId);
+  const deleteTask = useDeleteTaskMutation(projectId);
 
   const handleToggleStatus = (id: string, current: TaskStatus) => {
     const nextStatus: TaskStatus = current === 'DONE' ? 'TODO' : 'DONE';
     updateStatus.mutate({ id, status: nextStatus });
+  };
+
+  const handleConfirmDelete = (task: { id: string; title: string }) => {
+    Alert.alert(
+      'Move to Trash',
+      `Are you sure you want to move "${task.title}" to trash?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Move to Trash',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await deleteTask.mutateAsync(task.id);
+            } catch (err: any) {
+              Alert.alert('Error', err?.message || 'Could not move task to trash.');
+            }
+          },
+        },
+      ]
+    );
   };
 
   if (isLoading) {
@@ -198,6 +220,7 @@ export const TaskListScreen: React.FC = () => {
               labels={item.labels}
               onPress={() => navigation.navigate('TaskDetail', { id: item.id })}
               onToggleStatus={() => handleToggleStatus(item.id, item.status)}
+              onLongPress={() => handleConfirmDelete(item)}
             />
           )}
           contentContainerStyle={{

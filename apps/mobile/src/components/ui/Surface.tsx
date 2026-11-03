@@ -7,6 +7,10 @@ export type SurfaceLevel =
   | 'L1'
   | 'L2'
   | 'L3'
+  | 0
+  | 1
+  | 2
+  | 3
   | 'surface'
   | 'surfaceRaised'
   | 'surfaceOverlay';
@@ -30,6 +34,7 @@ export interface SurfaceProps extends ViewProps {
    * pill: 999
    */
   radiusRole?: 'sm' | 'md' | 'lg' | 'xl' | 'pill' | 'none';
+  radius?: 'sm' | 'md' | 'lg' | 'xl' | 'pill' | 'none';
 
   /**
    * Whether to render the 1px top highlight (02-SURFACE-SYSTEM.md §2.2).
@@ -47,7 +52,8 @@ export interface SurfaceProps extends ViewProps {
  */
 export const Surface: React.FC<SurfaceProps> = ({
   level = 'L1',
-  radiusRole = 'lg',
+  radiusRole,
+  radius: radiusAlias,
   highlight = true,
   style,
   children,
@@ -55,14 +61,19 @@ export const Surface: React.FC<SurfaceProps> = ({
 }) => {
   const { colors, radius, resolvedTheme } = useTheme();
 
+  const resolvedLevel =
+    level === 0 ? 'L0' :
+    level === 1 ? 'L1' :
+    level === 2 ? 'L2' :
+    level === 3 ? 'L3' :
+    level;
+
+  const activeRadiusRole = radiusAlias || radiusRole || 'lg';
+
   let bgColor: string;
-  switch (level) {
+  switch (resolvedLevel) {
     case 'L0':
       bgColor = colors.bg;
-      break;
-    case 'L1':
-    case 'surface':
-      bgColor = colors.surface;
       break;
     case 'L2':
     case 'surfaceRaised':
@@ -72,14 +83,38 @@ export const Surface: React.FC<SurfaceProps> = ({
     case 'surfaceOverlay':
       bgColor = colors.surfaceOverlay;
       break;
+    case 'L1':
+    case 'surface':
     default:
       bgColor = colors.surface;
+      break;
   }
 
-  const cornerRadius = radiusRole === 'none' ? 0 : radius[radiusRole];
+  let borderRadius: number = 0;
+  switch (activeRadiusRole) {
+    case 'sm':
+      borderRadius = radius.sm; // 12
+      break;
+    case 'md':
+      borderRadius = radius.md; // 16
+      break;
+    case 'lg':
+      borderRadius = radius.lg; // 20
+      break;
+    case 'xl':
+      borderRadius = radius.xl; // 28
+      break;
+    case 'pill':
+      borderRadius = radius.pill; // 999
+      break;
+    case 'none':
+      borderRadius = 0;
+      break;
+  }
+
   const isDark = resolvedTheme === 'dark';
-  const showHighlight =
-    highlight && (level === 'L1' || level === 'L2' || level === 'surface' || level === 'surfaceRaised');
+  // Highlight applies to L1 and L2 surfaces
+  const showHighlight = highlight && (resolvedLevel === 'L1' || resolvedLevel === 'L2' || resolvedLevel === 'surface' || resolvedLevel === 'surfaceRaised');
 
   return (
     <View
@@ -87,36 +122,25 @@ export const Surface: React.FC<SurfaceProps> = ({
         styles.base,
         {
           backgroundColor: bgColor,
-          borderRadius: cornerRadius,
-          // In light mode: L1 cards get a hairline border + subtle shadow (02-SURFACE-SYSTEM.md §2.1)
-          // In dark mode: ZERO border. Lightness + highlight only.
-          borderWidth: !isDark && (level === 'L1' || level === 'surface') ? StyleSheet.hairlineWidth : 0,
-          borderColor: !isDark ? colors.border : 'transparent',
-          ...(!isDark && (level === 'L1' || level === 'surface')
-            ? {
-                shadowColor: '#000000',
-                shadowOffset: { width: 0, height: 1 },
-                shadowOpacity: 0.04,
-                shadowRadius: 2,
-                elevation: 1,
-              }
-            : {}),
+          borderRadius,
         },
+        // In light mode, subtle edge separation
+        !isDark && styles.lightBorder,
         style,
       ]}
       {...rest}
     >
-      {isDark && showHighlight && (
+      {/* 1px top highlight (02-SURFACE-SYSTEM.md §2.2) */}
+      {showHighlight && isDark && (
         <View
+          pointerEvents="none"
           style={[
-            styles.topHighlight,
+            styles.highlightLine,
             {
-              left: cornerRadius > 0 ? cornerRadius : 0,
-              right: cornerRadius > 0 ? cornerRadius : 0,
-              backgroundColor: colors.highlight || 'rgba(255,255,255,0.06)',
+              borderTopLeftRadius: borderRadius,
+              borderTopRightRadius: borderRadius,
             },
           ]}
-          pointerEvents="none"
         />
       )}
       {children}
@@ -126,13 +150,19 @@ export const Surface: React.FC<SurfaceProps> = ({
 
 const styles = StyleSheet.create({
   base: {
-    overflow: 'hidden',
     position: 'relative',
+    overflow: 'hidden',
   },
-  topHighlight: {
+  lightBorder: {
+    borderWidth: 1,
+    borderColor: 'rgba(0,0,0,0.06)',
+  },
+  highlightLine: {
     position: 'absolute',
     top: 0,
-    height: StyleSheet.hairlineWidth,
-    zIndex: 1,
+    left: 0,
+    right: 0,
+    height: 1,
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
   },
 });

@@ -41,10 +41,12 @@ export const WorkspaceSwitcherSheet: React.FC<WorkspaceSwitcherSheetProps> = ({
     setErrorMsg(null);
     try {
       const res: any = await http.post('/workspaces', { name: newWsName.trim() });
-      await refetch();
-      if (res) {
+      if (res && res.id) {
+        const updatedWorkspaces = [...workspaces.filter((w) => w.id !== res.id), res];
+        useWorkspaceStore.getState().setWorkspaces(updatedWorkspaces);
         setActiveWorkspace(res);
       }
+      await refetch();
       setNewWsName('');
       setIsCreating(false);
       onClose();
@@ -199,24 +201,28 @@ export const WorkspaceSwitcherSheet: React.FC<WorkspaceSwitcherSheetProps> = ({
                 onSubmitEditing={handleCreate}
               />
               <View style={[styles.createActions, { gap: spacing.sm, marginTop: spacing.md }]}>
-                <Button
-                  title="Cancel"
-                  variant="secondary"
-                  size="sm"
-                  onPress={() => {
-                    setIsCreating(false);
-                    setErrorMsg(null);
-                  }}
-                  style={{ flex: 1 }}
-                />
-                <Button
-                  title="Create"
-                  variant="primary"
-                  size="sm"
-                  loading={isSubmitting}
-                  onPress={handleCreate}
-                  style={{ flex: 1 }}
-                />
+                <View style={{ flex: 1 }}>
+                  <Button
+                    title="Cancel"
+                    variant="secondary"
+                    size="sm"
+                    fullWidth
+                    onPress={() => {
+                      setIsCreating(false);
+                      setErrorMsg(null);
+                    }}
+                  />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Button
+                    title="Create"
+                    variant="primary"
+                    size="sm"
+                    fullWidth
+                    loading={isSubmitting}
+                    onPress={handleCreate}
+                  />
+                </View>
               </View>
             </View>
           ) : (

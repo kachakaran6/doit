@@ -41,7 +41,7 @@ export const Stack: React.FC<StackProps> = ({
   );
 };
 
-export interface RowProps {
+export interface LayoutRowProps {
   gap?: SpacingKey;
   align?: 'flex-start' | 'center' | 'flex-end' | 'stretch';
   justify?: 'flex-start' | 'center' | 'flex-end' | 'space-between' | 'space-around';
@@ -50,9 +50,9 @@ export interface RowProps {
 }
 
 /**
- * Use Row for horizontal component alignment.
+ * Use LayoutRow / FlexRow for horizontal layout alignment.
  */
-export const Row: React.FC<RowProps> = ({
+export const LayoutRow: React.FC<LayoutRowProps> = ({
   gap = 'md',
   align = 'center',
   justify = 'flex-start',
@@ -77,24 +77,75 @@ export const Row: React.FC<RowProps> = ({
   );
 };
 
+export const FlexRow = LayoutRow;
+
 export interface SpacerProps {
   size?: SpacingKey;
-  horizontal?: boolean;
 }
 
-/**
- * Use Spacer to insert dedicated empty space along an axis.
- */
-export const Spacer: React.FC<SpacerProps> = ({ size = 'md', horizontal = false }) => {
+export const Spacer: React.FC<SpacerProps> = ({ size = 'md' }) => {
   const { spacing } = useTheme();
-  const dimension = spacing[size];
+  return <View style={{ width: spacing[size], height: spacing[size] }} />;
+};
+
+export interface GridProps {
+  columns?: number;
+  gap?: SpacingKey;
+  style?: StyleProp<ViewStyle>;
+  children?: React.ReactNode;
+}
+
+export const Grid: React.FC<GridProps> = ({
+  columns = 2,
+  gap = 'md',
+  style,
+  children,
+}) => {
+  const { spacing } = useTheme();
   return (
     <View
-      style={
-        horizontal ? { width: dimension, height: 1 } : { height: dimension, width: 1 }
-      }
-    />
+      style={[
+        styles.grid,
+        {
+          gap: spacing[gap],
+        },
+        style,
+      ]}
+    >
+      {children}
+    </View>
   );
 };
 
-export { Divider, DividerProps } from './Divider';
+export interface ContainerProps {
+  padding?: SpacingKey;
+  style?: StyleProp<ViewStyle>;
+  children?: React.ReactNode;
+}
+
+export const Container: React.FC<ContainerProps> = ({
+  padding = 'lg',
+  style,
+  children,
+}) => {
+  const { spacing } = useTheme();
+  return (
+    <View
+      style={[
+        {
+          padding: spacing[padding],
+        },
+        style,
+      ]}
+    >
+      {children}
+    </View>
+  );
+};
+
+const styles = StyleSheet.create({
+  grid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+  },
+});

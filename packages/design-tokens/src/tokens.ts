@@ -126,6 +126,34 @@ export const accents = {
 
 export type AccentName = keyof typeof accents;
 
+export const accentKeys: AccentName[] = ['indigo', 'teal', 'amber', 'rose', 'violet'];
+
+/**
+ * 04-COLOUR-AS-INFORMATION.md §4.4
+ * Deterministic mapping from any entity id or string to one of the five accents.
+ */
+export function accentFor(id: string = '') {
+  let hash = 0;
+  const str = String(id || 'default');
+  for (let i = 0; i < str.length; i++) {
+    hash = ((hash << 5) - hash + str.charCodeAt(i)) | 0;
+  }
+  const index = Math.abs(hash) % accentKeys.length;
+  const name: AccentName = accentKeys[index] || 'indigo';
+  const item = accents[name];
+  return {
+    name,
+    primary: item.primary,
+    primaryDark: item.primaryDark,
+    containerLight: item.containerLight,
+    containerDark: item.containerDark,
+    accentTextLight: item.accentTextLight,
+    accentTextDark: item.accentTextDark,
+    tintLight: `${item.primary}1F`, // ~12% opacity
+    tintDark: `${item.primaryDark}24`, // ~14% opacity
+  };
+}
+
 export const spacing = {
   xs: 4,
   sm: 8,

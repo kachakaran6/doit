@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, StyleSheet, TouchableOpacity, ViewStyle } from 'react-native';
+import { View, StyleSheet, Pressable } from 'react-native';
 import { useTheme } from '../../theme/useTheme';
 import { Text } from './Text';
 
@@ -8,33 +8,41 @@ export interface SectionHeaderProps {
   count?: number;
   actionText?: string;
   onAction?: () => void;
-  style?: ViewStyle;
+  eyebrow?: boolean;
 }
 
 /**
- * SectionHeader standardizes 18-20px headings across lists, feeds, and dashboards.
+ * P-01 SectionHeader:
+ * - Eyebrow or Heading title
+ * - Count pill: 20 tall, radius 10, L2 (surfaceRaised) background
+ * - Optional action link in accent text (04-COLOUR-AS-INFORMATION.md §4.2)
  */
 export const SectionHeader: React.FC<SectionHeaderProps> = ({
   title,
   count,
   actionText,
   onAction,
-  style,
+  eyebrow = true,
 }) => {
   const { colors, spacing, radius } = useTheme();
 
   return (
-    <View style={[styles.container, { marginBottom: spacing.sm, marginTop: spacing.lg }, style]}>
+    <View style={[styles.container, { marginBottom: spacing.sm, marginTop: spacing.lg }]}>
       <View style={styles.titleRow}>
-        <Text variant="h2" style={styles.titleText}>
-          {title}
+        <Text
+          variant={eyebrow ? 'label' : 'h2'}
+          color={eyebrow ? 'secondary' : 'primary'}
+          style={eyebrow ? styles.eyebrowText : undefined}
+        >
+          {eyebrow ? title.toUpperCase() : title}
         </Text>
+
         {count !== undefined && (
           <View
             style={[
-              styles.countBadge,
+              styles.countPill,
               {
-                backgroundColor: colors.surfaceRaised,
+                backgroundColor: colors.surfaceRaised, // L2
                 borderRadius: radius.pill,
                 marginLeft: spacing.sm,
               },
@@ -48,15 +56,14 @@ export const SectionHeader: React.FC<SectionHeaderProps> = ({
       </View>
 
       {actionText && onAction && (
-        <TouchableOpacity
+        <Pressable
           onPress={onAction}
-          activeOpacity={0.7}
           hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
         >
-          <Text variant="label" color="accent" style={styles.actionText}>
+          <Text variant="label" color="accent">
             {actionText}
           </Text>
-        </TouchableOpacity>
+        </Pressable>
       )}
     </View>
   );
@@ -67,28 +74,25 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingVertical: 4,
+    width: '100%',
   },
   titleRow: {
     flexDirection: 'row',
     alignItems: 'center',
   },
-  titleText: {
+  eyebrowText: {
+    letterSpacing: 0.8,
     fontWeight: '600',
-    letterSpacing: -0.2,
   },
-  countBadge: {
+  countPill: {
+    height: 20,
     paddingHorizontal: 8,
-    paddingVertical: 2,
     alignItems: 'center',
     justifyContent: 'center',
   },
   countText: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '600',
-  },
-  actionText: {
-    fontWeight: '500',
+    lineHeight: 14,
   },
 });
-

@@ -1,45 +1,50 @@
 import React from 'react';
-import { View, StyleSheet, TouchableOpacity, ViewStyle } from 'react-native';
+import { View, StyleSheet, Pressable } from 'react-native';
+import { ChevronLeft } from 'lucide-react-native';
 import { useTheme } from '../../theme/useTheme';
 import { Text } from './Text';
-import { ChevronLeft } from 'lucide-react-native';
 
 export interface ScreenHeaderProps {
   title: string;
+  eyebrow?: string;
   subtitle?: string;
   badge?: string | number;
   onBack?: () => void;
-  rightAction?: React.ReactNode;
-  style?: ViewStyle;
+  trailing?: React.ReactNode;
+  rightAction?: React.ReactNode; // Backward compatibility alias
 }
 
 /**
- * ScreenHeader enforces consistent 24px screen headings, perfect horizontal alignment,
- * back button ergonomics, and optional right action buttons.
+ * P-02 ScreenHeader:
+ * 06-COMPOSITION.md §6.8
+ * - Eyebrow: textMuted, project key + name
+ * - Title: h1 30/600, tracking -0.6
+ * - Subtitle: bodySmall 13, textSecondary — human words/count
+ * - Trailing: segmented control, avatar, or single button centre-aligned with the title block
  */
 export const ScreenHeader: React.FC<ScreenHeaderProps> = ({
   title,
+  eyebrow,
   subtitle,
   badge,
   onBack,
+  trailing,
   rightAction,
-  style,
 }) => {
   const { colors, spacing, radius } = useTheme();
+  const trailingContent = trailing || rightAction;
 
   return (
-    <View style={[styles.container, { marginBottom: spacing.lg }, style]}>
+    <View style={[styles.container, { marginBottom: spacing.lg, marginTop: spacing.xs }]}>
       <View style={styles.leftRow}>
         {onBack && (
-          <TouchableOpacity
+          <Pressable
             onPress={onBack}
-            activeOpacity={0.7}
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
             style={[
               styles.backButton,
               {
-                backgroundColor: colors.surface,
-                borderColor: colors.border,
+                backgroundColor: colors.surfaceRaised, // L2
                 borderRadius: radius.sm,
                 marginRight: spacing.md,
               },
@@ -48,30 +53,27 @@ export const ScreenHeader: React.FC<ScreenHeaderProps> = ({
             accessibilityLabel="Go back"
           >
             <ChevronLeft size={20} color={colors.textPrimary} />
-          </TouchableOpacity>
+          </Pressable>
         )}
 
         <View style={styles.titleColumn}>
-          {subtitle && (
-            <Text
-              variant="caption"
-              color="secondary"
-              style={[styles.subtitle, { marginBottom: spacing.xs }]}
-            >
-              {subtitle}
+          {eyebrow && (
+            <Text variant="eyebrow" color="muted" style={{ marginBottom: 2 }}>
+              {eyebrow.toUpperCase()}
             </Text>
           )}
-          <View style={styles.titleWithBadge}>
-            <Text variant="h1" numberOfLines={1} style={styles.titleText}>
+
+          <View style={styles.titleRow}>
+            <Text variant="h1" color="primary">
               {title}
             </Text>
+
             {badge !== undefined && (
               <View
                 style={[
-                  styles.badge,
+                  styles.badgePill,
                   {
                     backgroundColor: colors.surfaceRaised,
-                    borderColor: colors.border,
                     borderRadius: radius.pill,
                     marginLeft: spacing.sm,
                   },
@@ -83,10 +85,21 @@ export const ScreenHeader: React.FC<ScreenHeaderProps> = ({
               </View>
             )}
           </View>
+
+          {subtitle && (
+            <Text variant="bodySmall" color="secondary" style={{ marginTop: 2 }}>
+              {subtitle}
+            </Text>
+          )}
         </View>
       </View>
 
-      {rightAction && <View style={styles.rightActionWrapper}>{rightAction}</View>}
+      {/* Trailing slot centre-aligned with the title block */}
+      {trailingContent && (
+        <View style={styles.trailingContainer}>
+          {trailingContent}
+        </View>
+      )}
     </View>
   );
 };
@@ -96,7 +109,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    minHeight: 44,
+    width: '100%',
   },
   leftRow: {
     flexDirection: 'row',
@@ -106,7 +119,6 @@ const styles = StyleSheet.create({
   backButton: {
     width: 36,
     height: 36,
-    borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -114,31 +126,24 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
   },
-  subtitle: {
-    textTransform: 'uppercase',
-    letterSpacing: 0.6,
-    fontWeight: '600',
-  },
-  titleWithBadge: {
+  titleRow: {
     flexDirection: 'row',
     alignItems: 'center',
   },
-  titleText: {
-    fontWeight: '700',
-  },
-  badge: {
+  badgePill: {
+    height: 20,
     paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   badgeText: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '600',
+    lineHeight: 14,
   },
-  rightActionWrapper: {
-    flexDirection: 'row',
+  trailingContainer: {
     alignItems: 'center',
-    marginLeft: 8,
+    justifyContent: 'center',
+    marginLeft: 12,
   },
 });
-

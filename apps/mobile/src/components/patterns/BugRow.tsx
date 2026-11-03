@@ -13,6 +13,7 @@ export interface BugRowProps {
   deviceInfo?: string;
   hasAttachment?: boolean;
   onPress?: () => void;
+  onLongPress?: () => void;
 }
 
 export const BugRow: React.FC<BugRowProps> = ({
@@ -23,6 +24,7 @@ export const BugRow: React.FC<BugRowProps> = ({
   deviceInfo,
   hasAttachment,
   onPress,
+  onLongPress,
 }) => {
   const { colors, spacing, radius, elevation } = useTheme();
 
@@ -38,6 +40,7 @@ export const BugRow: React.FC<BugRowProps> = ({
   return (
     <Pressable
       onPress={onPress}
+      onLongPress={onLongPress}
       style={[
         styles.container,
         {

@@ -80,14 +80,16 @@ export const TaskCreateSheet: React.FC<TaskCreateSheetProps> = ({
           onToggle={handleToggleLabel}
         />
 
-        <Button
-          title="Create Task"
-          variant="primary"
-          disabled={!title.trim()}
-          loading={createTask.isPending}
-          onPress={handleCreate}
-          style={{ marginTop: spacing.md }}
-        />
+        <View style={{ marginTop: spacing.md }}>
+          <Button
+            title="Create Task"
+            variant="primary"
+            fullWidth
+            disabled={!title.trim()}
+            loading={createTask.isPending}
+            onPress={handleCreate}
+          />
+        </View>
       </ScrollView>
     </Sheet>
   );

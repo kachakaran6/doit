@@ -345,6 +345,7 @@ export const CaptureModal: React.FC = () => {
             await overlayService.uploadFile(item.uri, putTarget, normalizedMime);
             await http.post(`/uploads/${initRes.uploadId}/complete`, {
               taskId: createdId,
+              bugId: current.mode === 'bug' ? createdId : undefined,
             });
           } catch (uploadErr) {
             console.warn('[CaptureModal] Attachment upload error:', uploadErr);
@@ -819,33 +820,35 @@ export const CaptureModal: React.FC = () => {
 
           {/* Bottom Action Row */}
           <View style={[styles.actionRow, { gap: spacing.md, marginTop: spacing['2xl'] }]}>
-            <Button
-              title="Cancel"
-              variant="secondary"
-              style={styles.actionBtn}
-              onPress={() => navigation.goBack()}
-            />
-            <Button
-              title={
-                mode === 'bug'
-                  ? 'Submit Bug'
-                  : mode === 'sticky'
-                  ? 'Save Sticky Note'
-                  : mode === 'voice'
-                  ? 'Save Voice Note'
-                  : 'Create Task'
-              }
-              variant="primary"
-              style={styles.actionBtn}
-              disabled={isSubmitDisabled}
-              loading={isSaving}
-              icon={
-                isSaving ? undefined : (
-                  <Check size={16} color={colors.accentOnPrimary} />
-                )
-              }
-              onPress={handleSave}
-            />
+            <View style={styles.actionBtn}>
+              <Button
+                title="Cancel"
+                variant="secondary"
+                onPress={() => navigation.goBack()}
+              />
+            </View>
+            <View style={styles.actionBtn}>
+              <Button
+                title={
+                  mode === 'bug'
+                    ? 'Submit Bug'
+                    : mode === 'sticky'
+                    ? 'Save Sticky Note'
+                    : mode === 'voice'
+                    ? 'Save Voice Note'
+                    : 'Create Task'
+                }
+                variant="primary"
+                disabled={isSubmitDisabled}
+                loading={isSaving}
+                icon={
+                  isSaving ? undefined : (
+                    <Check size={16} color={colors.accentOnPrimary} />
+                  )
+                }
+                onPress={handleSave}
+              />
+            </View>
           </View>
         </ScrollView>
       </KeyboardAvoidingView>

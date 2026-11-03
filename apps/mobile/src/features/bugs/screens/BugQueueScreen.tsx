@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, FlatList, RefreshControl, TouchableOpacity } from 'react-native';
+import { View, StyleSheet, FlatList, RefreshControl, TouchableOpacity, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -14,6 +14,7 @@ import {
 } from '../../../components/ui';
 import { BugRow } from '../../../components/patterns';
 import { useBugsQuery } from '../api/queries';
+import { useDeleteBugMutation } from '../api/mutations';
 import { useWorkspaceStore } from '../../workspace';
 import { RootStackParamList } from '../../../navigation/types';
 import { Plus } from 'lucide-react-native';
@@ -26,6 +27,28 @@ export const BugQueueScreen: React.FC = () => {
   const projectId = activeProject?.id || 'default';
 
   const { data: bugs, isLoading, error, refetch, isRefetching } = useBugsQuery(projectId);
+  const deleteBug = useDeleteBugMutation(projectId);
+
+  const handleConfirmDelete = (bug: { id: string; title: string }) => {
+    Alert.alert(
+      'Move to Trash',
+      `Are you sure you want to move "${bug.title}" to trash?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Move to Trash',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await deleteBug.mutateAsync(bug.id);
+            } catch (err: any) {
+              Alert.alert('Error', err?.message || 'Could not move bug to trash.');
+            }
+          },
+        },
+      ]
+    );
+  };
 
   const items = bugs || [];
   const filteredBugs = items.filter((b) => {
@@ -128,6 +151,7 @@ export const BugQueueScreen: React.FC = () => {
               deviceInfo={item.telemetry?.deviceModel}
               hasAttachment={item.hasAttachment}
               onPress={() => navigation.navigate('BugDetail', { id: item.id })}
+              onLongPress={() => handleConfirmDelete(item)}
             />
           )}
           contentContainerStyle={{

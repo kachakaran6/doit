@@ -174,14 +174,16 @@ export const CaptureSheet: React.FC<CaptureSheetProps> = ({
             <SeverityPicker value={severity} onChange={setSeverity} />
           )}
 
-          <Button
-            title={mode === 'bug' ? 'Submit Bug' : 'Create Task'}
-            variant="primary"
-            disabled={!title.trim()}
-            loading={isSaving}
-            onPress={handleSubmit}
-            style={{ marginTop: spacing.md }}
-          />
+          <View style={{ marginTop: spacing.md }}>
+            <Button
+              title={mode === 'bug' ? 'Submit Bug' : 'Create Task'}
+              variant="primary"
+              fullWidth
+              disabled={!title.trim()}
+              loading={isSaving}
+              onPress={handleSubmit}
+            />
+          </View>
         </ScrollView>
 
         {/* 600 ms Success Checkmark Overlay */}

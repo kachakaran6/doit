@@ -253,13 +253,15 @@ export const LoginScreen: React.FC = () => {
               secureTextEntry
             />
 
-            <Button
-              title={mode === 'signin' ? 'Sign In to Workspace' : 'Create Account'}
-              variant="primary"
-              loading={isLoading}
-              style={{ marginTop: spacing.xs }}
-              onPress={handleSubmit}
-            />
+            <View style={{ marginTop: spacing.xs }}>
+              <Button
+                title={mode === 'signin' ? 'Sign In to Workspace' : 'Create Account'}
+                variant="primary"
+                fullWidth
+                loading={isLoading}
+                onPress={handleSubmit}
+              />
+            </View>
           </View>
         </View>
 
@@ -283,20 +285,24 @@ export const LoginScreen: React.FC = () => {
               Demo Accounts
             </Text>
             <View style={[styles.demoRow, { gap: spacing.md }]}>
-              <Button
-                title="Alice (Owner)"
-                variant="secondary"
-                size="sm"
-                onPress={() => setDemoAccount('alice@samyukt.com')}
-                style={styles.demoBtn}
-              />
-              <Button
-                title="Bob (Tester)"
-                variant="secondary"
-                size="sm"
-                onPress={() => setDemoAccount('bob@samyukt.com')}
-                style={styles.demoBtn}
-              />
+              <View style={styles.demoBtn}>
+                <Button
+                  title="Alice (Owner)"
+                  variant="secondary"
+                  size="sm"
+                  fullWidth
+                  onPress={() => setDemoAccount('alice@samyukt.com')}
+                />
+              </View>
+              <View style={styles.demoBtn}>
+                <Button
+                  title="Bob (Tester)"
+                  variant="secondary"
+                  size="sm"
+                  fullWidth
+                  onPress={() => setDemoAccount('bob@samyukt.com')}
+                />
+              </View>
             </View>
           </View>
         )}

@@ -1,16 +1,15 @@
-import React, { useRef } from 'react';
+import React, { useRef, useState } from 'react';
 import {
   Pressable,
   Animated,
   ActivityIndicator,
   StyleSheet,
-  ViewStyle,
-  TextStyle,
+  View,
 } from 'react-native';
 import { useTheme } from '../../theme/useTheme';
-import { Text, TextColor } from './Text';
+import { Text } from './Text';
 
-export type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger' | 'icon';
+export type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger';
 export type ButtonSize = 'sm' | 'md' | 'lg';
 
 export interface ButtonProps {
@@ -22,11 +21,16 @@ export interface ButtonProps {
   loading?: boolean;
   icon?: React.ReactNode;
   accessibilityLabel?: string;
-  style?: ViewStyle;
+  fullWidth?: boolean;
 }
 
 /**
- * Use Button for primary, secondary, danger and ghost actions with standardized tap targets and press feedback.
+ * P-01 Button:
+ * Variants: primary | secondary | ghost | danger
+ * Sizes: sm (36) | md (44) | lg (52)
+ * Radius: 16 (radius.md)
+ * 5 States: rest, pressed (scale 0.97/90ms), focused, disabled, loading
+ * Strict token compliance — callers cannot pass custom style overrides.
  */
 export const Button: React.FC<ButtonProps> = ({
   title,
@@ -37,9 +41,10 @@ export const Button: React.FC<ButtonProps> = ({
   loading = false,
   icon,
   accessibilityLabel,
-  style,
+  fullWidth = false,
 }) => {
-  const { colors, radius, spacing } = useTheme();
+  const { colors, radius, spacing, mode } = useTheme();
+  const [isFocused, setIsFocused] = useState(false);
   const scaleAnim = useRef(new Animated.Value(1)).current;
 
   const handlePressIn = () => {
@@ -64,42 +69,61 @@ export const Button: React.FC<ButtonProps> = ({
     lg: 52,
   };
 
-  const height = sizeHeights[size];
+  const sizePadding: Record<ButtonSize, number> = {
+    sm: spacing.md, // 12
+    md: spacing.lg, // 16
+    lg: spacing.xl, // 20
+  };
 
-  // Colors per variant
+  const height = sizeHeights[size];
+  const paddingHorizontal = sizePadding[size];
+
+  // Base background and text colors
   let bg = colors.accent;
+  let textColor: 'inverse' | 'primary' | 'secondary' | 'danger' | 'muted' = 'inverse';
+  let borderWidth = 0;
   let borderColor = 'transparent';
-  let textColor: TextColor = 'inverse';
 
   if (variant === 'secondary') {
-    bg = colors.surface;
-    borderColor = colors.border;
+    bg = colors.surfaceRaised; // L2 for interactive cards/buttons
     textColor = 'primary';
+    borderWidth = 0;
   } else if (variant === 'ghost') {
     bg = 'transparent';
     textColor = 'primary';
   } else if (variant === 'danger') {
     bg = colors.danger;
     textColor = 'inverse';
-  } else if (variant === 'icon') {
-    bg = colors.bgSubtle;
-    textColor = 'primary';
   }
 
+  // State: Focused
+  if (isFocused) {
+    borderWidth = 1;
+    borderColor = colors.accent;
+  }
+
+  // State: Disabled
   if (disabled) {
-    bg = colors.bgSubtle;
-    borderColor = colors.border;
-    textColor = 'tertiary';
+    bg = colors.surfaceRaised;
+    textColor = 'muted';
+    borderWidth = 0;
   }
 
-  const isIconButton = variant === 'icon';
+  const textVariant = size === 'sm' ? 'label' : 'bodyStrong';
 
   return (
-    <Animated.View style={{ transform: [{ scale: scaleAnim }] }}>
+    <Animated.View
+      style={[
+        { transform: [{ scale: scaleAnim }] },
+        fullWidth && { width: '100%' },
+      ]}
+    >
       <Pressable
         onPress={onPress}
         onPressIn={handlePressIn}
         onPressOut={handlePressOut}
+        onFocus={() => setIsFocused(true)}
+        onBlur={() => setIsFocused(false)}
         disabled={disabled || loading}
         accessibilityRole="button"
         accessibilityLabel={accessibilityLabel || title}
@@ -108,32 +132,30 @@ export const Button: React.FC<ButtonProps> = ({
           styles.base,
           {
             height,
-            minWidth: isIconButton ? height : height * 1.5,
-            paddingHorizontal: isIconButton ? 0 : spacing.lg,
+            paddingHorizontal,
             backgroundColor: bg,
-            borderRadius: radius.md,
+            borderRadius: radius.md, // 16
+            borderWidth,
             borderColor,
-            borderWidth: borderColor !== 'transparent' ? 1 : 0,
-            opacity: disabled ? 0.6 : 1,
+            opacity: disabled ? 0.45 : 1,
+            alignSelf: fullWidth ? 'stretch' : 'flex-start',
           },
-          style,
         ]}
       >
         {loading ? (
-          <ActivityIndicator color={textColor === 'inverse' ? colors.bg : colors.textPrimary} />
+          <ActivityIndicator
+            color={textColor === 'inverse' ? '#FFFFFF' : colors.textPrimary}
+            size={size === 'sm' ? 'small' : 'small'}
+          />
         ) : (
-          <>
-            {icon}
+          <View style={styles.content}>
+            {icon && <View style={title ? { marginRight: spacing.sm } : undefined}>{icon}</View>}
             {title && (
-              <Text
-                variant={size === 'sm' ? 'label' : 'bodyStrong'}
-                color={textColor}
-                style={icon ? { marginLeft: spacing.sm } : undefined}
-              >
+              <Text variant={textVariant} color={textColor}>
                 {title}
               </Text>
             )}
-          </>
+          </View>
         )}
       </Pressable>
     </Animated.View>
@@ -142,6 +164,10 @@ export const Button: React.FC<ButtonProps> = ({
 
 const styles = StyleSheet.create({
   base: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  content: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',

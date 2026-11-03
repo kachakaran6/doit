@@ -13,10 +13,12 @@ import com.facebook.react.bridge.ReactApplicationContext
 import com.facebook.react.bridge.ReactContextBaseJavaModule
 import com.facebook.react.bridge.ReactMethod
 import android.graphics.Bitmap
+import android.graphics.Canvas
 import android.graphics.Rect
 import android.os.Handler
 import android.os.Looper
 import android.view.PixelCopy
+import android.view.View
 import java.io.File
 import java.io.FileOutputStream
 
@@ -275,58 +277,45 @@ class OverlayServiceModule(private val reactContext: ReactApplicationContext) :
     @ReactMethod
     fun captureCleanScreenshot(promise: Promise) {
         val activity = currentActivity
-        if (activity != null && !activity.isFinishing && Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val window = activity.window
-            val decorView = window.decorView
-            val width = decorView.width
-            val height = decorView.height
-
-            if (width > 0 && height > 0) {
-                val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
-                val location = IntArray(2)
+        if (activity != null && !activity.isFinishing) {
+            activity.runOnUiThread {
                 try {
-                    decorView.getLocationInSurface(location)
-                    val rect = Rect(location[0], location[1], location[0] + width, location[1] + height)
+                    val window = activity.window
+                    val decorView = window.decorView
+                    val width = decorView.width
+                    val height = decorView.height
 
-                    PixelCopy.request(
-                        window,
-                        rect,
-                        bitmap,
-                        { copyResult ->
-                            if (copyResult == PixelCopy.SUCCESS) {
-                                try {
-                                    val outFile = File(
-                                        reactContext.cacheDir,
-                                        "screenshot_${System.currentTimeMillis()}.jpg"
-                                    )
-                                    FileOutputStream(outFile).use { fos ->
-                                        bitmap.compress(Bitmap.CompressFormat.JPEG, 90, fos)
-                                    }
-                                    bitmap.recycle()
-
-                                    val map = Arguments.createMap().apply {
-                                        putString("uri", "file://${outFile.absolutePath}")
-                                        putString("name", outFile.name)
-                                        putInt("sizeBytes", outFile.length().toInt())
-                                        putString("mimeType", "image/jpeg")
-                                        putInt("width", width)
-                                        putInt("height", height)
-                                    }
-                                    promise.resolve(map)
-                                } catch (e: Exception) {
-                                    promise.reject("SAVE_FAILED", e.message)
+                    if (width > 0 && height > 0 && Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                        val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
+                        PixelCopy.request(
+                            window,
+                            null, // null area captures the entire window cleanly
+                            bitmap,
+                            { copyResult ->
+                                if (copyResult == PixelCopy.SUCCESS) {
+                                    saveBitmapAndResolve(bitmap, width, height, promise)
+                                } else {
+                                    // Fallback to direct Canvas view rendering
+                                    captureViaCanvas(decorView, width, height, promise)
                                 }
-                            } else {
-                                ScreenshotCaptureActivity.captureCleanScreen(activity, promise)
-                            }
-                        },
-                        Handler(Looper.getMainLooper())
-                    )
-                    return
+                            },
+                            Handler(Looper.getMainLooper())
+                        )
+                    } else if (width > 0 && height > 0) {
+                        captureViaCanvas(decorView, width, height, promise)
+                    } else {
+                        ScreenshotCaptureActivity.captureCleanScreen(activity, promise)
+                    }
                 } catch (e: Exception) {
-                    // Fall through to ScreenshotCaptureActivity
+                    val decorView = activity.window?.decorView
+                    if (decorView != null && decorView.width > 0 && decorView.height > 0) {
+                        captureViaCanvas(decorView, decorView.width, decorView.height, promise)
+                    } else {
+                        ScreenshotCaptureActivity.captureCleanScreen(activity, promise)
+                    }
                 }
             }
+            return
         }
 
         try {
@@ -334,6 +323,50 @@ class OverlayServiceModule(private val reactContext: ReactApplicationContext) :
             ScreenshotCaptureActivity.captureCleanScreen(act, promise)
         } catch (e: Exception) {
             promise.reject("CAPTURE_FAILED", e.message)
+        }
+    }
+
+    private fun saveBitmapAndResolve(bitmap: Bitmap, width: Int, height: Int, promise: Promise) {
+        Thread {
+            try {
+                val outFile = File(
+                    reactContext.cacheDir,
+                    "screenshot_${System.currentTimeMillis()}.jpg"
+                )
+                FileOutputStream(outFile).use { fos ->
+                    bitmap.compress(Bitmap.CompressFormat.JPEG, 90, fos)
+                    fos.flush()
+                }
+                bitmap.recycle()
+
+                val map = Arguments.createMap().apply {
+                    putString("uri", "file://${outFile.absolutePath}")
+                    putString("name", outFile.name)
+                    putInt("sizeBytes", outFile.length().toInt())
+                    putString("mimeType", "image/jpeg")
+                    putInt("width", width)
+                    putInt("height", height)
+                }
+                promise.resolve(map)
+            } catch (e: Exception) {
+                promise.reject("SAVE_FAILED", e.message)
+            }
+        }.start()
+    }
+
+    private fun captureViaCanvas(decorView: View, width: Int, height: Int, promise: Promise) {
+        try {
+            val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
+            val canvas = Canvas(bitmap)
+            decorView.draw(canvas)
+            saveBitmapAndResolve(bitmap, width, height, promise)
+        } catch (e: Exception) {
+            val activity = currentActivity
+            if (activity != null) {
+                ScreenshotCaptureActivity.captureCleanScreen(activity, promise)
+            } else {
+                promise.reject("CANVAS_FAILED", e.message)
+            }
         }
     }
 
