@@ -49,7 +49,21 @@ export class AttachmentsController {
     @Headers('content-type') contentType: string,
     @Req() req: RawBodyRequest<Request>,
   ) {
-    const rawBuffer = req.rawBody || Buffer.from('');
+    let rawBuffer: Buffer;
+    if (req.rawBody && req.rawBody.length > 0) {
+      rawBuffer = req.rawBody;
+    } else if (Buffer.isBuffer(req.body) && req.body.length > 0) {
+      rawBuffer = req.body;
+    } else if (Buffer.isBuffer(req.body)) {
+      rawBuffer = req.body;
+    } else {
+      rawBuffer = await new Promise<Buffer>((resolve, reject) => {
+        const chunks: Buffer[] = [];
+        req.on('data', (chunk) => chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk)));
+        req.on('end', () => resolve(Buffer.concat(chunks)));
+        req.on('error', reject);
+      });
+    }
     return this.attachmentsService.directPut(decodeURIComponent(key), rawBuffer, contentType || 'application/octet-stream');
   }
 
