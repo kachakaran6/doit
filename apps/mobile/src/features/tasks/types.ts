@@ -1,6 +1,23 @@
 export type TaskStatus = 'TODO' | 'IN_PROGRESS' | 'BLOCKED' | 'DONE';
 export type TaskPriority = 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT';
 
+export interface TaskAttachment {
+  id: string;
+  taskId?: string;
+  bugId?: string;
+  kind: 'IMAGE' | 'VIDEO' | 'AUDIO' | 'FILE';
+  storageKey: string;
+  mimeType: string;
+  sizeBytes: number;
+  width?: number | null;
+  height?: number | null;
+  durationMs?: number | null;
+  thumbKey?: string | null;
+  url?: string | null;
+  thumbUrl?: string | null;
+  createdAt: string;
+}
+
 export interface TaskViewModel {
   id: string;
   humanId: string;
@@ -13,6 +30,7 @@ export interface TaskViewModel {
   projectId: string;
   assigneeId?: string;
   labels?: Array<{ id: string; name: string; color: string }>;
+  attachments?: TaskAttachment[];
   isPending?: boolean;
   isFailed?: boolean;
 }

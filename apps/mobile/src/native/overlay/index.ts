@@ -37,6 +37,7 @@ export interface OverlayService {
   requestScreenshotPermission(): Promise<boolean>;
   captureCleanScreenshot(): Promise<CleanScreenshotResult>;
   pickImageFromGallery(): Promise<GalleryImageResult>;
+  uploadFile(filePath: string, url: string, contentType: string): Promise<boolean>;
 }
 
 class OverlayServiceImpl implements OverlayService {
@@ -221,6 +222,21 @@ class OverlayServiceImpl implements OverlayService {
       throw new Error('Gallery picker not available on this platform');
     }
     return await OverlayServiceModule.pickImageFromGallery();
+  }
+
+  async uploadFile(filePath: string, url: string, contentType: string = 'image/jpeg'): Promise<boolean> {
+    if (!this.isAvailable() || !OverlayServiceModule?.uploadFile) {
+      // Fallback
+      const resp = await fetch(filePath);
+      const blob = await resp.blob();
+      const res = await fetch(url, {
+        method: 'PUT',
+        headers: { 'Content-Type': contentType },
+        body: blob,
+      });
+      return res.ok;
+    }
+    return await OverlayServiceModule.uploadFile(filePath, url, contentType);
   }
 }
 

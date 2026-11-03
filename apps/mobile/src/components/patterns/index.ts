@@ -10,3 +10,4 @@ export * from './SeverityPicker';
 export * from './LabelPicker';
 export * from './AssigneePicker';
 export * from './FilterBar';
+export * from './AttachmentGallery';

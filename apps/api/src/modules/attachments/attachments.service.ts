@@ -106,10 +106,32 @@ export class AttachmentsService {
 
     const kind = getMimeKind(session.contentType) as AttachmentKind;
 
+    let finalTaskId = dto.taskId;
+    let finalBugId = dto.bugId;
+
+    if (finalBugId && !finalTaskId) {
+      const existingTask = await this.prisma.task.findUnique({ where: { id: finalBugId } });
+      if (existingTask) {
+        finalTaskId = finalBugId;
+        finalBugId = undefined;
+      }
+    }
+
+    if (finalTaskId && !finalBugId) {
+      const existingTask = await this.prisma.task.findUnique({ where: { id: finalTaskId } });
+      if (!existingTask) {
+        const existingBug = await this.prisma.bugReport.findUnique({ where: { id: finalTaskId } });
+        if (existingBug) {
+          finalBugId = finalTaskId;
+          finalTaskId = undefined;
+        }
+      }
+    }
+
     const attachment = await this.prisma.attachment.create({
       data: {
-        taskId: dto.taskId || null,
-        bugId: dto.bugId || null,
+        taskId: finalTaskId || null,
+        bugId: finalBugId || null,
         commentId: dto.commentId || null,
         kind,
         storageKey: session.storageKey,

@@ -3,36 +3,30 @@ import path from 'path';
 
 const TOKEN = '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';
 const REPO = 'kachakaran6/doit';
-const TAG = 'v0.1.0+5';
-const RELEASE_NAME = 'DoIt v0.1.0 — Release Build 5 (Instant Screenshot & Workspace Fixes)';
-const APK_PATH = 'K:/Doit/DoIt-v0.1.0-build5.apk';
-const SHA_PATH = 'K:/Doit/DoIt-v0.1.0-build5.apk.sha256';
+const TAG = 'v0.1.0+6';
+const RELEASE_NAME = 'DoIt v0.1.0 — Release Build 6 (Task & Bug Attachment Gallery & Detail Rendering)';
+const APK_PATH = 'K:/Doit/DoIt-v0.1.0-build6.apk';
+const SHA_PATH = 'K:/Doit/DoIt-v0.1.0-build6.apk.sha256';
 
-const RELEASE_BODY = `## DoIt v0.1.0 — Release Build 5
+const RELEASE_BODY = `## DoIt v0.1.0 — Release Build 6
 
 ### What's New & Fixed
-- **Instant In-App Screenshot (Zero Prompts / Zero Popups)**:
-  - Replaced MediaProjection inside DoIt app with hardware-accelerated Android \`PixelCopy\` API on the activity window.
-  - Tapping "Capture Screen" inside DoIt now captures the view in ~15ms with **ZERO system dialogs**, **no casting prompt**, and **no app selection picker**.
-- **Android 14 (API 34) Direct Display Capture**:
-  - When capturing outside the app, configured \`MediaProjectionConfig.createConfigForDefaultDisplay()\`.
-  - Eliminates the confusing "Choose app to share" system sub-flow on Android 14.
-- **Background Capture Modal Checkbox**:
-  - The "Attach current screen screenshot" checkbox now defaults to **unchecked** (\`false\`) in the compact quick capture overlay.
-  - Submitting quick tasks or bugs outside DoIt is instant without triggering any screen cast dialog unless the user intentionally chooses to attach a screenshot.
-- **Smart Floating Bubble Visibility**:
-  - Automatically hides the floating bubble overlay whenever the DoIt application is active in the foreground (\`onResume\`) so it never overlaps or obstructs input fields.
-  - Automatically restores the floating bubble when the user switches to other apps or the home screen.
-- **Fixed "Project Not Found" (404) Error**:
-  - Backend resilience: \`TasksService\` and \`StickiesService\` now auto-resolve the user's workspace project or create a default project (\`General\`, key: \`GEN\`) if none exists, preventing any 404 failure.
-  - Guard resilience: \`WorkspaceMemberGuard\` handles \`default\` and unknown project IDs gracefully by falling back to the user's workspace membership.
-  - Frontend auto-initialization: \`useWorkspaceStore\` now auto-fetches \`/workspaces\` with projects upon app launch and login, ensuring \`activeProject\` is always populated.
-  - Background overlay: \`BubbleService\` now auto-resolves the user's project ID from \`/workspaces\`.
+- **Task & Bug Detail Attachment Gallery**:
+  - Implemented reusable, theme-aligned \`AttachmentGallery\` component in both Task Detail and Bug Detail screens.
+  - Image thumbnails with loading spinner, aspect ratio preservation, rounded corners, and subtle borders.
+  - Tap any thumbnail to open the smooth **Full-Screen Image Viewer Modal** with high-resolution view, file dimensions, file size, MIME type, and quick close.
+- **Backend Storage URL Generation**:
+  - Injected \`StorageService\` into \`TasksService.findOne\`.
+  - Generates authenticated signed URLs (\`url\` and \`thumbUrl\`) for all attachments on Tasks and Bugs.
+- **Attachment Association Fix**:
+  - Mapped \`bugId\` and \`taskId\` in \`AttachmentsService.completeUpload\` to eliminate foreign key mismatch, ensuring bug attachments are permanently attached to the corresponding Task record.
+- **Native Binary File Upload**:
+  - Added native streaming \`uploadFile\` in \`OverlayServiceModule\` so React Native streams files directly to presigned PUT URLs without bridge blob crashes on Android.
 - **Target Backend**:
   - Pointed strictly to \`https://doit.samyukt.pro/api/v1\`.
 
 ### Download
-- **APK**: \`DoIt-v0.1.0-build5.apk\` (~35 MB)
+- **APK**: \`DoIt-v0.1.0-build6.apk\` (~35 MB)
 `;
 
 async function main() {
@@ -82,9 +76,9 @@ async function main() {
   const uploadBaseUrl = uploadUrlTemplate.split('{')[0];
 
   // Upload APK
-  console.log('2. Uploading DoIt-v0.1.0-build5.apk...');
+  console.log('2. Uploading DoIt-v0.1.0-build6.apk...');
   const apkBytes = fs.readFileSync(APK_PATH);
-  const apkName = 'DoIt-v0.1.0-build5.apk';
+  const apkName = 'DoIt-v0.1.0-build6.apk';
 
   // Check if asset already exists
   const existingAsset = releaseData.assets?.find((a) => a.name === apkName);
@@ -121,7 +115,7 @@ async function main() {
   if (fs.existsSync(SHA_PATH)) {
     console.log('3. Uploading SHA-256 checksum...');
     const shaBytes = fs.readFileSync(SHA_PATH);
-    const shaName = 'DoIt-v0.1.0-build5.apk.sha256';
+    const shaName = 'DoIt-v0.1.0-build6.apk.sha256';
 
     const existingSha = releaseData.assets?.find((a) => a.name === shaName);
     if (existingSha) {

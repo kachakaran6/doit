@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Prisma, TaskStatus, Priority, TaskType, TaskSource } from '@prisma/client';
 import { PrismaService } from '../../infra/prisma/prisma.service';
+import { StorageService } from '../../infra/storage/storage.service';
 import {
   CreateTaskDto,
   UpdateTaskDto,
@@ -21,7 +22,10 @@ export class TasksService {
   private readonly logger = new Logger(TasksService.name);
   private readonly idempotencyCache = new Map<string, unknown>();
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly storage: StorageService,
+  ) {}
 
   async create(userId: string, dto: CreateTaskDto, idempotencyKey?: string) {
     if (idempotencyKey && this.idempotencyCache.has(idempotencyKey)) {
@@ -285,10 +289,32 @@ export class TasksService {
       throw new AppError(ErrorCode.TASK_NOT_FOUND, 'Task not found.', 404);
     }
 
+    const attachmentsWithUrls = await Promise.all(
+      (task.attachments || []).map(async (att) => {
+        try {
+          const [url, thumbUrl] = await Promise.all([
+            this.storage.getSignedUrl(att.storageKey, 3600),
+            att.thumbKey ? this.storage.getSignedUrl(att.thumbKey, 3600) : Promise.resolve(null),
+          ]);
+          return {
+            ...att,
+            url,
+            thumbUrl,
+          };
+        } catch {
+          return {
+            ...att,
+            url: null,
+            thumbUrl: null,
+          };
+        }
+      }),
+    );
+
     return {
       ...mapTaskListItem(task as unknown as RawTaskModel, task.project.key),
       checklist: task.checklist,
-      attachments: task.attachments,
+      attachments: attachmentsWithUrls,
       bug: task.bug,
       activity: task.activity,
     };

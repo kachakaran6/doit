@@ -346,4 +346,45 @@ class OverlayServiceModule(private val reactContext: ReactApplicationContext) :
             promise.reject("PICKER_ERROR", e.message)
         }
     }
+
+    @ReactMethod
+    fun uploadFile(filePath: String, url: String, contentType: String, promise: Promise) {
+        Thread {
+            try {
+                val cleanPath = if (filePath.startsWith("file://")) filePath.substring(7) else filePath
+                val file = File(cleanPath)
+                if (!file.exists()) {
+                    promise.reject("FILE_NOT_FOUND", "File does not exist: $cleanPath")
+                    return@Thread
+                }
+
+                val putUrl = java.net.URL(url)
+                val conn = (putUrl.openConnection() as java.net.HttpURLConnection).apply {
+                    requestMethod = "PUT"
+                    setRequestProperty("Content-Type", contentType)
+                    doOutput = true
+                    setFixedLengthStreamingMode(file.length().toInt())
+                    connectTimeout = 15000
+                    readTimeout = 15000
+                }
+
+                java.io.FileInputStream(file).use { fis ->
+                    conn.outputStream.use { pos ->
+                        fis.copyTo(pos)
+                    }
+                }
+
+                val responseCode = conn.responseCode
+                conn.disconnect()
+
+                if (responseCode in 200..299) {
+                    promise.resolve(true)
+                } else {
+                    promise.reject("UPLOAD_FAILED", "Server returned HTTP $responseCode")
+                }
+            } catch (e: Exception) {
+                promise.reject("UPLOAD_ERROR", e.message)
+            }
+        }.start()
+    }
 }

@@ -12,7 +12,7 @@ import {
   ScreenHeader,
 } from '../../../components/ui';
 import { BugAutoContextCard } from '../components/BugAutoContextCard';
-import { SeverityPicker } from '../../../components/patterns';
+import { SeverityPicker, AttachmentGallery } from '../../../components/patterns';
 import { useBugDetailQuery } from '../api/queries';
 import { useUpdateBugStatusMutation } from '../api/mutations';
 import { RootStackParamList } from '../../../navigation/types';
@@ -172,6 +172,11 @@ export const BugDetailScreen: React.FC = () => {
             <BugAutoContextCard telemetry={bug.telemetry} />
           </View>
         )}
+
+        {/* Screenshots & Attachments */}
+        {bug.attachments && bug.attachments.length > 0 ? (
+          <AttachmentGallery title="Screenshots & Attachments" attachments={bug.attachments} />
+        ) : null}
 
         {/* Action Button */}
         <View style={{ marginTop: spacing.xl }}>

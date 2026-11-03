@@ -28,6 +28,7 @@ import { useCreateBugMutation } from '../features/bugs/api/mutations';
 import { useCreateStickyMutation } from '../features/stickies/api/mutations';
 import { useCreateVoiceNoteMutation } from '../features/voice/api/mutations';
 import { useWorkspaceStore } from '../features/workspace';
+import { overlayService } from '../native/overlay';
 import { RootStackParamList } from '../navigation/types';
 import {
   X,
@@ -337,15 +338,9 @@ export const CaptureModal: React.FC = () => {
               purpose: current.mode === 'bug' ? 'BUG' : 'TASK',
             });
             const putTarget = initRes.putUrl.startsWith('/') ? `${http.getBaseUrl()}${initRes.putUrl}` : initRes.putUrl;
-            const resp = await fetch(item.uri);
-            const blob = await resp.blob();
-            await fetch(putTarget, {
-              method: 'PUT',
-              headers: { 'Content-Type': item.mimeType || 'image/jpeg' },
-              body: blob,
-            });
+            await overlayService.uploadFile(item.uri, putTarget, item.mimeType || 'image/jpeg');
             await http.post(`/uploads/${initRes.uploadId}/complete`, {
-              [current.mode === 'bug' ? 'bugId' : 'taskId']: createdId,
+              taskId: createdId,
             });
           } catch (uploadErr) {
             console.warn('[CaptureModal] Attachment upload error:', uploadErr);

@@ -12,7 +12,12 @@ export class LocalStorageAdapter implements IStorageAdapter {
 
   constructor() {
     this.storageRoot = path.resolve(process.cwd(), process.env.UPLOAD_DIR || '.storage');
-    this.baseUrl = process.env.BASE_URL || process.env.PUBLIC_BASE_URL || 'http://localhost:3000';
+    this.baseUrl = (
+      process.env.BASE_URL ||
+      process.env.PUBLIC_BASE_URL ||
+      process.env.APP_URL ||
+      'https://doit.samyukt.pro'
+    ).replace(/\/$/, '');
 
     if (!fs.existsSync(this.storageRoot)) {
       fs.mkdirSync(this.storageRoot, { recursive: true });
@@ -40,7 +45,8 @@ export class LocalStorageAdapter implements IStorageAdapter {
   }
 
   async getSignedUrl(key: string, _expiresInSeconds = 3600): Promise<string> {
-    return `${this.baseUrl}/static/${key}?sig=local-dev-token`;
+    const cleanKey = key.startsWith('/') ? key.substring(1) : key;
+    return `${this.baseUrl}/static/${cleanKey}`;
   }
 
   async createPresignedPutUrl(
@@ -48,7 +54,8 @@ export class LocalStorageAdapter implements IStorageAdapter {
     contentType: string,
     _expiresInSeconds = 900,
   ): Promise<PresignedPutResult> {
-    const putUrl = `${this.baseUrl}/api/v1/uploads/raw/${encodeURIComponent(key)}`;
+    const cleanKey = key.startsWith('/') ? key.substring(1) : key;
+    const putUrl = `${this.baseUrl}/api/v1/uploads/raw/${encodeURIComponent(cleanKey)}`;
     return {
       putUrl,
       headers: {

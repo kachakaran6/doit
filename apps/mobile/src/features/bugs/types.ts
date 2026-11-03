@@ -1,3 +1,5 @@
+import { TaskAttachment } from '../tasks/types';
+
 export type BugSeverity = 'CRITICAL' | 'MAJOR' | 'MINOR' | 'TRIVIAL';
 export type BugStatus = 'TRIAGED' | 'IN_PROGRESS' | 'RESOLVED' | 'VERIFIED';
 
@@ -24,6 +26,7 @@ export interface BugViewModel {
   reproductionSteps?: string[];
   telemetry?: DeviceTelemetry;
   hasAttachment?: boolean;
+  attachments?: TaskAttachment[];
   createdAt: string;
   updatedAt: string;
 }

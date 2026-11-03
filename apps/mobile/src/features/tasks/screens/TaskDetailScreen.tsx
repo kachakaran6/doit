@@ -11,6 +11,7 @@ import {
   EmptyState,
   ScreenHeader,
 } from '../../../components/ui';
+import { AttachmentGallery } from '../../../components/patterns';
 import { useTaskDetailQuery } from '../api/queries';
 import { useUpdateTaskStatusMutation } from '../api/mutations';
 import { RootStackParamList } from '../../../navigation/types';
@@ -194,6 +195,11 @@ export const TaskDetailScreen: React.FC = () => {
               {task.description}
             </Text>
           </View>
+        ) : null}
+
+        {/* Attachments Section */}
+        {task.attachments && task.attachments.length > 0 ? (
+          <AttachmentGallery title="Attachments" attachments={task.attachments} />
         ) : null}
 
         {/* Status Action Button */}
