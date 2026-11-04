@@ -1,28 +1,38 @@
-import React, { useState } from 'react';
-import { View, StyleSheet, FlatList, RefreshControl, TouchableOpacity, Alert } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import React, { useState, useMemo } from 'react';
+import {
+  View,
+  StyleSheet,
+  ScrollView,
+  TouchableOpacity,
+  Alert,
+  Pressable,
+} from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useTheme } from '../../../theme/useTheme';
 import {
   Text,
-  Button,
-  EmptyState,
+  Screen,
+  Chip,
   Skeleton,
-  ScreenHeader,
-  FilterControl,
+  EmptyState,
+  LargeHeader,
 } from '../../../components/ui';
 import { BugRow } from '../../../components/patterns';
 import { useBugsQuery } from '../api/queries';
 import { useDeleteBugMutation } from '../api/mutations';
 import { useWorkspaceStore } from '../../workspace';
+import { ProjectSwitcherSheet } from '../../workspace/components/ProjectSwitcherSheet';
 import { RootStackParamList } from '../../../navigation/types';
-import { Plus } from 'lucide-react-native';
+import { accents } from '@doit/tokens';
+import { ChevronDown, Bug as BugIcon } from 'lucide-react-native';
 
 export const BugQueueScreen: React.FC = () => {
   const { colors, spacing, radius } = useTheme();
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const [selectedSeverity, setSelectedSeverity] = useState<string>('ALL');
+  const [isProjectSheetOpen, setProjectSheetOpen] = useState(false);
+
   const activeProject = useWorkspaceStore((s) => s.activeProject);
   const projectId = activeProject?.id || 'default';
 
@@ -51,25 +61,39 @@ export const BugQueueScreen: React.FC = () => {
   };
 
   const items = bugs || [];
-  const filteredBugs = items.filter((b) => {
-    if (selectedSeverity !== 'ALL' && b.severity !== selectedSeverity) return false;
-    return true;
-  });
+
+  const counts = useMemo(() => {
+    return {
+      ALL: items.length,
+      CRITICAL: items.filter((b) => b.severity === 'CRITICAL').length,
+      MAJOR: items.filter((b) => b.severity === 'MAJOR').length,
+      MINOR: items.filter((b) => b.severity === 'MINOR').length,
+      TRIVIAL: items.filter((b) => b.severity === 'TRIVIAL').length,
+    };
+  }, [items]);
+
+  const filteredBugs = useMemo(() => {
+    if (selectedSeverity === 'ALL') return items;
+    return items.filter((b) => b.severity === selectedSeverity);
+  }, [items, selectedSeverity]);
 
   if (isLoading) {
     return (
-      <SafeAreaView edges={['top']} style={[styles.container, { backgroundColor: colors.bg, padding: spacing.lg }]}>
-        <Skeleton width="45%" height={28} style={{ marginBottom: spacing.lg }} />
-        <Skeleton width="100%" height={68} style={{ marginBottom: spacing.sm, borderRadius: radius.md }} />
-        <Skeleton width="100%" height={68} style={{ marginBottom: spacing.sm, borderRadius: radius.md }} />
-        <Skeleton width="100%" height={68} style={{ borderRadius: radius.md }} />
-      </SafeAreaView>
+      <Screen scrollable={false}>
+        <View style={{ paddingTop: spacing.md }}>
+          <Skeleton width="40%" height={32} style={{ marginBottom: spacing.md }} />
+          <Skeleton width="100%" height={40} style={{ marginBottom: spacing.lg, borderRadius: radius.pill }} />
+          <Skeleton width="100%" height={72} style={{ marginBottom: spacing.sm, borderRadius: radius.lg }} />
+          <Skeleton width="100%" height={72} style={{ marginBottom: spacing.sm, borderRadius: radius.lg }} />
+          <Skeleton width="100%" height={72} style={{ borderRadius: radius.lg }} />
+        </View>
+      </Screen>
     );
   }
 
   if (error) {
     return (
-      <SafeAreaView edges={['top']} style={[styles.container, { backgroundColor: colors.bg, padding: spacing.lg }]}>
+      <Screen scrollable={false}>
         <EmptyState
           illustration="offline"
           title="Could not load bugs"
@@ -77,109 +101,145 @@ export const BugQueueScreen: React.FC = () => {
           actionTitle="Retry"
           onAction={() => refetch()}
         />
-      </SafeAreaView>
+      </Screen>
     );
   }
 
-  const severityOptions = [
-    { key: 'ALL', label: 'All' },
-    { key: 'CRITICAL', label: 'Critical' },
-    { key: 'MAJOR', label: 'Major' },
-    { key: 'MINOR', label: 'Minor' },
-    { key: 'TRIVIAL', label: 'Trivial' },
+  const severityChips = [
+    { key: 'ALL', label: 'All', count: counts.ALL, dotColor: undefined },
+    { key: 'CRITICAL', label: 'Critical', count: counts.CRITICAL, dotColor: colors.danger },
+    { key: 'MAJOR', label: 'Major', count: counts.MAJOR, dotColor: colors.warning },
+    { key: 'MINOR', label: 'Minor', count: counts.MINOR, dotColor: accents.amber.primary },
+    { key: 'TRIVIAL', label: 'Trivial', count: counts.TRIVIAL, dotColor: colors.textTertiary },
   ];
 
   return (
-    <SafeAreaView edges={['top']} style={[styles.container, { backgroundColor: colors.bg }]}>
-      <View style={{ paddingHorizontal: spacing.lg, paddingTop: spacing.xs }}>
-        <ScreenHeader
-          title="Bug Queue"
-          subtitle={activeProject ? activeProject.name : 'Workspace'}
+    <Screen
+      scrollable
+      refreshing={isRefetching}
+      onRefresh={refetch}
+      includeBottomNavPadding
+    >
+      {/* Header with Project Switcher Dropdown */}
+      <View style={{ marginBottom: spacing.sm }}>
+        <LargeHeader
+          title="Bugs"
           badge={filteredBugs.length}
-          rightAction={
-            <TouchableOpacity
-              style={[
-                styles.reportBtn,
-                {
-                  backgroundColor: colors.accent,
-                  borderRadius: radius.sm,
-                },
-              ]}
-              onPress={() => navigation.navigate('CaptureModal', { initialMode: 'bug' })}
-              accessibilityLabel="Report bug"
-            >
-              <Plus size={16} color={colors.accentOnPrimary} />
-              <Text
-                variant="label"
-                style={{ color: colors.accentOnPrimary, marginLeft: 4, fontWeight: '600' }}
-              >
-                Report
-              </Text>
-            </TouchableOpacity>
-          }
         />
-
-        <View style={{ marginBottom: spacing.md }}>
-          <FilterControl
-            options={severityOptions}
-            selectedKey={selectedSeverity}
-            onSelect={(key) => setSelectedSeverity(key)}
-          />
-        </View>
+        <Pressable
+          onPress={() => setProjectSheetOpen(true)}
+          style={({ pressed }) => [
+            styles.projectDropdown,
+            {
+              backgroundColor: colors.surface2,
+              borderRadius: radius.pill,
+              opacity: pressed ? 0.75 : 1,
+            },
+          ]}
+          hitSlop={8}
+          accessibilityRole="button"
+          accessibilityLabel="Switch project"
+        >
+          <Text variant="caption" color="secondary" style={{ fontWeight: '600' }}>
+            {activeProject ? activeProject.name : 'All Projects'}
+          </Text>
+          <ChevronDown size={14} color={colors.textSecondary} style={{ marginLeft: 4 }} />
+        </Pressable>
       </View>
 
-      {!filteredBugs.length ? (
-        <EmptyState
-          illustration="no-bugs"
-          title="No bugs reported"
-          body="All clear! No open bug reports matching this filter."
-          actionTitle="Report a Bug"
-          onAction={() => navigation.navigate('CaptureModal', { initialMode: 'bug' })}
-          style={{ marginTop: spacing['2xl'] }}
-        />
+      {/* Tonal Severity Filter Chips */}
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={[styles.filtersRow, { gap: spacing.xs, marginBottom: spacing.md }]}
+      >
+        {severityChips.map((chip) => {
+          const isSelected = selectedSeverity === chip.key;
+          return (
+            <Chip
+              key={chip.key}
+              label={chip.label}
+              selected={isSelected}
+              count={chip.count}
+              leadingIcon={
+                chip.dotColor ? (
+                  <View
+                    style={{
+                      width: 6,
+                      height: 6,
+                      borderRadius: 3,
+                      backgroundColor: chip.dotColor,
+                      marginRight: 4,
+                    }}
+                  />
+                ) : undefined
+              }
+              onPress={() => setSelectedSeverity(chip.key)}
+            />
+          );
+        })}
+      </ScrollView>
+
+      {/* Bugs List or Empty State */}
+      {filteredBugs.length === 0 ? (
+        <View style={{ marginTop: spacing['2xl'] }}>
+          <EmptyState
+            illustration="no-bugs"
+            title="No bugs reported"
+            body="Shake your phone or tap the bubble to report one"
+            actionTitle="Report a Bug"
+            onAction={() => navigation.navigate('CaptureModal', { initialMode: 'bug' })}
+          />
+        </View>
       ) : (
-        <FlatList
-          data={filteredBugs}
-          keyExtractor={(item) => item.id}
-          renderItem={({ item }) => (
-            <BugRow
-              id={item.id}
-              humanId={item.humanId}
-              title={item.title}
-              severity={item.severity}
-              status={item.status}
-              deviceInfo={item.telemetry?.deviceModel}
-              hasAttachment={item.hasAttachment}
-              onPress={() => navigation.navigate('BugDetail', { id: item.id })}
-              onLongPress={() => handleConfirmDelete(item)}
-            />
-          )}
-          contentContainerStyle={{
-            paddingHorizontal: spacing.lg,
-            paddingBottom: 110,
-          }}
-          refreshControl={
-            <RefreshControl
-              refreshing={isRefetching}
-              onRefresh={() => refetch()}
-              tintColor={colors.accent}
-              colors={[colors.accent]}
-            />
-          }
-        />
+        <View style={styles.bugsList}>
+          {filteredBugs.map((item) => {
+            const firstImg = item.attachments?.find((a) => a.kind === 'IMAGE' || a.url?.match(/\.(png|jpg|jpeg|webp)$/i));
+            const thumbUrl = firstImg?.thumbUrl || firstImg?.url || null;
+
+            return (
+              <BugRow
+                key={item.id}
+                id={item.id}
+                humanId={item.humanId}
+                title={item.title}
+                severity={item.severity}
+                status={item.status}
+                deviceInfo={item.telemetry?.deviceModel}
+                hasAttachment={item.hasAttachment || Boolean(firstImg)}
+                thumbnailUrl={thumbUrl}
+                createdAt={item.createdAt}
+                onPress={() => navigation.navigate('BugDetail', { id: item.id })}
+                onLongPress={() => handleConfirmDelete(item)}
+              />
+            );
+          })}
+        </View>
       )}
-    </SafeAreaView>
+
+      {/* Project Switcher Sheet */}
+      <ProjectSwitcherSheet
+        isOpen={isProjectSheetOpen}
+        onClose={() => setProjectSheetOpen(false)}
+      />
+    </Screen>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  reportBtn: {
+  projectDropdown: {
     flexDirection: 'row',
     alignItems: 'center',
-    height: 36,
-    paddingHorizontal: 12,
+    alignSelf: 'flex-start',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    marginTop: -4,
+    marginBottom: 8,
+  },
+  filtersRow: {
+    paddingVertical: 4,
+  },
+  bugsList: {
+    gap: 4,
   },
 });

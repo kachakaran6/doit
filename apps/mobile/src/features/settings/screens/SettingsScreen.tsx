@@ -1,22 +1,29 @@
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, ScrollView, Alert, Platform, TouchableOpacity, AppState } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import {
+  View,
+  StyleSheet,
+  ScrollView,
+  Alert,
+  Platform,
+  TouchableOpacity,
+  Pressable,
+  AppState,
+  Switch,
+} from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { useTheme } from '../../../theme/useTheme';
 import {
   Text,
   Button,
   Chip,
-  ScreenHeader,
+  Screen,
+  LargeHeader,
   SettingsItem,
   Avatar,
-  SectionHeader,
 } from '../../../components/ui';
 import { useAuthStore } from '../../auth/store';
 import { overlayService } from '../../../native/overlay';
 import { useShakeCapture } from '../../../core/providers/ShakeCaptureProvider';
-import { ShakeSensitivity } from '../../../native/shake';
-import { outbox } from '../../../lib/outbox';
 import { AccentName } from '@doit/tokens';
 import {
   Palette,
@@ -37,13 +44,40 @@ import {
   ExternalLink,
   Zap,
   Layers,
+  Bell,
+  Check,
+  ChevronRight,
+  Shield,
+  FileText,
+  Code,
 } from 'lucide-react-native';
 import { http } from '../../../lib/http';
 import { QuickCaptureGuideSheet } from '../components/QuickCaptureGuideSheet';
 import { ShakeTestModal } from '../components/ShakeTestModal';
 
+const ACCENT_OPTIONS: Array<{ key: AccentName; label: string; hex: string }> = [
+  { key: 'indigo', label: 'Indigo', hex: '#6366F1' },
+  { key: 'teal', label: 'Teal', hex: '#14B8A6' },
+  { key: 'amber', label: 'Amber', hex: '#F59E0B' },
+  { key: 'rose', label: 'Rose', hex: '#F43F5E' },
+  { key: 'violet', label: 'Violet', hex: '#8B5CF6' },
+];
+
+/**
+ * Phase L5 / Milestone M5 SettingsScreen:
+ * Aligned with docs/03-screen-redesign-specs.md §7:
+ * - Large title "Settings"; sections as grouped cards with 20 margin
+ * - Order:
+ *   1. Account
+ *   2. Appearance (Theme segmented: System/Light/Dark; Accent = 5 round swatches with check)
+ *   3. Bug capture (status row with green dot "Ready", Floating bubble switch, Shake switch + sensitivity chips, "How it works" link)
+ *   4. Notifications
+ *   5. Privacy & data
+ *   6. About (version, licenses, support. Developer tools revealed by tapping 7x).
+ * - Zero borders, tonal elevation surface1/surface2.
+ */
 export const SettingsScreen: React.FC = () => {
-  const { colors, spacing, radius, mode, accent, setMode, setAccent, elevation } = useTheme();
+  const { colors, spacing, radius, mode, accent, setMode, setAccent } = useTheme();
   const navigation = useNavigation();
   const { user, logout } = useAuthStore();
   const {
@@ -51,7 +85,6 @@ export const SettingsScreen: React.FC = () => {
     setShakeEnabled,
     sensitivity,
     setSensitivity,
-    isAvailable: sensorAvailable,
   } = useShakeCapture();
 
   const [bubbleEnabled, setBubbleEnabled] = useState(overlayService.getRunningState());
@@ -64,6 +97,10 @@ export const SettingsScreen: React.FC = () => {
   const [activeUrl, setActiveUrl] = useState(http.getBaseUrl());
   const [pingStatus, setPingStatus] = useState<string | null>(null);
   const [pinging, setPinging] = useState(false);
+
+  // Developer easter egg
+  const [aboutTapCount, setAboutTapCount] = useState(0);
+  const [devModeUnlocked, setDevModeUnlocked] = useState(false);
 
   const checkPermissions = async () => {
     try {
@@ -82,14 +119,10 @@ export const SettingsScreen: React.FC = () => {
 
   useEffect(() => {
     checkPermissions();
-    const subscription = AppState.addEventListener('change', (nextAppState) => {
-      if (nextAppState === 'active') {
-        checkPermissions();
-      }
+    const sub = AppState.addEventListener('change', (state) => {
+      if (state === 'active') checkPermissions();
     });
-    return () => {
-      subscription.remove();
-    };
+    return () => sub.remove();
   }, []);
 
   const handlePing = async (urlToTest?: string) => {
@@ -99,10 +132,9 @@ export const SettingsScreen: React.FC = () => {
     try {
       const res: any = await fetch(`${target}/health`).then((r) => r.json());
       const isOk = res?.status === 'ok' || res?.data?.status === 'ok';
-      const dbStatus = res?.db || res?.data?.db || 'connected';
-      setPingStatus(isOk ? `Online (${res?.data?.version || '0.1.0'}) • DB: ${dbStatus}` : 'Unexpected response');
+      setPingStatus(isOk ? 'Online' : 'Unexpected response');
     } catch {
-      setPingStatus(`Unreachable at ${target}`);
+      setPingStatus('Unreachable');
     } finally {
       setPinging(false);
     }
@@ -120,579 +152,423 @@ export const SettingsScreen: React.FC = () => {
       if (!hasPerm) {
         Alert.alert(
           'Display Over Other Apps Required',
-          isXiaomi
-            ? 'Xiaomi/MIUI requires two permissions for the floating bubble:\n\n1. "Display Over Other Apps" (Android system toggle)\n2. "Display pop-up windows while running in the background" (MIUI Other permissions)\n\nIf the toggle is grayed out, tap App Info, tap 3 dots (⋮) at top right, and choose "Allow restricted settings".'
-            : 'Android requires permission to display the floating Quick Capture bubble over other apps.\n\nIf the option is grayed out, tap App Info, tap 3 dots (⋮) at top right, and choose "Allow restricted settings".',
+          'Android requires permission to display the floating Quick Capture bubble over other apps.',
           [
             { text: 'Cancel', style: 'cancel' },
-            {
-              text: 'Grant "Display Over Apps"',
-              onPress: async () => {
-                await overlayService.openOverlaySettings();
-              },
-            },
-            ...(isXiaomi
-              ? [
-                  {
-                    text: 'MIUI Pop-ups',
-                    onPress: async () => {
-                      await overlayService.openDeviceSpecificSettings();
-                    },
-                  },
-                ]
-              : []),
-            {
-              text: 'App Info & Security',
-              onPress: async () => {
-                await overlayService.openAppSettings();
-              },
-            },
-            {
-              text: 'Setup Guide',
-              onPress: () => setGuideVisible(true),
-            },
+            { text: 'Grant Permission', onPress: () => overlayService.openOverlaySettings() },
           ]
         );
         return;
       }
-      try {
-        const started = await overlayService.startBubble();
-        if (started) {
-          setBubbleEnabled(true);
-        } else {
-          Alert.alert('Error', 'Could not start overlay service.');
-        }
-      } catch (err: any) {
-        Alert.alert('Error', err?.message || 'Could not start overlay bubble.');
-      }
+      await overlayService.startBubble();
+      setBubbleEnabled(true);
     } else {
       await overlayService.stopBubble();
       setBubbleEnabled(false);
     }
   };
 
-  const handleClearCache = () => {
-    Alert.alert('Clear Cache', 'Are you sure you want to clear temporary offline caches?', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Clear',
-        style: 'destructive',
-        onPress: () => {
-          setCacheSizeMb(0.0);
-          Alert.alert('Cleared', 'Offline storage cache has been reset.');
-        },
-      },
-    ]);
+  const handleAboutTap = () => {
+    const next = aboutTapCount + 1;
+    setAboutTapCount(next);
+    if (next >= 7 && !devModeUnlocked) {
+      setDevModeUnlocked(true);
+      Alert.alert('Developer Mode Unlocked', 'Developer tools and network inspector are now available at the bottom.');
+    }
   };
 
   const handleSignOut = () => {
-    Alert.alert('Sign Out', 'Are you sure you want to sign out?', [
+    Alert.alert('Log out of DoIt?', 'You will need to sign in again to access your projects and tasks.', [
       { text: 'Cancel', style: 'cancel' },
       {
-        text: 'Sign Out',
+        text: 'Log out',
         style: 'destructive',
-        onPress: async () => {
-          await logout();
-        },
+        onPress: () => logout(),
       },
     ]);
   };
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.bg }]} edges={['top']}>
-      <ScreenHeader title="Settings" />
+    <Screen scrollable includeBottomNavPadding={false}>
+      <LargeHeader
+        title="Settings"
+        onBack={() => navigation.goBack()}
+      />
 
-      <ScrollView contentContainerStyle={{ padding: spacing.md, paddingBottom: 60 }}>
-        {/* User Profile Card */}
-        <View
-          style={[
-            styles.profileCard,
-            {
-              backgroundColor: colors.surface,
-              borderColor: colors.border,
-              borderRadius: radius.md,
-              marginBottom: spacing.lg,
-              ...elevation.e1,
-            },
-          ]}
-        >
-          <Avatar name={user?.fullName || user?.email || 'User'} size="md" />
-          <View style={{ marginLeft: spacing.md, flex: 1 }}>
-            <Text variant="h2" style={{ fontSize: 16, fontWeight: '700' }}>
-              {user?.fullName || 'Active User'}
-            </Text>
-            <Text variant="caption" color="secondary" numberOfLines={1}>
-              {user?.email || 'user@example.com'}
-            </Text>
-            <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 4 }}>
-              <ShieldCheck size={12} color={colors.accentText} />
-              <Text variant="caption" color="accent" style={{ marginLeft: 4, fontWeight: '600', fontSize: 11 }}>
-                Verified Account
-              </Text>
-            </View>
-          </View>
-        </View>
-
-        {/* Section 1: Appearance */}
-        <SectionHeader title="Appearance" />
-        <View
-          style={[
-            styles.groupedCard,
-            {
-              backgroundColor: colors.surface,
-              borderColor: colors.border,
-              borderRadius: radius.md,
-              overflow: 'hidden',
-              marginBottom: spacing.lg,
-            },
-          ]}
-        >
-          {/* Color Mode */}
-          <View style={{ padding: spacing.md }}>
-            <Text variant="caption" color="secondary" style={{ textTransform: 'uppercase', marginBottom: spacing.xs, fontWeight: '600', fontSize: 11 }}>
-              Color Mode
-            </Text>
-            <View style={{ flexDirection: 'row', gap: spacing.xs }}>
-              <Chip
-                label="Dark"
-                selected={mode === 'dark'}
-                onPress={() => setMode('dark')}
+      <View style={{ gap: spacing.lg, paddingBottom: 64 }}>
+        {/* 1. Account Section */}
+        <View>
+          <Text variant="caption" color="secondary" style={styles.sectionHeader}>
+            ACCOUNT
+          </Text>
+          <View style={[styles.groupedCard, { backgroundColor: colors.surface1, borderRadius: radius.lg }]}>
+            <View style={styles.profileRow}>
+              <Avatar
+                name={user?.fullName || user?.email || 'User'}
+                size={44}
               />
-              <Chip
-                label="Light"
-                selected={mode === 'light'}
-                onPress={() => setMode('light')}
-              />
-              <Chip
-                label="System"
-                selected={mode === 'system'}
-                onPress={() => setMode('system')}
-              />
-            </View>
-          </View>
-
-          {/* Accent Color */}
-          <View style={{ padding: spacing.md, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.border }}>
-            <Text variant="caption" color="secondary" style={{ textTransform: 'uppercase', marginBottom: spacing.xs, fontWeight: '600', fontSize: 11 }}>
-              Brand Accent
-            </Text>
-            <View style={{ flexDirection: 'row', gap: spacing.xs, flexWrap: 'wrap' }}>
-              {(['indigo', 'teal', 'amber', 'rose', 'violet'] as AccentName[]).map((acc) => (
-                <Chip
-                  key={acc}
-                  label={acc.charAt(0).toUpperCase() + acc.slice(1)}
-                  selected={accent === acc}
-                  onPress={() => setAccent(acc)}
-                />
-              ))}
-            </View>
-          </View>
-        </View>
-
-        {/* Section 2: Floating Quick Capture Bubble & Shake Sensor */}
-        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: spacing.xs }}>
-          <SectionHeader title="Quick Capture & Hardware Integration" />
-          <TouchableOpacity
-            onPress={() => setGuideVisible(true)}
-            style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 4, paddingHorizontal: 8 }}
-          >
-            <HelpCircle size={14} color={colors.accentText} />
-            <Text variant="caption" color="accent" style={{ fontWeight: '600', marginLeft: 4 }}>
-              How to Use Guide
-            </Text>
-          </TouchableOpacity>
-        </View>
-
-        <View
-          style={[
-            styles.groupedCard,
-            {
-              backgroundColor: colors.surface,
-              borderColor: colors.border,
-              borderRadius: radius.md,
-              overflow: 'hidden',
-              marginBottom: spacing.lg,
-            },
-          ]}
-        >
-          {/* Permission Status Banner if missing */}
-          {!hasOverlayPerm && Platform.OS === 'android' ? (
-            <View
-              style={{
-                backgroundColor: 'rgba(245, 158, 11, 0.1)',
-                borderBottomWidth: 1,
-                borderBottomColor: 'rgba(245, 158, 11, 0.3)',
-                padding: spacing.md,
-              }}
-            >
-              <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
-                <AlertTriangle size={16} color={colors.warning} />
-                <View style={{ marginLeft: 8, flex: 1 }}>
-                  <Text variant="caption" style={{ fontWeight: '700', color: colors.warning }}>
-                    Overlay Permission Required
-                  </Text>
-                  <Text variant="caption" color="secondary" style={{ fontSize: 11 }}>
-                    Enable "Display over other apps" to allow the floating capture bubble.
-                  </Text>
-                </View>
+              <View style={{ marginLeft: 12, flex: 1 }}>
+                <Text variant="bodyStrong">
+                  {user?.fullName || 'DoIt User'}
+                </Text>
+                <Text variant="caption" color="secondary" numberOfLines={1}>
+                  {user?.email || 'user@samyukt.com'}
+                </Text>
               </View>
+            </View>
+          </View>
+        </View>
 
-              <View style={{ flexDirection: 'row', gap: 6, marginTop: 4, flexWrap: 'wrap' }}>
-                <TouchableOpacity
-                  onPress={() => overlayService.requestPermission()}
+        {/* 2. Appearance Section */}
+        <View>
+          <Text variant="caption" color="secondary" style={styles.sectionHeader}>
+            APPEARANCE
+          </Text>
+          <View style={[styles.groupedCard, { backgroundColor: colors.surface1, borderRadius: radius.lg, padding: spacing.md }]}>
+            {/* Theme mode segmented row */}
+            <Text variant="caption" color="secondary" style={{ marginBottom: 8, fontWeight: '600' }}>
+              Color Theme
+            </Text>
+            <View style={[styles.segmentedPill, { backgroundColor: colors.surface2, borderRadius: radius.pill }]}>
+              <TouchableOpacity
+                onPress={() => setMode('system')}
+                style={[
+                  styles.segmentOption,
+                  mode === 'system' && { backgroundColor: colors.surface3, borderRadius: radius.pill },
+                ]}
+              >
+                <Smartphone size={13} color={mode === 'system' ? colors.accentText : colors.textSecondary} />
+                <Text
+                  variant="caption"
                   style={{
-                    backgroundColor: colors.surfaceRaised,
-                    paddingHorizontal: 10,
-                    paddingVertical: 7,
-                    borderRadius: radius.sm,
-                    borderWidth: 1,
-                    borderColor: colors.border,
-                    flex: 1,
-                    minWidth: 120,
-                    alignItems: 'center',
+                    color: mode === 'system' ? colors.accentText : colors.textSecondary,
+                    fontWeight: mode === 'system' ? '700' : '500',
+                    marginLeft: 4,
                   }}
                 >
-                  <Text variant="caption" color="accent" style={{ fontWeight: '700' }}>
-                    1. Display Over Apps
-                  </Text>
-                </TouchableOpacity>
+                  System
+                </Text>
+              </TouchableOpacity>
 
-                {isXiaomi && (
+              <TouchableOpacity
+                onPress={() => setMode('light')}
+                style={[
+                  styles.segmentOption,
+                  mode === 'light' && { backgroundColor: colors.surface3, borderRadius: radius.pill },
+                ]}
+              >
+                <Sun size={13} color={mode === 'light' ? colors.accentText : colors.textSecondary} />
+                <Text
+                  variant="caption"
+                  style={{
+                    color: mode === 'light' ? colors.accentText : colors.textSecondary,
+                    fontWeight: mode === 'light' ? '700' : '500',
+                    marginLeft: 4,
+                  }}
+                >
+                  Light
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                onPress={() => setMode('dark')}
+                style={[
+                  styles.segmentOption,
+                  mode === 'dark' && { backgroundColor: colors.surface3, borderRadius: radius.pill },
+                ]}
+              >
+                <Moon size={13} color={mode === 'dark' ? colors.accentText : colors.textSecondary} />
+                <Text
+                  variant="caption"
+                  style={{
+                    color: mode === 'dark' ? colors.accentText : colors.textSecondary,
+                    fontWeight: mode === 'dark' ? '700' : '500',
+                    marginLeft: 4,
+                  }}
+                >
+                  Dark
+                </Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* Accent color 5 round swatches with check */}
+            <Text variant="caption" color="secondary" style={{ marginTop: 14, marginBottom: 8, fontWeight: '600' }}>
+              Accent Color
+            </Text>
+            <View style={styles.accentRow}>
+              {ACCENT_OPTIONS.map((opt) => {
+                const isSelected = accent === opt.key;
+                return (
                   <TouchableOpacity
-                    onPress={() => overlayService.openDeviceSpecificSettings()}
-                    style={{
-                      backgroundColor: colors.surfaceRaised,
-                      paddingHorizontal: 10,
-                      paddingVertical: 7,
-                      borderRadius: radius.sm,
-                      borderWidth: 1,
-                      borderColor: colors.border,
-                      flex: 1,
-                      minWidth: 120,
-                      alignItems: 'center',
-                    }}
+                    key={opt.key}
+                    onPress={() => setAccent(opt.key)}
+                    style={[
+                      styles.accentCircle,
+                      {
+                        backgroundColor: opt.hex,
+                      },
+                    ]}
+                    accessibilityLabel={opt.label}
                   >
-                    <Text variant="caption" color="secondary" style={{ fontWeight: '700' }}>
-                      2. MIUI Pop-ups
+                    {isSelected && <Check size={16} color="#FFFFFF" strokeWidth={3} />}
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          </View>
+        </View>
+
+        {/* 3. Bug Capture Section */}
+        <View>
+          <View style={styles.sectionHeaderRow}>
+            <Text variant="caption" color="secondary" style={styles.sectionHeader}>
+              BUG CAPTURE
+            </Text>
+            <TouchableOpacity onPress={() => setGuideVisible(true)} hitSlop={8}>
+              <Text variant="caption" color="accent" style={{ fontWeight: '600', fontSize: 11 }}>
+                How it works
+              </Text>
+            </TouchableOpacity>
+          </View>
+
+          <View style={[styles.groupedCard, { backgroundColor: colors.surface1, borderRadius: radius.lg, overflow: 'hidden' }]}>
+            {/* Status row with dot */}
+            <View style={[styles.statusTonalRow, { backgroundColor: hasOverlayPerm ? `${colors.success}14` : `${colors.warning}14` }]}>
+              <View
+                style={[
+                  styles.statusDot,
+                  { backgroundColor: hasOverlayPerm ? colors.success : colors.warning },
+                ]}
+              />
+              <Text variant="caption" style={{ fontWeight: '600', color: hasOverlayPerm ? colors.success : colors.warning }}>
+                {hasOverlayPerm ? 'Ready for Screen Capture' : 'Overlay Permission Needed'}
+              </Text>
+            </View>
+
+            {/* Silent Screenshots row */}
+            {Platform.OS === 'android' && (
+              <View style={[styles.settingRow, { borderBottomColor: colors.surface2, borderBottomWidth: 1 }]}>
+                <View style={{ flex: 1, marginRight: 8 }}>
+                  <Text variant="bodyStrong" style={{ fontSize: 14 }}>
+                    Silent Screenshots (1-Tap)
+                  </Text>
+                  <Text variant="caption" color="secondary">
+                    {hasAccessibility
+                      ? 'Zero system dialogs or bottom sheets'
+                      : 'Enable DoIt in Accessibility settings'}
+                  </Text>
+                </View>
+                {!hasAccessibility ? (
+                  <TouchableOpacity
+                    onPress={() => overlayService.openAccessibilitySettings()}
+                    style={[styles.smallBtn, { backgroundColor: colors.accent, borderRadius: radius.pill }]}
+                  >
+                    <Text variant="caption" style={{ color: colors.accentOnPrimary, fontWeight: '700' }}>
+                      Enable
                     </Text>
                   </TouchableOpacity>
+                ) : (
+                  <CheckCircle2 size={18} color={colors.success} />
                 )}
-
-                <TouchableOpacity
-                  onPress={() => overlayService.openAppSettings()}
-                  style={{
-                    backgroundColor: colors.surfaceRaised,
-                    paddingHorizontal: 10,
-                    paddingVertical: 7,
-                    borderRadius: radius.sm,
-                    borderWidth: 1,
-                    borderColor: colors.border,
-                    flex: 1,
-                    minWidth: 120,
-                    alignItems: 'center',
-                  }}
-                >
-                  <Text variant="caption" color="secondary" style={{ fontWeight: '700' }}>
-                    3. App Info (3-Dots ⋮)
-                  </Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  onPress={() => setGuideVisible(true)}
-                  style={{
-                    backgroundColor: colors.accent,
-                    paddingHorizontal: 12,
-                    paddingVertical: 7,
-                    borderRadius: radius.sm,
-                    alignItems: 'center',
-                    width: '100%',
-                    marginTop: 2,
-                  }}
-                >
-                  <Text variant="caption" style={{ fontWeight: '700', color: colors.accentOnPrimary }}>
-                    📖 Read Step-by-Step Setup Guide
-                  </Text>
-                </TouchableOpacity>
               </View>
-            </View>
-          ) : (
-            <View
-              style={{
-                backgroundColor: 'rgba(34, 197, 94, 0.08)',
-                borderBottomWidth: 1,
-                borderBottomColor: 'rgba(34, 197, 94, 0.25)',
-                paddingHorizontal: spacing.md,
-                paddingVertical: spacing.sm,
-                flexDirection: 'row',
-                alignItems: 'center',
-              }}
-            >
-              <CheckCircle2 size={15} color={colors.success} />
-              <Text variant="caption" style={{ color: colors.success, fontWeight: '700', marginLeft: 6 }}>
-                Overlay Permission Granted • System-wide capture enabled
-              </Text>
-            </View>
-          )}
+            )}
 
-          {/* Silent Instant Capture (Accessibility) */}
-          {Platform.OS === 'android' && (
-            <View
-              style={{
-                borderBottomWidth: 1,
-                borderBottomColor: colors.border,
-                paddingHorizontal: spacing.md,
-                paddingVertical: spacing.sm,
-                backgroundColor: hasAccessibility ? 'rgba(34, 197, 94, 0.06)' : 'rgba(99, 102, 241, 0.06)',
-                flexDirection: 'row',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-              }}
-            >
-              <View style={{ flex: 1, marginRight: spacing.sm }}>
-                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                  <Zap size={15} color={hasAccessibility ? colors.success : colors.accent} />
-                  <Text variant="caption" style={{ fontWeight: '700', marginLeft: 6, color: colors.textPrimary }}>
-                    {hasAccessibility ? 'Silent Instant Capture Active' : 'Enable Silent Screenshots (No Popups)'}
-                  </Text>
+            {/* Floating Bubble Switch */}
+            <View style={[styles.settingRow, { borderBottomColor: colors.surface2, borderBottomWidth: 1 }]}>
+              <View style={{ flex: 1, marginRight: 8 }}>
+                <Text variant="bodyStrong" style={{ fontSize: 14 }}>
+                  Floating Overlay Bubble
+                </Text>
+                <Text variant="caption" color="secondary">
+                  Tap bubble from any app to capture bug
+                </Text>
+              </View>
+              <Switch
+                value={bubbleEnabled}
+                onValueChange={handleToggleBubble}
+                trackColor={{ false: colors.surface3, true: colors.accent }}
+              />
+            </View>
+
+            {/* Shake to Report Switch */}
+            <View style={[styles.settingRow, shakeEnabled && { borderBottomColor: colors.surface2, borderBottomWidth: 1 }]}>
+              <View style={{ flex: 1, marginRight: 8 }}>
+                <Text variant="bodyStrong" style={{ fontSize: 14 }}>
+                  Shake to Report Bug
+                </Text>
+                <Text variant="caption" color="secondary">
+                  Flick wrist to open bug report modal
+                </Text>
+              </View>
+              <Switch
+                value={shakeEnabled}
+                onValueChange={setShakeEnabled}
+                trackColor={{ false: colors.surface3, true: colors.accent }}
+              />
+            </View>
+
+            {/* Shake sensitivity chips */}
+            {shakeEnabled && (
+              <View style={{ padding: spacing.md }}>
+                <Text variant="caption" color="secondary" style={{ marginBottom: 6, fontWeight: '600' }}>
+                  Shake Sensitivity Threshold
+                </Text>
+                <View style={{ flexDirection: 'row', gap: 6 }}>
+                  <Chip
+                    label="Low (Firm)"
+                    size="sm"
+                    selected={sensitivity === 'low'}
+                    onPress={() => setSensitivity('low')}
+                  />
+                  <Chip
+                    label="Medium"
+                    size="sm"
+                    selected={sensitivity === 'medium'}
+                    onPress={() => setSensitivity('medium')}
+                  />
+                  <Chip
+                    label="High (Sensitive)"
+                    size="sm"
+                    selected={sensitivity === 'high'}
+                    onPress={() => setSensitivity('high')}
+                  />
                 </View>
-                <Text variant="caption" color="secondary" style={{ fontSize: 11, marginTop: 2 }}>
-                  {hasAccessibility
-                    ? 'Captures screenshots with zero system bottom sheets or prompts'
-                    : 'Turn ON DoIt in Accessibility settings to eliminate the system recording popup'}
-                </Text>
               </View>
-
-              {!hasAccessibility && (
-                <TouchableOpacity
-                  onPress={() => overlayService.openAccessibilitySettings()}
-                  style={{
-                    backgroundColor: colors.accent,
-                    paddingHorizontal: 12,
-                    paddingVertical: 6,
-                    borderRadius: radius.sm,
-                  }}
-                >
-                  <Text variant="caption" style={{ fontWeight: '700', color: colors.accentOnPrimary }}>
-                    Enable
-                  </Text>
-                </TouchableOpacity>
-              )}
-            </View>
-          )}
-
-          {/* Dedicated How-To Guide Item */}
-          <SettingsItem
-            icon={<HelpCircle size={18} color={colors.accentText} />}
-            label="How to Use Floating Bubble & Shake"
-            description="Complete setup guide for Xiaomi / HyperOS & gesture capture instructions"
-            onPress={() => setGuideVisible(true)}
-          />
-
-          {/* Floating Bubble Switch Item */}
-          <SettingsItem
-            icon={<Layers size={18} color={bubbleEnabled ? colors.accentText : colors.textSecondary} />}
-            label="Floating Overlay Bubble"
-            description={
-              bubbleEnabled
-                ? 'Active on screen • Tap to capture from any app'
-                : hasOverlayPerm
-                ? 'Permission granted • Ready to enable'
-                : "Requires 'Display over other apps' permission"
-            }
-            isSwitch
-            switchValue={bubbleEnabled}
-            onSwitchChange={handleToggleBubble}
-          />
-
-          {/* Shake-to-Report Item */}
-          <SettingsItem
-            icon={<Smartphone size={18} color={shakeEnabled ? colors.accentText : colors.textSecondary} />}
-            label="Shake to Report Bug"
-            description={
-              shakeEnabled
-                ? `Active in foreground • ${sensitivity.toUpperCase()} sensitivity`
-                : 'Disabled • Toggle to enable wrist flick capture'
-            }
-            isSwitch
-            switchValue={shakeEnabled}
-            onSwitchChange={(val) => setShakeEnabled(val)}
-          />
-
-          {/* Shake Sensitivity Tuning */}
-          {shakeEnabled && (
-            <View style={{ padding: spacing.md, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.border }}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: spacing.xs }}>
-                <Text variant="caption" color="secondary" style={{ textTransform: 'uppercase', fontSize: 10, fontWeight: '700' }}>
-                  Shake Sensitivity Threshold:
-                </Text>
-                <Text variant="caption" color="accent" style={{ fontWeight: '600' }}>
-                  {sensitivity === 'high' ? '10 m/s² (Easy)' : sensitivity === 'low' ? '21 m/s² (Firm)' : '14.5 m/s² (Standard)'}
-                </Text>
-              </View>
-
-              <View style={{ flexDirection: 'row', gap: spacing.xs, marginTop: spacing.xs }}>
-                <Chip
-                  label="Low (Firm)"
-                  selected={sensitivity === 'low'}
-                  onPress={() => setSensitivity('low')}
-                />
-                <Chip
-                  label="Medium"
-                  selected={sensitivity === 'medium'}
-                  onPress={() => setSensitivity('medium')}
-                />
-                <Chip
-                  label="High (Sensitive)"
-                  selected={sensitivity === 'high'}
-                  onPress={() => setSensitivity('high')}
-                />
-              </View>
-            </View>
-          )}
-
-          {/* Interactive Test & Guide Links */}
-          <View
-            style={{
-              flexDirection: 'row',
-              padding: spacing.sm,
-              gap: spacing.xs,
-              backgroundColor: colors.surfaceRaised,
-              borderTopWidth: StyleSheet.hairlineWidth,
-              borderTopColor: colors.border,
-            }}
-          >
-            <TouchableOpacity
-              onPress={() => setShakeTestVisible(true)}
-              style={{
-                flex: 1,
-                flexDirection: 'row',
-                alignItems: 'center',
-                justifyContent: 'center',
-                paddingVertical: 8,
-                backgroundColor: colors.surface,
-                borderRadius: radius.sm,
-                borderWidth: 1,
-                borderColor: colors.border,
-              }}
-            >
-              <Activity size={13} color={colors.accentText} />
-              <Text variant="caption" color="accent" style={{ fontWeight: '600', marginLeft: 4 }}>
-                Test Shake Sensor
-              </Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              onPress={() => setGuideVisible(true)}
-              style={{
-                flex: 1,
-                flexDirection: 'row',
-                alignItems: 'center',
-                justifyContent: 'center',
-                paddingVertical: 8,
-                backgroundColor: colors.surface,
-                borderRadius: radius.sm,
-                borderWidth: 1,
-                borderColor: colors.border,
-              }}
-            >
-              <HelpCircle size={13} color={colors.textSecondary} />
-              <Text variant="caption" color="secondary" style={{ fontWeight: '600', marginLeft: 4 }}>
-                Read Detailed Guide
-              </Text>
-            </TouchableOpacity>
+            )}
           </View>
-
-          {/* Cache Storage */}
-          <SettingsItem
-            icon={<HardDrive size={18} color={colors.textSecondary} />}
-            label="Offline Storage & Cache"
-            description={`${cacheSizeMb.toFixed(1)} MB stored locally on device`}
-            onPress={handleClearCache}
-          />
         </View>
 
-        {/* Section 3: Server & Connection */}
-        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: spacing.xs }}>
-          <SectionHeader title="Server & Connection" />
-          <TouchableOpacity onPress={() => handlePing()} disabled={pinging} style={{ padding: 4 }}>
-            <RefreshCw size={14} color={pinging ? colors.accent : colors.textSecondary} />
-          </TouchableOpacity>
-        </View>
-
-        <View
-          style={[
-            styles.groupedCard,
-            {
-              backgroundColor: colors.surface,
-              borderColor: colors.border,
-              borderRadius: radius.md,
-              padding: spacing.md,
-              marginBottom: spacing.lg,
-            },
-          ]}
-        >
-          <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: spacing.xs }}>
-            <Server size={16} color={colors.accentText} />
-            <Text variant="label" style={{ fontWeight: '600', marginLeft: spacing.xs }}>
-              Active API Endpoint
-            </Text>
-          </View>
-          <Text variant="caption" color="secondary" numberOfLines={1} style={{ marginBottom: spacing.xs, fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace' }}>
-            {activeUrl}
+        {/* 4. Notifications Section */}
+        <View>
+          <Text variant="caption" color="secondary" style={styles.sectionHeader}>
+            NOTIFICATIONS
           </Text>
-
-          {pingStatus && (
-            <Text
-              variant="caption"
-              style={{
-                color: pingStatus.includes('Online') ? colors.success : colors.danger,
-                fontWeight: '600',
-                marginBottom: spacing.sm,
-              }}
-            >
-              {pingStatus}
-            </Text>
-          )}
-          <View style={{ flexDirection: 'row', gap: spacing.xs, marginTop: spacing.xs, flexWrap: 'wrap' }}>
-            <Chip
-              label="Production (doit.samyukt.pro)"
-              selected={activeUrl.includes('doit.samyukt.pro')}
-              onPress={() => handleSwitchServer('https://doit.samyukt.pro/api/v1')}
-            />
-            <Chip
-              label="Wi-Fi (192.168.1.67)"
-              selected={activeUrl.includes('192.168.1.67')}
-              onPress={() => handleSwitchServer('http://192.168.1.67:3000/api/v1')}
-            />
-            <Chip
-              label="USB (localhost)"
-              selected={activeUrl.includes('localhost')}
-              onPress={() => handleSwitchServer('http://localhost:3000/api/v1')}
-            />
+          <View style={[styles.groupedCard, { backgroundColor: colors.surface1, borderRadius: radius.lg }]}>
+            <View style={styles.settingRow}>
+              <View style={{ flex: 1 }}>
+                <Text variant="bodyStrong" style={{ fontSize: 14 }}>
+                  Task Reminders
+                </Text>
+                <Text variant="caption" color="secondary">
+                  Notify when tasks are due today
+                </Text>
+              </View>
+              <Switch
+                value={true}
+                onValueChange={() => {}}
+                trackColor={{ false: colors.surface3, true: colors.accent }}
+              />
+            </View>
           </View>
         </View>
 
-        {/* Section 4: Developer Tools */}
-        <View style={{ marginTop: spacing.md }}>
-          <Button
-            title="Foundation Gallery (P-00)"
-            variant="secondary"
-            onPress={() => (navigation as any).navigate('FoundationGallery')}
-          />
+        {/* 5. Privacy & Data Section */}
+        <View>
+          <Text variant="caption" color="secondary" style={styles.sectionHeader}>
+            PRIVACY & DATA
+          </Text>
+          <View style={[styles.groupedCard, { backgroundColor: colors.surface1, borderRadius: radius.lg }]}>
+            <TouchableOpacity
+              onPress={() => Alert.alert('Offline Storage', `${cacheSizeMb} MB currently cached locally.`)}
+              style={[styles.settingRow, { borderBottomColor: colors.surface2, borderBottomWidth: 1 }]}
+            >
+              <View style={{ flex: 1 }}>
+                <Text variant="bodyStrong" style={{ fontSize: 14 }}>
+                  Local Storage & Cache
+                </Text>
+                <Text variant="caption" color="secondary">
+                  {cacheSizeMb} MB stored on this device
+                </Text>
+              </View>
+              <ChevronRight size={16} color={colors.textTertiary} />
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              onPress={handleSignOut}
+              style={styles.settingRow}
+            >
+              <View style={{ flex: 1 }}>
+                <Text variant="bodyStrong" style={{ fontSize: 14, color: colors.danger }}>
+                  Log Out
+                </Text>
+                <Text variant="caption" color="secondary">
+                  Sign out of this session
+                </Text>
+              </View>
+              <LogOut size={16} color={colors.danger} />
+            </TouchableOpacity>
+          </View>
         </View>
 
-        {/* Section 5: Account Actions */}
-        <View style={{ marginTop: spacing.md }}>
-          <Button
-            title="Log Out"
-            variant="danger"
-            icon={<LogOut size={16} color={colors.accentOnPrimary} />}
-            onPress={handleSignOut}
-          />
+        {/* 6. About Section (Tap 7x for developer tools) */}
+        <View>
+          <Text variant="caption" color="secondary" style={styles.sectionHeader}>
+            ABOUT
+          </Text>
+          <Pressable
+            onPress={handleAboutTap}
+            style={[styles.groupedCard, { backgroundColor: colors.surface1, borderRadius: radius.lg, padding: spacing.md }]}
+          >
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+              <View>
+                <Text variant="bodyStrong">DoIt Mobile</Text>
+                <Text variant="caption" color="secondary">Version 0.1.0 (Build 12)</Text>
+              </View>
+              <Text variant="caption" color="tertiary" style={{ fontSize: 11 }}>
+                by Samyukt
+              </Text>
+            </View>
+          </Pressable>
         </View>
-      </ScrollView>
 
-      {/* Guide Sheet Modal */}
+        {/* Developer Section (Hidden until 7 taps) */}
+        {devModeUnlocked && (
+          <View>
+            <Text variant="caption" color="secondary" style={styles.sectionHeader}>
+              DEVELOPER OPTIONS
+            </Text>
+            <View style={[styles.groupedCard, { backgroundColor: colors.surface1, borderRadius: radius.lg, padding: spacing.md, gap: 12 }]}>
+              <View>
+                <Text variant="caption" color="secondary" style={{ fontWeight: '600' }}>
+                  ACTIVE API ENDPOINT
+                </Text>
+                <Text variant="caption" color="tertiary" style={{ marginVertical: 4 }}>
+                  {activeUrl} ({pingStatus || 'Not tested'})
+                </Text>
+                <View style={{ flexDirection: 'row', gap: 6, flexWrap: 'wrap', marginTop: 4 }}>
+                  <Chip
+                    label="Production"
+                    size="sm"
+                    selected={activeUrl.includes('doit.samyukt.pro')}
+                    onPress={() => handleSwitchServer('https://doit.samyukt.pro/api/v1')}
+                  />
+                  <Chip
+                    label="Wi-Fi"
+                    size="sm"
+                    selected={activeUrl.includes('192.168.1.67')}
+                    onPress={() => handleSwitchServer('http://192.168.1.67:3000/api/v1')}
+                  />
+                  <Chip
+                    label="USB"
+                    size="sm"
+                    selected={activeUrl.includes('localhost')}
+                    onPress={() => handleSwitchServer('http://localhost:3000/api/v1')}
+                  />
+                </View>
+              </View>
+
+              <Button
+                title="Foundation Gallery (P-00)"
+                variant="secondary"
+                size="sm"
+                onPress={() => (navigation as any).navigate('FoundationGallery')}
+              />
+            </View>
+          </View>
+        )}
+      </View>
+
+      {/* Quick Capture Guide Modal */}
       <QuickCaptureGuideSheet
         visible={guideVisible}
         onClose={() => setGuideVisible(false)}
@@ -708,21 +584,75 @@ export const SettingsScreen: React.FC = () => {
 
       {/* Shake Sensor Diagnostic Modal */}
       <ShakeTestModal visible={shakeTestVisible} onClose={() => setShakeTestVisible(false)} />
-    </SafeAreaView>
+    </Screen>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
+  sectionHeader: {
+    fontWeight: '700',
+    fontSize: 11,
+    letterSpacing: 0.5,
+    marginBottom: 8,
   },
-  profileCard: {
+  sectionHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  groupedCard: {
+    borderWidth: 0,
+    overflow: 'hidden',
+  },
+  profileRow: {
     flexDirection: 'row',
     alignItems: 'center',
     padding: 16,
-    borderWidth: 1,
   },
-  groupedCard: {
-    borderWidth: 1,
+  segmentedPill: {
+    flexDirection: 'row',
+    padding: 3,
+  },
+  segmentOption: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 7,
+  },
+  accentRow: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  accentCircle: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  statusTonalRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+  },
+  statusDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    marginRight: 8,
+  },
+  settingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+  },
+  smallBtn: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
   },
 });

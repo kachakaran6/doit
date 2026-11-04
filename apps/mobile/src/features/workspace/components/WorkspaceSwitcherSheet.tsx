@@ -264,7 +264,6 @@ const styles = StyleSheet.create({
     width: '100%',
     maxWidth: 420,
     maxHeight: '88%',
-    borderWidth: 1,
   },
   header: {
     flexDirection: 'row',
@@ -274,13 +273,10 @@ const styles = StyleSheet.create({
   closeBtn: {
     width: 32,
     height: 32,
-    borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  errorBox: {
-    borderWidth: 1,
-  },
+  errorBox: {},
   list: {
     maxHeight: 280,
   },
@@ -288,7 +284,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    borderWidth: 1,
   },
   itemLeft: {
     flexDirection: 'row',
@@ -300,11 +295,8 @@ const styles = StyleSheet.create({
     height: 36,
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 1,
   },
-  createBox: {
-    borderWidth: 1,
-  },
+  createBox: {},
   createActions: {
     flexDirection: 'row',
   },
@@ -312,7 +304,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 1,
     minHeight: 44,
   },
 });
