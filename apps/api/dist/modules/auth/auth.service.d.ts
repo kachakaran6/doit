@@ -24,12 +24,12 @@ export declare class AuthService {
     logoutAll(userId: string): Promise<void>;
     getSessions(userId: string): Promise<{
         id: string;
+        createdAt: Date;
         deviceName: string | null;
         deviceId: string | null;
         platform: string | null;
         appVersion: string | null;
         lastSeenAt: Date;
-        createdAt: Date;
     }[]>;
     revokeSession(userId: string, sessionId: string): Promise<void>;
     forgotPassword(email: string): Promise<{

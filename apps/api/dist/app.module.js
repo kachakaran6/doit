@@ -25,6 +25,7 @@ const stickies_module_1 = require("./modules/stickies/stickies.module");
 const attachments_module_1 = require("./modules/attachments/attachments.module");
 const voice_module_1 = require("./modules/voice/voice.module");
 const notifications_module_1 = require("./modules/notifications/notifications.module");
+const email_module_1 = require("./modules/email/email.module");
 let AppModule = class AppModule {
 };
 exports.AppModule = AppModule;
@@ -48,6 +49,7 @@ exports.AppModule = AppModule = __decorate([
             attachments_module_1.AttachmentsModule,
             voice_module_1.VoiceModule,
             notifications_module_1.NotificationsModule,
+            email_module_1.EmailModule,
         ],
         controllers: [health_controller_1.HealthController, config_controller_1.ConfigController],
         providers: [],

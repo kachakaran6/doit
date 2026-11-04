@@ -87,6 +87,13 @@ enum VoiceState {
   FAILED
 }
 
+enum InvitationStatus {
+  PENDING
+  ACCEPTED
+  EXPIRED
+  REVOKED
+}
+
 model User {
   id            String    @id @default(uuid()) @db.Uuid
   email         String    @unique
@@ -109,6 +116,7 @@ model User {
   voiceNotes    VoiceNote[]
   bugs          BugReport[]
   activity      ActivityLog[]
+  sentInvitations WorkspaceInvitation[] @relation("SentInvitations")
 }
 
 model Session {
@@ -141,6 +149,7 @@ model Workspace {
   projects    Project[]
   activity    ActivityLog[]
   labels      Label[]
+  invitations WorkspaceInvitation[]
 }
 
 model Membership {
@@ -368,4 +377,42 @@ model Notification {
   createdAt DateTime  @default(now())
 
   @@index([userId, readAt])
+}
+
+model WorkspaceInvitation {
+  id          String           @id @default(uuid()) @db.Uuid
+  workspaceId String           @db.Uuid
+  email       String?
+  tokenHash   String           @unique
+  role        Role             @default(TESTER)
+  invitedById String           @db.Uuid
+  status      InvitationStatus @default(PENDING)
+  maxUses     Int              @default(1)
+  usesCount   Int              @default(0)
+  expiresAt   DateTime
+  acceptedAt  DateTime?
+  revokedAt   DateTime?
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  workspace   Workspace        @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  invitedBy   User             @relation("SentInvitations", fields: [invitedById], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId, status])
+  @@index([tokenHash])
+  @@index([email])
+}
+
+model SmtpConfig {
+  id                String   @id @default("default")
+  host              String
+  port              Int      @default(587)
+  username          String?
+  passwordEncrypted String?
+  fromEmail         String
+  fromName          String   @default("DoIt")
+  secure            Boolean  @default(false)
+  enabled           Boolean  @default(true)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
 }

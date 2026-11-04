@@ -5,9 +5,9 @@ export declare class LabelsService {
     private readonly logger;
     constructor(prisma: PrismaService);
     create(workspaceId: string, dto: CreateLabelDto): Promise<{
-        name: string;
         id: string;
         workspaceId: string;
+        name: string;
         color: import(".prisma/client").$Enums.AccentName;
     }>;
     findAll(workspaceId: string): Promise<({
@@ -15,9 +15,9 @@ export declare class LabelsService {
             tasks: number;
         };
     } & {
-        name: string;
         id: string;
         workspaceId: string;
+        name: string;
         color: import(".prisma/client").$Enums.AccentName;
     })[]>;
     findOne(id: string): Promise<{
@@ -25,15 +25,15 @@ export declare class LabelsService {
             tasks: number;
         };
     } & {
-        name: string;
         id: string;
         workspaceId: string;
+        name: string;
         color: import(".prisma/client").$Enums.AccentName;
     }>;
     update(id: string, dto: UpdateLabelDto): Promise<{
-        name: string;
         id: string;
         workspaceId: string;
+        name: string;
         color: import(".prisma/client").$Enums.AccentName;
     }>;
     delete(id: string): Promise<{

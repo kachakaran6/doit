@@ -30,6 +30,17 @@ exports.EnvSchema = zod_1.z
     TRUST_PROXY: zod_1.z.coerce.number().default(1),
     MIN_APP_VERSION: zod_1.z.string().default('0.1.0'),
     REDIS_URL: zod_1.z.string().optional(),
+    APP_URL: zod_1.z.string().default('https://doit.kachakaran.tech'),
+    SMTP_HOST: zod_1.z.string().optional(),
+    SMTP_PORT: zod_1.z.coerce.number().optional(),
+    SMTP_USERNAME: zod_1.z.string().optional(),
+    SMTP_USER: zod_1.z.string().optional(),
+    SMTP_PASSWORD: zod_1.z.string().optional(),
+    SMTP_PASS: zod_1.z.string().optional(),
+    SMTP_FROM_EMAIL: zod_1.z.string().optional(),
+    SMTP_FROM: zod_1.z.string().optional(),
+    SMTP_FROM_NAME: zod_1.z.string().default('DoIt'),
+    SMTP_SECURE: zod_1.z.string().optional(),
 })
     .superRefine((data, ctx) => {
     if (data.NODE_ENV === 'production') {

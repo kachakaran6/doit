@@ -16,6 +16,7 @@ import { StickiesModule } from './modules/stickies/stickies.module';
 import { AttachmentsModule } from './modules/attachments/attachments.module';
 import { VoiceModule } from './modules/voice/voice.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
+import { EmailModule } from './modules/email/email.module';
 
 @Module({
   imports: [
@@ -36,6 +37,7 @@ import { NotificationsModule } from './modules/notifications/notifications.modul
     AttachmentsModule,
     VoiceModule,
     NotificationsModule,
+    EmailModule,
   ],
   controllers: [HealthController, ConfigController],
   providers: [],

@@ -1,21 +1,28 @@
 import { z } from 'zod';
+export declare const RoleEnum: z.ZodEnum<["ADMIN", "TESTER", "VIEWER"]>;
 export declare const InviteMemberSchema: z.ZodObject<{
-    email: z.ZodString;
+    email: z.ZodNullable<z.ZodOptional<z.ZodString>>;
     role: z.ZodDefault<z.ZodEnum<["ADMIN", "TESTER", "VIEWER"]>>;
+    maxUses: z.ZodDefault<z.ZodNumber>;
+    expiresInDays: z.ZodDefault<z.ZodNumber>;
 }, "strip", z.ZodTypeAny, {
-    email: string;
-    role: "TESTER" | "ADMIN" | "VIEWER";
+    role: "ADMIN" | "TESTER" | "VIEWER";
+    maxUses: number;
+    expiresInDays: number;
+    email?: string | null | undefined;
 }, {
-    email: string;
-    role?: "TESTER" | "ADMIN" | "VIEWER" | undefined;
+    role?: "ADMIN" | "TESTER" | "VIEWER" | undefined;
+    email?: string | null | undefined;
+    maxUses?: number | undefined;
+    expiresInDays?: number | undefined;
 }>;
 export type InviteMemberDto = z.infer<typeof InviteMemberSchema>;
 export declare const UpdateMemberRoleSchema: z.ZodObject<{
     role: z.ZodEnum<["ADMIN", "TESTER", "VIEWER"]>;
 }, "strip", z.ZodTypeAny, {
-    role: "TESTER" | "ADMIN" | "VIEWER";
+    role: "ADMIN" | "TESTER" | "VIEWER";
 }, {
-    role: "TESTER" | "ADMIN" | "VIEWER";
+    role: "ADMIN" | "TESTER" | "VIEWER";
 }>;
 export type UpdateMemberRoleDto = z.infer<typeof UpdateMemberRoleSchema>;
 export declare const AcceptInviteSchema: z.ZodObject<{

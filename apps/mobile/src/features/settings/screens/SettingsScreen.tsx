@@ -50,6 +50,7 @@ import {
   Shield,
   FileText,
   Code,
+  Users,
 } from 'lucide-react-native';
 import { http } from '../../../lib/http';
 import { QuickCaptureGuideSheet } from '../components/QuickCaptureGuideSheet';
@@ -216,6 +217,27 @@ export const SettingsScreen: React.FC = () => {
                 </Text>
               </View>
             </View>
+            <View style={{ height: StyleSheet.hairlineWidth, backgroundColor: colors.surface2, marginHorizontal: 16 }} />
+            <TouchableOpacity
+              onPress={() => (navigation as any).navigate('TeamMembers')}
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                paddingHorizontal: 16,
+                paddingVertical: 14,
+              }}
+            >
+              <Users size={18} color={colors.accent} />
+              <View style={{ marginLeft: 12, flex: 1 }}>
+                <Text variant="body" style={{ fontWeight: '600' }}>
+                  Team & Members
+                </Text>
+                <Text variant="caption" color="secondary">
+                  Teammates, roles, and invitation links
+                </Text>
+              </View>
+              <ChevronRight size={18} color={colors.textMuted} />
+            </TouchableOpacity>
           </View>
         </View>
 

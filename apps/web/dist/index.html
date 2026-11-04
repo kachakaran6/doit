@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en" data-accent="indigo">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/logo192.png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Samyukt DoIt</title>
+    <!-- Prevent theme flash before first paint -->
+    <script>
+      (function() {
+        try {
+          var theme = localStorage.getItem('doit-theme') || 'system';
+          var isDark = theme === 'dark' || (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+          if (isDark) {
+            document.documentElement.classList.add('dark');
+          } else {
+            document.documentElement.classList.remove('dark');
+          }
+          var accent = localStorage.getItem('doit-accent') || 'indigo';
+          document.documentElement.setAttribute('data-accent', accent);
+        } catch (e) {}
+      })();
+    </script>
+    <script type="module" crossorigin src="/assets/index-BnEb3Dtu.js"></script>
+    <link rel="modulepreload" crossorigin href="/assets/vendor-bzfWpHF3.js">
+    <link rel="modulepreload" crossorigin href="/assets/query-BL0s_h9S.js">
+    <link rel="stylesheet" crossorigin href="/assets/index-BTlOyFlQ.css">
+  </head>
+  <body class="bg-bg text-text antialiased min-h-screen">
+    <div id="root"></div>
+  </body>
+</html>
+

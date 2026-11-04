@@ -6,3 +6,4 @@ export * from './CaptureModal';
 export * from './TaskDetailScreen';
 export * from './BugDetailScreen';
 export * from './AuthScreen';
+export * from './InviteAcceptScreen';

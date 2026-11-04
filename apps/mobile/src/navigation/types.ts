@@ -14,6 +14,8 @@ export type RootStackParamList = {
   StickyBoard: undefined;
   CaptureModal: { initialMode?: 'task' | 'bug' | 'voice' | 'sticky' };
   Settings: undefined;
+  TeamMembers: undefined;
+  InviteAccept: { token: string };
   PendingSync: undefined;
   Notifications: undefined;
   DevGallery?: undefined;

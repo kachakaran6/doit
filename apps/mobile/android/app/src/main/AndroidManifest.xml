@@ -52,6 +52,13 @@
         <data android:scheme="doit"/>
         <data android:scheme="com.samyukt.doit"/>
       </intent-filter>
+      <intent-filter android:autoVerify="true">
+        <action android:name="android.intent.action.VIEW"/>
+        <category android:name="android.intent.category.DEFAULT"/>
+        <category android:name="android.intent.category.BROWSABLE"/>
+        <data android:scheme="https" android:host="doit.kachakaran.tech" android:pathPrefix="/invite"/>
+        <data android:scheme="https" android:host="doit.samyukt.pro" android:pathPrefix="/invite"/>
+      </intent-filter>
     </activity>
   </application>
 </manifest>

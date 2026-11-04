@@ -24,10 +24,10 @@ export declare class StickiesService {
         color: import(".prisma/client").$Enums.AccentName;
         projectId: string;
         order: Prisma.Decimal;
+        authorId: string;
         body: string;
         pinned: boolean;
         convertedTaskId: string | null;
-        authorId: string;
     }>;
     findAll(projectId: string, pinned?: boolean): Promise<({
         project: {
@@ -48,10 +48,10 @@ export declare class StickiesService {
         color: import(".prisma/client").$Enums.AccentName;
         projectId: string;
         order: Prisma.Decimal;
+        authorId: string;
         body: string;
         pinned: boolean;
         convertedTaskId: string | null;
-        authorId: string;
     })[]>;
     findOne(id: string): Promise<{
         project: {
@@ -72,10 +72,10 @@ export declare class StickiesService {
         color: import(".prisma/client").$Enums.AccentName;
         projectId: string;
         order: Prisma.Decimal;
+        authorId: string;
         body: string;
         pinned: boolean;
         convertedTaskId: string | null;
-        authorId: string;
     }>;
     update(id: string, dto: UpdateStickyDto): Promise<{
         project: {
@@ -96,10 +96,10 @@ export declare class StickiesService {
         color: import(".prisma/client").$Enums.AccentName;
         projectId: string;
         order: Prisma.Decimal;
+        authorId: string;
         body: string;
         pinned: boolean;
         convertedTaskId: string | null;
-        authorId: string;
     }>;
     reorder(id: string, dto: ReorderStickyDto): Promise<{
         id: string;
@@ -108,12 +108,13 @@ export declare class StickiesService {
     convert(id: string, userId: string, dto: ConvertStickyDto): Promise<{
         task: {
             number: number;
+            type: import(".prisma/client").$Enums.TaskType;
+            status: import(".prisma/client").$Enums.TaskStatus;
             id: string;
             createdAt: Date;
             updatedAt: Date;
-            type: import(".prisma/client").$Enums.TaskType;
-            status: import(".prisma/client").$Enums.TaskStatus;
             deletedAt: Date | null;
+            source: import(".prisma/client").$Enums.TaskSource;
             description: string | null;
             projectId: string;
             title: string;
@@ -121,7 +122,6 @@ export declare class StickiesService {
             dueAt: Date | null;
             dueHasTime: boolean;
             order: Prisma.Decimal;
-            source: import(".prisma/client").$Enums.TaskSource;
             createdById: string;
             assigneeId: string | null;
             completedAt: Date | null;
@@ -135,10 +135,10 @@ export declare class StickiesService {
             color: import(".prisma/client").$Enums.AccentName;
             projectId: string;
             order: Prisma.Decimal;
+            authorId: string;
             body: string;
             pinned: boolean;
             convertedTaskId: string | null;
-            authorId: string;
         };
     }>;
     delete(id: string): Promise<{

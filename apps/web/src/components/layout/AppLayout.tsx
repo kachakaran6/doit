@@ -12,6 +12,7 @@ import {
   Sun,
   Moon,
   ChevronDown,
+  Users,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
@@ -35,6 +36,7 @@ export function AppLayout() {
     { to: '/tasks', label: 'Tasks', icon: CheckSquare },
     { to: '/bugs', label: 'Bug Queue', icon: Bug },
     { to: '/stickies', label: 'Stickies', icon: StickyNote },
+    { to: '/team', label: 'Team', icon: Users },
     { to: '/settings', label: 'Settings', icon: Settings },
   ];
 

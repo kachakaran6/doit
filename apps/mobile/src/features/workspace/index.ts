@@ -3,4 +3,4 @@ export * from './store';
 export * from './queries';
 export * from './components/WorkspaceSwitcherSheet';
 export * from './components/ProjectSwitcherSheet';
-
+export * from './screens/TeamMembersScreen';

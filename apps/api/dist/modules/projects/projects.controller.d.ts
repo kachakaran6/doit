@@ -4,12 +4,12 @@ export declare class ProjectsController {
     private readonly projectsService;
     constructor(projectsService: ProjectsService);
     create(workspaceId: string, dto: CreateProjectDto): Promise<{
-        name: string;
-        description: string | null;
         id: string;
-        createdAt: Date;
-        updatedAt: Date;
         workspaceId: string;
+        createdAt: Date;
+        name: string;
+        updatedAt: Date;
+        description: string | null;
         key: string;
         color: import(".prisma/client").$Enums.AccentName;
         archivedAt: Date | null;
@@ -20,20 +20,20 @@ export declare class ProjectsController {
             tasks: number;
         };
     } & {
-        name: string;
-        description: string | null;
         id: string;
-        createdAt: Date;
-        updatedAt: Date;
         workspaceId: string;
+        createdAt: Date;
+        name: string;
+        updatedAt: Date;
+        description: string | null;
         key: string;
         color: import(".prisma/client").$Enums.AccentName;
         archivedAt: Date | null;
     })[]>;
     findOne(id: string): Promise<{
         workspace: {
-            name: string;
             id: string;
+            name: string;
             slug: string;
         };
         _count: {
@@ -41,23 +41,23 @@ export declare class ProjectsController {
             tasks: number;
         };
     } & {
-        name: string;
-        description: string | null;
         id: string;
-        createdAt: Date;
-        updatedAt: Date;
         workspaceId: string;
+        createdAt: Date;
+        name: string;
+        updatedAt: Date;
+        description: string | null;
         key: string;
         color: import(".prisma/client").$Enums.AccentName;
         archivedAt: Date | null;
     }>;
     update(id: string, dto: UpdateProjectDto): Promise<{
-        name: string;
-        description: string | null;
         id: string;
-        createdAt: Date;
-        updatedAt: Date;
         workspaceId: string;
+        createdAt: Date;
+        name: string;
+        updatedAt: Date;
+        description: string | null;
         key: string;
         color: import(".prisma/client").$Enums.AccentName;
         archivedAt: Date | null;

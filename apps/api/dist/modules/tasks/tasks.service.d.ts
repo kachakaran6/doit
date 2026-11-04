@@ -21,8 +21,8 @@ export declare class TasksService {
     findOne(taskId: string): Promise<{
         checklist: {
             id: string;
-            order: Prisma.Decimal;
             taskId: string;
+            order: Prisma.Decimal;
             text: string;
             done: boolean;
         }[];
@@ -60,9 +60,10 @@ export declare class TasksService {
             thumbKey: string | null;
         })[];
         bug: {
-            id: string;
             expected: string | null;
+            id: string;
             taskId: string;
+            appVersion: string | null;
             sessionId: string | null;
             reporterId: string | null;
             severity: import(".prisma/client").$Enums.Severity;
@@ -72,7 +73,6 @@ export declare class TasksService {
             deviceModel: string | null;
             osVersion: string | null;
             appUnderTest: string | null;
-            appVersion: string | null;
             buildNumber: string | null;
             capturedAt: Date;
             autoContext: Prisma.JsonValue;
@@ -84,12 +84,12 @@ export declare class TasksService {
             };
         } & {
             id: string;
-            createdAt: Date;
             workspaceId: string;
-            taskId: string | null;
-            actorId: string;
+            createdAt: Date;
             action: string;
             meta: Prisma.JsonValue;
+            taskId: string | null;
+            actorId: string;
         })[];
         id: string;
         humanId: string;
@@ -135,15 +135,15 @@ export declare class TasksService {
     }>;
     addChecklistItem(taskId: string, dto: CreateChecklistItemDto): Promise<{
         id: string;
-        order: Prisma.Decimal;
         taskId: string;
+        order: Prisma.Decimal;
         text: string;
         done: boolean;
     }>;
     updateChecklistItem(itemId: string, dto: UpdateChecklistItemDto): Promise<{
         id: string;
-        order: Prisma.Decimal;
         taskId: string;
+        order: Prisma.Decimal;
         text: string;
         done: boolean;
     }>;

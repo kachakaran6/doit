@@ -17,12 +17,12 @@ export declare class AuthController {
     }>;
     getSessions(user: AuthUserPayload): Promise<{
         id: string;
+        createdAt: Date;
         deviceName: string | null;
         deviceId: string | null;
         platform: string | null;
         appVersion: string | null;
         lastSeenAt: Date;
-        createdAt: Date;
     }[]>;
     revokeSession(user: AuthUserPayload, sessionId: string): Promise<{
         success: boolean;

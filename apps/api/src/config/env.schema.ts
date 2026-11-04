@@ -27,6 +27,17 @@ export const EnvSchema = z
     TRUST_PROXY: z.coerce.number().default(1),
     MIN_APP_VERSION: z.string().default('0.1.0'),
     REDIS_URL: z.string().optional(),
+    APP_URL: z.string().default('https://doit.kachakaran.tech'),
+    SMTP_HOST: z.string().optional(),
+    SMTP_PORT: z.coerce.number().optional(),
+    SMTP_USERNAME: z.string().optional(),
+    SMTP_USER: z.string().optional(),
+    SMTP_PASSWORD: z.string().optional(),
+    SMTP_PASS: z.string().optional(),
+    SMTP_FROM_EMAIL: z.string().optional(),
+    SMTP_FROM: z.string().optional(),
+    SMTP_FROM_NAME: z.string().default('DoIt'),
+    SMTP_SECURE: z.string().optional(),
   })
   .superRefine((data, ctx) => {
     if (data.NODE_ENV === 'production') {
