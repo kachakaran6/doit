@@ -43,6 +43,8 @@ import {
   FileText as StickyIcon,
   Mic as VoiceIcon,
   Plus as PlusIcon,
+  Folder,
+  Tag,
 } from 'lucide-react-native';
 
 /**
@@ -130,50 +132,96 @@ export const HomeScreen: React.FC = () => {
   }
 
   return (
-    <Screen scrollable={false} gutter={false} style={{ flex: 1, paddingTop: spacing.xs }}>
-      {/* 1. Top Header: Pinned Workspace Selector & User Avatar */}
-      <View style={[styles.topBar, { paddingHorizontal: spacing.screenMargin, marginBottom: spacing.xs }]}>
-        <TouchableOpacity
-          style={[
-            styles.workspaceSelector,
-            {
-              backgroundColor: colors.surface1 || colors.surface,
-              borderRadius: radius.pill,
-              paddingHorizontal: 12,
-              paddingVertical: 6,
-              minHeight: 44,
-            },
-          ]}
-          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-          activeOpacity={0.7}
-          onPress={() => setWorkspaceSheetOpen(true)}
-          accessibilityRole="button"
-          accessibilityLabel="Switch workspace"
-        >
-          <WorkspaceTile
-            name={activeWorkspace?.name || 'DoIt'}
-            id={activeWorkspace?.id || 'default'}
-            size={30}
-          />
-          <Text variant="bodyStrong" numberOfLines={1} style={styles.workspaceName}>
-            {activeWorkspace?.name || 'Workspace'}
-          </Text>
-          <ChevronDown size={14} color={colors.textSecondary} style={{ marginLeft: 4 }} />
-        </TouchableOpacity>
+    <Screen scrollable={false} gutter={false} style={{ flex: 1, paddingTop: spacing.sm }}>
+      {/* 1. Top Header: Workspace, Avatar, Project & Label Selectors */}
+      <View style={[styles.headerContainer, { paddingHorizontal: spacing.screenMargin, marginBottom: spacing.sm }]}>
+        <View style={styles.topBar}>
+          <TouchableOpacity
+            style={[
+              styles.workspaceSelector,
+              {
+                backgroundColor: colors.surface1 || colors.surface,
+                borderRadius: radius.pill,
+                paddingHorizontal: 14,
+                paddingVertical: 6,
+                minHeight: 44,
+              },
+            ]}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            activeOpacity={0.7}
+            onPress={() => setWorkspaceSheetOpen(true)}
+            accessibilityRole="button"
+            accessibilityLabel="Switch workspace"
+          >
+            <WorkspaceTile
+              name={activeWorkspace?.name || 'DoIt'}
+              id={activeWorkspace?.id || 'default'}
+              size={30}
+            />
+            <Text variant="bodyStrong" numberOfLines={1} style={styles.workspaceName}>
+              {activeWorkspace?.name || 'Workspace'}
+            </Text>
+            <ChevronDown size={14} color={colors.textSecondary} style={{ marginLeft: 4 }} />
+          </TouchableOpacity>
 
-        <TouchableOpacity
-          onPress={() => setAccountMenuOpen(true)}
-          hitSlop={{ top: 16, bottom: 16, left: 16, right: 16 }}
-          style={{ width: 44, height: 44, alignItems: 'center', justifyContent: 'center' }}
-          activeOpacity={0.7}
-          accessibilityRole="button"
-          accessibilityLabel="Open user account menu"
-        >
-          <Avatar
-            name={user?.fullName || user?.email || 'User'}
-            size={36}
-          />
-        </TouchableOpacity>
+          <TouchableOpacity
+            onPress={() => setAccountMenuOpen(true)}
+            hitSlop={{ top: 16, bottom: 16, left: 16, right: 16 }}
+            style={styles.avatarButton}
+            activeOpacity={0.7}
+            accessibilityRole="button"
+            accessibilityLabel="Open user account menu"
+          >
+            <Avatar
+              name={user?.fullName || user?.email || 'User'}
+              size={38}
+            />
+          </TouchableOpacity>
+        </View>
+
+        {/* Sub-bar: Project & Labels quick chips */}
+        <View style={styles.subBar}>
+          <TouchableOpacity
+            style={[
+              styles.subChip,
+              {
+                backgroundColor: colors.surface1 || colors.surface,
+                borderRadius: radius.pill,
+              },
+            ]}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            activeOpacity={0.7}
+            onPress={() => setProjectSheetOpen(true)}
+            accessibilityRole="button"
+            accessibilityLabel="Switch or create project"
+          >
+            <Folder size={13} color={colors.accent} style={{ marginRight: 6 }} />
+            <Text variant="caption" numberOfLines={1} style={{ maxWidth: 160, fontWeight: '600', color: colors.textPrimary }}>
+              {activeProject?.name || 'All Projects'}
+            </Text>
+            <ChevronDown size={12} color={colors.textSecondary} style={{ marginLeft: 4 }} />
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[
+              styles.subChip,
+              {
+                backgroundColor: colors.surface1 || colors.surface,
+                borderRadius: radius.pill,
+              },
+            ]}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            activeOpacity={0.7}
+            onPress={() => setLabelSheetOpen(true)}
+            accessibilityRole="button"
+            accessibilityLabel="Manage and create labels"
+          >
+            <Tag size={13} color="#10B981" style={{ marginRight: 6 }} />
+            <Text variant="caption" style={{ fontWeight: '600', color: colors.textPrimary }}>
+              Labels
+            </Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
       <ScrollView
@@ -501,11 +549,33 @@ const styles = StyleSheet.create({
   scrollContent: {
     paddingBottom: 110,
   },
+  headerContainer: {
+    paddingTop: 4,
+  },
+  avatarButton: {
+    width: 44,
+    height: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  subBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 6,
+  },
+  subChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    minHeight: 32,
+  },
   topBar: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 16,
+    marginBottom: 6,
   },
   workspaceSelector: {
     flexDirection: 'row',

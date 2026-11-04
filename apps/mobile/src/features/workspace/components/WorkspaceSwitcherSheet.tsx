@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, Modal, TouchableOpacity, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, StyleSheet, TouchableOpacity, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
 import { useTheme } from '../../../theme/useTheme';
 import { Text, Button, Input } from '../../../components/ui';
 import { useWorkspaceStore } from '../store';
@@ -16,7 +16,7 @@ export const WorkspaceSwitcherSheet: React.FC<WorkspaceSwitcherSheetProps> = ({
   visible,
   onClose,
 }) => {
-  const { colors, spacing, radius, elevation } = useTheme();
+  const { colors, spacing, radius } = useTheme();
   const activeWorkspace = useWorkspaceStore((s) => s.activeWorkspace);
   const setActiveWorkspace = useWorkspaceStore((s) => s.setActiveWorkspace);
   const workspaces = useWorkspaceStore((s) => s.workspaces);
@@ -26,6 +26,8 @@ export const WorkspaceSwitcherSheet: React.FC<WorkspaceSwitcherSheetProps> = ({
   const [newWsName, setNewWsName] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+  if (!visible) return null;
 
   const handleSelect = (ws: any) => {
     setActiveWorkspace(ws);
@@ -58,211 +60,210 @@ export const WorkspaceSwitcherSheet: React.FC<WorkspaceSwitcherSheetProps> = ({
   };
 
   return (
-    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        style={[styles.backdrop, { backgroundColor: colors.overlay }]}
+    <View style={styles.overlayRoot}>
+      <TouchableOpacity
+        style={[styles.backdrop, { backgroundColor: colors.overlay || 'rgba(0,0,0,0.65)' }]}
+        activeOpacity={1}
+        onPress={onClose}
+      />
+      <View
+        style={[
+          styles.sheet,
+          {
+            backgroundColor: colors.surface,
+            borderRadius: radius.xl,
+            padding: spacing.md,
+          },
+        ]}
       >
-        <TouchableOpacity
-          style={StyleSheet.absoluteFill}
-          activeOpacity={1}
-          onPress={onClose}
-        />
-        <View
-          style={[
-            styles.sheet,
-            {
-              backgroundColor: colors.surface,
-              borderColor: colors.border,
-              borderRadius: radius.xl,
-              padding: spacing.lg,
-              ...elevation.e4,
-            },
-          ]}
-        >
-          {/* Header */}
-          <View style={[styles.header, { marginBottom: spacing.md }]}>
-            <Text variant="h2" style={{ fontWeight: '700' }}>
+        {/* Header */}
+        <View style={[styles.header, { marginBottom: spacing.md }]}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+            <Building2 size={18} color={colors.accent} />
+            <Text variant="h3" style={{ fontWeight: '700' }}>
               Switch Workspace
             </Text>
-            <TouchableOpacity
-              onPress={onClose}
-              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-              style={[
-                styles.closeBtn,
-                {
-                  backgroundColor: colors.surfaceRaised,
-                  borderColor: colors.border,
-                  borderRadius: radius.sm,
-                },
-              ]}
-              accessibilityRole="button"
-              accessibilityLabel="Close workspace switcher"
-            >
-              <X size={16} color={colors.textSecondary} />
-            </TouchableOpacity>
           </View>
+          <TouchableOpacity
+            onPress={onClose}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            style={[
+              styles.closeBtn,
+              {
+                backgroundColor: colors.surfaceRaised,
+                borderRadius: radius.pill,
+              },
+            ]}
+            accessibilityRole="button"
+            accessibilityLabel="Close workspace switcher"
+          >
+            <X size={16} color={colors.textSecondary} />
+          </TouchableOpacity>
+        </View>
 
-          {errorMsg && (
-            <View
-              style={[
-                styles.errorBox,
-                {
-                  borderColor: colors.danger,
-                  backgroundColor: colors.surfaceRaised,
-                  borderRadius: radius.sm,
-                  padding: spacing.md,
-                  marginBottom: spacing.md,
-                },
-              ]}
-            >
-              <Text variant="caption" color="danger">
-                {errorMsg}
-              </Text>
-            </View>
-          )}
+        {errorMsg && (
+          <View
+            style={[
+              styles.errorBox,
+              {
+                backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                borderRadius: radius.sm,
+                padding: spacing.sm,
+                marginBottom: spacing.sm,
+              },
+            ]}
+          >
+            <Text variant="caption" color="danger">
+              {errorMsg}
+            </Text>
+          </View>
+        )}
 
-          {/* List of workspaces */}
-          <ScrollView style={styles.list} showsVerticalScrollIndicator={false}>
-            <View style={{ gap: spacing.xs }}>
-              {workspaces.map((ws) => {
-                const isSelected = ws.id === activeWorkspace?.id;
-                const initial = (ws.name || 'W').charAt(0).toUpperCase();
+        {/* List of workspaces */}
+        <ScrollView style={styles.list} showsVerticalScrollIndicator={false}>
+          <View style={{ gap: spacing.xs }}>
+            {workspaces.map((ws) => {
+              const isSelected = ws.id === activeWorkspace?.id;
+              const initial = (ws.name || 'W').charAt(0).toUpperCase();
 
-                return (
-                  <TouchableOpacity
-                    key={ws.id}
-                    style={[
-                      styles.workspaceItem,
-                      {
-                        borderColor: isSelected ? colors.accent : colors.border,
-                        backgroundColor: isSelected ? colors.surfaceRaised : colors.surface,
-                        borderRadius: radius.md,
-                        padding: spacing.md,
-                      },
-                    ]}
-                    onPress={() => handleSelect(ws)}
-                    activeOpacity={0.7}
-                  >
-                    <View style={styles.itemLeft}>
-                      <View
-                        style={[
-                          styles.tileLogo,
-                          {
-                            backgroundColor: colors.surfaceRaised,
-                            borderColor: colors.border,
-                            borderRadius: radius.sm,
-                          },
-                        ]}
-                      >
-                        <Text variant="bodyStrong" style={{ color: colors.textPrimary }}>
-                          {initial}
-                        </Text>
-                      </View>
-                      <View style={{ marginLeft: spacing.md }}>
-                        <Text variant="bodyStrong" numberOfLines={1}>
-                          {ws.name}
-                        </Text>
-                        <Text variant="caption" color="secondary" style={{ marginTop: 1 }}>
-                          {ws.slug} • {ws.role || 'Member'}
-                        </Text>
-                      </View>
+              return (
+                <TouchableOpacity
+                  key={ws.id}
+                  style={[
+                    styles.workspaceItem,
+                    {
+                      backgroundColor: isSelected ? colors.surfaceRaised : colors.surface,
+                      borderRadius: radius.md,
+                      padding: spacing.md,
+                    },
+                  ]}
+                  onPress={() => handleSelect(ws)}
+                  activeOpacity={0.7}
+                >
+                  <View style={styles.itemLeft}>
+                    <View
+                      style={[
+                        styles.tileLogo,
+                        {
+                          backgroundColor: colors.surfaceRaised,
+                          borderRadius: radius.sm,
+                        },
+                      ]}
+                    >
+                      <Text variant="bodyStrong" style={{ color: colors.textPrimary }}>
+                        {initial}
+                      </Text>
                     </View>
+                    <View style={{ marginLeft: spacing.md, flex: 1 }}>
+                      <Text variant="bodyStrong" numberOfLines={1}>
+                        {ws.name}
+                      </Text>
+                      <Text variant="caption" color="secondary" style={{ marginTop: 1 }}>
+                        {ws.slug} • {ws.role || 'Member'}
+                      </Text>
+                    </View>
+                  </View>
 
-                    {isSelected && <Check size={18} color={colors.accentText} strokeWidth={2.5} />}
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
-          </ScrollView>
+                  {isSelected && <Check size={18} color={colors.accentText} strokeWidth={2.5} />}
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        </ScrollView>
 
-          {/* Create Workspace input / button */}
-          {isCreating ? (
-            <View
-              style={[
-                styles.createBox,
-                {
-                  backgroundColor: colors.surfaceRaised,
-                  borderColor: colors.border,
-                  borderRadius: radius.md,
-                  padding: spacing.md,
-                  marginTop: spacing.md,
-                },
-              ]}
-            >
-              <Input
-                label="New Workspace Name"
-                value={newWsName}
-                onChangeText={setNewWsName}
-                placeholder="e.g. Acme Corp"
-                autoFocus
-                returnKeyType="done"
-                onSubmitEditing={handleCreate}
-              />
-              <View style={[styles.createActions, { gap: spacing.sm, marginTop: spacing.md }]}>
-                <View style={{ flex: 1 }}>
-                  <Button
-                    title="Cancel"
-                    variant="secondary"
-                    size="sm"
-                    fullWidth
-                    onPress={() => {
-                      setIsCreating(false);
-                      setErrorMsg(null);
-                    }}
-                  />
-                </View>
-                <View style={{ flex: 1 }}>
-                  <Button
-                    title="Create"
-                    variant="primary"
-                    size="sm"
-                    fullWidth
-                    loading={isSubmitting}
-                    onPress={handleCreate}
-                  />
-                </View>
+        {/* Create Workspace input / button */}
+        {isCreating ? (
+          <View
+            style={[
+              styles.createBox,
+              {
+                backgroundColor: colors.surfaceRaised,
+                borderRadius: radius.md,
+                padding: spacing.md,
+                marginTop: spacing.md,
+              },
+            ]}
+          >
+            <Input
+              label="New Workspace Name"
+              value={newWsName}
+              onChangeText={setNewWsName}
+              placeholder="e.g. Acme Corp"
+              autoFocus
+              returnKeyType="done"
+              onSubmitEditing={handleCreate}
+            />
+            <View style={[styles.createActions, { gap: spacing.sm, marginTop: spacing.md }]}>
+              <View style={{ flex: 1 }}>
+                <Button
+                  title="Cancel"
+                  variant="secondary"
+                  onPress={() => {
+                    setIsCreating(false);
+                    setNewWsName('');
+                    setErrorMsg(null);
+                  }}
+                />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Button
+                  title="Create"
+                  variant="primary"
+                  loading={isSubmitting}
+                  disabled={!newWsName.trim()}
+                  onPress={handleCreate}
+                />
               </View>
             </View>
-          ) : (
-            <View style={{ marginTop: spacing.md }}>
-              <TouchableOpacity
-                style={[
-                  styles.actionButton,
-                  {
-                    borderColor: colors.border,
-                    borderRadius: radius.md,
-                    padding: spacing.md,
-                    backgroundColor: colors.surfaceRaised,
-                  },
-                ]}
-                onPress={() => setIsCreating(true)}
-                activeOpacity={0.7}
-              >
-                <Plus size={18} color={colors.textPrimary} />
-                <Text variant="bodyStrong" style={{ marginLeft: spacing.sm }}>
-                  Create Workspace
-                </Text>
-              </TouchableOpacity>
-            </View>
-          )}
-        </View>
-      </KeyboardAvoidingView>
-    </Modal>
+          </View>
+        ) : (
+          <TouchableOpacity
+            style={[
+              styles.newWsBtn,
+              {
+                backgroundColor: colors.surfaceRaised,
+                borderRadius: radius.md,
+                padding: spacing.md,
+                marginTop: spacing.md,
+              },
+            ]}
+            onPress={() => setIsCreating(true)}
+            activeOpacity={0.7}
+          >
+            <Plus size={16} color={colors.accent} />
+            <Text variant="bodyStrong" style={{ color: colors.accent, marginLeft: spacing.sm }}>
+              New Workspace
+            </Text>
+          </TouchableOpacity>
+        )}
+      </View>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
+  overlayRoot: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: 9999,
+    elevation: 999,
+  },
   backdrop: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 20,
+    ...StyleSheet.absoluteFillObject,
   },
   sheet: {
-    width: '100%',
-    maxWidth: 420,
-    maxHeight: '88%',
+    position: 'absolute',
+    top: 68,
+    left: 16,
+    width: 320,
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.45,
+    shadowRadius: 32,
+    elevation: 1000,
   },
   header: {
     flexDirection: 'row',
@@ -270,14 +271,13 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   closeBtn: {
-    width: 32,
-    height: 32,
+    width: 28,
+    height: 28,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  errorBox: {},
   list: {
-    maxHeight: 280,
+    maxHeight: 260,
   },
   workspaceItem: {
     flexDirection: 'row',
@@ -299,10 +299,10 @@ const styles = StyleSheet.create({
   createActions: {
     flexDirection: 'row',
   },
-  actionButton: {
+  newWsBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    minHeight: 44,
   },
+  errorBox: {},
 });

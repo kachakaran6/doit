@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { View, StyleSheet, Modal, TouchableOpacity, Alert, Platform } from 'react-native';
+import React from 'react';
+import { View, StyleSheet, TouchableOpacity, Alert } from 'react-native';
 import { useTheme } from '../../../theme/useTheme';
 import { Text, Avatar } from '../../../components/ui';
 import { useAuthStore } from '../../auth/store';
@@ -9,7 +9,6 @@ import {
   Settings as SettingsIcon,
   LogOut,
   ChevronRight,
-  User as UserIcon,
   Building2,
   HelpCircle,
   Folder,
@@ -26,12 +25,8 @@ interface AccountMenuSheetProps {
 }
 
 /**
- * Phase L3 / Milestone M3 AccountMenuSheet:
- * Aligned with docs/03-screen-redesign-specs.md §6
- * - Header: avatar (48), real display name, email (secondary)
- * - Inset grouped card: Profile, Workspaces, Settings, Help & feedback
- * - Destructive Log Out row with confirmation
- * - Zero developer/server clutter
+ * AccountMenuSheet:
+ * In-tree overlay anchored to the top-right directly underneath the user avatar.
  */
 export const AccountMenuSheet: React.FC<AccountMenuSheetProps> = ({
   visible,
@@ -46,6 +41,8 @@ export const AccountMenuSheet: React.FC<AccountMenuSheetProps> = ({
   const logout = useAuthStore((s) => s.logout);
   const activeWorkspace = useWorkspaceStore((s) => s.activeWorkspace);
   const activeProject = useWorkspaceStore((s) => s.activeProject);
+
+  if (!visible) return null;
 
   const handleLogout = () => {
     Alert.alert(
@@ -66,227 +63,223 @@ export const AccountMenuSheet: React.FC<AccountMenuSheetProps> = ({
   };
 
   return (
-    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
-      <View style={[styles.backdrop, { backgroundColor: colors.overlay }]}>
-        <TouchableOpacity
-          style={StyleSheet.absoluteFill}
-          activeOpacity={1}
-          onPress={onClose}
-        />
+    <View style={styles.overlayRoot}>
+      <TouchableOpacity
+        style={[styles.backdrop, { backgroundColor: colors.overlay || 'rgba(0,0,0,0.65)' }]}
+        activeOpacity={1}
+        onPress={onClose}
+      />
+      <View
+        style={[
+          styles.sheet,
+          {
+            backgroundColor: colors.surface1 || colors.surface,
+            borderRadius: radius.xl,
+            padding: spacing.md,
+          },
+        ]}
+      >
+        {/* Header with User Info */}
+        <View style={[styles.header, { marginBottom: spacing.md }]}>
+          <View style={styles.userInfo}>
+            <Avatar
+              name={user?.fullName || user?.email || 'User'}
+              size="md"
+            />
+            <View style={{ marginLeft: spacing.sm, flex: 1 }}>
+              <Text variant="bodyStrong" numberOfLines={1}>
+                {user?.fullName || 'Active User'}
+              </Text>
+              <Text variant="caption" color="secondary" numberOfLines={1}>
+                {user?.email || 'user@doit.local'}
+              </Text>
+            </View>
+          </View>
+
+          <TouchableOpacity
+            onPress={onClose}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            style={[
+              styles.closeBtn,
+              {
+                backgroundColor: colors.surface2 || colors.surfaceRaised,
+                borderRadius: radius.pill,
+              },
+            ]}
+            accessibilityRole="button"
+            accessibilityLabel="Close account menu"
+          >
+            <X size={15} color={colors.textSecondary} />
+          </TouchableOpacity>
+        </View>
+
+        {/* Grouped Menu List */}
         <View
           style={[
-            styles.sheet,
+            styles.groupedCard,
             {
-              backgroundColor: colors.surface1 || colors.surface,
-              borderRadius: radius.xl,
-              padding: spacing.lg,
+              backgroundColor: colors.surface2 || colors.surfaceRaised,
+              borderRadius: radius.lg,
             },
           ]}
         >
-          {/* Header with User Info */}
-          <View style={[styles.header, { marginBottom: spacing.lg }]}>
-            <View style={styles.userInfo}>
-              <Avatar
-                name={user?.fullName || user?.email || 'User'}
-                size="lg"
-              />
-              <View style={{ marginLeft: spacing.md, flex: 1 }}>
-                <Text variant="h3" numberOfLines={1}>
-                  {user?.fullName || 'Active User'}
-                </Text>
+          {/* Workspaces Row */}
+          <TouchableOpacity
+            style={styles.menuRow}
+            onPress={() => {
+              onClose();
+              if (onOpenWorkspaceSwitcher) onOpenWorkspaceSwitcher();
+            }}
+            activeOpacity={0.7}
+          >
+            <View style={styles.menuLeft}>
+              <View style={[styles.menuIconBox, { backgroundColor: 'rgba(59, 130, 246, 0.12)' }]}>
+                <Building2 size={15} color="#3B82F6" />
+              </View>
+              <View style={{ flexShrink: 1 }}>
+                <Text variant="bodySmall" style={{ fontWeight: '600' }}>Workspace</Text>
                 <Text variant="caption" color="secondary" numberOfLines={1}>
-                  {user?.email || 'user@doit.local'}
+                  {activeWorkspace?.name || 'Default Workspace'}
                 </Text>
               </View>
             </View>
+            <ChevronRight size={15} color={colors.textTertiary || colors.textMuted} />
+          </TouchableOpacity>
 
-            <TouchableOpacity
-              onPress={onClose}
-              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-              style={[
-                styles.closeBtn,
-                {
-                  backgroundColor: colors.surface2 || colors.surfaceRaised,
-                  borderRadius: radius.pill,
-                },
-              ]}
-              accessibilityRole="button"
-              accessibilityLabel="Close account menu"
-            >
-              <X size={16} color={colors.textSecondary} />
-            </TouchableOpacity>
-          </View>
+          <View style={[styles.divider, { backgroundColor: colors.hairline || colors.border }]} />
 
-          {/* Grouped Menu List */}
-          <View
-            style={[
-              styles.groupedCard,
-              {
-                backgroundColor: colors.surface2 || colors.surfaceRaised,
-                borderRadius: radius.lg,
-              },
-            ]}
-          >
-            {/* Workspaces Row */}
-            <TouchableOpacity
-              style={styles.menuRow}
-              onPress={() => {
-                onClose();
-                if (onOpenWorkspaceSwitcher) {
-                  onOpenWorkspaceSwitcher();
-                }
-              }}
-              activeOpacity={0.7}
-            >
-              <View style={styles.menuLeft}>
-                <View style={[styles.menuIconBox, { backgroundColor: 'rgba(59, 130, 246, 0.12)' }]}>
-                  <Building2 size={16} color="#3B82F6" />
-                </View>
-                <View>
-                  <Text variant="bodyStrong">Workspace</Text>
-                  <Text variant="caption" color="secondary">
-                    {activeWorkspace?.name || 'Default Workspace'}
-                  </Text>
-                </View>
-              </View>
-              <ChevronRight size={16} color={colors.textTertiary || colors.textMuted} />
-            </TouchableOpacity>
-
-            <View style={[styles.divider, { backgroundColor: colors.hairline || colors.border }]} />
-
-            {/* Projects Row */}
-            <TouchableOpacity
-              style={styles.menuRow}
-              onPress={() => {
-                onClose();
-                if (onOpenProjectSwitcher) {
-                  onOpenProjectSwitcher();
-                }
-              }}
-              activeOpacity={0.7}
-            >
-              <View style={styles.menuLeft}>
-                <View style={[styles.menuIconBox, { backgroundColor: 'rgba(245, 158, 11, 0.12)' }]}>
-                  <Folder size={16} color="#F59E0B" />
-                </View>
-                <View>
-                  <Text variant="bodyStrong">Projects</Text>
-                  <Text variant="caption" color="secondary">
-                    {activeProject?.name || 'Select or create project'}
-                  </Text>
-                </View>
-              </View>
-              <ChevronRight size={16} color={colors.textTertiary || colors.textMuted} />
-            </TouchableOpacity>
-
-            <View style={[styles.divider, { backgroundColor: colors.hairline || colors.border }]} />
-
-            {/* Labels Row */}
-            <TouchableOpacity
-              style={styles.menuRow}
-              onPress={() => {
-                onClose();
-                if (onOpenLabelManager) {
-                  onOpenLabelManager();
-                }
-              }}
-              activeOpacity={0.7}
-            >
-              <View style={styles.menuLeft}>
-                <View style={[styles.menuIconBox, { backgroundColor: 'rgba(16, 185, 129, 0.12)' }]}>
-                  <Tag size={16} color="#10B981" />
-                </View>
-                <View>
-                  <Text variant="bodyStrong">Labels</Text>
-                  <Text variant="caption" color="secondary">
-                    Manage & create tags
-                  </Text>
-                </View>
-              </View>
-              <ChevronRight size={16} color={colors.textTertiary || colors.textMuted} />
-            </TouchableOpacity>
-
-            <View style={[styles.divider, { backgroundColor: colors.hairline || colors.border }]} />
-
-            {/* Settings Row */}
-            <TouchableOpacity
-              style={styles.menuRow}
-              onPress={() => {
-                onClose();
-                if (onNavigateSettings) {
-                  onNavigateSettings();
-                }
-              }}
-              activeOpacity={0.7}
-            >
-              <View style={styles.menuLeft}>
-                <View style={[styles.menuIconBox, { backgroundColor: 'rgba(168, 85, 247, 0.12)' }]}>
-                  <SettingsIcon size={16} color="#A855F7" />
-                </View>
-                <Text variant="bodyStrong">Settings & Preferences</Text>
-              </View>
-              <ChevronRight size={16} color={colors.textTertiary || colors.textMuted} />
-            </TouchableOpacity>
-
-            <View style={[styles.divider, { backgroundColor: colors.hairline || colors.border }]} />
-
-            {/* Help & Feedback */}
-            <TouchableOpacity
-              style={styles.menuRow}
-              onPress={() => {
-                Alert.alert('DoIt Help & Feedback', 'For support, visit github.com/kachakaran6/doit or email support@doit.local.');
-              }}
-              activeOpacity={0.7}
-            >
-              <View style={styles.menuLeft}>
-                <View style={[styles.menuIconBox, { backgroundColor: 'rgba(16, 185, 129, 0.12)' }]}>
-                  <HelpCircle size={16} color="#10B981" />
-                </View>
-                <Text variant="bodyStrong">Help & Feedback</Text>
-              </View>
-              <ChevronRight size={16} color={colors.textTertiary || colors.textMuted} />
-            </TouchableOpacity>
-          </View>
-
-          {/* Destructive Log Out Row */}
+          {/* Projects Row */}
           <TouchableOpacity
-            style={[
-              styles.logoutBtn,
-              {
-                backgroundColor: 'rgba(239, 68, 68, 0.08)',
-                borderRadius: radius.md,
-                marginTop: spacing.md,
-              },
-            ]}
-            onPress={handleLogout}
+            style={styles.menuRow}
+            onPress={() => {
+              onClose();
+              if (onOpenProjectSwitcher) onOpenProjectSwitcher();
+            }}
             activeOpacity={0.7}
           >
-            <LogOut size={16} color={colors.danger} />
-            <Text variant="bodyStrong" style={{ color: colors.danger, marginLeft: spacing.sm }}>
-              Log Out
-            </Text>
+            <View style={styles.menuLeft}>
+              <View style={[styles.menuIconBox, { backgroundColor: 'rgba(245, 158, 11, 0.12)' }]}>
+                <Folder size={15} color="#F59E0B" />
+              </View>
+              <View style={{ flexShrink: 1 }}>
+                <Text variant="bodySmall" style={{ fontWeight: '600' }}>Projects</Text>
+                <Text variant="caption" color="secondary" numberOfLines={1}>
+                  {activeProject?.name || 'Select or create project'}
+                </Text>
+              </View>
+            </View>
+            <ChevronRight size={15} color={colors.textTertiary || colors.textMuted} />
+          </TouchableOpacity>
+
+          <View style={[styles.divider, { backgroundColor: colors.hairline || colors.border }]} />
+
+          {/* Labels Row */}
+          <TouchableOpacity
+            style={styles.menuRow}
+            onPress={() => {
+              onClose();
+              if (onOpenLabelManager) onOpenLabelManager();
+            }}
+            activeOpacity={0.7}
+          >
+            <View style={styles.menuLeft}>
+              <View style={[styles.menuIconBox, { backgroundColor: 'rgba(16, 185, 129, 0.12)' }]}>
+                <Tag size={15} color="#10B981" />
+              </View>
+              <View style={{ flexShrink: 1 }}>
+                <Text variant="bodySmall" style={{ fontWeight: '600' }}>Labels</Text>
+                <Text variant="caption" color="secondary">Manage & create tags</Text>
+              </View>
+            </View>
+            <ChevronRight size={15} color={colors.textTertiary || colors.textMuted} />
+          </TouchableOpacity>
+
+          <View style={[styles.divider, { backgroundColor: colors.hairline || colors.border }]} />
+
+          {/* Settings Row */}
+          <TouchableOpacity
+            style={styles.menuRow}
+            onPress={() => {
+              onClose();
+              if (onNavigateSettings) onNavigateSettings();
+            }}
+            activeOpacity={0.7}
+          >
+            <View style={styles.menuLeft}>
+              <View style={[styles.menuIconBox, { backgroundColor: 'rgba(168, 85, 247, 0.12)' }]}>
+                <SettingsIcon size={15} color="#A855F7" />
+              </View>
+              <Text variant="bodySmall" style={{ fontWeight: '600' }}>Settings & Preferences</Text>
+            </View>
+            <ChevronRight size={15} color={colors.textTertiary || colors.textMuted} />
+          </TouchableOpacity>
+
+          <View style={[styles.divider, { backgroundColor: colors.hairline || colors.border }]} />
+
+          {/* Help & Feedback */}
+          <TouchableOpacity
+            style={styles.menuRow}
+            onPress={() => {
+              Alert.alert('DoIt Help & Feedback', 'For support, visit github.com/kachakaran6/doit or email support@doit.local.');
+            }}
+            activeOpacity={0.7}
+          >
+            <View style={styles.menuLeft}>
+              <View style={[styles.menuIconBox, { backgroundColor: 'rgba(16, 185, 129, 0.12)' }]}>
+                <HelpCircle size={15} color="#10B981" />
+              </View>
+              <Text variant="bodySmall" style={{ fontWeight: '600' }}>Help & Feedback</Text>
+            </View>
+            <ChevronRight size={15} color={colors.textTertiary || colors.textMuted} />
           </TouchableOpacity>
         </View>
+
+        {/* Destructive Log Out Row */}
+        <TouchableOpacity
+          style={[
+            styles.logoutBtn,
+            {
+              backgroundColor: 'rgba(239, 68, 68, 0.08)',
+              borderRadius: radius.md,
+              marginTop: spacing.sm,
+            },
+          ]}
+          onPress={handleLogout}
+          activeOpacity={0.7}
+        >
+          <LogOut size={15} color={colors.danger} />
+          <Text variant="bodySmall" style={{ color: colors.danger, marginLeft: spacing.xs, fontWeight: '700' }}>
+            Log Out
+          </Text>
+        </TouchableOpacity>
       </View>
-    </Modal>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
+  overlayRoot: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: 9999,
+    elevation: 999,
+  },
   backdrop: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 20,
+    ...StyleSheet.absoluteFillObject,
   },
   sheet: {
-    width: '100%',
-    maxWidth: 400,
+    position: 'absolute',
+    top: 68,
+    right: 16,
+    width: 320,
     shadowColor: '#000000',
     shadowOffset: { width: 0, height: 12 },
     shadowOpacity: 0.45,
     shadowRadius: 32,
-    elevation: 16,
+    elevation: 1000,
   },
   header: {
     flexDirection: 'row',
@@ -299,8 +292,8 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   closeBtn: {
-    width: 32,
-    height: 32,
+    width: 28,
+    height: 28,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -311,29 +304,30 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingVertical: 12,
-    paddingHorizontal: 14,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
   },
   menuLeft: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: 10,
+    flexShrink: 1,
   },
   menuIconBox: {
-    width: 32,
-    height: 32,
-    borderRadius: 8,
+    width: 28,
+    height: 28,
+    borderRadius: 7,
     alignItems: 'center',
     justifyContent: 'center',
   },
   divider: {
     height: StyleSheet.hairlineWidth,
-    marginLeft: 58,
+    marginLeft: 48,
   },
   logoutBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 13,
+    paddingVertical: 10,
   },
 });
