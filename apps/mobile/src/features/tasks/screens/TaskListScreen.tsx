@@ -128,7 +128,7 @@ export const TaskListScreen: React.FC = () => {
     if (overdue.length > 0) {
       groups.push({ title: 'Overdue', key: 'overdue', icon: AlertCircle, iconColor: colors.danger, items: overdue });
     }
-    if (today.length > 0 || groups.length === 0) {
+    if (today.length > 0) {
       groups.push({ title: 'Today', key: 'today', icon: Clock, iconColor: colors.accent, items: today });
     }
     if (upcoming.length > 0) {
@@ -214,6 +214,7 @@ export const TaskListScreen: React.FC = () => {
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
+        style={{ flexGrow: 0 }}
         contentContainerStyle={[styles.filtersRow, { gap: spacing.xs, marginBottom: spacing.md }]}
       >
         {tabOptions.map((opt) => {
@@ -304,18 +305,18 @@ export const TaskListScreen: React.FC = () => {
                   </Text>
                 </View>
 
-                {/* Grouped Card with 1px Inset Hairlines */}
-                <Card
-                  variant="surface1"
-                  style={[styles.groupedCard, { borderRadius: radius.lg }]}
-                >
+                {/* Clean Task List (No background square, compact rows) */}
+                <View style={styles.taskListContainer}>
                   {group.items.map((item, idx) => {
                     const isLast = idx === group.items.length - 1;
 
                     return (
                       <View key={item.id}>
                         <Pressable
-                          style={styles.taskRow}
+                          style={({ pressed }) => [
+                            styles.taskRow,
+                            pressed && { opacity: 0.6 },
+                          ]}
                           onPress={() => navigation.navigate('TaskDetail', { id: item.id })}
                           onLongPress={() => handleConfirmDelete(item)}
                         >
@@ -325,9 +326,12 @@ export const TaskListScreen: React.FC = () => {
                           />
                           <View style={{ flex: 1, marginLeft: spacing.sm }}>
                             <Text
-                              variant="bodyStrong"
+                              variant="body"
                               numberOfLines={1}
-                              style={item.status === 'DONE' ? styles.completedText : undefined}
+                              style={[
+                                styles.taskTitle,
+                                item.status === 'DONE' ? styles.completedText : undefined,
+                              ]}
                             >
                               {item.title}
                             </Text>
@@ -335,7 +339,7 @@ export const TaskListScreen: React.FC = () => {
                               {item.priority && <PriorityDot level={item.priority} />}
                               {item.dueDate && <DueText date={item.dueDate} />}
                               {item.humanId && (
-                                <Text variant="caption" color="secondary">
+                                <Text variant="caption" color="secondary" style={styles.humanIdText}>
                                   {item.humanId}
                                 </Text>
                               )}
@@ -353,7 +357,7 @@ export const TaskListScreen: React.FC = () => {
                       </View>
                     );
                   })}
-                </Card>
+                </View>
               </View>
             );
           })}
@@ -401,14 +405,23 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 4,
   },
-  groupedCard: {
-    overflow: 'hidden',
+  taskListContainer: {
+    paddingVertical: 2,
   },
   taskRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 12,
-    paddingHorizontal: 14,
+    paddingVertical: 8,
+    paddingHorizontal: 4,
+  },
+  taskTitle: {
+    fontSize: 14,
+    fontWeight: '500',
+    lineHeight: 18,
+  },
+  humanIdText: {
+    fontSize: 11,
+    lineHeight: 14,
   },
   completedText: {
     textDecorationLine: 'line-through',
@@ -421,6 +434,7 @@ const styles = StyleSheet.create({
   },
   hairlineDivider: {
     height: StyleSheet.hairlineWidth,
-    marginLeft: 46,
+    marginLeft: 36,
+    opacity: 0.35,
   },
 });

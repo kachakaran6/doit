@@ -47,3 +47,4 @@ export class EmailController {
     return this.emailService.sendTestEmail(dto.to, dto.smtp);
   }
 }
+

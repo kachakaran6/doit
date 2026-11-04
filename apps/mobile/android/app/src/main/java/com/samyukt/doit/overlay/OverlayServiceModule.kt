@@ -231,13 +231,35 @@ class OverlayServiceModule(private val reactContext: ReactApplicationContext) :
     }
 
     @ReactMethod
+    fun getCredentials(promise: Promise) {
+        try {
+            val prefs = reactContext.getSharedPreferences("doit_overlay_prefs", Context.MODE_PRIVATE)
+            val map = com.facebook.react.bridge.Arguments.createMap().apply {
+                putString("authToken", prefs.getString("auth_token", null))
+                putString("refreshToken", prefs.getString("refresh_token", null))
+                putString("baseUrl", prefs.getString("base_url", null))
+                putString("projectId", prefs.getString("project_id", null))
+            }
+            promise.resolve(map)
+        } catch (e: Exception) {
+            promise.reject("GET_ERROR", e.message)
+        }
+    }
+
+    @ReactMethod
     fun syncAuthCredentials(token: String?, baseUrl: String?, projectId: String?, promise: Promise) {
+        syncAuthCredentialsWithRefresh(token, null, baseUrl, projectId, promise)
+    }
+
+    @ReactMethod
+    fun syncAuthCredentialsWithRefresh(token: String?, refreshToken: String?, baseUrl: String?, projectId: String?, promise: Promise) {
         try {
             val prefs = reactContext.getSharedPreferences("doit_overlay_prefs", Context.MODE_PRIVATE)
             prefs.edit().apply {
-                putString("auth_token", token)
+                if (token != null) putString("auth_token", token) else remove("auth_token")
+                if (refreshToken != null) putString("refresh_token", refreshToken) else if (token == null) remove("refresh_token")
                 putString("base_url", baseUrl ?: "https://doit.samyukt.pro/api/v1")
-                putString("project_id", projectId)
+                if (projectId != null) putString("project_id", projectId)
                 apply()
             }
             promise.resolve(true)

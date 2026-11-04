@@ -25,7 +25,7 @@ export const useAuthStore = create<AuthState>((set) => ({
       const saved = await AuthStorage.getSession();
       if (saved && saved.accessToken) {
         http.setAuthToken(saved.accessToken);
-        overlayService.syncAuthCredentials(saved.accessToken, 'https://doit.samyukt.pro/api/v1');
+        overlayService.syncAuthCredentials(saved.accessToken, 'https://doit.samyukt.pro/api/v1', null, saved.refreshToken);
         set({
           user: saved.user,
           accessToken: saved.accessToken,
@@ -41,7 +41,7 @@ export const useAuthStore = create<AuthState>((set) => ({
   setSession: (session) => {
     http.setAuthToken(session.accessToken);
     AuthStorage.setSession(session).catch(() => {});
-    overlayService.syncAuthCredentials(session.accessToken, 'https://doit.samyukt.pro/api/v1');
+    overlayService.syncAuthCredentials(session.accessToken, 'https://doit.samyukt.pro/api/v1', null, session.refreshToken);
     set({
       user: session.user,
       accessToken: session.accessToken,

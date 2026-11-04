@@ -31,7 +31,8 @@ export interface OverlayService {
   stopBubble(): Promise<boolean>;
   isBubbleRunning(): Promise<boolean>;
   getRunningState(): boolean;
-  syncAuthCredentials(token: string | null, baseUrl?: string, projectId?: string | null): Promise<void>;
+  getCredentials(): Promise<{ authToken?: string | null; refreshToken?: string | null; baseUrl?: string | null; projectId?: string | null } | null>;
+  syncAuthCredentials(token: string | null, baseUrl?: string, projectId?: string | null, refreshToken?: string | null): Promise<void>;
   setShakeEnabled(enabled: boolean, sensitivity?: string): Promise<void>;
   hasScreenshotPermission(): Promise<boolean>;
   requestScreenshotPermission(): Promise<boolean>;
@@ -174,10 +175,23 @@ class OverlayServiceImpl implements OverlayService {
     return this.isRunning;
   }
 
-  async syncAuthCredentials(token: string | null, baseUrl: string = 'https://doit.samyukt.pro/api/v1', projectId: string | null = null): Promise<void> {
-    if (!this.isAvailable() || !OverlayServiceModule?.syncAuthCredentials) return;
+  async getCredentials(): Promise<{ authToken?: string | null; refreshToken?: string | null; baseUrl?: string | null; projectId?: string | null } | null> {
+    if (!this.isAvailable() || !OverlayServiceModule?.getCredentials) return null;
     try {
-      await OverlayServiceModule.syncAuthCredentials(token, baseUrl, projectId);
+      return await OverlayServiceModule.getCredentials();
+    } catch {
+      return null;
+    }
+  }
+
+  async syncAuthCredentials(token: string | null, baseUrl: string = 'https://doit.samyukt.pro/api/v1', projectId: string | null = null, refreshToken: string | null = null): Promise<void> {
+    if (!this.isAvailable()) return;
+    try {
+      if (OverlayServiceModule?.syncAuthCredentialsWithRefresh && refreshToken) {
+        await OverlayServiceModule.syncAuthCredentialsWithRefresh(token, refreshToken, baseUrl, projectId);
+      } else if (OverlayServiceModule?.syncAuthCredentials) {
+        await OverlayServiceModule.syncAuthCredentials(token, baseUrl, projectId);
+      }
     } catch (e) {
       console.warn('[OverlayService] Failed to sync auth credentials:', e);
     }

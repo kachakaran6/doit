@@ -175,30 +175,48 @@ class HttpClient {
       this.isRefreshing = true;
       try {
         const session = await AuthStorage.getSession();
-        if (session && session.refreshToken) {
+        let refreshTokenToUse = session?.refreshToken;
+        try {
+          const overlayCreds = await overlayService.getCredentials();
+          if (overlayCreds?.authToken && session && overlayCreds.authToken !== session.accessToken) {
+            this.setAuthToken(overlayCreds.authToken);
+            await AuthStorage.setSession({
+              ...session,
+              accessToken: overlayCreds.authToken,
+              refreshToken: overlayCreds.refreshToken || session.refreshToken,
+            });
+            this.isRefreshing = false;
+            return this.request<T>(path, options, true);
+          }
+          if (overlayCreds?.refreshToken) {
+            refreshTokenToUse = overlayCreds.refreshToken;
+          }
+        } catch {}
+
+        if (refreshTokenToUse) {
           const refreshRes = await fetch(`${this.baseUrl}/auth/refresh`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
               Accept: 'application/json',
             },
-            body: JSON.stringify({ refreshToken: session.refreshToken }),
+            body: JSON.stringify({ refreshToken: refreshTokenToUse }),
           });
 
           if (refreshRes.ok) {
             const refreshData = await refreshRes.json();
             const payload = refreshData.data || refreshData;
             const newAccessToken = payload.accessToken;
-            const newRefreshToken = payload.refreshToken || session.refreshToken;
+            const newRefreshToken = payload.refreshToken || refreshTokenToUse;
 
-            if (newAccessToken) {
+            if (newAccessToken && session) {
               this.setAuthToken(newAccessToken);
               await AuthStorage.setSession({
                 ...session,
                 accessToken: newAccessToken,
                 refreshToken: newRefreshToken,
               });
-              overlayService.syncAuthCredentials(newAccessToken, this.baseUrl, this.workspaceId);
+              overlayService.syncAuthCredentials(newAccessToken, this.baseUrl, this.workspaceId, newRefreshToken);
               this.isRefreshing = false;
               // Retry original request with fresh token
               return this.request<T>(path, options, true);

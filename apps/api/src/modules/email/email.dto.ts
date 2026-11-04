@@ -19,3 +19,4 @@ export const SendTestEmailSchema = z.object({
 });
 
 export type SendTestEmailDto = z.infer<typeof SendTestEmailSchema>;
+
