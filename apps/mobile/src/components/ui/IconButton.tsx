@@ -97,7 +97,7 @@ export const IconButton: React.FC<IconButtonProps> = ({
       >
         {loading ? (
           <ActivityIndicator
-            color={variant === 'primary' ? '#FFFFFF' : colors.textPrimary}
+            color={variant === 'primary' ? colors.accentOnPrimary : colors.textPrimary}
             size="small"
           />
         ) : (

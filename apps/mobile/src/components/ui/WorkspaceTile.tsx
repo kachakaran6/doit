@@ -20,7 +20,7 @@ export const WorkspaceTile: React.FC<WorkspaceTileProps> = ({
   name,
   size = 36,
 }) => {
-  const { radius } = useTheme();
+  const { colors, radius } = useTheme();
   const tileAccent = accentFor(id || name || 'default');
   const monogram = (name || id || 'W').trim().slice(0, 2).toUpperCase();
 
@@ -41,7 +41,7 @@ export const WorkspaceTile: React.FC<WorkspaceTileProps> = ({
         style={{
           fontSize: Math.round(size * 0.4),
           fontWeight: '700',
-          color: '#FFFFFF', // White initials per §4.4
+          color: colors.white, // White initials per §4.4
         }}
       >
         {monogram}

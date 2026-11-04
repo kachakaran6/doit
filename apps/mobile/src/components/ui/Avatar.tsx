@@ -31,7 +31,7 @@ export const Avatar: React.FC<AvatarProps> = ({
   imageUrl,
   size = 'md',
 }) => {
-  const { radius } = useTheme();
+  const { colors, radius } = useTheme();
 
   let dimension = 28;
   let fontSize = 11;
@@ -86,7 +86,7 @@ export const Avatar: React.FC<AvatarProps> = ({
           style={{
             fontSize,
             fontWeight: '600',
-            color: '#FFFFFF', // White initials per §4.4
+            color: colors.white, // White initials per §4.4
           }}
         >
           {initials}

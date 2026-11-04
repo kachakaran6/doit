@@ -7,6 +7,7 @@ import {
   Accent,
   ThemeContextValue,
   buildThemeColors,
+  normalizeAccent,
 } from './useTheme';
 import { ThemeStorage } from './theme.storage';
 import { spacing, radius, typography, dimensions, elevation } from '@doit/tokens';
@@ -23,12 +24,25 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({
   initialAccent,
 }) => {
   const systemColorScheme = useColorScheme();
+
   const [mode, setModeState] = useState<ThemeMode>(
     initialMode || ThemeStorage.getMode() || 'dark',
   );
   const [accent, setAccentState] = useState<Accent>(
-    initialAccent || ThemeStorage.getAccent() || 'indigo',
+    normalizeAccent(initialAccent || ThemeStorage.getAccent() || 'blue'),
   );
+
+  // Rehydrate persisted theme & accent asynchronously without causing initial render flashes
+  useEffect(() => {
+    ThemeStorage.loadPersisted().then(({ mode: persistedMode, accent: persistedAccent }) => {
+      if (persistedMode && persistedMode !== mode) {
+        setModeState(persistedMode);
+      }
+      if (persistedAccent && persistedAccent !== accent) {
+        setAccentState(persistedAccent);
+      }
+    });
+  }, []);
 
   const resolvedTheme: 'light' | 'dark' = useMemo(() => {
     if (mode === 'system') {
@@ -43,25 +57,26 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({
   };
 
   const setAccent = (newAccent: Accent) => {
-    setAccentState(newAccent);
-    ThemeStorage.setAccent(newAccent);
+    const normalized = normalizeAccent(newAccent);
+    setAccentState(normalized);
+    ThemeStorage.setAccent(normalized);
   };
 
   const colors = useMemo(() => {
     return buildThemeColors(resolvedTheme, accent);
   }, [resolvedTheme, accent]);
 
-  // Synchronize Android and iOS System Status Bar with active theme
+  // Synchronize Android native Status Bar with active theme
   useEffect(() => {
     if (Platform.OS === 'android') {
       try {
-        RNStatusBar.setBackgroundColor(colors.bg, true);
         RNStatusBar.setBarStyle(resolvedTheme === 'light' ? 'dark-content' : 'light-content', true);
+        RNStatusBar.setBackgroundColor('transparent', true);
       } catch {
         // Ignore on platforms without native statusbar control
       }
     }
-  }, [resolvedTheme, colors.bg]);
+  }, [resolvedTheme]);
 
   const contextValue: ThemeContextValue = useMemo(
     () => ({
@@ -84,8 +99,8 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({
     <ThemeContext.Provider value={contextValue}>
       <ExpoStatusBar
         style={resolvedTheme === 'light' ? 'dark' : 'light'}
-        backgroundColor={colors.bg}
-        translucent={false}
+        backgroundColor="transparent"
+        translucent={true}
       />
       {children}
     </ThemeContext.Provider>

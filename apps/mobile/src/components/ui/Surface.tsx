@@ -1,27 +1,17 @@
 import React from 'react';
 import { View, ViewProps, StyleSheet, StyleProp, ViewStyle } from 'react-native';
 import { useTheme } from '../../theme/useTheme';
+import { Card, CardProps, CardVariant, LegacySurfaceLevel } from './Card';
 
-export type SurfaceLevel =
-  | 'L0'
-  | 'L1'
-  | 'L2'
-  | 'L3'
-  | 0
-  | 1
-  | 2
-  | 3
-  | 'surface'
-  | 'surfaceRaised'
-  | 'surfaceOverlay';
+export type SurfaceLevel = LegacySurfaceLevel;
 
 export interface SurfaceProps extends ViewProps {
   /**
    * The surface ladder level (02-SURFACE-SYSTEM.md §2.1).
-   * L0: Canvas (#08090A)
-   * L1: Cards, list rows (#0F1012)
-   * L2: Inputs, chips, stat tiles (#16181B)
-   * L3: Selected chips, pressed states (#1D2024)
+   * L0: Canvas
+   * L1: Cards, list rows (surface1)
+   * L2: Inputs, chips, stat tiles (surface2)
+   * L3: Selected chips, pressed states (surface3)
    */
   level?: SurfaceLevel;
 
@@ -38,7 +28,6 @@ export interface SurfaceProps extends ViewProps {
 
   /**
    * Whether to render the 1px top highlight (02-SURFACE-SYSTEM.md §2.2).
-   * Replaces border on L1 & L2.
    */
   highlight?: boolean;
 
@@ -47,8 +36,10 @@ export interface SurfaceProps extends ViewProps {
 }
 
 /**
- * DoIt Premium Surface Primitive (02-SURFACE-SYSTEM.md)
- * Implements the 4-step surface ladder with top highlight and zero static borders in dark mode.
+ * Surface: Backward-Compatible Tonal Surface Primitive
+ *
+ * Wraps borderless tonal surfaces, completely removing the legacy 1px light border
+ * and mapping all colors through `useTheme().colors`.
  */
 export const Surface: React.FC<SurfaceProps> = ({
   level = 'L1',
@@ -59,7 +50,8 @@ export const Surface: React.FC<SurfaceProps> = ({
   children,
   ...rest
 }) => {
-  const { colors, radius, resolvedTheme } = useTheme();
+  const { colors, radius, elevation, resolvedTheme } = useTheme();
+  const isDark = resolvedTheme === 'dark';
 
   const resolvedLevel =
     level === 0 ? 'L0' :
@@ -71,22 +63,24 @@ export const Surface: React.FC<SurfaceProps> = ({
   const activeRadiusRole = radiusAlias || radiusRole || 'lg';
 
   let bgColor: string;
+  let isL0 = false;
   switch (resolvedLevel) {
     case 'L0':
-      bgColor = colors.bg;
+      bgColor = colors.canvas;
+      isL0 = true;
       break;
     case 'L2':
     case 'surfaceRaised':
-      bgColor = colors.surfaceRaised;
+      bgColor = colors.surface2;
       break;
     case 'L3':
     case 'surfaceOverlay':
-      bgColor = colors.surfaceOverlay;
+      bgColor = colors.surface3;
       break;
     case 'L1':
     case 'surface':
     default:
-      bgColor = colors.surface;
+      bgColor = isDark ? colors.surface1 : colors.white;
       break;
   }
 
@@ -99,7 +93,7 @@ export const Surface: React.FC<SurfaceProps> = ({
       borderRadius = radius.md; // 16
       break;
     case 'lg':
-      borderRadius = radius.lg; // 20
+      borderRadius = radius.card; // 20
       break;
     case 'xl':
       borderRadius = radius.xl; // 28
@@ -112,9 +106,14 @@ export const Surface: React.FC<SurfaceProps> = ({
       break;
   }
 
-  const isDark = resolvedTheme === 'dark';
-  // Highlight applies to L1 and L2 surfaces
-  const showHighlight = highlight && (resolvedLevel === 'L1' || resolvedLevel === 'L2' || resolvedLevel === 'surface' || resolvedLevel === 'surfaceRaised');
+  // Highlight applies to L1 and L2 surfaces in dark mode
+  const showHighlight =
+    highlight &&
+    isDark &&
+    (resolvedLevel === 'L1' ||
+      resolvedLevel === 'L2' ||
+      resolvedLevel === 'surface' ||
+      resolvedLevel === 'surfaceRaised');
 
   return (
     <View
@@ -123,20 +122,22 @@ export const Surface: React.FC<SurfaceProps> = ({
         {
           backgroundColor: bgColor,
           borderRadius,
+          borderWidth: 0, // Strict zero 1px borders
         },
-        // In light mode, subtle edge separation
-        !isDark && styles.lightBorder,
+        // Soft elevation on light mode (non-L0)
+        !isDark && !isL0 && elevation.cardLight,
         style,
       ]}
       {...rest}
     >
-      {/* 1px top highlight (02-SURFACE-SYSTEM.md §2.2) */}
-      {showHighlight && isDark && (
+      {/* 1px top highlight in dark mode using theme token */}
+      {showHighlight && (
         <View
           pointerEvents="none"
           style={[
             styles.highlightLine,
             {
+              backgroundColor: colors.highlight,
               borderTopLeftRadius: borderRadius,
               borderTopRightRadius: borderRadius,
             },
@@ -153,16 +154,13 @@ const styles = StyleSheet.create({
     position: 'relative',
     overflow: 'hidden',
   },
-  lightBorder: {
-    borderWidth: 1,
-    borderColor: 'rgba(0,0,0,0.06)',
-  },
   highlightLine: {
     position: 'absolute',
     top: 0,
     left: 0,
     right: 0,
     height: 1,
-    backgroundColor: 'rgba(255, 255, 255, 0.08)',
   },
 });
+
+export { Card, CardProps, CardVariant };

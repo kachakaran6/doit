@@ -2,52 +2,101 @@ import React from 'react';
 import {
   View,
   StyleSheet,
-  ScrollView,
   RefreshControl,
   StatusBar,
+  StyleProp,
+  ViewStyle,
+  NativeSyntheticEvent,
+  NativeScrollEvent,
 } from 'react-native';
 import { SafeAreaView, Edge } from 'react-native-safe-area-context';
+import Animated, {
+  SharedValue,
+  useAnimatedScrollHandler,
+} from 'react-native-reanimated';
 import { useTheme } from '../../theme/useTheme';
 import { useBottomInsets } from '../../layout/useBottomInsets';
 
 export interface ScreenProps {
+  /** Child content */
   children: React.ReactNode;
+  /** Optional top header slot (LargeHeader or custom header) */
   header?: React.ReactNode;
+  /** Whether content is wrapped in a scroll view. Default: true */
   scrollable?: boolean;
-  refreshing?: boolean;
-  onRefresh?: () => void;
-  edges?: Edge[];
+  /** Whether to enforce the 20pt horizontal margin. Default: true */
   gutter?: boolean;
+  /** Safe area edges to observe. Default: ['top'] */
+  edges?: Edge[];
+  /** Pull-to-refresh active state */
+  refreshing?: boolean;
+  /** Callback triggered on pull-to-refresh */
+  onRefresh?: () => void;
+  /** Outer container style */
+  style?: StyleProp<ViewStyle>;
+  /** Content container style for ScrollView or static View */
+  contentContainerStyle?: StyleProp<ViewStyle>;
+  /** Optional Reanimated SharedValue tracking vertical scroll offset */
+  scrollY?: SharedValue<number>;
+  /** Optional native onScroll callback */
+  onScroll?: (event: NativeSyntheticEvent<NativeScrollEvent>) => void;
+  /** Whether to automatically add bottom clearance for the floating navbar. Default: true */
+  includeBottomNavPadding?: boolean;
+  /** Show vertical scroll indicator. Default: false */
+  showsVerticalScrollIndicator?: boolean;
+  /** Accessibility and test ID */
+  testID?: string;
 }
 
 /**
- * P-02 Screen Primitive:
- * 09-PROMPTS/P-02-shell.md & 07-PLATFORM-CRAFT.md §7.2, §7.3
- * Standard frame:
- * - Safe area top and horizontal handling
- * - Translucent status bar matching theme mode
- * - 16pt standard horizontal gutter
- * - Single source of bottom insets via useBottomInsets()
- * - Header slot + scroll / content slot
+ * Universal Screen Primitive (Phase L2):
+ * - Enforces strict 20pt horizontal margin (`spacing.screenMargin`).
+ * - Safe area handling with translucent theme-aware status bar.
+ * - Single authoritative bottom insets clearance via `useBottomInsets()`.
+ * - Seamless Reanimated `scrollY` driving collapsing headers.
+ * - Supports both scrollable and static modes with zero 1px borders.
  */
 export const Screen: React.FC<ScreenProps> = ({
   children,
   header,
   scrollable = true,
+  gutter = true,
+  edges = ['top'],
   refreshing = false,
   onRefresh,
-  edges = ['top'],
-  gutter = true,
+  style,
+  contentContainerStyle,
+  scrollY,
+  onScroll,
+  includeBottomNavPadding = true,
+  showsVerticalScrollIndicator = false,
+  testID,
 }) => {
   const { colors, spacing, resolvedTheme } = useTheme();
-  const { scrollPaddingBottom } = useBottomInsets();
+  const { scrollPaddingBottom, insets } = useBottomInsets();
 
   const isDark = resolvedTheme === 'dark';
+  const bottomClearance = includeBottomNavPadding ? scrollPaddingBottom : insets.bottom;
+  const horizontalPadding = gutter ? spacing.screenMargin : 0;
+
+  const scrollHandler = useAnimatedScrollHandler({
+    onScroll: (event) => {
+      'worklet';
+      if (scrollY) {
+        scrollY.value = event.contentOffset.y;
+      }
+    },
+  });
 
   return (
     <SafeAreaView
       edges={edges}
-      style={[styles.container, { backgroundColor: colors.bg }]}
+      testID={testID}
+      style={[
+        styles.container,
+        { backgroundColor: colors.canvas },
+        style,
+      ]}
     >
       <StatusBar
         barStyle={isDark ? 'light-content' : 'dark-content'}
@@ -55,22 +104,29 @@ export const Screen: React.FC<ScreenProps> = ({
         translucent
       />
 
-      {header && <View style={gutter ? styles.gutter : undefined}>{header}</View>}
+      {header && (
+        <View style={gutter ? { paddingHorizontal: spacing.screenMargin } : undefined}>
+          {header}
+        </View>
+      )}
 
       {scrollable ? (
-        <ScrollView
+        <Animated.ScrollView
           style={styles.scrollView}
           contentContainerStyle={[
             styles.scrollContent,
-            gutter && styles.gutter,
             {
+              paddingHorizontal: horizontalPadding,
               paddingTop: spacing.md,
-              paddingBottom: scrollPaddingBottom,
+              paddingBottom: bottomClearance,
             },
+            contentContainerStyle,
           ]}
-          showsVerticalScrollIndicator={false}
+          showsVerticalScrollIndicator={showsVerticalScrollIndicator}
           overScrollMode="never"
           keyboardShouldPersistTaps="handled"
+          scrollEventThrottle={16}
+          onScroll={scrollY ? scrollHandler : onScroll}
           refreshControl={
             onRefresh ? (
               <RefreshControl
@@ -83,9 +139,18 @@ export const Screen: React.FC<ScreenProps> = ({
           }
         >
           {children}
-        </ScrollView>
+        </Animated.ScrollView>
       ) : (
-        <View style={[styles.staticContent, gutter && styles.gutter]}>
+        <View
+          style={[
+            styles.staticContent,
+            {
+              paddingHorizontal: horizontalPadding,
+              paddingBottom: includeBottomNavPadding ? bottomClearance : 0,
+            },
+            contentContainerStyle,
+          ]}
+        >
           {children}
         </View>
       )}
@@ -97,9 +162,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  gutter: {
-    paddingHorizontal: 16, // 16 gutter per §6.1
-  },
   scrollView: {
     flex: 1,
   },
@@ -110,4 +172,3 @@ const styles = StyleSheet.create({
     flex: 1,
   },
 });
-

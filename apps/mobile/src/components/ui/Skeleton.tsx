@@ -1,26 +1,37 @@
 import React, { useEffect, useRef } from 'react';
 import { View, Animated, StyleSheet, StyleProp, ViewStyle } from 'react-native';
 import { useTheme } from '../../theme/useTheme';
-import { Surface } from './Surface';
 
 export interface SkeletonProps {
+  /** Width of the skeleton item. Default: '100%' */
   width?: number | string;
+  /** Height of the skeleton item. Default: 20 */
   height?: number;
+  /** Corner radius. Default: 8 */
   borderRadius?: number;
+  /** Radius role token or numeric value */
+  radius?: 'sm' | 'md' | 'lg' | 'pill' | number;
+  /** Container style */
   style?: StyleProp<ViewStyle>;
+  /** Test identifier */
+  testID?: string;
 }
 
 /**
- * P-01 Skeleton:
- * Shimmering block placeholder with L2 (surfaceRaised) background.
+ * Skeleton: Shimmer Loading Primitive (Phase L2)
+ *
+ * Pulsing tonal placeholder matching upcoming content dimensions.
+ * Strictly uses `colors.surface2` (`surfaceRaised`) without 1px borders.
  */
 export const Skeleton: React.FC<SkeletonProps> = ({
   width = '100%',
   height = 20,
-  borderRadius = 8,
+  borderRadius,
+  radius: radiusProp,
   style,
+  testID,
 }) => {
-  const { colors } = useTheme();
+  const { colors, radius } = useTheme();
   const opacityAnim = useRef(new Animated.Value(0.35)).current;
 
   useEffect(() => {
@@ -36,12 +47,27 @@ export const Skeleton: React.FC<SkeletonProps> = ({
           duration: 750,
           useNativeDriver: true,
         }),
-      ]),
+      ])
     );
 
     pulse.start();
     return () => pulse.stop();
   }, [opacityAnim]);
+
+  let resolvedRadius = 8;
+  if (borderRadius !== undefined) {
+    resolvedRadius = borderRadius;
+  } else if (typeof radiusProp === 'number') {
+    resolvedRadius = radiusProp;
+  } else if (radiusProp === 'sm') {
+    resolvedRadius = radius.sm;
+  } else if (radiusProp === 'md') {
+    resolvedRadius = radius.md;
+  } else if (radiusProp === 'lg') {
+    resolvedRadius = radius.card;
+  } else if (radiusProp === 'pill') {
+    resolvedRadius = radius.pill;
+  }
 
   return (
     <Animated.View
@@ -49,42 +75,65 @@ export const Skeleton: React.FC<SkeletonProps> = ({
         {
           width: width as any,
           height,
-          borderRadius,
-          backgroundColor: colors.surfaceRaised, // L2
+          borderRadius: resolvedRadius,
+          backgroundColor: colors.surface2,
           opacity: opacityAnim,
         },
         style,
       ]}
+      testID={testID}
     />
   );
 };
 
+export interface RowSkeletonProps {
+  withLabels?: boolean;
+  style?: StyleProp<ViewStyle>;
+  testID?: string;
+}
+
 /**
- * P-01 RowSkeleton:
- * Matches the real Row anatomy (§6.3) with 44 checkbox column,
- * meta bar, title bar, optional labels bar, and trailing avatar.
+ * RowSkeleton: Skeleton loader matching GroupedRow layout geometry
  */
-export const RowSkeleton: React.FC<{ withLabels?: boolean }> = ({ withLabels = true }) => {
+export const RowSkeleton: React.FC<RowSkeletonProps> = ({
+  withLabels = true,
+  style,
+  testID,
+}) => {
+  const { colors, radius, elevation, resolvedTheme } = useTheme();
+  const isDark = resolvedTheme === 'dark';
+
   return (
-    <Surface level={1} radius="lg">
-      <View style={[styles.rowContainer, { minHeight: withLabels ? 124 : 96 }]}>
-        {/* 44 Checkbox Column */}
+    <View
+      style={[
+        styles.rowWrapper,
+        {
+          backgroundColor: isDark ? colors.surface1 : colors.white,
+          borderRadius: radius.card,
+          borderWidth: 0,
+        },
+        !isDark && elevation.cardLight,
+        style,
+      ]}
+      testID={testID}
+    >
+      <View style={[styles.rowContainer, { minHeight: withLabels ? 96 : 56 }]}>
+        {/* 22px Circular Checkbox Column */}
         <View style={styles.checkboxCol}>
-          <Skeleton width={28} height={28} borderRadius={8} />
+          <Skeleton width={22} height={22} borderRadius={11} />
         </View>
 
         {/* Content Column */}
         <View style={styles.contentCol}>
-          {/* Meta row */}
+          {/* Meta line */}
           <View style={styles.metaRow}>
             <Skeleton width={56} height={12} borderRadius={4} />
             <Skeleton width={64} height={12} borderRadius={4} />
-            <Skeleton width={72} height={12} borderRadius={4} />
           </View>
 
-          {/* Title */}
-          <View style={{ marginTop: 10 }}>
-            <Skeleton width="85%" height={18} borderRadius={4} />
+          {/* Title line */}
+          <View style={{ marginTop: 8 }}>
+            <Skeleton width="80%" height={16} borderRadius={4} />
           </View>
 
           {/* Labels */}
@@ -96,24 +145,31 @@ export const RowSkeleton: React.FC<{ withLabels?: boolean }> = ({ withLabels = t
           )}
         </View>
 
-        {/* Trailing Avatar */}
+        {/* Trailing Avatar / Slot */}
         <View style={styles.avatarCol}>
-          <Skeleton width={28} height={28} borderRadius={14} />
+          <Skeleton width={24} height={24} borderRadius={12} />
         </View>
       </View>
-    </Surface>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
+  rowWrapper: {
+    width: '100%',
+    overflow: 'hidden',
+    position: 'relative',
+    marginBottom: 8,
+  },
   rowContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
     width: '100%',
   },
   checkboxCol: {
-    width: 44,
+    width: 36,
     alignItems: 'flex-start',
     justifyContent: 'center',
   },
@@ -130,7 +186,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    marginTop: 12,
+    marginTop: 10,
   },
   avatarCol: {
     width: 32,
