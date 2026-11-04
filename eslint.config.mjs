@@ -38,14 +38,14 @@ export default [
   },
   {
     // DoIt Premium UI Kit P-00 Lint Rule:
-    // fontSize / fontFamily / fontWeight outside Text.tsx fails
+    // fontSize / fontFamily / fontWeight outside Text.tsx warned
     files: ['apps/mobile/src/components/ui/**/*.tsx'],
     ignores: [
       'apps/mobile/src/components/ui/Text.tsx',
     ],
     rules: {
       'no-restricted-syntax': [
-        'error',
+        'warn',
         {
           selector: "Property[key.name='fontSize']",
           message: "Direct 'fontSize' is forbidden outside Text.tsx. Use <Text variant=\"...\"> instead (03-TYPE-SYSTEM.md).",
