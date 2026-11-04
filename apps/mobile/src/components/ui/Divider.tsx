@@ -17,10 +17,7 @@ export interface DividerProps {
 export const Divider: React.FC<DividerProps> = ({ inset = 16, style }) => {
   const { colors, resolvedTheme } = useTheme();
 
-  const dividerColor =
-    resolvedTheme === 'dark'
-      ? colors.borderSubtle || 'rgba(255,255,255,0.05)'
-      : colors.borderSubtle || '#ECEEF2';
+  const dividerColor = colors.hairline;
 
   return (
     <View

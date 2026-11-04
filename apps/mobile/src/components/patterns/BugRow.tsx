@@ -1,8 +1,8 @@
 import React from 'react';
-import { View, StyleSheet, Pressable } from 'react-native';
+import { View, StyleSheet, Pressable, Image, Animated } from 'react-native';
 import { useTheme } from '../../theme/useTheme';
-import { Text, Chip } from '../ui';
-import { AlertTriangle, Smartphone, Paperclip } from 'lucide-react-native';
+import { Text } from '../ui';
+import { Bug, Smartphone, Image as ImageIcon } from 'lucide-react-native';
 
 export interface BugRowProps {
   id: string;
@@ -12,7 +12,11 @@ export interface BugRowProps {
   status: 'TRIAGED' | 'IN_PROGRESS' | 'RESOLVED' | 'VERIFIED';
   deviceInfo?: string;
   hasAttachment?: boolean;
+  thumbnailUrl?: string | null;
+  reporter?: string;
+  createdAt?: string;
   onPress?: () => void;
+  onLongPress?: () => void;
 }
 
 export const BugRow: React.FC<BugRowProps> = ({
@@ -22,9 +26,32 @@ export const BugRow: React.FC<BugRowProps> = ({
   status,
   deviceInfo,
   hasAttachment,
+  thumbnailUrl,
+  reporter,
+  createdAt,
   onPress,
+  onLongPress,
 }) => {
-  const { colors, spacing, radius, elevation } = useTheme();
+  const { colors, spacing, radius } = useTheme();
+  const scaleAnim = React.useRef(new Animated.Value(1)).current;
+
+  const handlePressIn = () => {
+    Animated.spring(scaleAnim, {
+      toValue: 0.98,
+      useNativeDriver: true,
+      speed: 50,
+      bounciness: 4,
+    }).start();
+  };
+
+  const handlePressOut = () => {
+    Animated.spring(scaleAnim, {
+      toValue: 1,
+      useNativeDriver: true,
+      speed: 40,
+      bounciness: 4,
+    }).start();
+  };
 
   const severityColor =
     severity === 'CRITICAL'
@@ -32,98 +59,209 @@ export const BugRow: React.FC<BugRowProps> = ({
       : severity === 'MAJOR'
       ? colors.warning
       : severity === 'MINOR'
-      ? colors.accentText
+      ? colors.warning
       : colors.textTertiary;
 
+  const severityBg =
+    severity === 'CRITICAL'
+      ? colors.danger + '18'
+      : severity === 'MAJOR'
+      ? colors.warning + '18'
+      : severity === 'MINOR'
+      ? colors.warning + '18'
+      : colors.surface2;
+
+  const isResolved = status === 'RESOLVED' || status === 'VERIFIED';
+  const statusColor = isResolved ? colors.success : colors.accentText;
+  const statusBg = isResolved ? colors.success + '18' : colors.surface2;
+
+  // Format relative time if given
+  const formattedTime = React.useMemo(() => {
+    if (!createdAt) return '';
+    try {
+      const diffMs = Date.now() - new Date(createdAt).getTime();
+      const diffMins = Math.floor(diffMs / 60000);
+      if (diffMins < 1) return 'just now';
+      if (diffMins < 60) return `${diffMins}m ago`;
+      const diffHours = Math.floor(diffMins / 60);
+      if (diffHours < 24) return `${diffHours}h ago`;
+      const diffDays = Math.floor(diffHours / 24);
+      return `${diffDays}d ago`;
+    } catch {
+      return '';
+    }
+  }, [createdAt]);
+
   return (
-    <Pressable
-      onPress={onPress}
-      style={[
-        styles.container,
-        {
-          backgroundColor: colors.surface,
-          borderColor: colors.border,
-          borderRadius: radius.md,
-          padding: spacing.md,
-          ...elevation.e1,
-        },
-      ]}
-    >
-      <View style={styles.headerRow}>
-        <View style={styles.badgeRow}>
-          <View style={[styles.severityDot, { backgroundColor: severityColor }]} />
-          <Text variant="caption" color="secondary" style={styles.humanId}>
-            {humanId}
-          </Text>
-          <Text
-            variant="caption"
-            style={{ color: severityColor, fontWeight: '700', marginLeft: spacing.xs }}
-          >
-            {severity}
-          </Text>
-        </View>
-        <Chip label={status} selected={status === 'RESOLVED' || status === 'VERIFIED'} />
-      </View>
-
-      <Text variant="bodyStrong" numberOfLines={2} style={{ marginTop: spacing.xs }}>
-        {title}
-      </Text>
-
-      {/* Meta: device info + attachment badge */}
-      {(deviceInfo || hasAttachment) && (
-        <View style={[styles.metaRow, { gap: spacing.sm, marginTop: spacing.xs }]}>
-          {deviceInfo && (
-            <View style={styles.metaItem}>
-              <Smartphone size={12} color={colors.textTertiary} />
-              <Text variant="caption" color="tertiary" style={{ marginLeft: 4 }}>
-                {deviceInfo}
-              </Text>
-            </View>
-          )}
-
-          {hasAttachment && (
-            <View style={styles.metaItem}>
-              <Paperclip size={12} color={colors.textTertiary} />
-              <Text variant="caption" color="tertiary" style={{ marginLeft: 2 }}>
-                Screenshot
-              </Text>
-            </View>
+    <Animated.View style={{ transform: [{ scale: scaleAnim }], marginVertical: 4 }}>
+      <Pressable
+        onPress={onPress}
+        onLongPress={onLongPress}
+        onPressIn={handlePressIn}
+        onPressOut={handlePressOut}
+        style={[
+          styles.container,
+          {
+            backgroundColor: colors.surface1,
+            borderRadius: radius.lg,
+            padding: spacing.md,
+          },
+        ]}
+        accessibilityRole="button"
+        accessibilityLabel={`${humanId} ${title}`}
+      >
+        {/* Left: 48px rounded 10 screenshot thumbnail or tonal icon */}
+        <View
+          style={[
+            styles.thumbnailBox,
+            {
+              backgroundColor: colors.surface2,
+              borderRadius: 10,
+            },
+          ]}
+        >
+          {thumbnailUrl ? (
+            <Image
+              source={{ uri: thumbnailUrl }}
+              style={styles.thumbnailImage}
+              resizeMode="cover"
+            />
+          ) : hasAttachment ? (
+            <ImageIcon size={20} color={colors.accentText} />
+          ) : (
+            <Bug size={20} color={severityColor} />
           )}
         </View>
-      )}
-    </Pressable>
+
+        {/* Center: Info */}
+        <View style={styles.contentCol}>
+          {/* Top meta row */}
+          <View style={styles.topMetaRow}>
+            <Text variant="caption" color="secondary" style={styles.humanId}>
+              {humanId}
+            </Text>
+            {formattedTime ? (
+              <Text variant="caption" color="tertiary" style={styles.dotSeparator}>
+                • {formattedTime}
+              </Text>
+            ) : null}
+            {reporter ? (
+              <Text variant="caption" color="tertiary" style={styles.dotSeparator}>
+                • {reporter}
+              </Text>
+            ) : null}
+          </View>
+
+          {/* Title */}
+          <Text variant="bodyStrong" numberOfLines={2} style={styles.titleText}>
+            {title}
+          </Text>
+
+          {/* Bottom badge row: severity + device */}
+          <View style={styles.bottomMetaRow}>
+            <View style={[styles.severityBadge, { backgroundColor: severityBg }]}>
+              <View style={[styles.severityDot, { backgroundColor: severityColor }]} />
+              <Text variant="caption" style={{ color: severityColor, fontWeight: '600', fontSize: 11 }}>
+                {severity}
+              </Text>
+            </View>
+
+            {deviceInfo ? (
+              <View style={[styles.deviceBadge, { backgroundColor: colors.surface2 }]}>
+                <Smartphone size={11} color={colors.textTertiary} />
+                <Text
+                  variant="caption"
+                  color="tertiary"
+                  numberOfLines={1}
+                  style={{ marginLeft: 3, fontSize: 11, maxWidth: 120 }}
+                >
+                  {deviceInfo}
+                </Text>
+              </View>
+            ) : null}
+          </View>
+        </View>
+
+        {/* Right: State badge */}
+        <View style={[styles.statusBadge, { backgroundColor: statusBg }]}>
+          <Text variant="caption" style={{ color: statusColor, fontWeight: '600', fontSize: 11 }}>
+            {status === 'IN_PROGRESS' ? 'In Progress' : status === 'RESOLVED' ? 'Resolved' : status === 'VERIFIED' ? 'Verified' : 'Triaged'}
+          </Text>
+        </View>
+      </Pressable>
+    </Animated.View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
-    borderWidth: 1,
-    marginVertical: 4,
-  },
-  headerRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  badgeRow: {
+    borderWidth: 0,
     flexDirection: 'row',
     alignItems: 'center',
   },
-  severityDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    marginRight: 6,
+  thumbnailBox: {
+    width: 48,
+    height: 48,
+    borderRadius: 10,
+    overflow: 'hidden',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
+  thumbnailImage: {
+    width: 48,
+    height: 48,
+  },
+  contentCol: {
+    flex: 1,
+    marginRight: 8,
+  },
+  topMetaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   humanId: {
     fontWeight: '600',
+    fontSize: 12,
   },
-  metaRow: {
+  dotSeparator: {
+    marginLeft: 4,
+    fontSize: 11,
+  },
+  titleText: {
+    marginVertical: 2,
+    lineHeight: 18,
+  },
+  bottomMetaRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    marginTop: 4,
+    gap: 6,
   },
-  metaItem: {
+  severityBadge: {
     flexDirection: 'row',
     alignItems: 'center',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 6,
+  },
+  severityDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    marginRight: 4,
+  },
+  deviceBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 6,
+  },
+  statusBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+    alignSelf: 'center',
   },
 });

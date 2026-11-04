@@ -8,7 +8,6 @@ import {
   ViewStyle,
 } from 'react-native';
 import { useTheme } from '../../theme/useTheme';
-import { Text } from './Text';
 import { Search as SearchIcon, X as ClearIcon } from 'lucide-react-native';
 
 export interface SearchInputProps extends TextInputProps {
@@ -18,18 +17,19 @@ export interface SearchInputProps extends TextInputProps {
 
 /**
  * Standardized SearchInput matching Linear / Plane search bars.
- * 40px height, subtle surface, search glyph prefix, and clear button.
+ * Large search field (surface2, radius 14, leading icon, clear button).
+ * Zero border tonal elevation.
  */
 export const SearchInput: React.FC<SearchInputProps> = ({
   value,
   onChangeText,
   onClear,
-  placeholder = 'Search...',
+  placeholder = 'Search tasks, bugs, stickies...',
   containerStyle,
   style,
   ...rest
 }) => {
-  const { colors, spacing, radius, typography } = useTheme();
+  const { colors, spacing, typography } = useTheme();
 
   const handleClear = () => {
     if (onClear) {
@@ -44,16 +44,15 @@ export const SearchInput: React.FC<SearchInputProps> = ({
       style={[
         styles.container,
         {
-          backgroundColor: colors.surface,
-          borderColor: colors.border,
-          borderRadius: radius.md,
+          backgroundColor: colors.surface2,
+          borderRadius: 14,
           paddingHorizontal: spacing.md,
         },
         containerStyle,
       ]}
     >
       <SearchIcon
-        size={16}
+        size={18}
         color={colors.textTertiary}
         strokeWidth={2}
         style={{ marginRight: spacing.sm }}
@@ -81,12 +80,12 @@ export const SearchInput: React.FC<SearchInputProps> = ({
       {value ? (
         <Pressable
           onPress={handleClear}
-          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           accessibilityRole="button"
           accessibilityLabel="Clear search"
           style={styles.clearBtn}
         >
-          <ClearIcon size={14} color={colors.textSecondary} />
+          <ClearIcon size={16} color={colors.textSecondary} />
         </Pressable>
       ) : null}
     </View>
@@ -95,10 +94,10 @@ export const SearchInput: React.FC<SearchInputProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    height: 40,
+    height: 46,
     flexDirection: 'row',
     alignItems: 'center',
-    borderWidth: 1,
+    borderWidth: 0,
     width: '100%',
   },
   input: {
@@ -112,4 +111,3 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
 });
-

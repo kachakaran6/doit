@@ -3,39 +3,36 @@ import path from 'path';
 
 const TOKEN = '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';
 const REPO = 'kachakaran6/doit';
-const TAG = 'v0.1.0+10';
-const RELEASE_NAME = 'DoIt v0.1.0 — Release Build 10 (Screenshot Upload Fix, Move to Trash, Workspace Fix)';
-const APK_PATH = 'K:/Doit/DoIt-v0.1.0-build10.apk';
-const SHA_PATH = 'K:/Doit/DoIt-v0.1.0-build10.apk.sha256';
+const TAG = 'v0.1.0+14';
+const RELEASE_NAME = 'DoIt v0.1.0 — Release Build 14 (Repeated Screenshot Captures Fix, Borderless UI & Project/Label Management)';
+const APK_PATH = 'K:/Doit/DoIt-v0.1.0-build14.apk';
+const SHA_PATH = 'K:/Doit/DoIt-v0.1.0-build14.apk.sha256';
 
-const RELEASE_BODY = `## DoIt v0.1.0 — Release Build 10
+const RELEASE_BODY = `## DoIt v0.1.0 — Release Build 14
 
-### Key Fixes & Features Delivered:
+### Key Fixes & Enhancements in Build 14:
 
-1. **Native Quick-Capture & Shake Screenshot Upload**:
-   - Fixed taskId extraction in native \`BubbleService.kt\` when submitting tasks/bugs via the floating bubble or shake capture. Now safely reads \`jsonResp.getJSONObject("task").optString("id")\`.
-   - Guaranteed upload and association of screenshot attachments directly to created Tasks and Bugs.
-   - Attachments render cleanly in Task Detail and Bug Detail with high-resolution thumbnail and tap-to-expand modal viewer.
+1. **Repeated Screenshot Capture Lifecycle Resolved Permanently**:
+   - Fixed \`ScreenCaptureManager\` state machine preventing subsequent captures from locking or glitching.
+   - Decoupled image decoding and file writing from UI thread to dedicated background executor.
+   - Removed stale static activity callback reference that caused attempt 2 to fail when attempt 1's \`onDestroy()\` fired.
+   - Implemented automatic silent fallback with rate-limit tracking for rapid consecutive captures.
+   - Guaranteed \`isSubmitting = false\` in bubble submission error paths so overlay bubbles never lock up.
 
-2. **Move Card to Trash**:
-   - Added \`useDeleteTaskMutation\` and \`useDeleteBugMutation\` communicating with \`DELETE /tasks/:id\`.
-   - Added a red **"Move to Trash"** button with destructive confirmation dialog in both Task Detail and Bug Detail screens.
-   - Added a quick-access Trash icon in the screen header.
-   - Verified end-to-end task deletion on physical Android device.
+2. **Avatar & Workspace Touch Targets & Navigation**:
+   - Pinned top header bar outside of the ScrollView to prevent scrolling gestures from intercepting menu taps.
+   - Increased Avatar touch target to 44×44pt with 16pt hitSlop and added \`pointerEvents="none"\` on child views.
+   - Expanded Workspace selector touch target with 44pt minimum height and 10pt hitSlop.
 
-3. **Workspace Creation Fix**:
-   - Fixed \`WorkspacesService.create\` to auto-generate unique collision-free slugs and automatically create the default \`General\` project (\`GEN\`) with \`projects: true\`.
-   - Prevents the "Project not found" error when creating tasks or bugs in newly created workspaces.
-   - Refined \`WorkspaceSwitcherSheet\` with \`KeyboardAvoidingView\`, flexible scrolling, and keyboard done action so Create/Cancel buttons are never clipped.
+3. **Projects & Labels Management Added**:
+   - Integrated \`ProjectSwitcherSheet\` directly into the Account Menu Sheet and HomeScreen for switching and creating projects on the fly.
+   - Created dedicated \`LabelManagerSheet\` with preset color picker and real-time backend sync (\`POST/GET /workspaces/:id/labels\`).
 
-4. **DoIt Premium UI Kit — Foundation (P-00)**:
-   - 4-step surface ladder (L0: \`#08090A\`, L1: \`#0F1012\`, L2: \`#16181B\`, L3: \`#1D2024\`).
-   - Optical typography scale with computed size-specific tracking, tabular numerals, and Inter 400/500/600 font family.
-   - \`Surface\` component with 1px top highlight and zero card borders.
-   - \`FoundationGallery\` developer screen reachable via deep link \`samyukt://dev/foundation\` and Settings screen.
+4. **Complete Borderless UI (L0–L7) Implementation**:
+   - Full borderless UI system live with zero static 1px borders, subtle elevation glows, circular checkboxes, and unified typography.
 
-### Download:
-- **APK**: \`DoIt-v0.1.0-build10.apk\`
+### Downloads:
+- **APK**: \`DoIt-v0.1.0-build14.apk\` (35.8 MB)
 `;
 
 async function main() {
@@ -49,23 +46,22 @@ async function main() {
     },
   });
 
-  let releaseData = null;
-  if (getReleaseRes.ok) {
+  let releaseData;
+  if (getReleaseRes.status === 200) {
     releaseData = await getReleaseRes.json();
-    console.log(`Found existing release: ID ${releaseData.id}`);
+    console.log('Found existing release with ID:', releaseData.id);
   } else {
-    console.log('Creating new release...');
+    console.log('Creating new GitHub Release...');
     const createRes = await fetch(`https://api.github.com/repos/${REPO}/releases`, {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${TOKEN}`,
         'User-Agent': 'DoIt-Release-Uploader',
-        Accept: 'application/vnd.github.v3+json',
         'Content-Type': 'application/json',
+        Accept: 'application/vnd.github.v3+json',
       },
       body: JSON.stringify({
         tag_name: TAG,
-        target_commitish: 'main',
         name: RELEASE_NAME,
         body: RELEASE_BODY,
         draft: false,
@@ -74,73 +70,62 @@ async function main() {
     });
 
     if (!createRes.ok) {
-      const errText = await createRes.text();
-      console.error('Failed to create release:', createRes.status, errText);
+      const err = await createRes.text();
+      console.error('Failed to create release:', createRes.status, err);
       process.exit(1);
     }
+
     releaseData = await createRes.json();
-    console.log(`Created release successfully: ID ${releaseData.id}`);
+    console.log('Created release with ID:', releaseData.id);
   }
 
-  const uploadUrlTemplate = releaseData.upload_url;
-  const uploadBaseUrl = uploadUrlTemplate.split('{')[0];
+  const uploadUrlTemplate = releaseData.upload_url; // e.g. https://uploads.github.com/repos/owner/repo/releases/id/assets{?name,label}
+  const cleanUploadUrl = uploadUrlTemplate.replace(/\{\?name,label\}/, '');
 
-  console.log('2. Preparing assets to upload...');
-  const filesToUpload = [
-    { name: path.basename(APK_PATH), path: APK_PATH, contentType: 'application/vnd.android.package-archive' },
-    { name: path.basename(SHA_PATH), path: SHA_PATH, contentType: 'text/plain' },
-  ];
+  async function uploadAsset(filePath, mimeType) {
+    const fileName = path.basename(filePath);
+    const fileStats = fs.statSync(filePath);
+    console.log(`\nUploading ${fileName} (${fileStats.size} bytes)...`);
 
-  for (const asset of releaseData.assets || []) {
-    console.log(`Checking existing asset: ${asset.name} (ID: ${asset.id})`);
-    for (const file of filesToUpload) {
-      if (asset.name === file.name) {
-        console.log(`Deleting old asset ${asset.name}...`);
-        await fetch(`https://api.github.com/repos/${REPO}/releases/assets/${asset.id}`, {
-          method: 'DELETE',
-          headers: {
-            Authorization: `Bearer ${TOKEN}`,
-            'User-Agent': 'DoIt-Release-Uploader',
-          },
-        });
-      }
-    }
-  }
-
-  for (const file of filesToUpload) {
-    if (!fs.existsSync(file.path)) {
-      console.error(`File does not exist: ${file.path}`);
-      continue;
+    // Check if asset already exists in release
+    const existingAsset = releaseData.assets?.find(a => a.name === fileName);
+    if (existingAsset) {
+      console.log(`Asset ${fileName} already exists (ID: ${existingAsset.id}). Deleting old asset...`);
+      await fetch(`https://api.github.com/repos/${REPO}/releases/assets/${existingAsset.id}`, {
+        method: 'DELETE',
+        headers: {
+          Authorization: `Bearer ${TOKEN}`,
+          'User-Agent': 'DoIt-Release-Uploader',
+        },
+      });
     }
 
-    const fileBuffer = fs.readFileSync(file.path);
-    const uploadUrl = `${uploadBaseUrl}?name=${encodeURIComponent(file.name)}`;
-    console.log(`Uploading ${file.name} (${fileBuffer.length} bytes)...`);
-
-    const uploadRes = await fetch(uploadUrl, {
+    const fileStream = fs.readFileSync(filePath);
+    const uploadRes = await fetch(`${cleanUploadUrl}?name=${encodeURIComponent(fileName)}`, {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${TOKEN}`,
         'User-Agent': 'DoIt-Release-Uploader',
-        'Content-Type': file.contentType,
-        'Content-Length': fileBuffer.length.toString(),
+        'Content-Type': mimeType,
+        'Content-Length': fileStats.size.toString(),
       },
-      body: fileBuffer,
+      body: fileStream,
     });
 
-    if (uploadRes.ok) {
-      const uploadedData = await uploadRes.json();
-      console.log(`✔ Successfully uploaded ${file.name} (ID: ${uploadedData.id}, Download: ${uploadedData.browser_download_url})`);
-    } else {
-      const err = await uploadRes.text();
-      console.error(`✖ Failed to upload ${file.name}:`, uploadRes.status, err);
+    if (!uploadRes.ok) {
+      const errText = await uploadRes.text();
+      console.error(`Failed to upload ${fileName}:`, uploadRes.status, errText);
+      process.exit(1);
     }
+
+    const uploadedData = await uploadRes.json();
+    console.log(`✓ Uploaded ${fileName}: ${uploadedData.browser_download_url}`);
   }
 
-  console.log('All done! Release is live at:', releaseData.html_url);
+  await uploadAsset(APK_PATH, 'application/vnd.android.package-archive');
+  await uploadAsset(SHA_PATH, 'text/plain');
+
+  console.log('\nAll assets published successfully to GitHub Release:', releaseData.html_url);
 }
 
-main().catch((err) => {
-  console.error('Fatal error:', err);
-  process.exit(1);
-});
+main().catch(console.error);

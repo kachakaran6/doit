@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, StyleSheet, Pressable } from 'react-native';
 import { useTheme } from '../../theme/useTheme';
-import { Text, Chip } from '../ui';
+import { Text, LabelPill } from '../ui';
 import { CheckSquare, Square, AlertCircle, Clock } from 'lucide-react-native';
 
 export interface TaskRowProps {
@@ -114,7 +114,7 @@ export const TaskRow: React.FC<TaskRowProps> = ({
             )}
 
             {labels.map((lbl) => (
-              <Chip key={lbl.id} label={lbl.name} style={{ height: 22, paddingVertical: 1, paddingHorizontal: 6 }} />
+              <LabelPill key={lbl.id} id={lbl.id} name={lbl.name} />
             ))}
           </View>
         </View>

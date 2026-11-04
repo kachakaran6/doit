@@ -110,7 +110,7 @@ export class AttachmentsService {
     let finalBugId = dto.bugId;
 
     if (finalBugId && !finalTaskId) {
-      const existingTask = await this.prisma.task.findUnique({ where: { id: finalBugId } });
+      const existingTask = await (this.prisma as any).task?.findUnique({ where: { id: finalBugId } });
       if (existingTask) {
         finalTaskId = finalBugId;
         finalBugId = undefined;
@@ -118,9 +118,9 @@ export class AttachmentsService {
     }
 
     if (finalTaskId && !finalBugId) {
-      const existingTask = await this.prisma.task.findUnique({ where: { id: finalTaskId } });
+      const existingTask = await (this.prisma as any).task?.findUnique({ where: { id: finalTaskId } });
       if (!existingTask) {
-        const existingBug = await this.prisma.bugReport.findUnique({ where: { id: finalTaskId } });
+        const existingBug = await (this.prisma as any).bugReport?.findUnique({ where: { id: finalTaskId } });
         if (existingBug) {
           finalBugId = finalTaskId;
           finalTaskId = undefined;

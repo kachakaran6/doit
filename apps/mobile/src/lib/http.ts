@@ -9,6 +9,7 @@ import Constants from 'expo-constants';
 import * as SecureStore from 'expo-secure-store';
 import { Platform } from 'react-native';
 import { AuthStorage } from '../features/auth/auth.storage';
+import { overlayService } from '../native/overlay';
 
 const API_URL_KEY = 'com.samyukt.doit.api_url';
 
@@ -197,6 +198,7 @@ class HttpClient {
                 accessToken: newAccessToken,
                 refreshToken: newRefreshToken,
               });
+              overlayService.syncAuthCredentials(newAccessToken, this.baseUrl, this.workspaceId);
               this.isRefreshing = false;
               // Retry original request with fresh token
               return this.request<T>(path, options, true);

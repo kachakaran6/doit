@@ -1,23 +1,17 @@
 import React from 'react';
 import { View, ViewProps, StyleSheet, StyleProp, ViewStyle } from 'react-native';
 import { useTheme } from '../../theme/useTheme';
+import { Card, CardProps, CardVariant, LegacySurfaceLevel } from './Card';
 
-export type SurfaceLevel =
-  | 'L0'
-  | 'L1'
-  | 'L2'
-  | 'L3'
-  | 'surface'
-  | 'surfaceRaised'
-  | 'surfaceOverlay';
+export type SurfaceLevel = LegacySurfaceLevel;
 
 export interface SurfaceProps extends ViewProps {
   /**
    * The surface ladder level (02-SURFACE-SYSTEM.md §2.1).
-   * L0: Canvas (#08090A)
-   * L1: Cards, list rows (#0F1012)
-   * L2: Inputs, chips, stat tiles (#16181B)
-   * L3: Selected chips, pressed states (#1D2024)
+   * L0: Canvas
+   * L1: Cards, list rows (surface1)
+   * L2: Inputs, chips, stat tiles (surface2)
+   * L3: Selected chips, pressed states (surface3)
    */
   level?: SurfaceLevel;
 
@@ -30,10 +24,10 @@ export interface SurfaceProps extends ViewProps {
    * pill: 999
    */
   radiusRole?: 'sm' | 'md' | 'lg' | 'xl' | 'pill' | 'none';
+  radius?: 'sm' | 'md' | 'lg' | 'xl' | 'pill' | 'none';
 
   /**
    * Whether to render the 1px top highlight (02-SURFACE-SYSTEM.md §2.2).
-   * Replaces border on L1 & L2.
    */
   highlight?: boolean;
 
@@ -42,44 +36,84 @@ export interface SurfaceProps extends ViewProps {
 }
 
 /**
- * DoIt Premium Surface Primitive (02-SURFACE-SYSTEM.md)
- * Implements the 4-step surface ladder with top highlight and zero static borders in dark mode.
+ * Surface: Backward-Compatible Tonal Surface Primitive
+ *
+ * Wraps borderless tonal surfaces, completely removing the legacy 1px light border
+ * and mapping all colors through `useTheme().colors`.
  */
 export const Surface: React.FC<SurfaceProps> = ({
   level = 'L1',
-  radiusRole = 'lg',
+  radiusRole,
+  radius: radiusAlias,
   highlight = true,
   style,
   children,
   ...rest
 }) => {
-  const { colors, radius, resolvedTheme } = useTheme();
+  const { colors, radius, elevation, resolvedTheme } = useTheme();
+  const isDark = resolvedTheme === 'dark';
+
+  const resolvedLevel =
+    level === 0 ? 'L0' :
+    level === 1 ? 'L1' :
+    level === 2 ? 'L2' :
+    level === 3 ? 'L3' :
+    level;
+
+  const activeRadiusRole = radiusAlias || radiusRole || 'lg';
 
   let bgColor: string;
-  switch (level) {
+  let isL0 = false;
+  switch (resolvedLevel) {
     case 'L0':
-      bgColor = colors.bg;
-      break;
-    case 'L1':
-    case 'surface':
-      bgColor = colors.surface;
+      bgColor = colors.canvas;
+      isL0 = true;
       break;
     case 'L2':
     case 'surfaceRaised':
-      bgColor = colors.surfaceRaised;
+      bgColor = colors.surface2;
       break;
     case 'L3':
     case 'surfaceOverlay':
-      bgColor = colors.surfaceOverlay;
+      bgColor = colors.surface3;
       break;
+    case 'L1':
+    case 'surface':
     default:
-      bgColor = colors.surface;
+      bgColor = isDark ? colors.surface1 : colors.white;
+      break;
   }
 
-  const cornerRadius = radiusRole === 'none' ? 0 : radius[radiusRole];
-  const isDark = resolvedTheme === 'dark';
+  let borderRadius: number = 0;
+  switch (activeRadiusRole) {
+    case 'sm':
+      borderRadius = radius.sm; // 12
+      break;
+    case 'md':
+      borderRadius = radius.md; // 16
+      break;
+    case 'lg':
+      borderRadius = radius.card; // 20
+      break;
+    case 'xl':
+      borderRadius = radius.xl; // 28
+      break;
+    case 'pill':
+      borderRadius = radius.pill; // 999
+      break;
+    case 'none':
+      borderRadius = 0;
+      break;
+  }
+
+  // Highlight applies to L1 and L2 surfaces in dark mode
   const showHighlight =
-    highlight && (level === 'L1' || level === 'L2' || level === 'surface' || level === 'surfaceRaised');
+    highlight &&
+    isDark &&
+    (resolvedLevel === 'L1' ||
+      resolvedLevel === 'L2' ||
+      resolvedLevel === 'surface' ||
+      resolvedLevel === 'surfaceRaised');
 
   return (
     <View
@@ -87,36 +121,27 @@ export const Surface: React.FC<SurfaceProps> = ({
         styles.base,
         {
           backgroundColor: bgColor,
-          borderRadius: cornerRadius,
-          // In light mode: L1 cards get a hairline border + subtle shadow (02-SURFACE-SYSTEM.md §2.1)
-          // In dark mode: ZERO border. Lightness + highlight only.
-          borderWidth: !isDark && (level === 'L1' || level === 'surface') ? StyleSheet.hairlineWidth : 0,
-          borderColor: !isDark ? colors.border : 'transparent',
-          ...(!isDark && (level === 'L1' || level === 'surface')
-            ? {
-                shadowColor: '#000000',
-                shadowOffset: { width: 0, height: 1 },
-                shadowOpacity: 0.04,
-                shadowRadius: 2,
-                elevation: 1,
-              }
-            : {}),
+          borderRadius,
+          borderWidth: 0, // Strict zero 1px borders
         },
+        // Soft elevation on light mode (non-L0)
+        !isDark && !isL0 && elevation.cardLight,
         style,
       ]}
       {...rest}
     >
-      {isDark && showHighlight && (
+      {/* 1px top highlight in dark mode using theme token */}
+      {showHighlight && (
         <View
+          pointerEvents="none"
           style={[
-            styles.topHighlight,
+            styles.highlightLine,
             {
-              left: cornerRadius > 0 ? cornerRadius : 0,
-              right: cornerRadius > 0 ? cornerRadius : 0,
-              backgroundColor: colors.highlight || 'rgba(255,255,255,0.06)',
+              backgroundColor: colors.highlight,
+              borderTopLeftRadius: borderRadius,
+              borderTopRightRadius: borderRadius,
             },
           ]}
-          pointerEvents="none"
         />
       )}
       {children}
@@ -126,13 +151,16 @@ export const Surface: React.FC<SurfaceProps> = ({
 
 const styles = StyleSheet.create({
   base: {
-    overflow: 'hidden',
     position: 'relative',
+    overflow: 'hidden',
   },
-  topHighlight: {
+  highlightLine: {
     position: 'absolute',
     top: 0,
-    height: StyleSheet.hairlineWidth,
-    zIndex: 1,
+    left: 0,
+    right: 0,
+    height: 1,
   },
 });
+
+export { Card, CardProps, CardVariant };

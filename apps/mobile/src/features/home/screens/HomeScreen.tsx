@@ -1,45 +1,72 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, ScrollView, RefreshControl, TouchableOpacity } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import {
+  View,
+  StyleSheet,
+  ScrollView,
+  RefreshControl,
+  TouchableOpacity,
+  Pressable,
+} from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useTheme } from '../../../theme/useTheme';
 import {
   Text,
-  Skeleton,
-  SectionHeader,
-  EmptyState,
+  Screen,
+  Card,
+  ProgressRing,
+  Checkbox,
+  PriorityDot,
+  DueText,
   Avatar,
+  WorkspaceTile,
+  Skeleton,
+  EmptyState,
 } from '../../../components/ui';
-import { TaskItem, StickyNote } from '../../../components/patterns';
 import { useTasksQuery } from '../../tasks/api/queries';
 import { useStickiesQuery } from '../../stickies/api/queries';
 import { useBugsQuery } from '../../bugs/api/queries';
+import { useUpdateTaskStatusMutation } from '../../tasks/api/mutations';
 import { useAuthStore } from '../../auth/store';
 import { useWorkspaceStore, useWorkspacesQuery, useProjectsQuery } from '../../workspace';
 import { WorkspaceSwitcherSheet } from '../../workspace/components/WorkspaceSwitcherSheet';
+import { ProjectSwitcherSheet } from '../../workspace/components/ProjectSwitcherSheet';
+import { LabelManagerSheet } from '../../labels/components/LabelManagerSheet';
 import { AccountMenuSheet } from '../../settings/components/AccountMenuSheet';
 import { RootStackParamList } from '../../../navigation/types';
+import { TaskStatus } from '../../tasks/types';
 import {
-  Layers,
-  ChevronRight,
   ChevronDown,
+  ChevronRight,
   CheckCircle2,
-  Bug,
-  StickyNote as StickyIcon,
-  Plus,
-  FolderKanban,
+  Bug as BugIcon,
+  FileText as StickyIcon,
+  Mic as VoiceIcon,
+  Plus as PlusIcon,
 } from 'lucide-react-native';
 
+/**
+ * Phase L4 / Milestone M4 HomeScreen:
+ * Aligned with docs/03-screen-redesign-specs.md §1
+ * - Screen primitive (20pt margin, safe areas, nav-aware bottom padding)
+ * - Top row: workspace tile (36px, deterministic color) + truncated workspace name + chevron -> switcher
+ *   Right: user avatar (36px) -> account sheet
+ * - Hero "Today" card: "Today", "X tasks · Y done", ProgressRing (accent gradient) on the right,
+ *   below it a quiet row of 3 stat chips (Done · Bugs · Stickies) as tonal chips.
+ * - Your work: "Your work" + "See all" (accent text). Rows live in ONE grouped card with 22px circular checkboxes.
+ * - Quick capture strip: two tonal buttons "Voice note" and "Report a bug" (secondary, 44px).
+ * - Recent stickies: horizontal scroller of square-ish pastel cards (148×148).
+ */
 export const HomeScreen: React.FC = () => {
-  const { colors, spacing, radius, elevation } = useTheme();
+  const { colors, spacing, radius, resolvedTheme } = useTheme();
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const user = useAuthStore((s) => s.user);
 
   const [isWorkspaceSheetOpen, setWorkspaceSheetOpen] = useState(false);
+  const [isProjectSheetOpen, setProjectSheetOpen] = useState(false);
+  const [isLabelSheetOpen, setLabelSheetOpen] = useState(false);
   const [isAccountMenuOpen, setAccountMenuOpen] = useState(false);
 
-  // Load user workspaces & projects
   useWorkspacesQuery();
   const activeWorkspace = useWorkspaceStore((s) => s.activeWorkspace);
   const activeProject = useWorkspaceStore((s) => s.activeProject);
@@ -65,6 +92,8 @@ export const HomeScreen: React.FC = () => {
     refetch: refetchBugs,
   } = useBugsQuery(projectId);
 
+  const updateStatus = useUpdateTaskStatusMutation(projectId);
+
   const handleRefresh = async () => {
     await Promise.all([refetchTasks(), refetchStickies(), refetchBugs()]);
   };
@@ -75,35 +104,80 @@ export const HomeScreen: React.FC = () => {
 
   const completedCount = allTasks.filter((t) => t.status === 'DONE').length;
   const pendingTasks = allTasks.filter((t) => t.status !== 'DONE');
+  const totalCount = allTasks.length;
+  const completionRatio = totalCount > 0 ? completedCount / totalCount : 0;
+  const completionPercentage = Math.round(completionRatio * 100);
 
-  const workspaceInitial = (activeWorkspace?.name || 'D').charAt(0).toUpperCase();
+  const handleToggleTask = (taskId: string, currentStatus: TaskStatus) => {
+    const nextStatus: TaskStatus = currentStatus === 'DONE' ? 'TODO' : 'DONE';
+    updateStatus.mutate({ id: taskId, status: nextStatus });
+  };
+
+  const isDark = resolvedTheme === 'dark';
 
   if (tasksLoading && stickiesLoading && !allTasks.length) {
     return (
-      <SafeAreaView edges={['top']} style={[styles.container, { backgroundColor: colors.bg, padding: spacing.lg }]}>
-        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: spacing.xl }}>
-          <Skeleton width={140} height={36} style={{ borderRadius: radius.sm }} />
+      <Screen style={{ paddingTop: spacing.md }}>
+        <View style={styles.topBar}>
+          <Skeleton width={150} height={36} style={{ borderRadius: radius.md }} />
           <Skeleton width={36} height={36} style={{ borderRadius: radius.pill }} />
         </View>
-        <Skeleton width="100%" height={80} style={{ marginBottom: spacing.xl, borderRadius: radius.md }} />
-        <Skeleton width="40%" height={20} style={{ marginBottom: spacing.md }} />
-        <Skeleton width="100%" height={56} style={{ marginBottom: spacing.sm, borderRadius: radius.md }} />
-        <Skeleton width="100%" height={56} style={{ borderRadius: radius.md }} />
-      </SafeAreaView>
+        <Skeleton width="100%" height={140} style={{ borderRadius: radius.xl, marginBottom: spacing.lg }} />
+        <Skeleton width="40%" height={24} style={{ marginBottom: spacing.md }} />
+        <Skeleton width="100%" height={180} style={{ borderRadius: radius.lg }} />
+      </Screen>
     );
   }
 
   return (
-    <SafeAreaView edges={['top']} style={[styles.container, { backgroundColor: colors.bg }]}>
+    <Screen scrollable={false} gutter={false} style={{ flex: 1, paddingTop: spacing.xs }}>
+      {/* 1. Top Header: Pinned Workspace Selector & User Avatar */}
+      <View style={[styles.topBar, { paddingHorizontal: spacing.screenMargin, marginBottom: spacing.xs }]}>
+        <TouchableOpacity
+          style={[
+            styles.workspaceSelector,
+            {
+              backgroundColor: colors.surface1 || colors.surface,
+              borderRadius: radius.pill,
+              paddingHorizontal: 12,
+              paddingVertical: 6,
+              minHeight: 44,
+            },
+          ]}
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          activeOpacity={0.7}
+          onPress={() => setWorkspaceSheetOpen(true)}
+          accessibilityRole="button"
+          accessibilityLabel="Switch workspace"
+        >
+          <WorkspaceTile
+            name={activeWorkspace?.name || 'DoIt'}
+            id={activeWorkspace?.id || 'default'}
+            size={30}
+          />
+          <Text variant="bodyStrong" numberOfLines={1} style={styles.workspaceName}>
+            {activeWorkspace?.name || 'Workspace'}
+          </Text>
+          <ChevronDown size={14} color={colors.textSecondary} style={{ marginLeft: 4 }} />
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          onPress={() => setAccountMenuOpen(true)}
+          hitSlop={{ top: 16, bottom: 16, left: 16, right: 16 }}
+          style={{ width: 44, height: 44, alignItems: 'center', justifyContent: 'center' }}
+          activeOpacity={0.7}
+          accessibilityRole="button"
+          accessibilityLabel="Open user account menu"
+        >
+          <Avatar
+            name={user?.fullName || user?.email || 'User'}
+            size={36}
+          />
+        </TouchableOpacity>
+      </View>
+
       <ScrollView
-        contentContainerStyle={[
-          styles.scrollContent,
-          {
-            paddingHorizontal: spacing.lg,
-            paddingTop: spacing.sm,
-            paddingBottom: 110,
-          },
-        ]}
+        contentContainerStyle={[styles.scrollContent, { paddingHorizontal: spacing.screenMargin }]}
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl
@@ -114,238 +188,284 @@ export const HomeScreen: React.FC = () => {
           />
         }
       >
-        {/* Top Header: Workspace Selector & User Avatar */}
-        <View style={[styles.headerRow, { marginBottom: spacing.lg }]}>
-          <TouchableOpacity
+
+        {/* 2. Hero "Today" Card with ProgressRing */}
+        <TouchableOpacity
+          activeOpacity={0.9}
+          onPress={() => navigation.navigate('Tasks' as any)}
+        >
+          <Card
+            variant="surface1"
             style={[
-              styles.workspaceSelector,
+              styles.heroCard,
               {
-                backgroundColor: colors.surface,
-                borderColor: colors.border,
-                borderRadius: radius.md,
-                paddingHorizontal: spacing.md,
-                paddingVertical: 6,
-                ...elevation.e1,
+                borderRadius: radius.xl,
+                padding: spacing.lg,
+                marginBottom: spacing.lg,
               },
             ]}
-            activeOpacity={0.7}
-            onPress={() => setWorkspaceSheetOpen(true)}
-            accessibilityRole="button"
-            accessibilityLabel="Switch workspace"
           >
-            <View
-              style={[
-                styles.workspaceInitialBox,
-                {
-                  backgroundColor: colors.surfaceRaised,
-                  borderColor: colors.border,
-                  borderRadius: radius.xs,
-                  marginRight: spacing.sm,
-                },
-              ]}
-            >
-              <Text variant="caption" style={{ fontWeight: '700', color: colors.textPrimary }}>
-                {workspaceInitial}
-              </Text>
-            </View>
-            <Text variant="bodyStrong" numberOfLines={1} style={styles.workspaceName}>
-              {activeWorkspace?.name || 'DoIt'}
-            </Text>
-            <ChevronDown size={14} color={colors.textSecondary} style={{ marginLeft: 6 }} />
-          </TouchableOpacity>
+            <View style={styles.heroRow}>
+              <View style={{ flex: 1, paddingRight: spacing.md }}>
+                <Text variant="caption" color="secondary" style={styles.heroEyebrow}>
+                  TODAY
+                </Text>
+                <Text variant="h1" style={styles.heroTitle}>
+                  {completedCount === totalCount && totalCount > 0
+                    ? 'All Caught Up!'
+                    : `${pendingTasks.length} to do`}
+                </Text>
+                <Text variant="bodySmall" color="secondary" style={{ marginTop: 2 }}>
+                  {totalCount} tasks · {completedCount} completed
+                </Text>
 
+                {/* 3 Stat Chips */}
+                <View style={[styles.statChipsRow, { gap: spacing.xs, marginTop: spacing.md }]}>
+                  <View
+                    style={[
+                      styles.statChip,
+                      {
+                        backgroundColor: colors.surface2 || colors.surfaceRaised,
+                        borderRadius: radius.pill,
+                      },
+                    ]}
+                  >
+                    <CheckCircle2 size={13} color={colors.success} strokeWidth={2.2} />
+                    <Text variant="caption" color="secondary" style={{ marginLeft: 5 }}>
+                      {completedCount} Done
+                    </Text>
+                  </View>
+
+                  <View
+                    style={[
+                      styles.statChip,
+                      {
+                        backgroundColor: colors.surface2 || colors.surfaceRaised,
+                        borderRadius: radius.pill,
+                      },
+                    ]}
+                  >
+                    <BugIcon
+                      size={13}
+                      color={allBugs.length > 0 ? colors.warning : colors.textTertiary || colors.textMuted}
+                      strokeWidth={2}
+                    />
+                    <Text variant="caption" color="secondary" style={{ marginLeft: 5 }}>
+                      {allBugs.length} Bugs
+                    </Text>
+                  </View>
+
+                  <View
+                    style={[
+                      styles.statChip,
+                      {
+                        backgroundColor: colors.surface2 || colors.surfaceRaised,
+                        borderRadius: radius.pill,
+                      },
+                    ]}
+                  >
+                    <StickyIcon size={13} color={colors.textSecondary} strokeWidth={2} />
+                    <Text variant="caption" color="secondary" style={{ marginLeft: 5 }}>
+                      {allStickies.length} Stickies
+                    </Text>
+                  </View>
+                </View>
+              </View>
+
+              {/* Progress Ring with Centered Percentage */}
+              <View style={styles.ringWrapper}>
+                <ProgressRing
+                  progress={completionRatio}
+                  size={76}
+                  strokeWidth={8}
+                  gradient
+                >
+                  <Text variant="caption" style={{ fontWeight: '700', fontSize: 13 }}>
+                    {completionPercentage}%
+                  </Text>
+                </ProgressRing>
+              </View>
+            </View>
+          </Card>
+        </TouchableOpacity>
+
+        {/* 3. Section: Your Work */}
+        <View style={styles.sectionHeaderRow}>
+          <Text variant="h3">Your Work</Text>
           <TouchableOpacity
-            onPress={() => setAccountMenuOpen(true)}
-            activeOpacity={0.8}
-            accessibilityRole="button"
-            accessibilityLabel="Open user profile and settings"
+            onPress={() => navigation.navigate('Tasks' as any)}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
           >
-            <Avatar
-              name={user?.fullName || user?.email || 'User'}
-              size="md"
-            />
+            <Text variant="bodySmall" color="accent" style={{ fontWeight: '600' }}>
+              See all
+            </Text>
           </TouchableOpacity>
         </View>
-
-        {/* Project & Overview Dashboard Card */}
-        <View
-          style={[
-            styles.overviewCard,
-            {
-              backgroundColor: colors.surface,
-              borderColor: colors.border,
-              borderRadius: radius.lg,
-              padding: spacing.lg,
-              marginBottom: spacing.md,
-              ...elevation.e1,
-            },
-          ]}
-        >
-          <View style={styles.overviewTop}>
-            <View style={{ flex: 1 }}>
-              <Text variant="caption" color="secondary" style={styles.projectSubtitle}>
-                ACTIVE PROJECT
-              </Text>
-              <Text variant="h2" numberOfLines={1} style={{ marginTop: 2, fontWeight: '600' }}>
-                {activeProject?.name || 'Default Project'}
-              </Text>
-            </View>
-            <TouchableOpacity
-              onPress={() => navigation.navigate('Tasks' as any)}
-              style={styles.viewTasksLink}
-              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-            >
-              <Text variant="caption" color="accent" style={{ fontWeight: '600' }}>
-                View All
-              </Text>
-              <ChevronRight size={14} color={colors.accentText} />
-            </TouchableOpacity>
-          </View>
-
-          {/* Metric Badges */}
-          <View style={[styles.metricsRow, { gap: spacing.sm, marginTop: spacing.md }]}>
-            <View
-              style={[
-                styles.metricPill,
-                {
-                  backgroundColor: colors.surfaceRaised,
-                  borderColor: colors.border,
-                  borderRadius: radius.sm,
-                  paddingHorizontal: spacing.sm + 2,
-                  paddingVertical: 6,
-                },
-              ]}
-            >
-              <CheckCircle2 size={13} color={colors.success} strokeWidth={2} />
-              <Text variant="caption" color="secondary" style={{ marginLeft: 6 }}>
-                {completedCount} Done
-              </Text>
-            </View>
-
-            <View
-              style={[
-                styles.metricPill,
-                {
-                  backgroundColor: colors.surfaceRaised,
-                  borderColor: colors.border,
-                  borderRadius: radius.sm,
-                  paddingHorizontal: spacing.sm + 2,
-                  paddingVertical: 6,
-                },
-              ]}
-            >
-              <Bug size={13} color={allBugs.length > 0 ? colors.warning : colors.textTertiary} strokeWidth={2} />
-              <Text variant="caption" color="secondary" style={{ marginLeft: 6 }}>
-                {allBugs.length} Bugs
-              </Text>
-            </View>
-
-            <View
-              style={[
-                styles.metricPill,
-                {
-                  backgroundColor: colors.surfaceRaised,
-                  borderColor: colors.border,
-                  borderRadius: radius.sm,
-                  paddingHorizontal: spacing.sm + 2,
-                  paddingVertical: 6,
-                },
-              ]}
-            >
-              <StickyIcon size={13} color={colors.textSecondary} strokeWidth={2} />
-              <Text variant="caption" color="secondary" style={{ marginLeft: 6 }}>
-                {allStickies.length} Stickies
-              </Text>
-            </View>
-          </View>
-        </View>
-
-        {/* Section: Your Work */}
-        <SectionHeader
-          title="Your Work"
-          count={pendingTasks.length}
-          actionText="Add Task"
-          onAction={() => (navigation as any).navigate('CaptureModal', { initialMode: 'task' })}
-        />
 
         {pendingTasks.length > 0 ? (
-          <View style={{ gap: spacing.xs }}>
-            {pendingTasks.slice(0, 5).map((task) => (
-              <TaskItem
-                key={task.id}
-                id={task.id}
-                humanId={task.humanId}
-                title={task.title}
-                status={task.status}
-                priority={task.priority}
-                dueDate={task.dueDate}
-                onPress={() => (navigation as any).navigate('TaskDetail', { id: task.id })}
-              />
-            ))}
-          </View>
+          <Card
+            variant="surface1"
+            style={[styles.groupedTasksCard, { borderRadius: radius.lg, marginBottom: spacing.lg }]}
+          >
+            {pendingTasks.slice(0, 5).map((task, idx) => {
+              const isLast = idx === Math.min(pendingTasks.length, 5) - 1;
+
+              return (
+                <View key={task.id}>
+                  <Pressable
+                    style={styles.taskRow}
+                    onPress={() => navigation.navigate('TaskDetail', { id: task.id })}
+                  >
+                    <Checkbox
+                      checked={task.status === 'DONE'}
+                      onChange={() => handleToggleTask(task.id, task.status)}
+                    />
+                    <View style={{ flex: 1, marginLeft: spacing.sm }}>
+                      <Text variant="bodyStrong" numberOfLines={1}>
+                        {task.title}
+                      </Text>
+                      <View style={[styles.taskMetaRow, { gap: spacing.xs, marginTop: 2 }]}>
+                        {task.priority && <PriorityDot level={task.priority} />}
+                        {task.dueDate && <DueText date={task.dueDate} />}
+                        {task.humanId && (
+                          <Text variant="caption" color="secondary">
+                            {task.humanId}
+                          </Text>
+                        )}
+                      </View>
+                    </View>
+                  </Pressable>
+                  {!isLast && (
+                    <View
+                      style={[
+                        styles.taskDivider,
+                        { backgroundColor: colors.hairline || colors.border },
+                      ]}
+                    />
+                  )}
+                </View>
+              );
+            })}
+          </Card>
         ) : (
-          <EmptyState
-            illustration="no-tasks"
-            title="All clear for today"
-            body="No pending tasks in your queue. Capture an item or start a new project."
-            actionTitle="Quick Capture"
-            onAction={() => (navigation as any).navigate('CaptureModal', { initialMode: 'task' })}
-          />
+          <Card
+            variant="surface1"
+            style={[styles.emptyCard, { borderRadius: radius.lg, marginBottom: spacing.lg }]}
+          >
+            <EmptyState
+              illustration="no-tasks"
+              title="All clear for today"
+              body="No pending tasks in your queue."
+            />
+          </Card>
         )}
 
-        {/* Section: Quick Stickies */}
-        <SectionHeader
-          title="Recent Stickies"
-          count={allStickies.length}
-          actionText="View Board"
-          onAction={() => (navigation as any).navigate('StickyBoard')}
-        />
-
-        {allStickies.length > 0 ? (
-          <View style={styles.stickiesGrid}>
-            {allStickies.slice(0, 4).map((s) => (
-              <StickyNote
-                key={s.id}
-                id={s.id}
-                body={s.body}
-                color={s.color}
-                isPinned={s.isPinned}
-                onPress={() => (navigation as any).navigate('StickyBoard')}
-              />
-            ))}
-          </View>
-        ) : (
-          <View
+        {/* 4. Quick Capture Strip */}
+        <View style={[styles.quickCaptureStrip, { gap: spacing.sm, marginBottom: spacing.lg }]}>
+          <TouchableOpacity
             style={[
-              styles.emptyStickiesCard,
+              styles.quickCaptureBtn,
               {
-                backgroundColor: colors.surface,
-                borderColor: colors.border,
+                backgroundColor: colors.surface1 || colors.surface,
                 borderRadius: radius.md,
-                padding: spacing.lg,
               },
             ]}
+            onPress={() => navigation.navigate('CaptureModal', { initialMode: 'voice' })}
+            activeOpacity={0.7}
+          >
+            <VoiceIcon size={16} color={colors.accent} />
+            <Text variant="bodySmall" style={{ marginLeft: spacing.xs, fontWeight: '600' }}>
+              Voice note
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[
+              styles.quickCaptureBtn,
+              {
+                backgroundColor: colors.surface1 || colors.surface,
+                borderRadius: radius.md,
+              },
+            ]}
+            onPress={() => navigation.navigate('CaptureModal', { initialMode: 'bug' })}
+            activeOpacity={0.7}
+          >
+            <BugIcon size={16} color={colors.accent} />
+            <Text variant="bodySmall" style={{ marginLeft: spacing.xs, fontWeight: '600' }}>
+              Report a bug
+            </Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* 5. Section: Recent Stickies */}
+        <View style={styles.sectionHeaderRow}>
+          <Text variant="h3">Recent Stickies</Text>
+          <TouchableOpacity
+            onPress={() => navigation.navigate('StickyBoard')}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          >
+            <Text variant="bodySmall" color="accent" style={{ fontWeight: '600' }}>
+              View board
+            </Text>
+          </TouchableOpacity>
+        </View>
+
+        {allStickies.length > 0 ? (
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={[styles.stickiesScroll, { gap: spacing.sm }]}
+          >
+            {allStickies.slice(0, 6).map((s) => {
+              const bgAlpha = isDark ? 0.16 : 0.85;
+              const cardBg = s.color || colors.surface1;
+
+              return (
+                <TouchableOpacity
+                  key={s.id}
+                  style={[
+                    styles.stickyCard,
+                    {
+                      backgroundColor: cardBg,
+                      borderRadius: radius.lg,
+                      padding: spacing.md,
+                    },
+                  ]}
+                  activeOpacity={0.8}
+                  onPress={() => navigation.navigate('StickyBoard')}
+                >
+                  <Text variant="bodySmall" numberOfLines={4} style={styles.stickyBody}>
+                    {s.body}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </ScrollView>
+        ) : (
+          <Card
+            variant="surface1"
+            style={[styles.emptyStickiesCard, { borderRadius: radius.lg, padding: spacing.lg }]}
           >
             <Text variant="body" color="secondary" align="center">
               No stickies yet. Pin reminders, thoughts, or quick notes to your board.
             </Text>
             <TouchableOpacity
               style={[
-                styles.addStickyBtn,
+                styles.newStickyBtn,
                 {
-                  borderColor: colors.border,
+                  backgroundColor: colors.surface2 || colors.surfaceRaised,
                   borderRadius: radius.pill,
                   marginTop: spacing.md,
                 },
               ]}
-              onPress={() => (navigation as any).navigate('CaptureModal', { initialMode: 'sticky' })}
+              onPress={() => navigation.navigate('CaptureModal', { initialMode: 'sticky' })}
             >
-              <Plus size={14} color={colors.textSecondary} />
-              <Text variant="caption" color="secondary" style={{ marginLeft: 4, fontWeight: '600' }}>
+              <PlusIcon size={14} color={colors.accent} />
+              <Text variant="caption" color="accent" style={{ marginLeft: 4, fontWeight: '600' }}>
                 New Sticky
               </Text>
             </TouchableOpacity>
-          </View>
+          </Card>
         )}
       </ScrollView>
 
@@ -355,83 +475,138 @@ export const HomeScreen: React.FC = () => {
         onClose={() => setWorkspaceSheetOpen(false)}
       />
 
+      <ProjectSwitcherSheet
+        visible={isProjectSheetOpen}
+        onClose={() => setProjectSheetOpen(false)}
+      />
+
+      <LabelManagerSheet
+        visible={isLabelSheetOpen}
+        onClose={() => setLabelSheetOpen(false)}
+      />
+
       <AccountMenuSheet
         visible={isAccountMenuOpen}
         onClose={() => setAccountMenuOpen(false)}
         onNavigateSettings={() => navigation.navigate('Settings')}
+        onOpenWorkspaceSwitcher={() => setWorkspaceSheetOpen(true)}
+        onOpenProjectSwitcher={() => setProjectSheetOpen(true)}
+        onOpenLabelManager={() => setLabelSheetOpen(true)}
       />
-    </SafeAreaView>
+    </Screen>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
   scrollContent: {
-    flexGrow: 1,
+    paddingBottom: 110,
   },
-  headerRow: {
+  topBar: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    marginBottom: 16,
   },
   workspaceSelector: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderWidth: 1,
-    maxWidth: 240,
-  },
-  workspaceInitialBox: {
-    width: 24,
-    height: 24,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
+    maxWidth: '65%',
   },
   workspaceName: {
-    fontSize: 15,
+    marginLeft: 8,
+    marginRight: 4,
+    flexShrink: 1,
   },
-  overviewCard: {
-    borderWidth: 1,
-  },
-  overviewTop: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    justifyContent: 'space-between',
-  },
-  projectSubtitle: {
-    textTransform: 'uppercase',
-    letterSpacing: 0.6,
-    fontWeight: '600',
-  },
-  viewTasksLink: {
+  heroCard: {},
+  heroRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
   },
-  metricsRow: {
+  heroEyebrow: {
+    letterSpacing: 0.8,
+    fontWeight: '700',
+    fontSize: 10,
+  },
+  heroTitle: {
+    fontSize: 24,
+    fontWeight: '700',
+    marginTop: 2,
+    letterSpacing: -0.4,
+  },
+  statChipsRow: {
     flexDirection: 'row',
     alignItems: 'center',
     flexWrap: 'wrap',
   },
-  metricPill: {
+  statChip: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderWidth: 1,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
   },
-  stickiesGrid: {
-    gap: 8,
-  },
-  emptyStickiesCard: {
-    borderWidth: 1,
+  ringWrapper: {
     alignItems: 'center',
     justifyContent: 'center',
   },
-  addStickyBtn: {
+  sectionHeaderRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderWidth: 1,
+    justifyContent: 'space-between',
+    marginBottom: 10,
+  },
+  groupedTasksCard: {
+    overflow: 'hidden',
+  },
+  taskRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+  },
+  taskMetaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+  },
+  taskDivider: {
+    height: StyleSheet.hairlineWidth,
+    marginLeft: 46,
+  },
+  emptyCard: {
+    padding: 16,
+  },
+  quickCaptureStrip: {
+    flexDirection: 'row',
+  },
+  quickCaptureBtn: {
+    flex: 1,
+    height: 44,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  stickiesScroll: {
+    paddingBottom: 4,
+  },
+  stickyCard: {
+    width: 148,
+    height: 148,
+    justifyContent: 'flex-start',
+  },
+  stickyBody: {
+    fontSize: 12,
+    lineHeight: 18,
+  },
+  emptyStickiesCard: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  newStickyBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 14,
+    paddingVertical: 7,
   },
 });

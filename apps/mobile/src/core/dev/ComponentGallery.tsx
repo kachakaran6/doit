@@ -16,7 +16,7 @@ import {
   EmptyState,
   Skeleton,
   Stack,
-  Row,
+  LayoutRow,
   Spacer,
   Divider,
 } from '../../components/ui';
@@ -57,7 +57,7 @@ export const ComponentGallery: React.FC = () => {
           <Text variant="label" color="tertiary">
             THEME MODE ({mode.toUpperCase()})
           </Text>
-          <Row gap="xs">
+          <LayoutRow gap="xs">
             {modesList.map((m) => (
               <Chip
                 key={m}
@@ -66,7 +66,7 @@ export const ComponentGallery: React.FC = () => {
                 onPress={() => setMode(m)}
               />
             ))}
-          </Row>
+          </LayoutRow>
 
           <Spacer size="xs" />
 
@@ -74,7 +74,7 @@ export const ComponentGallery: React.FC = () => {
           <Text variant="label" color="tertiary">
             ACCENT PALETTE ({accent.toUpperCase()})
           </Text>
-          <Row gap="xs">
+          <LayoutRow gap="xs">
             {accentsList.map((a) => (
               <Chip
                 key={a}
@@ -83,7 +83,7 @@ export const ComponentGallery: React.FC = () => {
                 onPress={() => setAccent(a)}
               />
             ))}
-          </Row>
+          </LayoutRow>
         </Stack>
 
         <Divider style={{ marginVertical: spacing.xl }} />
@@ -110,21 +110,21 @@ export const ComponentGallery: React.FC = () => {
         {/* 2. Buttons */}
         <Stack gap="md">
           <Text variant="h2">2. Buttons</Text>
-          <Row gap="sm">
+          <LayoutRow gap="sm">
             <Button variant="primary" title="Primary" size="md" />
             <Button variant="secondary" title="Secondary" size="md" />
             <Button variant="ghost" title="Ghost" size="md" />
-          </Row>
-          <Row gap="sm">
+          </LayoutRow>
+          <LayoutRow gap="sm">
             <Button variant="danger" title="Danger Action" size="md" />
             <Button variant="primary" title="Loading" loading size="md" />
             <Button variant="primary" title="Disabled" disabled size="md" />
-          </Row>
-          <Row gap="sm">
+          </LayoutRow>
+          <LayoutRow gap="sm">
             <Button variant="primary" title="Small" size="sm" />
             <Button variant="primary" title="Medium" size="md" />
             <Button variant="primary" title="Large" size="lg" />
-          </Row>
+          </LayoutRow>
         </Stack>
 
         <Divider style={{ marginVertical: spacing.xl }} />
@@ -132,7 +132,7 @@ export const ComponentGallery: React.FC = () => {
         {/* 3. Chips */}
         <Stack gap="md">
           <Text variant="h2">3. Filter & Label Chips</Text>
-          <Row gap="sm">
+          <LayoutRow gap="sm">
             <Chip
               label="All Tasks"
               selected={!!selectedChips['all']}
@@ -150,7 +150,7 @@ export const ComponentGallery: React.FC = () => {
               selected={!!selectedChips['frontend']}
               onPress={() => toggleChip('frontend')}
             />
-          </Row>
+          </LayoutRow>
         </Stack>
 
         <Divider style={{ marginVertical: spacing.xl }} />

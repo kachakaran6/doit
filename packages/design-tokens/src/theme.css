@@ -1,43 +1,58 @@
 @layer theme {
   :root {
-    /* 02-SURFACE-SYSTEM.md Light surfaces */
-    --color-bg:              255 255 255; /* L0 */
-    --color-bg-subtle:       246 247 249;
-    --color-surface:         255 255 255; /* L1 */
-    --color-surface-raised:  246 247 249; /* L2 */
-    --color-surface-overlay: 236 238 242; /* L3 */
-    --color-surface-subtle:  246 247 249;
-    --color-border:          228 230 235;
-    --color-border-subtle:   236 238 242;
-    --color-border-strong:   212 215 224;
+    /* 02-design-language.md Light surfaces */
+    --color-canvas:          244 244 247; /* #F4F4F7 */
+    --color-surface-1:       255 255 255; /* #FFFFFF */
+    --color-surface-2:       240 240 244; /* #F0F0F4 */
+    --color-surface-3:       232 232 238; /* #E8E8EE */
+    --color-hairline:        0 0 0 / 0.08;
+
+    /* Legacy light aliases */
+    --color-bg:              244 244 247;
+    --color-bg-subtle:       240 240 244;
+    --color-surface:         255 255 255;
+    --color-surface-raised:  240 240 244;
+    --color-surface-overlay: 232 232 238;
+    --color-surface-subtle:  240 240 244;
+    --color-border:          0 0 0 / 0.08;
+    --color-border-subtle:   0 0 0 / 0.04;
+    --color-border-strong:   0 0 0 / 0.12;
     --color-highlight:       0 0 0 / 0.03;
 
-    /* Text */
-    --color-text:            17 18 21;
-    --color-text-secondary:  107 112 123;
-    --color-text-tertiary:   157 162 173;
-    --color-text-muted:      157 162 173;
+    /* Text hierarchy */
+    --color-text:            22 22 26;    /* #16161A */
+    --color-text-primary:    22 22 26;
+    --color-text-secondary:  91 91 102;   /* #5B5B66 */
+    --color-text-tertiary:   107 107 119; /* #6B6B77 */
+    --color-text-muted:      107 107 119;
 
     /* Semantic */
-    --color-success: 22 163 74;
-    --color-warning: 217 119 6;
-    --color-danger:  220 38 38;
-    --color-info:    37 99 235;
+    --color-success:         24 121 78;   /* #18794E text */
+    --color-success-fill:    14 133 80;   /* #0E8550 */
+    --color-warning:         154 91 0;    /* #9A5B00 text */
+    --color-warning-fill:    161 94 0;    /* #A15E00 */
+    --color-danger:          200 50 43;   /* #C8322B text */
+    --color-danger-fill:     201 60 53;   /* #C93C35 */
+    --color-info:            37 99 235;
 
-    /* Accent */
-    --color-accent:            91 95 199;
+    /* Default Brand Blue Accent */
+    --color-accent:            47 91 234;   /* #2F5BEA fillLight */
     --color-accent-on:         255 255 255;
-    --color-accent-container:  238 240 254;
-    --color-accent-soft:       241 242 253;
-    --color-accent-text:       75 79 168;
+    --color-accent-text:       39 80 216;   /* #2750D8 textLight */
+    --color-accent-soft:       47 91 234 / 0.12;
+    --color-accent-container:  47 91 234 / 0.12;
 
-    /* Radius by role (02-SURFACE-SYSTEM.md §2.6) */
+    /* Radius by role */
     --radius-xs: 4px;
     --radius-sm: 12px;
     --radius-md: 16px;
     --radius-lg: 20px;
     --radius-xl: 28px;
     --radius-pill: 999px;
+    --radius-card: 20px;
+    --radius-sheet: 28px;
+    --radius-input: 14px;
+    --radius-button: 14px;
 
     /* 4pt Spacing */
     --space-xs: 4px;
@@ -54,33 +69,46 @@
   }
 
   .dark {
-    /* 02-SURFACE-SYSTEM.md Dark surfaces */
-    --color-bg:              8 9 10;     /* L0 #08090A */
-    --color-bg-subtle:       15 16 18;
-    --color-surface:         15 16 18;   /* L1 #0F1012 */
-    --color-surface-raised:  22 24 27;   /* L2 #16181B */
-    --color-surface-overlay: 29 32 36;   /* L3 #1D2024 */
-    --color-surface-subtle:  22 24 27;
-    --color-border:          255 255 255 / 0.08;
+    /* 02-design-language.md Dark surfaces */
+    --color-canvas:          11 11 14;    /* #0B0B0E */
+    --color-surface-1:       20 20 24;    /* #141418 */
+    --color-surface-2:       28 28 34;    /* #1C1C22 */
+    --color-surface-3:       37 37 44;    /* #25252C */
+    --color-hairline:        255 255 255 / 0.07;
+
+    /* Legacy dark aliases */
+    --color-bg:              11 11 14;
+    --color-bg-subtle:       20 20 24;
+    --color-surface:         20 20 24;
+    --color-surface-raised:  28 28 34;
+    --color-surface-overlay: 37 37 44;
+    --color-surface-subtle:  28 28 34;
+    --color-border:          255 255 255 / 0.07;
     --color-border-subtle:   255 255 255 / 0.05;
     --color-border-strong:   255 255 255 / 0.12;
     --color-highlight:       255 255 255 / 0.06;
 
-    /* Text */
-    --color-text:            244 245 246;
-    --color-text-secondary:  143 148 160;
-    --color-text-tertiary:   92 96 106;
-    --color-text-muted:      92 96 106;
+    /* Text hierarchy */
+    --color-text:            245 245 247; /* #F5F5F7 */
+    --color-text-primary:    245 245 247;
+    --color-text-secondary:  163 163 173; /* #A3A3AD */
+    --color-text-tertiary:   134 134 145; /* #868691 */
+    --color-text-muted:      134 134 145;
 
-    --color-success: 34 197 94;
-    --color-warning: 245 158 11;
-    --color-danger:  239 68 68;
-    --color-info:    59 130 246;
+    /* Semantic */
+    --color-success:         95 211 141;  /* #5FD38D text */
+    --color-success-fill:    14 133 80;   /* #0E8550 */
+    --color-warning:         255 184 77;  /* #FFB84D text */
+    --color-warning-fill:    161 94 0;    /* #A15E00 */
+    --color-danger:          255 122 114; /* #FF7A72 text */
+    --color-danger-fill:     201 60 53;   /* #C93C35 */
+    --color-info:            96 165 250;
 
-    --color-accent:            119 117 216;
+    /* Default Brand Blue Accent */
+    --color-accent:            58 102 242;  /* #3A66F2 fillDark */
     --color-accent-on:         255 255 255;
-    --color-accent-container:  30 31 48;
-    --color-accent-soft:       26 27 41;
-    --color-accent-text:       155 153 232;
+    --color-accent-text:       143 174 255; /* #8FAEFF textDark */
+    --color-accent-soft:       58 102 242 / 0.16;
+    --color-accent-container:  58 102 242 / 0.16;
   }
 }

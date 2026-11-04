@@ -16,7 +16,7 @@
   "scripts": {
     "build": "tsc",
     "typecheck": "tsc --noEmit",
-    "test": "node dist/tokens.test.js"
+    "test": "npx tsx src/tokens.test.ts"
   },
   "devDependencies": {
     "typescript": "^5.8.2"

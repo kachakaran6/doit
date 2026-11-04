@@ -828,14 +828,57 @@ class BubbleService : Service(), SensorEventListener {
         val shouldAttachScreenshot = activeCheckBox?.isChecked ?: false
         val mode = currentMode
         isSubmitting = true
+        android.util.Log.d("BubbleService", "handleSubmit initiated: mode=$mode, attachScreenshot=$shouldAttachScreenshot")
 
         if (shouldAttachScreenshot) {
-            ScreenshotCaptureActivity.captureCleanScreen(this, callback = { file ->
+            if (DoItAccessibilityService.isRunning()) {
+                // 1-tap silent screenshot via Accessibility API: ZERO system bottom sheets!
                 dismissCompactModal()
-                bubbleContainer?.visibility = View.VISIBLE
-                showToastForMode(mode)
-                submitToBackend(titleText, mode, file)
-            })
+                hideOverlays()
+
+                // Check rate limiting (Android Accessibility requires >= 1s between screenshots)
+                val timeSinceLast = ScreenCaptureManager.getTimeSinceLastAccessibilityCapture()
+                val delayMs = if (timeSinceLast < 1100) (1100 - timeSinceLast).coerceIn(150, 1100) else 150L
+
+                Handler(Looper.getMainLooper()).postDelayed({
+                    val handled = DoItAccessibilityService.captureSilentScreenshot(cacheDir) { file ->
+                        if (file != null && file.exists() && file.length() > 0) {
+                            Handler(Looper.getMainLooper()).post {
+                                bubbleContainer?.visibility = View.VISIBLE
+                                showToastForMode(mode)
+                                submitToBackend(titleText, mode, file)
+                            }
+                        } else {
+                            android.util.Log.w("BubbleService", "Silent screenshot failed or was throttled, falling back to clean screen capture")
+                            Handler(Looper.getMainLooper()).post {
+                                restoreOverlays()
+                                ScreenshotCaptureActivity.captureCleanScreen(this, callback = { fallbackFile ->
+                                    dismissCompactModal()
+                                    bubbleContainer?.visibility = View.VISIBLE
+                                    showToastForMode(mode)
+                                    submitToBackend(titleText, mode, fallbackFile)
+                                })
+                            }
+                        }
+                    }
+                    if (!handled) {
+                        restoreOverlays()
+                        ScreenshotCaptureActivity.captureCleanScreen(this, callback = { file ->
+                            dismissCompactModal()
+                            bubbleContainer?.visibility = View.VISIBLE
+                            showToastForMode(mode)
+                            submitToBackend(titleText, mode, file)
+                        })
+                    }
+                }, delayMs)
+            } else {
+                ScreenshotCaptureActivity.captureCleanScreen(this, callback = { file ->
+                    dismissCompactModal()
+                    bubbleContainer?.visibility = View.VISIBLE
+                    showToastForMode(mode)
+                    submitToBackend(titleText, mode, file)
+                })
+            }
         } else {
             dismissCompactModal()
             bubbleContainer?.visibility = View.VISIBLE
@@ -859,7 +902,7 @@ class BubbleService : Service(), SensorEventListener {
                 var projectId = sp.getString("project_id", null)
 
                 if (token.isNullOrEmpty()) {
-                    // Not authenticated yet
+                    android.util.Log.w("BubbleService", "Cannot submit: unauthenticated")
                     return@Thread
                 }
 
@@ -875,8 +918,16 @@ class BubbleService : Service(), SensorEventListener {
                         }
                         if (pConn.responseCode in 200..299) {
                             val body = pConn.inputStream.bufferedReader().use { it.readText() }
-                            val arr = org.json.JSONArray(body)
-                            if (arr.length() > 0) {
+                            val jsonVal = org.json.JSONTokener(body).nextValue()
+                            val arr = if (jsonVal is org.json.JSONArray) {
+                                jsonVal
+                            } else if (jsonVal is JSONObject && jsonVal.has("data")) {
+                                val d = jsonVal.get("data")
+                                if (d is org.json.JSONArray) d else null
+                            } else {
+                                null
+                            }
+                            if (arr != null && arr.length() > 0) {
                                 val ws = arr.getJSONObject(0)
                                 val projs = ws.optJSONArray("projects")
                                 if (projs != null && projs.length() > 0) {
@@ -886,13 +937,16 @@ class BubbleService : Service(), SensorEventListener {
                             }
                         }
                         pConn.disconnect()
-                    } catch (_: Exception) {}
+                    } catch (e: Exception) {
+                        android.util.Log.w("BubbleService", "Error resolving project: ${e.message}")
+                    }
                 }
 
                 val targetProjectId = if (!projectId.isNullOrEmpty()) projectId else "default"
 
-                // 1. Create Task / Bug
-                val taskUrl = URL("$baseUrl/projects/$targetProjectId/tasks")
+                // 1. Create Task or Bug endpoint
+                val endpointUrl = if (mode == "BUG") "$baseUrl/projects/$targetProjectId/bugs" else "$baseUrl/projects/$targetProjectId/tasks"
+                val taskUrl = URL(endpointUrl)
                 val taskConn = (taskUrl.openConnection() as HttpURLConnection).apply {
                     requestMethod = "POST"
                     setRequestProperty("Authorization", "Bearer $token")
@@ -907,6 +961,9 @@ class BubbleService : Service(), SensorEventListener {
                     put("type", mode)
                     put("source", "OVERLAY")
                     put("priority", "MEDIUM")
+                    if (mode == "BUG") {
+                        put("severity", "MAJOR")
+                    }
                 }
 
                 taskConn.outputStream.use { os ->
@@ -918,18 +975,24 @@ class BubbleService : Service(), SensorEventListener {
                 if (taskCode in 200..299) {
                     val resp = taskConn.inputStream.bufferedReader().use { it.readText() }
                     val jsonResp = JSONObject(resp)
-                    createdTaskId = if (jsonResp.has("task")) {
-                        jsonResp.getJSONObject("task").optString("id")
+                    val dataObj = jsonResp.optJSONObject("data") ?: jsonResp
+                    createdTaskId = if (dataObj.has("task")) {
+                        dataObj.getJSONObject("task").optString("id")
+                    } else if (dataObj.has("bug")) {
+                        dataObj.getJSONObject("bug").optString("id")
                     } else {
-                        jsonResp.optString("id")
+                        dataObj.optString("id")
                     }
-                    android.util.Log.d("BubbleService", "Created " + mode + " successfully: id=" + createdTaskId)
+                    android.util.Log.d("BubbleService", "Created $mode successfully: id=$createdTaskId")
+                } else {
+                    android.util.Log.e("BubbleService", "Failed to create $mode: http code $taskCode")
                 }
                 taskConn.disconnect()
 
-                // 2. Upload screenshot if exists and task was created
+                // 2. Upload screenshot if exists and record was created
                 if (screenshotFile != null && screenshotFile.exists() && !createdTaskId.isNullOrEmpty()) {
                     val sizeBytes = screenshotFile.length()
+                    android.util.Log.d("BubbleService", "upload_started: sizeBytes=$sizeBytes for task=$createdTaskId")
 
                     // Step 2a: Init upload
                     val initUrl = URL("$baseUrl/uploads/init")
@@ -949,14 +1012,15 @@ class BubbleService : Service(), SensorEventListener {
                     initConn.outputStream.use { it.write(initPayload.toString().toByteArray(StandardCharsets.UTF_8)) }
 
                     if (initConn.responseCode in 200..299) {
-                        val initResp = JSONObject(initConn.inputStream.bufferedReader().use { it.readText() })
+                        val initRespRaw = JSONObject(initConn.inputStream.bufferedReader().use { it.readText() })
+                        val initResp = initRespRaw.optJSONObject("data") ?: initRespRaw
                         val uploadId = initResp.optString("uploadId")
                         val putUrlStr = initResp.optString("putUrl")
 
                         initConn.disconnect()
 
                         // Step 2b: PUT raw image bytes
-                        if (putUrlStr.isNotEmpty()) {
+                        if (putUrlStr.isNotEmpty() && uploadId.isNotEmpty()) {
                             val putUrl = URL(if (putUrlStr.startsWith("/")) "$baseUrl$putUrlStr" else putUrlStr)
                             val putConn = (putUrl.openConnection() as HttpURLConnection).apply {
                                 requestMethod = "PUT"
@@ -973,6 +1037,7 @@ class BubbleService : Service(), SensorEventListener {
                             }
                             val putCode = putConn.responseCode
                             putConn.disconnect()
+                            android.util.Log.d("BubbleService", "PUT image bytes: code=$putCode")
 
                             // Step 2c: Complete upload
                             if (putCode in 200..299) {
@@ -989,18 +1054,23 @@ class BubbleService : Service(), SensorEventListener {
                                     put("taskId", createdTaskId)
                                 }
                                 compConn.outputStream.use { it.write(compPayload.toString().toByteArray(StandardCharsets.UTF_8)) }
-                                compConn.responseCode
+                                val compCode = compConn.responseCode
+                                android.util.Log.d("BubbleService", "upload_completed: code=$compCode uploadId=$uploadId for task=$createdTaskId")
                                 compConn.disconnect()
                             }
                         }
                     } else {
+                        android.util.Log.e("BubbleService", "initUpload failed: code=${initConn.responseCode}")
                         initConn.disconnect()
                     }
                     // Clean up temp screenshot file
                     try { screenshotFile.delete() } catch (_: Exception) {}
                 }
             } catch (e: Exception) {
-                // Log silently
+                android.util.Log.e("BubbleService", "submitToBackend error: ${e.message}", e)
+            } finally {
+                isSubmitting = false
+                android.util.Log.d("BubbleService", "submission_lifecycle_finished: isSubmitting reset to false")
             }
         }.start()
     }

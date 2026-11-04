@@ -1,37 +1,53 @@
 import React from 'react';
-import { View, StyleSheet, Image, ViewStyle } from 'react-native';
+import { View, StyleSheet, Image } from 'react-native';
+import { accentFor } from '@doit/design-tokens';
 import { useTheme } from '../../theme/useTheme';
 import { Text } from './Text';
 
-export type AvatarSize = 'sm' | 'md' | 'lg' | 'xl';
+export type AvatarSize = 'sm' | 'md' | 'lg' | 'xl' | number;
 
 export interface AvatarProps {
+  id?: string;
   name?: string;
   imageUrl?: string;
   size?: AvatarSize;
-  style?: ViewStyle;
 }
 
-const sizeMap: Record<AvatarSize, { dimension: number; fontSize: number }> = {
+const sizeMap: Record<'sm' | 'md' | 'lg' | 'xl', { dimension: number; fontSize: number }> = {
   sm: { dimension: 24, fontSize: 10 },
-  md: { dimension: 32, fontSize: 12 },
-  lg: { dimension: 40, fontSize: 14 },
-  xl: { dimension: 48, fontSize: 16 },
+  md: { dimension: 28, fontSize: 11 }, // 28 spec per 06-COMPOSITION.md §6.3
+  lg: { dimension: 36, fontSize: 13 },
+  xl: { dimension: 44, fontSize: 15 },
 };
 
 /**
- * Avatar with consistent circular border, fallback initials, and standardized sizes.
+ * P-01 Avatar:
+ * 04-COLOUR-AS-INFORMATION.md §4.4
+ * Avatars use accentFor(id).primary with white initials.
  */
 export const Avatar: React.FC<AvatarProps> = ({
+  id,
   name = 'User',
   imageUrl,
   size = 'md',
-  style,
 }) => {
   const { colors, radius } = useTheme();
-  const { dimension, fontSize } = sizeMap[size];
 
-  const initials = name
+  let dimension = 28;
+  let fontSize = 11;
+
+  if (typeof size === 'number') {
+    dimension = size;
+    fontSize = Math.round(size * 0.4);
+  } else if (sizeMap[size]) {
+    dimension = sizeMap[size].dimension;
+    fontSize = sizeMap[size].fontSize;
+  }
+
+  const identity = id || name;
+  const avatarAccent = accentFor(identity);
+
+  const initials = (name || id || 'U')
     .trim()
     .split(' ')
     .filter(Boolean)
@@ -42,16 +58,15 @@ export const Avatar: React.FC<AvatarProps> = ({
 
   return (
     <View
+      pointerEvents="none"
       style={[
         styles.container,
         {
           width: dimension,
           height: dimension,
           borderRadius: radius.pill,
-          backgroundColor: colors.surfaceRaised,
-          borderColor: colors.border,
+          backgroundColor: avatarAccent.primary,
         },
-        style,
       ]}
     >
       {imageUrl ? (
@@ -72,7 +87,7 @@ export const Avatar: React.FC<AvatarProps> = ({
           style={{
             fontSize,
             fontWeight: '600',
-            color: colors.textSecondary,
+            color: colors.white, // White initials per §4.4
           }}
         >
           {initials}
@@ -84,7 +99,6 @@ export const Avatar: React.FC<AvatarProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
     overflow: 'hidden',
@@ -93,4 +107,3 @@ const styles = StyleSheet.create({
     resizeMode: 'cover',
   },
 });
-

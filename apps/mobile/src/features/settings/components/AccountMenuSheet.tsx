@@ -1,91 +1,85 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, Modal, TouchableOpacity, ScrollView } from 'react-native';
-import { useTheme, ThemeMode, Accent } from '../../../theme/useTheme';
-import { Text, Button, Avatar, SettingsItem } from '../../../components/ui';
+import { View, StyleSheet, Modal, TouchableOpacity, Alert, Platform } from 'react-native';
+import { useTheme } from '../../../theme/useTheme';
+import { Text, Avatar } from '../../../components/ui';
 import { useAuthStore } from '../../auth/store';
 import { useWorkspaceStore } from '../../workspace';
-import { http } from '../../../lib/http';
 import {
   X,
-  Moon,
-  Sun,
-  Monitor,
   Settings as SettingsIcon,
   LogOut,
-  ShieldCheck,
   ChevronRight,
-  Server,
+  User as UserIcon,
+  Building2,
+  HelpCircle,
+  Folder,
+  Tag,
 } from 'lucide-react-native';
 
 interface AccountMenuSheetProps {
   visible: boolean;
   onClose: () => void;
   onNavigateSettings?: () => void;
+  onOpenWorkspaceSwitcher?: () => void;
+  onOpenProjectSwitcher?: () => void;
+  onOpenLabelManager?: () => void;
 }
 
+/**
+ * Phase L3 / Milestone M3 AccountMenuSheet:
+ * Aligned with docs/03-screen-redesign-specs.md §6
+ * - Header: avatar (48), real display name, email (secondary)
+ * - Inset grouped card: Profile, Workspaces, Settings, Help & feedback
+ * - Destructive Log Out row with confirmation
+ * - Zero developer/server clutter
+ */
 export const AccountMenuSheet: React.FC<AccountMenuSheetProps> = ({
   visible,
   onClose,
   onNavigateSettings,
+  onOpenWorkspaceSwitcher,
+  onOpenProjectSwitcher,
+  onOpenLabelManager,
 }) => {
-  const { colors, spacing, radius, mode, setMode, accent, setAccent, elevation } = useTheme();
+  const { colors, spacing, radius } = useTheme();
   const user = useAuthStore((s) => s.user);
   const logout = useAuthStore((s) => s.logout);
   const activeWorkspace = useWorkspaceStore((s) => s.activeWorkspace);
-
-  const [healthStatus, setHealthStatus] = useState<string | null>(null);
-  const [checkingHealth, setCheckingHealth] = useState(false);
-  const [activeUrl, setActiveUrl] = useState(http.getBaseUrl());
-
-  const handleCheckHealth = async (urlToTest?: string) => {
-    setCheckingHealth(true);
-    const target = urlToTest || activeUrl;
-    try {
-      const res: any = await fetch(`${target}/health`).then((r) => r.json());
-      setHealthStatus(`Online (${res?.status || 'ok'}) • DB: ${res?.database || 'connected'}`);
-    } catch (e: any) {
-      setHealthStatus(`Offline: Cannot reach ${target}`);
-    } finally {
-      setCheckingHealth(false);
-    }
-  };
-
-  const handleSwitchServer = (url: string) => {
-    http.setBaseUrl(url);
-    setActiveUrl(url);
-    handleCheckHealth(url);
-  };
+  const activeProject = useWorkspaceStore((s) => s.activeProject);
 
   const handleLogout = () => {
-    onClose();
-    logout();
+    Alert.alert(
+      'Log out of DoIt?',
+      'Are you sure you want to sign out of your account on this device?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Log Out',
+          style: 'destructive',
+          onPress: () => {
+            onClose();
+            logout();
+          },
+        },
+      ]
+    );
   };
-
-  const accentOptions: { key: Accent; name: string }[] = [
-    { key: 'indigo', name: 'Indigo' },
-    { key: 'teal', name: 'Teal' },
-    { key: 'amber', name: 'Amber' },
-    { key: 'rose', name: 'Rose' },
-    { key: 'violet', name: 'Violet' },
-  ];
 
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
-      <TouchableOpacity
-        style={[styles.backdrop, { backgroundColor: colors.overlay }]}
-        activeOpacity={1}
-        onPress={onClose}
-      >
+      <View style={[styles.backdrop, { backgroundColor: colors.overlay }]}>
         <TouchableOpacity
+          style={StyleSheet.absoluteFill}
           activeOpacity={1}
+          onPress={onClose}
+        />
+        <View
           style={[
             styles.sheet,
             {
-              backgroundColor: colors.surface,
-              borderColor: colors.border,
+              backgroundColor: colors.surface1 || colors.surface,
               borderRadius: radius.xl,
               padding: spacing.lg,
-              ...elevation.e4,
             },
           ]}
         >
@@ -94,10 +88,10 @@ export const AccountMenuSheet: React.FC<AccountMenuSheetProps> = ({
             <View style={styles.userInfo}>
               <Avatar
                 name={user?.fullName || user?.email || 'User'}
-                size="md"
+                size="lg"
               />
               <View style={{ marginLeft: spacing.md, flex: 1 }}>
-                <Text variant="h2" numberOfLines={1}>
+                <Text variant="h3" numberOfLines={1}>
                   {user?.fullName || 'Active User'}
                 </Text>
                 <Text variant="caption" color="secondary" numberOfLines={1}>
@@ -112,9 +106,8 @@ export const AccountMenuSheet: React.FC<AccountMenuSheetProps> = ({
               style={[
                 styles.closeBtn,
                 {
-                  backgroundColor: colors.surfaceRaised,
-                  borderColor: colors.border,
-                  borderRadius: radius.sm,
+                  backgroundColor: colors.surface2 || colors.surfaceRaised,
+                  borderRadius: radius.pill,
                 },
               ]}
               accessibilityRole="button"
@@ -124,272 +117,157 @@ export const AccountMenuSheet: React.FC<AccountMenuSheetProps> = ({
             </TouchableOpacity>
           </View>
 
-          <ScrollView style={styles.body} showsVerticalScrollIndicator={false}>
-            {/* Direct Settings Link Button */}
-            {onNavigateSettings && (
-              <TouchableOpacity
-                style={[
-                  styles.settingsNavButton,
-                  {
-                    backgroundColor: colors.surfaceRaised,
-                    borderColor: colors.border,
-                    borderRadius: radius.md,
-                    paddingHorizontal: spacing.md,
-                    paddingVertical: spacing.md,
-                    marginBottom: spacing.lg,
-                  },
-                ]}
-                onPress={() => {
-                  onClose();
+          {/* Grouped Menu List */}
+          <View
+            style={[
+              styles.groupedCard,
+              {
+                backgroundColor: colors.surface2 || colors.surfaceRaised,
+                borderRadius: radius.lg,
+              },
+            ]}
+          >
+            {/* Workspaces Row */}
+            <TouchableOpacity
+              style={styles.menuRow}
+              onPress={() => {
+                onClose();
+                if (onOpenWorkspaceSwitcher) {
+                  onOpenWorkspaceSwitcher();
+                }
+              }}
+              activeOpacity={0.7}
+            >
+              <View style={styles.menuLeft}>
+                <View style={[styles.menuIconBox, { backgroundColor: 'rgba(59, 130, 246, 0.12)' }]}>
+                  <Building2 size={16} color="#3B82F6" />
+                </View>
+                <View>
+                  <Text variant="bodyStrong">Workspace</Text>
+                  <Text variant="caption" color="secondary">
+                    {activeWorkspace?.name || 'Default Workspace'}
+                  </Text>
+                </View>
+              </View>
+              <ChevronRight size={16} color={colors.textTertiary || colors.textMuted} />
+            </TouchableOpacity>
+
+            <View style={[styles.divider, { backgroundColor: colors.hairline || colors.border }]} />
+
+            {/* Projects Row */}
+            <TouchableOpacity
+              style={styles.menuRow}
+              onPress={() => {
+                onClose();
+                if (onOpenProjectSwitcher) {
+                  onOpenProjectSwitcher();
+                }
+              }}
+              activeOpacity={0.7}
+            >
+              <View style={styles.menuLeft}>
+                <View style={[styles.menuIconBox, { backgroundColor: 'rgba(245, 158, 11, 0.12)' }]}>
+                  <Folder size={16} color="#F59E0B" />
+                </View>
+                <View>
+                  <Text variant="bodyStrong">Projects</Text>
+                  <Text variant="caption" color="secondary">
+                    {activeProject?.name || 'Select or create project'}
+                  </Text>
+                </View>
+              </View>
+              <ChevronRight size={16} color={colors.textTertiary || colors.textMuted} />
+            </TouchableOpacity>
+
+            <View style={[styles.divider, { backgroundColor: colors.hairline || colors.border }]} />
+
+            {/* Labels Row */}
+            <TouchableOpacity
+              style={styles.menuRow}
+              onPress={() => {
+                onClose();
+                if (onOpenLabelManager) {
+                  onOpenLabelManager();
+                }
+              }}
+              activeOpacity={0.7}
+            >
+              <View style={styles.menuLeft}>
+                <View style={[styles.menuIconBox, { backgroundColor: 'rgba(16, 185, 129, 0.12)' }]}>
+                  <Tag size={16} color="#10B981" />
+                </View>
+                <View>
+                  <Text variant="bodyStrong">Labels</Text>
+                  <Text variant="caption" color="secondary">
+                    Manage & create tags
+                  </Text>
+                </View>
+              </View>
+              <ChevronRight size={16} color={colors.textTertiary || colors.textMuted} />
+            </TouchableOpacity>
+
+            <View style={[styles.divider, { backgroundColor: colors.hairline || colors.border }]} />
+
+            {/* Settings Row */}
+            <TouchableOpacity
+              style={styles.menuRow}
+              onPress={() => {
+                onClose();
+                if (onNavigateSettings) {
                   onNavigateSettings();
-                }}
-                activeOpacity={0.7}
-              >
-                <View style={styles.settingsNavLeft}>
-                  <SettingsIcon size={18} color={colors.textPrimary} />
-                  <Text variant="bodyStrong" style={{ marginLeft: spacing.md }}>
-                    Settings & Preferences
-                  </Text>
+                }
+              }}
+              activeOpacity={0.7}
+            >
+              <View style={styles.menuLeft}>
+                <View style={[styles.menuIconBox, { backgroundColor: 'rgba(168, 85, 247, 0.12)' }]}>
+                  <SettingsIcon size={16} color="#A855F7" />
                 </View>
-                <ChevronRight size={16} color={colors.textTertiary} />
-              </TouchableOpacity>
-            )}
-
-            {/* Appearance Section */}
-            <View style={[styles.section, { borderTopColor: colors.border, paddingTop: spacing.md }]}>
-              <Text variant="caption" color="secondary" style={styles.sectionTitle}>
-                THEME MODE
-              </Text>
-              <View
-                style={[
-                  styles.pillSelector,
-                  {
-                    backgroundColor: colors.surfaceRaised,
-                    borderRadius: radius.md,
-                    padding: 3,
-                  },
-                ]}
-              >
-                <TouchableOpacity
-                  style={[
-                    styles.selectorBtn,
-                    { borderRadius: radius.sm },
-                    mode === 'dark' && {
-                      backgroundColor: colors.surface,
-                      borderColor: colors.border,
-                      borderWidth: 1,
-                    },
-                  ]}
-                  onPress={() => setMode('dark')}
-                >
-                  <Moon size={13} color={mode === 'dark' ? colors.textPrimary : colors.textTertiary} />
-                  <Text variant="caption" style={{ marginLeft: 6, fontWeight: mode === 'dark' ? '600' : '400' }}>
-                    Dark
-                  </Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={[
-                    styles.selectorBtn,
-                    { borderRadius: radius.sm },
-                    mode === 'light' && {
-                      backgroundColor: colors.surface,
-                      borderColor: colors.border,
-                      borderWidth: 1,
-                    },
-                  ]}
-                  onPress={() => setMode('light')}
-                >
-                  <Sun size={13} color={mode === 'light' ? colors.textPrimary : colors.textTertiary} />
-                  <Text variant="caption" style={{ marginLeft: 6, fontWeight: mode === 'light' ? '600' : '400' }}>
-                    Light
-                  </Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={[
-                    styles.selectorBtn,
-                    { borderRadius: radius.sm },
-                    mode === 'system' && {
-                      backgroundColor: colors.surface,
-                      borderColor: colors.border,
-                      borderWidth: 1,
-                    },
-                  ]}
-                  onPress={() => setMode('system')}
-                >
-                  <Monitor size={13} color={mode === 'system' ? colors.textPrimary : colors.textTertiary} />
-                  <Text variant="caption" style={{ marginLeft: 6, fontWeight: mode === 'system' ? '600' : '400' }}>
-                    System
-                  </Text>
-                </TouchableOpacity>
+                <Text variant="bodyStrong">Settings & Preferences</Text>
               </View>
-            </View>
+              <ChevronRight size={16} color={colors.textTertiary || colors.textMuted} />
+            </TouchableOpacity>
 
-            {/* Accent Colors */}
-            <View style={[styles.section, { borderTopColor: colors.border, marginTop: spacing.md, paddingTop: spacing.md }]}>
-              <Text variant="caption" color="secondary" style={styles.sectionTitle}>
-                BRAND ACCENT
-              </Text>
-              <View style={[styles.accentRow, { gap: spacing.xs }]}>
-                {accentOptions.map((opt) => {
-                  const isSelected = accent === opt.key;
-                  return (
-                    <TouchableOpacity
-                      key={opt.key}
-                      style={[
-                        styles.accentChip,
-                        {
-                          borderColor: isSelected ? colors.accent : colors.border,
-                          backgroundColor: isSelected ? colors.surfaceRaised : 'transparent',
-                          borderRadius: radius.pill,
-                          paddingHorizontal: spacing.sm + 4,
-                          paddingVertical: 5,
-                        },
-                      ]}
-                      onPress={() => setAccent(opt.key)}
-                    >
-                      <Text
-                        variant="caption"
-                        style={{
-                          color: isSelected ? colors.accentText : colors.textSecondary,
-                          fontWeight: isSelected ? '600' : '400',
-                        }}
-                      >
-                        {opt.name}
-                      </Text>
-                    </TouchableOpacity>
-                  );
-                })}
-              </View>
-            </View>
+            <View style={[styles.divider, { backgroundColor: colors.hairline || colors.border }]} />
 
-            {/* System Status Ping */}
-            <View style={[styles.section, { borderTopColor: colors.border, marginTop: spacing.md, paddingTop: spacing.md }]}>
-              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: spacing.xs }}>
-                <Text variant="caption" color="secondary" style={styles.sectionTitle}>
-                  SERVER & CONNECTION
-                </Text>
-                <TouchableOpacity onPress={() => handleCheckHealth()}>
-                  <Text variant="caption" color="accent" style={{ fontSize: 11, fontWeight: '600' }}>
-                    {checkingHealth ? 'Testing...' : 'Test Connection'}
-                  </Text>
-                </TouchableOpacity>
-              </View>
-
-              <View
-                style={[
-                  styles.diagCard,
-                  {
-                    backgroundColor: colors.surfaceRaised,
-                    borderColor: colors.border,
-                    borderRadius: radius.md,
-                    padding: spacing.md,
-                  },
-                ]}
-              >
-                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                  <Server size={14} color={colors.textTertiary} />
-                  <Text variant="caption" color="secondary" style={{ marginLeft: 6 }}>
-                    Workspace: {activeWorkspace?.name || 'Default'}
-                  </Text>
+            {/* Help & Feedback */}
+            <TouchableOpacity
+              style={styles.menuRow}
+              onPress={() => {
+                Alert.alert('DoIt Help & Feedback', 'For support, visit github.com/kachakaran6/doit or email support@doit.local.');
+              }}
+              activeOpacity={0.7}
+            >
+              <View style={styles.menuLeft}>
+                <View style={[styles.menuIconBox, { backgroundColor: 'rgba(16, 185, 129, 0.12)' }]}>
+                  <HelpCircle size={16} color="#10B981" />
                 </View>
-
-                <Text variant="caption" color="secondary" style={{ fontFamily: 'monospace', fontSize: 11, marginTop: 4 }}>
-                  {activeUrl}
-                </Text>
-
-                {healthStatus && (
-                  <Text
-                    variant="caption"
-                    style={{
-                      marginTop: 6,
-                      fontWeight: '600',
-                      color: healthStatus.includes('Online') || healthStatus.includes('ok') ? colors.success : colors.danger,
-                    }}
-                  >
-                    {healthStatus}
-                  </Text>
-                )}
-
-                <View style={{ flexDirection: 'row', gap: spacing.xs, marginTop: spacing.sm }}>
-                  <TouchableOpacity
-                    style={[
-                      styles.accentChip,
-                      {
-                        borderColor: activeUrl.includes('192.168.1.67') ? colors.accent : colors.border,
-                        backgroundColor: activeUrl.includes('192.168.1.67') ? colors.surface : 'transparent',
-                        borderRadius: radius.xs,
-                        paddingHorizontal: 8,
-                        paddingVertical: 4,
-                      },
-                    ]}
-                    onPress={() => handleSwitchServer('http://192.168.1.67:3000/api/v1')}
-                  >
-                    <Text
-                      variant="caption"
-                      style={{
-                        fontSize: 10,
-                        fontWeight: activeUrl.includes('192.168.1.67') ? '600' : '400',
-                        color: activeUrl.includes('192.168.1.67') ? colors.accentText : colors.textSecondary,
-                      }}
-                    >
-                      Wi-Fi (192.168.1.67)
-                    </Text>
-                  </TouchableOpacity>
-
-                  <TouchableOpacity
-                    style={[
-                      styles.accentChip,
-                      {
-                        borderColor: activeUrl.includes('localhost') ? colors.accent : colors.border,
-                        backgroundColor: activeUrl.includes('localhost') ? colors.surface : 'transparent',
-                        borderRadius: radius.xs,
-                        paddingHorizontal: 8,
-                        paddingVertical: 4,
-                      },
-                    ]}
-                    onPress={() => handleSwitchServer('http://localhost:3000/api/v1')}
-                  >
-                    <Text
-                      variant="caption"
-                      style={{
-                        fontSize: 10,
-                        fontWeight: activeUrl.includes('localhost') ? '600' : '400',
-                        color: activeUrl.includes('localhost') ? colors.accentText : colors.textSecondary,
-                      }}
-                    >
-                      USB (localhost)
-                    </Text>
-                  </TouchableOpacity>
-                </View>
+                <Text variant="bodyStrong">Help & Feedback</Text>
               </View>
-            </View>
+              <ChevronRight size={16} color={colors.textTertiary || colors.textMuted} />
+            </TouchableOpacity>
+          </View>
 
-            {/* Log Out Button */}
-            <View style={{ marginTop: spacing.lg, marginBottom: spacing.xs }}>
-              <TouchableOpacity
-                style={[
-                  styles.logoutBtn,
-                  {
-                    backgroundColor: colors.surfaceRaised,
-                    borderColor: colors.danger,
-                    borderRadius: radius.md,
-                    paddingVertical: spacing.md,
-                    paddingHorizontal: spacing.md,
-                  },
-                ]}
-                onPress={handleLogout}
-              >
-                <LogOut size={16} color={colors.danger} />
-                <Text variant="body" color="danger" style={{ marginLeft: spacing.sm, fontWeight: '600' }}>
-                  Log Out
-                </Text>
-              </TouchableOpacity>
-            </View>
-          </ScrollView>
-        </TouchableOpacity>
-      </TouchableOpacity>
+          {/* Destructive Log Out Row */}
+          <TouchableOpacity
+            style={[
+              styles.logoutBtn,
+              {
+                backgroundColor: 'rgba(239, 68, 68, 0.08)',
+                borderRadius: radius.md,
+                marginTop: spacing.md,
+              },
+            ]}
+            onPress={handleLogout}
+            activeOpacity={0.7}
+          >
+            <LogOut size={16} color={colors.danger} />
+            <Text variant="bodyStrong" style={{ color: colors.danger, marginLeft: spacing.sm }}>
+              Log Out
+            </Text>
+          </TouchableOpacity>
+        </View>
+      </View>
     </Modal>
   );
 };
@@ -397,15 +275,18 @@ export const AccountMenuSheet: React.FC<AccountMenuSheetProps> = ({
 const styles = StyleSheet.create({
   backdrop: {
     flex: 1,
-    alignItems: 'center',
     justifyContent: 'center',
+    alignItems: 'center',
     paddingHorizontal: 20,
   },
   sheet: {
     width: '100%',
-    maxWidth: 420,
-    maxHeight: '85%',
-    borderWidth: 1,
+    maxWidth: 400,
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.45,
+    shadowRadius: 32,
+    elevation: 16,
   },
   header: {
     flexDirection: 'row',
@@ -420,56 +301,39 @@ const styles = StyleSheet.create({
   closeBtn: {
     width: 32,
     height: 32,
-    borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  body: {
-    width: '100%',
+  groupedCard: {
+    overflow: 'hidden',
   },
-  settingsNavButton: {
+  menuRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    borderWidth: 1,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
   },
-  settingsNavLeft: {
+  menuLeft: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: 12,
   },
-  section: {
-    borderTopWidth: StyleSheet.hairlineWidth,
-  },
-  sectionTitle: {
-    textTransform: 'uppercase',
-    letterSpacing: 0.6,
-    fontWeight: '600',
-    marginBottom: 8,
-  },
-  pillSelector: {
-    flexDirection: 'row',
-  },
-  selectorBtn: {
-    flex: 1,
-    flexDirection: 'row',
-    height: 34,
+  menuIconBox: {
+    width: 32,
+    height: 32,
+    borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  accentRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-  },
-  accentChip: {
-    borderWidth: 1,
-  },
-  diagCard: {
-    borderWidth: 1,
+  divider: {
+    height: StyleSheet.hairlineWidth,
+    marginLeft: 58,
   },
   logoutBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 1,
+    paddingVertical: 13,
   },
 });

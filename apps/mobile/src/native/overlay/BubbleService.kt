@@ -119,6 +119,21 @@ class BubbleService : Service(), SensorEventListener {
             }
         }
 
+        @JvmStatic
+        fun setAppInForeground(inForeground: Boolean) {
+            instance?.let { s ->
+                Handler(Looper.getMainLooper()).post {
+                    if (inForeground) {
+                        s.bubbleContainer?.visibility = View.GONE
+                        s.dismissCompactModal()
+                        s.dismissShakePrompt()
+                    } else {
+                        s.bubbleContainer?.visibility = View.VISIBLE
+                    }
+                }
+            }
+        }
+
         fun updateShakeConfig(enabled: Boolean, sensitivity: String?) {
             instance?.let { s ->
                 s.shakeEnabled = enabled
@@ -704,7 +719,7 @@ class BubbleService : Service(), SensorEventListener {
             text = "Attach current screen screenshot"
             setTextColor(Color.parseColor("#D0D4DD"))
             setTextSize(TypedValue.COMPLEX_UNIT_SP, 13f)
-            isChecked = true
+            isChecked = false
             buttonTintList = ColorStateList.valueOf(Color.parseColor("#7775D8"))
             layoutParams = LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
@@ -815,12 +830,38 @@ class BubbleService : Service(), SensorEventListener {
         isSubmitting = true
 
         if (shouldAttachScreenshot) {
-            ScreenshotCaptureActivity.captureCleanScreen(this, callback = { file ->
+            if (DoItAccessibilityService.isRunning()) {
+                // 1-tap silent screenshot via Accessibility API: ZERO system bottom sheets!
                 dismissCompactModal()
-                bubbleContainer?.visibility = View.VISIBLE
-                showToastForMode(mode)
-                submitToBackend(titleText, mode, file)
-            })
+                hideOverlays()
+
+                // Delay 150ms so SurfaceFlinger composes the underlying app cleanly
+                Handler(Looper.getMainLooper()).postDelayed({
+                    val handled = DoItAccessibilityService.captureSilentScreenshot(cacheDir) { file ->
+                        Handler(Looper.getMainLooper()).post {
+                            bubbleContainer?.visibility = View.VISIBLE
+                            showToastForMode(mode)
+                            submitToBackend(titleText, mode, file)
+                        }
+                    }
+                    if (!handled) {
+                        restoreOverlays()
+                        ScreenshotCaptureActivity.captureCleanScreen(this, callback = { file ->
+                            dismissCompactModal()
+                            bubbleContainer?.visibility = View.VISIBLE
+                            showToastForMode(mode)
+                            submitToBackend(titleText, mode, file)
+                        })
+                    }
+                }, 150)
+            } else {
+                ScreenshotCaptureActivity.captureCleanScreen(this, callback = { file ->
+                    dismissCompactModal()
+                    bubbleContainer?.visibility = View.VISIBLE
+                    showToastForMode(mode)
+                    submitToBackend(titleText, mode, file)
+                })
+            }
         } else {
             dismissCompactModal()
             bubbleContainer?.visibility = View.VISIBLE
@@ -850,22 +891,36 @@ class BubbleService : Service(), SensorEventListener {
 
                 // If project ID is missing, auto-fetch first available project
                 if (projectId.isNullOrEmpty()) {
-                    val pUrl = URL("$baseUrl/projects")
-                    val pConn = (pUrl.openConnection() as HttpURLConnection).apply {
-                        requestMethod = "GET"
-                        setRequestProperty("Authorization", "Bearer $token")
-                        connectTimeout = 8000
-                        readTimeout = 8000
-                    }
-                    if (pConn.responseCode in 200..299) {
-                        val body = pConn.inputStream.bufferedReader().use { it.readText() }
-                        val arr = org.json.JSONArray(body)
-                        if (arr.length() > 0) {
-                            projectId = arr.getJSONObject(0).optString("id")
-                            sp.edit().putString("project_id", projectId).apply()
+                    try {
+                        val pUrl = URL("$baseUrl/workspaces")
+                        val pConn = (pUrl.openConnection() as HttpURLConnection).apply {
+                            requestMethod = "GET"
+                            setRequestProperty("Authorization", "Bearer $token")
+                            connectTimeout = 8000
+                            readTimeout = 8000
                         }
-                    }
-                    pConn.disconnect()
+                        if (pConn.responseCode in 200..299) {
+                            val body = pConn.inputStream.bufferedReader().use { it.readText() }
+                            val jsonVal = org.json.JSONTokener(body).nextValue()
+                            val arr = if (jsonVal is org.json.JSONArray) {
+                                jsonVal
+                            } else if (jsonVal is JSONObject && jsonVal.has("data")) {
+                                val d = jsonVal.get("data")
+                                if (d is org.json.JSONArray) d else null
+                            } else {
+                                null
+                            }
+                            if (arr != null && arr.length() > 0) {
+                                val ws = arr.getJSONObject(0)
+                                val projs = ws.optJSONArray("projects")
+                                if (projs != null && projs.length() > 0) {
+                                    projectId = projs.getJSONObject(0).optString("id")
+                                    sp.edit().putString("project_id", projectId).apply()
+                                }
+                            }
+                        }
+                        pConn.disconnect()
+                    } catch (_: Exception) {}
                 }
 
                 val targetProjectId = if (!projectId.isNullOrEmpty()) projectId else "default"
@@ -897,7 +952,15 @@ class BubbleService : Service(), SensorEventListener {
                 if (taskCode in 200..299) {
                     val resp = taskConn.inputStream.bufferedReader().use { it.readText() }
                     val jsonResp = JSONObject(resp)
-                    createdTaskId = jsonResp.optString("id")
+                    val dataObj = jsonResp.optJSONObject("data") ?: jsonResp
+                    createdTaskId = if (dataObj.has("task")) {
+                        dataObj.getJSONObject("task").optString("id")
+                    } else if (dataObj.has("bug")) {
+                        dataObj.getJSONObject("bug").optString("id")
+                    } else {
+                        dataObj.optString("id")
+                    }
+                    android.util.Log.d("BubbleService", "Created " + mode + " successfully: id=" + createdTaskId)
                 }
                 taskConn.disconnect()
 
@@ -923,14 +986,15 @@ class BubbleService : Service(), SensorEventListener {
                     initConn.outputStream.use { it.write(initPayload.toString().toByteArray(StandardCharsets.UTF_8)) }
 
                     if (initConn.responseCode in 200..299) {
-                        val initResp = JSONObject(initConn.inputStream.bufferedReader().use { it.readText() })
+                        val initRespRaw = JSONObject(initConn.inputStream.bufferedReader().use { it.readText() })
+                        val initResp = initRespRaw.optJSONObject("data") ?: initRespRaw
                         val uploadId = initResp.optString("uploadId")
                         val putUrlStr = initResp.optString("putUrl")
 
                         initConn.disconnect()
 
                         // Step 2b: PUT raw image bytes
-                        if (putUrlStr.isNotEmpty()) {
+                        if (putUrlStr.isNotEmpty() && uploadId.isNotEmpty()) {
                             val putUrl = URL(if (putUrlStr.startsWith("/")) "$baseUrl$putUrlStr" else putUrlStr)
                             val putConn = (putUrl.openConnection() as HttpURLConnection).apply {
                                 requestMethod = "PUT"
@@ -963,7 +1027,8 @@ class BubbleService : Service(), SensorEventListener {
                                     put("taskId", createdTaskId)
                                 }
                                 compConn.outputStream.use { it.write(compPayload.toString().toByteArray(StandardCharsets.UTF_8)) }
-                                compConn.responseCode
+                                val compCode = compConn.responseCode
+                                android.util.Log.d("BubbleService", "Completed attachment upload: code=$compCode uploadId=$uploadId for task=$createdTaskId")
                                 compConn.disconnect()
                             }
                         }

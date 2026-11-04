@@ -77,21 +77,8 @@ export const ConfirmationDialog: React.FC<ConfirmationDialogProps> = ({
               </Text>
 
               <View style={[styles.buttonRow, { gap: spacing.sm }]}>
-                <Button
-                  title={cancelLabel}
-                  variant="secondary"
-                  size="sm"
-                  onPress={onCancel}
-                  style={styles.dialogBtn}
-                />
-                <Button
-                  title={confirmLabel}
-                  variant={destructive ? 'danger' : 'primary'}
-                  size="sm"
-                  loading={loading}
-                  onPress={onConfirm}
-                  style={styles.dialogBtn}
-                />
+                <View style={styles.dialogBtn}><Button title={cancelLabel} variant="secondary" size="sm" onPress={onCancel} /></View>
+                <View style={styles.dialogBtn}><Button title={confirmLabel} variant={destructive ? 'danger' : 'primary'} size="sm" loading={loading} onPress={onConfirm} /></View>
               </View>
             </View>
           </TouchableWithoutFeedback>

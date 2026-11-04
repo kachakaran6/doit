@@ -1,15 +1,18 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Pressable,
   Animated,
   StyleSheet,
   Vibration,
+  Modal,
+  TouchableWithoutFeedback,
+  Dimensions,
 } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import { useTheme } from '../../theme/useTheme';
 import { useNavBarScroll } from '../../navigation/nav-bar-scroll.context';
+import { useBottomInsets } from '../../layout/useBottomInsets';
 import { Text } from './Text';
 import {
   Home as HomeIcon,
@@ -17,6 +20,9 @@ import {
   Bug as BugsIcon,
   Search as SearchIcon,
   Plus as PlusIcon,
+  FileText as StickyIcon,
+  Mic as VoiceIcon,
+  LucideIcon,
 } from 'lucide-react-native';
 
 export interface FloatingNavBarProps extends BottomTabBarProps {
@@ -24,10 +30,28 @@ export interface FloatingNavBarProps extends BottomTabBarProps {
   onCaptureLongPress?: () => void;
 }
 
+interface NavTabConfig {
+  name: string;
+  label: string;
+  icon: LucideIcon;
+}
+
+const NAV_TABS: NavTabConfig[] = [
+  { name: 'Home', label: 'Home', icon: HomeIcon },
+  { name: 'Tasks', label: 'Tasks', icon: TasksIcon },
+  { name: 'Bugs', label: 'Bugs', icon: BugsIcon },
+  { name: 'Search', label: 'Search', icon: SearchIcon },
+];
+
 /**
- * Standardized NavigationBar matching Linear / Things 3 precision:
- * Sleek, unified floating capsule with 44px touch targets, subtle active states,
- * and no awkward overlapping button artifacts.
+ * Phase L3 / Milestone M3 FloatingNavBar:
+ * - Floating glass nav pill with 4 icon tabs (Home, Tasks, Bugs, Search)
+ * - Active tab = soft capsule (surface3) + accent-text icon + 11px label
+ * - Inactive tab = icon only (tertiary color)
+ * - Separate detached 56px circular '+' FAB with soft accent glow
+ * - Long-press '+' reveals quick create menu (Task, Bug, Sticky, Voice)
+ * - Translates down on scroll
+ * - Haptic selection on tab change
  */
 export const FloatingNavBar: React.FC<FloatingNavBarProps> = ({
   state,
@@ -35,9 +59,10 @@ export const FloatingNavBar: React.FC<FloatingNavBarProps> = ({
   onCapturePress,
   onCaptureLongPress,
 }) => {
-  const { colors, radius, spacing, elevation } = useTheme();
-  const insets = useSafeAreaInsets();
+  const { colors, radius, resolvedTheme } = useTheme();
+  const { navbarBottom, navbarHeight } = useBottomInsets();
   const { translateY } = useNavBarScroll();
+  const [quickMenuVisible, setQuickMenuVisible] = useState(false);
 
   const currentRouteName = state.routes[state.index]?.name;
 
@@ -60,198 +85,275 @@ export const FloatingNavBar: React.FC<FloatingNavBarProps> = ({
     if (onCaptureLongPress) {
       onCaptureLongPress();
     } else {
-      (navigation as any).navigate('CaptureModal', { initialMode: 'bug' });
+      setQuickMenuVisible(true);
     }
   };
 
+  const openQuickMode = (mode: 'task' | 'bug' | 'sticky' | 'voice') => {
+    setQuickMenuVisible(false);
+    Vibration.vibrate(12);
+    (navigation as any).navigate('CaptureModal', { initialMode: mode });
+  };
+
+  const isDark = resolvedTheme === 'dark';
+
   return (
-    <Animated.View
-      style={[
-        styles.wrapper,
-        {
-          bottom: insets.bottom > 0 ? insets.bottom + 4 : spacing.md,
-          transform: [{ translateY }],
-        },
-      ]}
-      pointerEvents="box-none"
-    >
-      <View
+    <>
+      <Animated.View
         style={[
-          styles.pillContainer,
+          styles.wrapper,
           {
-            backgroundColor: colors.surface,
-            borderColor: colors.border,
-            borderRadius: radius.pill,
-            ...elevation.e3,
+            bottom: navbarBottom,
+            height: navbarHeight,
+            transform: [{ translateY }],
           },
         ]}
+        pointerEvents="box-none"
       >
-        {/* Tab 1: Home */}
-        <Pressable
-          accessibilityRole="tab"
-          accessibilityLabel="Home"
-          accessibilityState={{ selected: currentRouteName === 'Home' }}
-          style={styles.tabItem}
-          onPress={() => handleTabPress('Home')}
-        >
-          <HomeIcon
-            size={20}
-            color={currentRouteName === 'Home' ? colors.accentText : colors.textTertiary}
-            strokeWidth={currentRouteName === 'Home' ? 2.2 : 1.75}
-          />
-          <Text
-            variant="caption"
+        <View style={styles.navRow} pointerEvents="box-none">
+          {/* Glass 4-Tab Pill */}
+          <View
             style={[
-              styles.tabLabel,
+              styles.pillContainer,
               {
-                color: currentRouteName === 'Home' ? colors.accentText : colors.textTertiary,
-                fontWeight: currentRouteName === 'Home' ? '600' : '400',
+                backgroundColor: isDark
+                  ? 'rgba(18, 20, 26, 0.88)'
+                  : 'rgba(255, 255, 255, 0.92)',
+                borderRadius: radius.pill,
+                height: 56,
               },
             ]}
           >
-            Home
-          </Text>
-        </Pressable>
+            {NAV_TABS.map((tab) => {
+              const isActive = currentRouteName === tab.name;
+              const IconComp = tab.icon;
 
-        {/* Tab 2: Tasks */}
-        <Pressable
-          accessibilityRole="tab"
-          accessibilityLabel="Tasks"
-          accessibilityState={{ selected: currentRouteName === 'Tasks' }}
-          style={styles.tabItem}
-          onPress={() => handleTabPress('Tasks')}
-        >
-          <TasksIcon
-            size={20}
-            color={currentRouteName === 'Tasks' ? colors.accentText : colors.textTertiary}
-            strokeWidth={currentRouteName === 'Tasks' ? 2.2 : 1.75}
-          />
-          <Text
-            variant="caption"
+              return (
+                <Pressable
+                  key={tab.name}
+                  accessibilityRole="tab"
+                  accessibilityLabel={tab.label}
+                  accessibilityState={{ selected: isActive }}
+                  style={[
+                    styles.tabItem,
+                    isActive && [
+                      styles.activeCapsule,
+                      {
+                        backgroundColor: isDark
+                          ? 'rgba(255, 255, 255, 0.08)'
+                          : 'rgba(0, 0, 0, 0.05)',
+                        borderRadius: radius.pill,
+                      },
+                    ],
+                  ]}
+                  onPress={() => handleTabPress(tab.name)}
+                >
+                  <IconComp
+                    size={isActive ? 18 : 20}
+                    color={isActive ? colors.accent : colors.textTertiary || colors.textMuted}
+                    strokeWidth={isActive ? 2.2 : 1.75}
+                  />
+                  {isActive && (
+                    <Text
+                      variant="caption"
+                      style={[
+                        styles.activeTabLabel,
+                        {
+                          color: colors.accent,
+                          fontWeight: '600',
+                        },
+                      ]}
+                    >
+                      {tab.label}
+                    </Text>
+                  )}
+                </Pressable>
+              );
+            })}
+          </View>
+
+          {/* Detached 56px Circular '+' FAB */}
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Create new task or long-press for options"
+            onPress={handleCapturePress}
+            onLongPress={handleCaptureLongPress}
             style={[
-              styles.tabLabel,
+              styles.detachedFab,
               {
-                color: currentRouteName === 'Tasks' ? colors.accentText : colors.textTertiary,
-                fontWeight: currentRouteName === 'Tasks' ? '600' : '400',
+                backgroundColor: colors.accent,
+                borderRadius: radius.pill,
+                shadowColor: colors.accent,
               },
             ]}
           >
-            Tasks
-          </Text>
-        </Pressable>
+            <PlusIcon size={24} color="#FFFFFF" strokeWidth={2.4} />
+          </Pressable>
+        </View>
+      </Animated.View>
 
-        {/* Center: Quick Capture Button */}
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Quick capture task or long press for bug"
-          onPress={handleCapturePress}
-          onLongPress={handleCaptureLongPress}
-          style={[
-            styles.centerCaptureBtn,
-            {
-              backgroundColor: colors.accent,
-              borderRadius: radius.pill,
-            },
-          ]}
-        >
-          <PlusIcon size={20} color={colors.accentOnPrimary} strokeWidth={2.5} />
-        </Pressable>
+      {/* Quick Action Long-Press Menu */}
+      <Modal
+        visible={quickMenuVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setQuickMenuVisible(false)}
+      >
+        <TouchableWithoutFeedback onPress={() => setQuickMenuVisible(false)}>
+          <View style={styles.modalOverlay}>
+            <TouchableWithoutFeedback>
+              <View
+                style={[
+                  styles.quickMenuCard,
+                  {
+                    bottom: navbarBottom + 70,
+                    backgroundColor: isDark ? 'rgba(26, 29, 38, 0.96)' : 'rgba(255, 255, 255, 0.98)',
+                    borderRadius: radius.lg,
+                    shadowColor: '#000000',
+                  },
+                ]}
+              >
+                <Pressable
+                  style={styles.quickMenuItem}
+                  onPress={() => openQuickMode('task')}
+                >
+                  <View style={[styles.quickMenuIcon, { backgroundColor: 'rgba(59, 130, 246, 0.12)' }]}>
+                    <TasksIcon size={18} color="#3B82F6" strokeWidth={2} />
+                  </View>
+                  <Text variant="bodySmall" style={styles.quickMenuText}>
+                    New Task
+                  </Text>
+                </Pressable>
 
-        {/* Tab 3: Bugs */}
-        <Pressable
-          accessibilityRole="tab"
-          accessibilityLabel="Bugs"
-          accessibilityState={{ selected: currentRouteName === 'Bugs' }}
-          style={styles.tabItem}
-          onPress={() => handleTabPress('Bugs')}
-        >
-          <BugsIcon
-            size={20}
-            color={currentRouteName === 'Bugs' ? colors.accentText : colors.textTertiary}
-            strokeWidth={currentRouteName === 'Bugs' ? 2.2 : 1.75}
-          />
-          <Text
-            variant="caption"
-            style={[
-              styles.tabLabel,
-              {
-                color: currentRouteName === 'Bugs' ? colors.accentText : colors.textTertiary,
-                fontWeight: currentRouteName === 'Bugs' ? '600' : '400',
-              },
-            ]}
-          >
-            Bugs
-          </Text>
-        </Pressable>
+                <Pressable
+                  style={styles.quickMenuItem}
+                  onPress={() => openQuickMode('bug')}
+                >
+                  <View style={[styles.quickMenuIcon, { backgroundColor: 'rgba(239, 68, 68, 0.12)' }]}>
+                    <BugsIcon size={18} color="#EF4444" strokeWidth={2} />
+                  </View>
+                  <Text variant="bodySmall" style={styles.quickMenuText}>
+                    Report Bug
+                  </Text>
+                </Pressable>
 
-        {/* Tab 4: Search */}
-        <Pressable
-          accessibilityRole="tab"
-          accessibilityLabel="Search"
-          accessibilityState={{ selected: currentRouteName === 'Search' }}
-          style={styles.tabItem}
-          onPress={() => handleTabPress('Search')}
-        >
-          <SearchIcon
-            size={20}
-            color={currentRouteName === 'Search' ? colors.accentText : colors.textTertiary}
-            strokeWidth={currentRouteName === 'Search' ? 2.2 : 1.75}
-          />
-          <Text
-            variant="caption"
-            style={[
-              styles.tabLabel,
-              {
-                color: currentRouteName === 'Search' ? colors.accentText : colors.textTertiary,
-                fontWeight: currentRouteName === 'Search' ? '600' : '400',
-              },
-            ]}
-          >
-            Search
-          </Text>
-        </Pressable>
-      </View>
-    </Animated.View>
+                <Pressable
+                  style={styles.quickMenuItem}
+                  onPress={() => openQuickMode('sticky')}
+                >
+                  <View style={[styles.quickMenuIcon, { backgroundColor: 'rgba(245, 158, 11, 0.12)' }]}>
+                    <StickyIcon size={18} color="#F59E0B" strokeWidth={2} />
+                  </View>
+                  <Text variant="bodySmall" style={styles.quickMenuText}>
+                    Sticky Note
+                  </Text>
+                </Pressable>
+
+                <Pressable
+                  style={[styles.quickMenuItem, { borderBottomWidth: 0 }]}
+                  onPress={() => openQuickMode('voice')}
+                >
+                  <View style={[styles.quickMenuIcon, { backgroundColor: 'rgba(168, 85, 247, 0.12)' }]}>
+                    <VoiceIcon size={18} color="#A855F7" strokeWidth={2} />
+                  </View>
+                  <Text variant="bodySmall" style={styles.quickMenuText}>
+                    Voice Note
+                  </Text>
+                </Pressable>
+              </View>
+            </TouchableWithoutFeedback>
+          </View>
+        </TouchableWithoutFeedback>
+      </Modal>
+    </>
   );
 };
 
-export { FloatingNavBar as NavigationBar };
+export { FloatingNavBar as NavigationBar, FloatingNavBar as NavBar };
 
 const styles = StyleSheet.create({
   wrapper: {
     position: 'absolute',
-    left: 20,
-    right: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
+    left: 16,
+    right: 16,
     zIndex: 100,
   },
+  navRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
   pillContainer: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    width: '100%',
-    maxWidth: 420,
-    height: 56,
-    borderWidth: 1,
-    paddingHorizontal: 8,
+    paddingHorizontal: 6,
+    paddingVertical: 5,
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.45,
+    shadowRadius: 28,
+    elevation: 10,
   },
   tabItem: {
     flex: 1,
-    height: '100%',
+    height: 44,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 4,
+    flexDirection: 'row',
+    paddingHorizontal: 8,
   },
-  tabLabel: {
-    fontSize: 10,
-    marginTop: 2,
+  activeCapsule: {
+    paddingHorizontal: 12,
+    flexGrow: 1.2,
   },
-  centerCaptureBtn: {
-    width: 38,
-    height: 38,
+  activeTabLabel: {
+    fontSize: 11,
+    marginLeft: 5,
+    letterSpacing: -0.1,
+  },
+  detachedFab: {
+    width: 56,
+    height: 56,
     alignItems: 'center',
     justifyContent: 'center',
-    marginHorizontal: 4,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.38,
+    shadowRadius: 16,
+    elevation: 10,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.45)',
+  },
+  quickMenuCard: {
+    position: 'absolute',
+    right: 16,
+    width: 176,
+    paddingVertical: 6,
+    paddingHorizontal: 8,
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.45,
+    shadowRadius: 24,
+    elevation: 16,
+  },
+  quickMenuItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 8,
+    paddingHorizontal: 8,
+  },
+  quickMenuIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 10,
+  },
+  quickMenuText: {
+    fontWeight: '500',
+    fontSize: 13,
   },
 });

@@ -14,6 +14,9 @@
       "@doit/tokens": [
         "../../packages/design-tokens/src"
       ],
+      "@doit/design-tokens": [
+        "../../packages/design-tokens/src"
+      ],
       "@samyukt/contracts": [
         "../../packages/contracts/src"
       ],

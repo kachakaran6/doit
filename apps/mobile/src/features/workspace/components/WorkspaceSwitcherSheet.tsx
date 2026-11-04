@@ -41,10 +41,12 @@ export const WorkspaceSwitcherSheet: React.FC<WorkspaceSwitcherSheetProps> = ({
     setErrorMsg(null);
     try {
       const res: any = await http.post('/workspaces', { name: newWsName.trim() });
-      await refetch();
-      if (res) {
+      if (res && res.id) {
+        const updatedWorkspaces = [...workspaces.filter((w) => w.id !== res.id), res];
+        useWorkspaceStore.getState().setWorkspaces(updatedWorkspaces);
         setActiveWorkspace(res);
       }
+      await refetch();
       setNewWsName('');
       setIsCreating(false);
       onClose();
@@ -66,8 +68,7 @@ export const WorkspaceSwitcherSheet: React.FC<WorkspaceSwitcherSheetProps> = ({
           activeOpacity={1}
           onPress={onClose}
         />
-        <TouchableOpacity
-          activeOpacity={1}
+        <View
           style={[
             styles.sheet,
             {
@@ -199,24 +200,28 @@ export const WorkspaceSwitcherSheet: React.FC<WorkspaceSwitcherSheetProps> = ({
                 onSubmitEditing={handleCreate}
               />
               <View style={[styles.createActions, { gap: spacing.sm, marginTop: spacing.md }]}>
-                <Button
-                  title="Cancel"
-                  variant="secondary"
-                  size="sm"
-                  onPress={() => {
-                    setIsCreating(false);
-                    setErrorMsg(null);
-                  }}
-                  style={{ flex: 1 }}
-                />
-                <Button
-                  title="Create"
-                  variant="primary"
-                  size="sm"
-                  loading={isSubmitting}
-                  onPress={handleCreate}
-                  style={{ flex: 1 }}
-                />
+                <View style={{ flex: 1 }}>
+                  <Button
+                    title="Cancel"
+                    variant="secondary"
+                    size="sm"
+                    fullWidth
+                    onPress={() => {
+                      setIsCreating(false);
+                      setErrorMsg(null);
+                    }}
+                  />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Button
+                    title="Create"
+                    variant="primary"
+                    size="sm"
+                    fullWidth
+                    loading={isSubmitting}
+                    onPress={handleCreate}
+                  />
+                </View>
               </View>
             </View>
           ) : (
@@ -241,7 +246,7 @@ export const WorkspaceSwitcherSheet: React.FC<WorkspaceSwitcherSheetProps> = ({
               </TouchableOpacity>
             </View>
           )}
-        </TouchableOpacity>
+        </View>
       </KeyboardAvoidingView>
     </Modal>
   );
@@ -258,7 +263,6 @@ const styles = StyleSheet.create({
     width: '100%',
     maxWidth: 420,
     maxHeight: '88%',
-    borderWidth: 1,
   },
   header: {
     flexDirection: 'row',
@@ -268,13 +272,10 @@ const styles = StyleSheet.create({
   closeBtn: {
     width: 32,
     height: 32,
-    borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  errorBox: {
-    borderWidth: 1,
-  },
+  errorBox: {},
   list: {
     maxHeight: 280,
   },
@@ -282,7 +283,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    borderWidth: 1,
   },
   itemLeft: {
     flexDirection: 'row',
@@ -294,11 +294,8 @@ const styles = StyleSheet.create({
     height: 36,
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 1,
   },
-  createBox: {
-    borderWidth: 1,
-  },
+  createBox: {},
   createActions: {
     flexDirection: 'row',
   },
@@ -306,7 +303,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 1,
     minHeight: 44,
   },
 });

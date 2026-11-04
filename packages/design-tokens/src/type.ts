@@ -1,9 +1,9 @@
 /**
  * DoIt Premium Type System
- * 03-TYPE-SYSTEM.md
+ * 03-TYPE-SYSTEM.md & 02-design-language.md
  */
 
-export type FontWeightToken = '400' | '500' | '600';
+export type FontWeightToken = '400' | '500' | '600' | '700';
 
 export interface TypographySpec {
   fontSize: number;
@@ -16,17 +16,18 @@ export interface TypographySpec {
 }
 
 /**
- * Rule 2 — tracking is size-dependent:
+ * Optical tracking computation:
  * size >= 32  → tracking -1.0
- * size 24–31  → tracking -0.4 (or -0.6 for 30px)
- * size 18–23  → tracking -0.2 (or -0.1 for 18px)
+ * size 28–31  → tracking -0.5 (largeTitle: 30px -> -0.5)
+ * size 24–27  → tracking -0.4
+ * size 18–23  → tracking -0.2
  * size 15–17  → tracking  0
- * size 12–14  → tracking +0.2
- * size <= 11  → tracking +0.8 (uppercase labels only)
+ * size 12–14  → tracking +0.1 to +0.2
+ * size <= 11  → tracking +0.8 (tab / uppercase labels)
  */
 export function computeTracking(fontSize: number): number {
   if (fontSize >= 32) return -1.0;
-  if (fontSize >= 28) return -0.6;
+  if (fontSize >= 28) return -0.5;
   if (fontSize >= 24) return -0.4;
   if (fontSize >= 18) return -0.2;
   if (fontSize >= 15) return 0;
@@ -37,18 +38,118 @@ export function computeTracking(fontSize: number): number {
 export const FONT_FAMILY = 'Inter';
 
 export const typographyScale = {
+  // Canonical 8-Level Inter Scale
+  largeTitle: {
+    fontSize: 30,
+    lineHeight: 36,
+    fontWeight: '700' as const,
+    letterSpacing: -0.5,
+    fontFamily: FONT_FAMILY,
+  },
+  title1: {
+    fontSize: 24,
+    lineHeight: 30,
+    fontWeight: '600' as const,
+    letterSpacing: computeTracking(24),
+    fontFamily: FONT_FAMILY,
+  },
+  title2: {
+    fontSize: 22,
+    lineHeight: 28,
+    fontWeight: '600' as const,
+    letterSpacing: computeTracking(22),
+    fontFamily: FONT_FAMILY,
+  },
+  title3: {
+    fontSize: 18,
+    lineHeight: 24,
+    fontWeight: '600' as const,
+    letterSpacing: computeTracking(18),
+    fontFamily: FONT_FAMILY,
+  },
+  headline: {
+    fontSize: 16,
+    lineHeight: 22,
+    fontWeight: '600' as const,
+    letterSpacing: computeTracking(16),
+    fontFamily: FONT_FAMILY,
+  },
+  body: {
+    fontSize: 15,
+    lineHeight: 21,
+    fontWeight: '400' as const,
+    letterSpacing: computeTracking(15),
+    fontFamily: FONT_FAMILY,
+  },
+  callout: {
+    fontSize: 14,
+    lineHeight: 19,
+    fontWeight: '400' as const,
+    letterSpacing: 0.1,
+    fontFamily: FONT_FAMILY,
+  },
+  caption: {
+    fontSize: 12,
+    lineHeight: 16,
+    fontWeight: '500' as const,
+    letterSpacing: computeTracking(12),
+    fontFamily: FONT_FAMILY,
+  },
+  tab: {
+    fontSize: 11,
+    lineHeight: 13,
+    fontWeight: '600' as const,
+    letterSpacing: 0.8,
+    fontFamily: FONT_FAMILY,
+  },
+
+  // Specialized Tabular/Numeric Styles
+  meta: {
+    fontSize: 12.5,
+    lineHeight: 16,
+    fontWeight: '500' as const,
+    letterSpacing: computeTracking(12),
+    fontFamily: FONT_FAMILY,
+    fontVariant: ['tabular-nums' as const],
+  },
+  numeric: {
+    fontSize: 15,
+    lineHeight: 20,
+    fontWeight: '600' as const,
+    letterSpacing: computeTracking(15),
+    fontFamily: FONT_FAMILY,
+    fontVariant: ['tabular-nums' as const],
+  },
+
+  // Semantic & Role Aliases
+  title: {
+    fontSize: 22,
+    lineHeight: 28,
+    fontWeight: '600' as const,
+    letterSpacing: computeTracking(22),
+    fontFamily: FONT_FAMILY,
+  },
+  subhead: {
+    fontSize: 14,
+    lineHeight: 19,
+    fontWeight: '400' as const,
+    letterSpacing: 0.1,
+    fontFamily: FONT_FAMILY,
+  },
+
+  // Legacy Transitional Aliases for Pre-existing Components
   display: {
     fontSize: 40,
     lineHeight: 46,
-    fontWeight: '600' as const,
+    fontWeight: '700' as const,
     letterSpacing: computeTracking(40),
     fontFamily: FONT_FAMILY,
   },
   h1: {
     fontSize: 30,
     lineHeight: 36,
-    fontWeight: '600' as const,
-    letterSpacing: computeTracking(30),
+    fontWeight: '700' as const,
+    letterSpacing: -0.5,
     fontFamily: FONT_FAMILY,
   },
   h2: {
@@ -65,13 +166,6 @@ export const typographyScale = {
     letterSpacing: computeTracking(18),
     fontFamily: FONT_FAMILY,
   },
-  body: {
-    fontSize: 15,
-    lineHeight: 22,
-    fontWeight: '400' as const,
-    letterSpacing: computeTracking(15),
-    fontFamily: FONT_FAMILY,
-  },
   bodyStrong: {
     fontSize: 15,
     lineHeight: 22,
@@ -86,7 +180,6 @@ export const typographyScale = {
     letterSpacing: computeTracking(13),
     fontFamily: FONT_FAMILY,
   },
-  // Transitional alias for older screens before their dedicated overhaul
   secondary: {
     fontSize: 13,
     lineHeight: 19,
@@ -108,22 +201,6 @@ export const typographyScale = {
     letterSpacing: computeTracking(11),
     fontFamily: FONT_FAMILY,
     textTransform: 'uppercase' as const,
-  },
-  // Transitional alias for existing screens before their dedicated prompt (P-03...P-06)
-  caption: {
-    fontSize: 12,
-    lineHeight: 16,
-    fontWeight: '500' as const,
-    letterSpacing: computeTracking(12),
-    fontFamily: FONT_FAMILY,
-  },
-  numeric: {
-    fontSize: 15,
-    lineHeight: 20,
-    fontWeight: '600' as const,
-    letterSpacing: computeTracking(15),
-    fontFamily: FONT_FAMILY,
-    fontVariant: ['tabular-nums' as const],
   },
 } as const;
 
