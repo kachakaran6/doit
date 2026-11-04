@@ -156,8 +156,8 @@ export const InviteAcceptScreen: React.FC = () => {
         </Text>
 
         <Text style={[styles.subText, { color: colors.textSecondary, textAlign: 'center', marginTop: 6 }]}>
-          <strong>{inviteData?.invitedBy}</strong> has invited you to collaborate on DoIt with the role of{' '}
-          <strong>{inviteData?.role}</strong>.
+          <Text style={{ fontWeight: '700', color: colors.textPrimary }}>{inviteData?.invitedBy}</Text> has invited you to collaborate on DoIt with the role of{' '}
+          <Text style={{ fontWeight: '700', color: colors.textPrimary }}>{inviteData?.role}</Text>.
         </Text>
 
         {isAuthenticated && currentUser ? (
