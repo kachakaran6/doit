@@ -130,9 +130,9 @@ export const HomeScreen: React.FC = () => {
   }
 
   return (
-    <Screen style={{ paddingTop: spacing.xs }}>
+    <Screen scrollable={false} gutter={false} style={{ flex: 1, paddingTop: spacing.xs }}>
       {/* 1. Top Header: Pinned Workspace Selector & User Avatar */}
-      <View style={[styles.topBar, { paddingHorizontal: spacing.sm, marginBottom: spacing.sm }]}>
+      <View style={[styles.topBar, { paddingHorizontal: spacing.screenMargin, marginBottom: spacing.xs }]}>
         <TouchableOpacity
           style={[
             styles.workspaceSelector,
@@ -177,7 +177,7 @@ export const HomeScreen: React.FC = () => {
       </View>
 
       <ScrollView
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[styles.scrollContent, { paddingHorizontal: spacing.screenMargin }]}
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl

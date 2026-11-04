@@ -68,8 +68,7 @@ export const WorkspaceSwitcherSheet: React.FC<WorkspaceSwitcherSheetProps> = ({
           activeOpacity={1}
           onPress={onClose}
         />
-        <TouchableOpacity
-          activeOpacity={1}
+        <View
           style={[
             styles.sheet,
             {
@@ -247,7 +246,7 @@ export const WorkspaceSwitcherSheet: React.FC<WorkspaceSwitcherSheetProps> = ({
               </TouchableOpacity>
             </View>
           )}
-        </TouchableOpacity>
+        </View>
       </KeyboardAvoidingView>
     </Modal>
   );

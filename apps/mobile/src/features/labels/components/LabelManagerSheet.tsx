@@ -65,13 +65,13 @@ export const LabelManagerSheet: React.FC<LabelManagerSheetProps> = ({
 
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
-      <TouchableOpacity
-        style={[styles.backdrop, { backgroundColor: colors.overlay }]}
-        activeOpacity={1}
-        onPress={onClose}
-      >
+      <View style={[styles.backdrop, { backgroundColor: colors.overlay }]}>
         <TouchableOpacity
+          style={StyleSheet.absoluteFill}
           activeOpacity={1}
+          onPress={onClose}
+        />
+        <View
           style={[
             styles.sheet,
             {
@@ -234,8 +234,8 @@ export const LabelManagerSheet: React.FC<LabelManagerSheetProps> = ({
               </TouchableOpacity>
             </View>
           )}
-        </TouchableOpacity>
-      </TouchableOpacity>
+        </View>
+      </View>
     </Modal>
   );
 };

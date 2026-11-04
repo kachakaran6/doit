@@ -3,37 +3,36 @@ import path from 'path';
 
 const TOKEN = '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';
 const REPO = 'kachakaran6/doit';
-const TAG = 'v0.1.0+13';
-const RELEASE_NAME = 'DoIt v0.1.0 — Release Build 13 (Silent Instant Screenshots & Accessibility Service)';
-const APK_PATH = 'K:/Doit/DoIt-v0.1.0-build13.apk';
-const SHA_PATH = 'K:/Doit/DoIt-v0.1.0-build13.apk.sha256';
+const TAG = 'v0.1.0+14';
+const RELEASE_NAME = 'DoIt v0.1.0 — Release Build 14 (Repeated Screenshot Captures Fix, Borderless UI & Project/Label Management)';
+const APK_PATH = 'K:/Doit/DoIt-v0.1.0-build14.apk';
+const SHA_PATH = 'K:/Doit/DoIt-v0.1.0-build14.apk.sha256';
 
-const RELEASE_BODY = `## DoIt v0.1.0 — Release Build 13 (Silent Instant Screenshots)
+const RELEASE_BODY = `## DoIt v0.1.0 — Release Build 14
 
-### Major New Features & Fixes in this Release:
+### Key Fixes & Enhancements in Build 14:
 
-1. **DoIt Accessibility Service (Silent 1-Tap Screenshots)**:
-   - Added \`DoItAccessibilityService\` using the Android 11+ \`AccessibilityService.takeScreenshot\` API.
-   - **ZERO system popups**: Completely eliminates the system confirmation bottom sheet (\`"Start recording or casting with DoIt?"\`) when capturing from the floating bubble or shake over other apps (Snapchat, games, home screen).
-   - Instant capture in ~10ms with zero dialogs.
-   - Added 1-tap "Enable Silent Instant Capture" banner and toggle in **Settings → Quick Capture & Hardware Integration**.
-   - Automatic fallback to \`MediaProjection\` if Accessibility is not yet granted.
+1. **Repeated Screenshot Capture Lifecycle Resolved Permanently**:
+   - Fixed \`ScreenCaptureManager\` state machine preventing subsequent captures from locking or glitching.
+   - Decoupled image decoding and file writing from UI thread to dedicated background executor.
+   - Removed stale static activity callback reference that caused attempt 2 to fail when attempt 1's \`onDestroy()\` fired.
+   - Implemented automatic silent fallback with rate-limit tracking for rapid consecutive captures.
+   - Guaranteed \`isSubmitting = false\` in bubble submission error paths so overlay bubbles never lock up.
 
-2. **Android 14/15/16 MediaProjection Callback Enforcement**:
-   - Registered mandatory \`MediaProjection.Callback\` prior to invoking \`createVirtualDisplay\`.
-   - Added \`foregroundServiceType="specialUse|mediaProjection"\` in \`AndroidManifest.xml\`.
+2. **Avatar & Workspace Touch Targets & Navigation**:
+   - Pinned top header bar outside of the ScrollView to prevent scrolling gestures from intercepting menu taps.
+   - Increased Avatar touch target to 44×44pt with 16pt hitSlop and added \`pointerEvents="none"\` on child views.
+   - Expanded Workspace selector touch target with 44pt minimum height and 10pt hitSlop.
 
-3. **CompleteUpload Target Schema Bug Fix (Screenshots on Bugs)**:
-   - Fixed \`CompleteUploadSchema\` validation failure. Both tasks and bugs now link strictly via \`taskId: createdId\`, displaying screenshots properly under **ATTACHMENTS** in Bug Detail and Task Detail.
+3. **Projects & Labels Management Added**:
+   - Integrated \`ProjectSwitcherSheet\` directly into the Account Menu Sheet and HomeScreen for switching and creating projects on the fly.
+   - Created dedicated \`LabelManagerSheet\` with preset color picker and real-time backend sync (\`POST/GET /workspaces/:id/labels\`).
 
-4. **Instant In-App Screenshot**:
-   - In-app screenshot uses hardware \`PixelCopy\` on the UI thread (<25ms) with zero permission prompts.
+4. **Complete Borderless UI (L0–L7) Implementation**:
+   - Full borderless UI system live with zero static 1px borders, subtle elevation glows, circular checkboxes, and unified typography.
 
-5. **P-01 Primitives & P-02 Shell Architecture**:
-   - Full implementation of all Design System primitives and shell frame components.
-
-### Download:
-- **APK**: \`DoIt-v0.1.0-build13.apk\`
+### Downloads:
+- **APK**: \`DoIt-v0.1.0-build14.apk\` (35.8 MB)
 `;
 
 async function main() {

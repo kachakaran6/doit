@@ -67,13 +67,13 @@ export const AccountMenuSheet: React.FC<AccountMenuSheetProps> = ({
 
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
-      <TouchableOpacity
-        style={[styles.backdrop, { backgroundColor: colors.overlay }]}
-        activeOpacity={1}
-        onPress={onClose}
-      >
+      <View style={[styles.backdrop, { backgroundColor: colors.overlay }]}>
         <TouchableOpacity
+          style={StyleSheet.absoluteFill}
           activeOpacity={1}
+          onPress={onClose}
+        />
+        <View
           style={[
             styles.sheet,
             {
@@ -266,8 +266,8 @@ export const AccountMenuSheet: React.FC<AccountMenuSheetProps> = ({
               Log Out
             </Text>
           </TouchableOpacity>
-        </TouchableOpacity>
-      </TouchableOpacity>
+        </View>
+      </View>
     </Modal>
   );
 };

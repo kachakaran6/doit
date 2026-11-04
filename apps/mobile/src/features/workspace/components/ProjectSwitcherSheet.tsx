@@ -68,13 +68,13 @@ export const ProjectSwitcherSheet: React.FC<ProjectSwitcherSheetProps> = ({
 
   return (
     <Modal visible={isSheetVisible} transparent animationType="fade" onRequestClose={onClose}>
-      <TouchableOpacity
-        style={[styles.backdrop, { backgroundColor: colors.overlay }]}
-        activeOpacity={1}
-        onPress={onClose}
-      >
+      <View style={[styles.backdrop, { backgroundColor: colors.overlay }]}>
         <TouchableOpacity
+          style={StyleSheet.absoluteFill}
           activeOpacity={1}
+          onPress={onClose}
+        />
+        <View
           style={[
             styles.sheet,
             {
@@ -220,8 +220,8 @@ export const ProjectSwitcherSheet: React.FC<ProjectSwitcherSheetProps> = ({
               </Text>
             </TouchableOpacity>
           )}
-        </TouchableOpacity>
-      </TouchableOpacity>
+        </View>
+      </View>
     </Modal>
   );
 };

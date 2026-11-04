@@ -26,7 +26,8 @@ describe('TasksService', () => {
       },
       $transaction: jest.fn(async (cb) => cb(mockPrisma)),
     };
-    service = new TasksService(mockPrisma as unknown as PrismaService);
+    const mockStorage = { deleteFile: jest.fn(), getSignedUrl: jest.fn(), putFile: jest.fn() } as any;
+    service = new TasksService(mockPrisma as unknown as PrismaService, mockStorage);
   });
 
   describe('create and idempotency', () => {
