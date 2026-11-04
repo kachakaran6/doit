@@ -3,36 +3,35 @@ import path from 'path';
 
 const TOKEN = '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';
 const REPO = 'kachakaran6/doit';
-const TAG = 'v0.1.0+15';
-const RELEASE_NAME = 'DoIt v0.1.0 — Release Build 15 (Repeated Screenshot Captures Fix, Borderless UI & Project/Label Management)';
-const APK_PATH = 'K:/Doit/DoIt-v0.1.0-build15.apk';
-const SHA_PATH = 'K:/Doit/DoIt-v0.1.0-build15.apk.sha256';
+const TAG = 'v0.1.0+18';
+const RELEASE_NAME = 'DoIt v0.1.0 — Release Build 18 (Anchored In-Tree Dropdown Sheets, Profile Context Menu Fix & Project/Label Quick Chips)';
+const APK_PATH = 'K:/Doit/release-builds/DoIt-v0.1.0-build18.apk';
+const SHA_PATH = 'K:/Doit/release-builds/DoIt-v0.1.0-build18.apk.sha256';
 
-const RELEASE_BODY = `## DoIt v0.1.0 — Release Build 15
+const RELEASE_BODY = `## DoIt v0.1.0 — Release Build 18
 
-### Key Fixes & Enhancements in Build 14:
+### Key Fixes & Enhancements in Build 18:
 
-1. **Repeated Screenshot Capture Lifecycle Resolved Permanently**:
-   - Fixed \`ScreenCaptureManager\` state machine preventing subsequent captures from locking or glitching.
-   - Decoupled image decoding and file writing from UI thread to dedicated background executor.
-   - Removed stale static activity callback reference that caused attempt 2 to fail when attempt 1's \`onDestroy()\` fired.
-   - Implemented automatic silent fallback with rate-limit tracking for rapid consecutive captures.
-   - Guaranteed \`isSubmitting = false\` in bubble submission error paths so overlay bubbles never lock up.
+1. **Anchored In-Tree Dropdown Overlays (Profile & Context Menus)**:
+   - Replaced native Android \`<Modal>\` dialogs with precision in-tree dropdown overlays (\`StyleSheet.absoluteFillObject\` with backdrop).
+   - Resolved touch release cancellation (\`Got DOWN touch before receiving UP or CANCEL\`) that was causing Android to dismiss the profile menu immediately on touch release.
+   - Pinned the Account/Profile context menu directly below the top-right user avatar (\`top: 68, right: 16\`).
+   - Pinned the Workspace Switcher directly below the top-left workspace selector.
 
-2. **Avatar & Workspace Touch Targets & Navigation**:
-   - Pinned top header bar outside of the ScrollView to prevent scrolling gestures from intercepting menu taps.
-   - Increased Avatar touch target to 44×44pt with 16pt hitSlop and added \`pointerEvents="none"\` on child views.
-   - Expanded Workspace selector touch target with 44pt minimum height and 10pt hitSlop.
+2. **Dedicated Project & Label Quick-Chips**:
+   - Added project selector and label manager chips directly to the top sub-bar of HomeScreen.
+   - Auto-generates valid uppercase project keys matching backend schema validation.
+   - Preset backend-compatible color palette (\`INDIGO\`, \`TEAL\`, \`AMBER\`, \`ROSE\`, \`VIOLET\`) for real-time label creation and sync.
 
-3. **Projects & Labels Management Added**:
-   - Integrated \`ProjectSwitcherSheet\` directly into the Account Menu Sheet and HomeScreen for switching and creating projects on the fly.
-   - Created dedicated \`LabelManagerSheet\` with preset color picker and real-time backend sync (\`POST/GET /workspaces/:id/labels\`).
+3. **Build & CI Pipeline Upgrades**:
+   - Fixed GitHub Actions CI to use Node.js 22 with pnpm 11+ and pre-generated Prisma client.
+   - Fixed Metro bundler Windows memory allocation by setting \`maxWorkers: 2\` and \`--max-old-space-size=4096\`.
 
 4. **Complete Borderless UI (L0–L7) Implementation**:
    - Full borderless UI system live with zero static 1px borders, subtle elevation glows, circular checkboxes, and unified typography.
 
 ### Downloads:
-- **APK**: \`DoIt-v0.1.0-build15.apk\` (35.8 MB)
+- **APK**: \`DoIt-v0.1.0-build18.apk\` (35.9 MB)
 `;
 
 async function main() {
@@ -79,7 +78,7 @@ async function main() {
     console.log('Created release with ID:', releaseData.id);
   }
 
-  const uploadUrlTemplate = releaseData.upload_url; // e.g. https://uploads.github.com/repos/owner/repo/releases/id/assets{?name,label}
+  const uploadUrlTemplate = releaseData.upload_url;
   const cleanUploadUrl = uploadUrlTemplate.replace(/\{\?name,label\}/, '');
 
   async function uploadAsset(filePath, mimeType) {
