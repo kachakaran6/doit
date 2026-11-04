@@ -25,6 +25,17 @@
     <service android:name="com.samyukt.doit.overlay.BubbleService" android:enabled="true" android:exported="false" android:foregroundServiceType="specialUse|mediaProjection">
       <property android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE" android:value="Floating quick capture bubble for tasks and bug reporting"/>
     </service>
+    <service
+        android:name="com.samyukt.doit.overlay.DoItAccessibilityService"
+        android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE"
+        android:exported="true">
+      <intent-filter>
+        <action android:name="android.accessibilityservice.AccessibilityService" />
+      </intent-filter>
+      <meta-data
+          android:name="android.accessibilityservice"
+          android:resource="@xml/accessibility_service_config" />
+    </service>
     <activity android:name="com.samyukt.doit.overlay.ScreenshotCaptureActivity" android:theme="@android:style/Theme.Translucent.NoTitleBar" android:exported="false"/>
     <activity android:name="com.samyukt.doit.overlay.ImagePickerActivity" android:theme="@android:style/Theme.Translucent.NoTitleBar" android:exported="false"/>
     <activity android:name=".MainActivity" android:configChanges="keyboard|keyboardHidden|orientation|screenSize|screenLayout|uiMode" android:launchMode="singleTask" android:windowSoftInputMode="adjustResize" android:theme="@style/Theme.App.SplashScreen" android:exported="true" android:screenOrientation="portrait">

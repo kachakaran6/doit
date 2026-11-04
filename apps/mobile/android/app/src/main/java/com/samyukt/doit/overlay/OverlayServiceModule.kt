@@ -265,6 +265,42 @@ class OverlayServiceModule(private val reactContext: ReactApplicationContext) :
     }
 
     @ReactMethod
+    fun isAccessibilityEnabled(promise: Promise) {
+        val running = DoItAccessibilityService.isRunning()
+        if (running) {
+            promise.resolve(true)
+            return
+        }
+
+        try {
+            val enabledServices = Settings.Secure.getString(
+                reactContext.contentResolver,
+                Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES
+            ) ?: ""
+            val colonSplitter = enabledServices.split(":")
+            val myComponent = "${reactContext.packageName}/${DoItAccessibilityService::class.java.canonicalName}"
+            val myShortComponent = "${reactContext.packageName}/.overlay.DoItAccessibilityService"
+            val isEnabled = colonSplitter.any { it.equals(myComponent, ignoreCase = true) || it.equals(myShortComponent, ignoreCase = true) }
+            promise.resolve(isEnabled)
+        } catch (_: Exception) {
+            promise.resolve(false)
+        }
+    }
+
+    @ReactMethod
+    fun openAccessibilitySettings(promise: Promise) {
+        try {
+            val intent = Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS).apply {
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            }
+            reactContext.startActivity(intent)
+            promise.resolve(true)
+        } catch (e: Exception) {
+            promise.reject("SETTINGS_ERROR", e.message)
+        }
+    }
+
+    @ReactMethod
     fun hasScreenshotPermission(promise: Promise) {
         promise.resolve(true)
     }

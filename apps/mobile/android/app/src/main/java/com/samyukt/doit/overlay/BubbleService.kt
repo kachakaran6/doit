@@ -830,12 +830,38 @@ class BubbleService : Service(), SensorEventListener {
         isSubmitting = true
 
         if (shouldAttachScreenshot) {
-            ScreenshotCaptureActivity.captureCleanScreen(this, callback = { file ->
+            if (DoItAccessibilityService.isRunning()) {
+                // 1-tap silent screenshot via Accessibility API: ZERO system bottom sheets!
                 dismissCompactModal()
-                bubbleContainer?.visibility = View.VISIBLE
-                showToastForMode(mode)
-                submitToBackend(titleText, mode, file)
-            })
+                hideOverlays()
+
+                // Delay 150ms so SurfaceFlinger composes the underlying app cleanly
+                Handler(Looper.getMainLooper()).postDelayed({
+                    val handled = DoItAccessibilityService.captureSilentScreenshot(cacheDir) { file ->
+                        Handler(Looper.getMainLooper()).post {
+                            bubbleContainer?.visibility = View.VISIBLE
+                            showToastForMode(mode)
+                            submitToBackend(titleText, mode, file)
+                        }
+                    }
+                    if (!handled) {
+                        restoreOverlays()
+                        ScreenshotCaptureActivity.captureCleanScreen(this, callback = { file ->
+                            dismissCompactModal()
+                            bubbleContainer?.visibility = View.VISIBLE
+                            showToastForMode(mode)
+                            submitToBackend(titleText, mode, file)
+                        })
+                    }
+                }, 150)
+            } else {
+                ScreenshotCaptureActivity.captureCleanScreen(this, callback = { file ->
+                    dismissCompactModal()
+                    bubbleContainer?.visibility = View.VISIBLE
+                    showToastForMode(mode)
+                    submitToBackend(titleText, mode, file)
+                })
+            }
         } else {
             dismissCompactModal()
             bubbleContainer?.visibility = View.VISIBLE

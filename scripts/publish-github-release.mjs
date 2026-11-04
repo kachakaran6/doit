@@ -3,12 +3,12 @@ import path from 'path';
 
 const TOKEN = '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';
 const REPO = 'kachakaran6/doit';
-const TAG = 'v0.1.0+11';
-const RELEASE_NAME = 'DoIt v0.1.0 — Release Build 11 (DoIt Premium UI Kit: Primitives P-01 & Shell P-02)';
-const APK_PATH = 'K:/Doit/DoIt-v0.1.0-build11.apk';
-const SHA_PATH = 'K:/Doit/DoIt-v0.1.0-build11.apk.sha256';
+const TAG = 'v0.1.0+12';
+const RELEASE_NAME = 'DoIt v0.1.0 — Release Build 12 (Android 14 MediaProjection & Bug Attachment Fixes)';
+const APK_PATH = 'K:/Doit/DoIt-v0.1.0-build12.apk';
+const SHA_PATH = 'K:/Doit/DoIt-v0.1.0-build12.apk.sha256';
 
-const RELEASE_BODY = `## DoIt v0.1.0 — Release Build 11 (DoIt Premium UI Kit)
+const RELEASE_BODY = `## DoIt v0.1.0 — Release Build 12
 
 ### Delivered in this Release:
 

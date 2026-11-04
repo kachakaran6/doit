@@ -192,6 +192,25 @@ class OverlayServiceImpl implements OverlayService {
     }
   }
 
+  async isAccessibilityEnabled(): Promise<boolean> {
+    if (!this.isAvailable() || !OverlayServiceModule?.isAccessibilityEnabled) return false;
+    try {
+      return await OverlayServiceModule.isAccessibilityEnabled();
+    } catch {
+      return false;
+    }
+  }
+
+  async openAccessibilitySettings(): Promise<boolean> {
+    if (!this.isAvailable() || !OverlayServiceModule?.openAccessibilitySettings) return false;
+    try {
+      await OverlayServiceModule.openAccessibilitySettings();
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
   async hasScreenshotPermission(): Promise<boolean> {
     if (!this.isAvailable() || !OverlayServiceModule?.hasScreenshotPermission) return false;
     try {

@@ -56,6 +56,7 @@ export const SettingsScreen: React.FC = () => {
 
   const [bubbleEnabled, setBubbleEnabled] = useState(overlayService.getRunningState());
   const [hasOverlayPerm, setHasOverlayPerm] = useState(false);
+  const [hasAccessibility, setHasAccessibility] = useState(false);
   const [isXiaomi, setIsXiaomi] = useState(false);
   const [guideVisible, setGuideVisible] = useState(false);
   const [shakeTestVisible, setShakeTestVisible] = useState(false);
@@ -72,6 +73,8 @@ export const SettingsScreen: React.FC = () => {
       setBubbleEnabled(running);
       const xiaomi = await overlayService.isXiaomiDevice();
       setIsXiaomi(xiaomi);
+      const accessibility = await overlayService.isAccessibilityEnabled();
+      setHasAccessibility(accessibility);
     } catch {
       // ignore
     }
@@ -428,6 +431,52 @@ export const SettingsScreen: React.FC = () => {
               <Text variant="caption" style={{ color: colors.success, fontWeight: '700', marginLeft: 6 }}>
                 Overlay Permission Granted • System-wide capture enabled
               </Text>
+            </View>
+          )}
+
+          {/* Silent Instant Capture (Accessibility) */}
+          {Platform.OS === 'android' && (
+            <View
+              style={{
+                borderBottomWidth: 1,
+                borderBottomColor: colors.border,
+                paddingHorizontal: spacing.md,
+                paddingVertical: spacing.sm,
+                backgroundColor: hasAccessibility ? 'rgba(34, 197, 94, 0.06)' : 'rgba(99, 102, 241, 0.06)',
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+              }}
+            >
+              <View style={{ flex: 1, marginRight: spacing.sm }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                  <Zap size={15} color={hasAccessibility ? colors.success : colors.accent} />
+                  <Text variant="caption" style={{ fontWeight: '700', marginLeft: 6, color: colors.textPrimary }}>
+                    {hasAccessibility ? 'Silent Instant Capture Active' : 'Enable Silent Screenshots (No Popups)'}
+                  </Text>
+                </View>
+                <Text variant="caption" color="secondary" style={{ fontSize: 11, marginTop: 2 }}>
+                  {hasAccessibility
+                    ? 'Captures screenshots with zero system bottom sheets or prompts'
+                    : 'Turn ON DoIt in Accessibility settings to eliminate the system recording popup'}
+                </Text>
+              </View>
+
+              {!hasAccessibility && (
+                <TouchableOpacity
+                  onPress={() => overlayService.openAccessibilitySettings()}
+                  style={{
+                    backgroundColor: colors.accent,
+                    paddingHorizontal: 12,
+                    paddingVertical: 6,
+                    borderRadius: radius.sm,
+                  }}
+                >
+                  <Text variant="caption" style={{ fontWeight: '700', color: colors.accentOnPrimary }}>
+                    Enable
+                  </Text>
+                </TouchableOpacity>
+              )}
             </View>
           )}
 
