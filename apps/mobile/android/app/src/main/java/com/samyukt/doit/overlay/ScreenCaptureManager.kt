@@ -57,18 +57,20 @@ object ScreenCaptureManager {
         callback: ((File?) -> Unit)? = null
     ): Session? {
         synchronized(stateLock) {
-            val state = currentState.get()
-            if (state != State.IDLE) {
-                // If previous session is taking longer than 8 seconds, force-abort it
-                val current = activeSession
-                if (current != null && System.currentTimeMillis() - current.createdAt > 8000) {
+            val current = activeSession
+            if (current != null) {
+                // If previous session is taking longer than 4 seconds, force-abort it
+                if (System.currentTimeMillis() - current.createdAt > 4000) {
                     Log.w(TAG, "Forcing cleanup of hung session: ${current.id}")
                     abortActiveSession("Previous capture timed out")
                 } else {
-                    Log.w(TAG, "Capture rejected: another capture is in progress ($state)")
+                    Log.w(TAG, "Capture rejected: another capture is in progress (${currentState.get()})")
                     return null
                 }
             }
+
+            // Always ensure clean state when starting fresh session
+            currentState.set(State.IDLE)
 
             val session = Session(
                 id = UUID.randomUUID().toString().substring(0, 8),
@@ -192,12 +194,16 @@ object ScreenCaptureManager {
                 Log.w(TAG, "completeSessionWithSuccess ignored: session mismatch (active=${session?.id}, incoming=$sessionId)")
                 return
             }
-            currentState.set(State.CLEANING_UP)
             activeSession = null
+            currentState.set(State.IDLE)
         }
 
         Log.d(TAG, "capture_completed [$sessionId]: success")
-        session?.callback?.invoke(outFile)
+        try {
+            session?.callback?.invoke(outFile)
+        } catch (t: Throwable) {
+            Log.e(TAG, "Error in callback for [$sessionId]: ${t.message}", t)
+        }
 
         if (session?.promise != null) {
             val map = Arguments.createMap().apply {
@@ -214,8 +220,6 @@ object ScreenCaptureManager {
                 Log.e(TAG, "Failed to resolve promise [$sessionId]: ${e.message}")
             }
         }
-
-        currentState.set(State.IDLE)
     }
 
     fun completeSessionWithError(sessionId: String, errorMessage: String) {
@@ -226,19 +230,21 @@ object ScreenCaptureManager {
                 Log.w(TAG, "completeSessionWithError ignored: session mismatch (active=${session?.id}, incoming=$sessionId)")
                 return
             }
-            currentState.set(State.CLEANING_UP)
             activeSession = null
+            currentState.set(State.IDLE)
         }
 
         Log.e(TAG, "capture_failed [$sessionId]: $errorMessage")
-        session?.callback?.invoke(null)
+        try {
+            session?.callback?.invoke(null)
+        } catch (t: Throwable) {
+            Log.e(TAG, "Error in error-callback for [$sessionId]: ${t.message}", t)
+        }
         try {
             session?.promise?.reject("CAPTURE_FAILED", errorMessage)
         } catch (e: Exception) {
             Log.e(TAG, "Failed to reject promise [$sessionId]: ${e.message}")
         }
-
-        currentState.set(State.IDLE)
     }
 
     fun handleActivityDestroyed(destroyingSessionId: String?) {

@@ -2,8 +2,11 @@
 node_modules/
 .pnpm-store/
 
-# Build artifacts
-dist/
+# Test screenshots
+poco_*.png
+crop_*.png
+device_*.png
+
 dist-web/
 build/
 out/

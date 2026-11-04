@@ -41,7 +41,7 @@ class ScreenshotCaptureActivity : Activity() {
 
             val intent = Intent(context, ScreenshotCaptureActivity::class.java).apply {
                 putExtra(EXTRA_SESSION_ID, session.id)
-                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_NO_ANIMATION)
             }
             context.startActivity(intent)
         }
@@ -57,6 +57,8 @@ class ScreenshotCaptureActivity : Activity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        @Suppress("DEPRECATION")
+        overridePendingTransition(0, 0)
         sessionId = intent.getStringExtra(EXTRA_SESSION_ID)
 
         val session = ScreenCaptureManager.getActiveSession()
@@ -236,6 +238,12 @@ class ScreenshotCaptureActivity : Activity() {
             ScreenCaptureManager.completeSessionWithError(currentSessionId, message)
         }
         finish()
+    }
+
+    override fun finish() {
+        super.finish()
+        @Suppress("DEPRECATION")
+        overridePendingTransition(0, 0)
     }
 
     override fun onDestroy() {

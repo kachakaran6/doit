@@ -3,12 +3,12 @@ import path from 'path';
 
 const TOKEN = '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';
 const REPO = 'kachakaran6/doit';
-const TAG = 'v0.1.0+14';
-const RELEASE_NAME = 'DoIt v0.1.0 — Release Build 14 (Repeated Screenshot Captures Fix, Borderless UI & Project/Label Management)';
-const APK_PATH = 'K:/Doit/DoIt-v0.1.0-build14.apk';
-const SHA_PATH = 'K:/Doit/DoIt-v0.1.0-build14.apk.sha256';
+const TAG = 'v0.1.0+15';
+const RELEASE_NAME = 'DoIt v0.1.0 — Release Build 15 (Repeated Screenshot Captures Fix, Borderless UI & Project/Label Management)';
+const APK_PATH = 'K:/Doit/DoIt-v0.1.0-build15.apk';
+const SHA_PATH = 'K:/Doit/DoIt-v0.1.0-build15.apk.sha256';
 
-const RELEASE_BODY = `## DoIt v0.1.0 — Release Build 14
+const RELEASE_BODY = `## DoIt v0.1.0 — Release Build 15
 
 ### Key Fixes & Enhancements in Build 14:
 
@@ -32,7 +32,7 @@ const RELEASE_BODY = `## DoIt v0.1.0 — Release Build 14
    - Full borderless UI system live with zero static 1px borders, subtle elevation glows, circular checkboxes, and unified typography.
 
 ### Downloads:
-- **APK**: \`DoIt-v0.1.0-build14.apk\` (35.8 MB)
+- **APK**: \`DoIt-v0.1.0-build15.apk\` (35.8 MB)
 `;
 
 async function main() {

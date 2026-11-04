@@ -36,7 +36,7 @@
           android:name="android.accessibilityservice"
           android:resource="@xml/accessibility_service_config" />
     </service>
-    <activity android:name="com.samyukt.doit.overlay.ScreenshotCaptureActivity" android:theme="@android:style/Theme.Translucent.NoTitleBar" android:exported="false"/>
+    <activity android:name="com.samyukt.doit.overlay.ScreenshotCaptureActivity" android:theme="@android:style/Theme.Translucent.NoTitleBar" android:noHistory="true" android:excludeFromRecents="true" android:exported="false"/>
     <activity android:name="com.samyukt.doit.overlay.ImagePickerActivity" android:theme="@android:style/Theme.Translucent.NoTitleBar" android:exported="false"/>
     <activity android:name=".MainActivity" android:configChanges="keyboard|keyboardHidden|orientation|screenSize|screenLayout|uiMode" android:launchMode="singleTask" android:windowSoftInputMode="adjustResize" android:theme="@style/Theme.App.SplashScreen" android:exported="true" android:screenOrientation="portrait">
       <intent-filter>
