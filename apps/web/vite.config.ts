@@ -27,7 +27,7 @@ export default defineConfig({
   },
   build: {
     target: 'es2022',
-    outDir: 'dist-web',
+    outDir: 'dist',
     sourcemap: true,
     rollupOptions: {
       output: {
