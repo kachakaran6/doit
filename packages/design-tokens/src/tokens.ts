@@ -3,9 +3,9 @@
  * 02-design-language.md & premium-tokens.json
  */
 
-import { typographyScale, TypographyVariant, computeTracking, FONT_FAMILY } from './type.js';
+import { typographyScale, TypographyVariant, computeTracking, FONT_FAMILY } from './type';
 
-export * from './type.js';
+export * from './type';
 
 export interface SemanticTokenGroup {
   fill: string;

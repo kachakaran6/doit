@@ -58,6 +58,7 @@ export const Avatar: React.FC<AvatarProps> = ({
 
   return (
     <View
+      pointerEvents="none"
       style={[
         styles.container,
         {

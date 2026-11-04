@@ -3,45 +3,69 @@ package com.samyukt.doit.overlay
 import android.app.Activity
 import android.content.Context
 import android.content.Intent
-import android.graphics.Bitmap
 import android.graphics.PixelFormat
 import android.hardware.display.DisplayManager
 import android.media.ImageReader
+import android.media.projection.MediaProjection
 import android.media.projection.MediaProjectionManager
 import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.util.DisplayMetrics
+import android.util.Log
 import android.view.WindowManager
-import com.facebook.react.bridge.Arguments
 import com.facebook.react.bridge.Promise
 import java.io.File
-import java.io.FileOutputStream
+import java.util.concurrent.atomic.AtomicBoolean
 
 class ScreenshotCaptureActivity : Activity() {
 
     companion object {
+        private const val TAG = "ScreenshotCaptureAct"
         const val REQUEST_MEDIA_PROJECTION = 1002
-        var pendingPromise: Promise? = null
-        var pendingCallback: ((File?) -> Unit)? = null
+        const val EXTRA_SESSION_ID = "com.samyukt.doit.SESSION_ID"
 
         fun captureCleanScreen(
             context: Context,
             promise: Promise? = null,
             callback: ((File?) -> Unit)? = null
         ) {
-            pendingPromise = promise
-            pendingCallback = callback
+            val session = ScreenCaptureManager.startCaptureSession(promise, callback)
+            if (session == null) {
+                Log.w(TAG, "Cannot launch capture: another session is already active")
+                callback?.invoke(null)
+                promise?.reject("CAPTURE_BUSY", "Another screenshot capture is already in progress")
+                return
+            }
+
             val intent = Intent(context, ScreenshotCaptureActivity::class.java).apply {
-                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                putExtra(EXTRA_SESSION_ID, session.id)
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
             }
             context.startActivity(intent)
         }
     }
 
+    private var sessionId: String? = null
+    private var projection: MediaProjection? = null
+    private var imageReader: ImageReader? = null
+    private var virtualDisplay: android.hardware.display.VirtualDisplay? = null
+    private var projectionCallback: MediaProjection.Callback? = null
+    private val isCleanedUp = AtomicBoolean(false)
+    private val frameCaptured = AtomicBoolean(false)
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        sessionId = intent.getStringExtra(EXTRA_SESSION_ID)
+
+        val session = ScreenCaptureManager.getActiveSession()
+        if (session == null || session.id != sessionId) {
+            Log.e(TAG, "Invalid or expired session in onCreate: $sessionId")
+            finish()
+            return
+        }
+
         val projectionManager = getSystemService(Context.MEDIA_PROJECTION_SERVICE) as? MediaProjectionManager
         if (projectionManager == null) {
             fail("MediaProjection service not available")
@@ -49,10 +73,12 @@ class ScreenshotCaptureActivity : Activity() {
         }
 
         try {
+            Log.d(TAG, "Requesting MediaProjection consent [$sessionId]")
             val captureIntent = projectionManager.createScreenCaptureIntent()
             @Suppress("DEPRECATION")
             startActivityForResult(captureIntent, REQUEST_MEDIA_PROJECTION)
         } catch (e: Exception) {
+            Log.e(TAG, "Failed to launch screen capture prompt [$sessionId]: ${e.message}")
             fail(e.message ?: "Failed to launch screen capture prompt")
         }
     }
@@ -62,6 +88,7 @@ class ScreenshotCaptureActivity : Activity() {
         super.onActivityResult(requestCode, resultCode, data)
         if (requestCode == REQUEST_MEDIA_PROJECTION) {
             if (resultCode == RESULT_OK && data != null) {
+                Log.d(TAG, "projection_authorization_received [$sessionId]")
                 // Hide DoIt overlays before taking the shot
                 BubbleService.hideOverlays()
 
@@ -70,34 +97,39 @@ class ScreenshotCaptureActivity : Activity() {
                     captureWithProjection(resultCode, data)
                 }, 150)
             } else {
+                Log.w(TAG, "User denied screen capture permission [$sessionId]")
                 fail("Screen capture permission denied")
             }
         }
     }
 
     private fun captureWithProjection(resultCode: Int, data: Intent) {
+        val currentSessionId = sessionId ?: return
         val projectionManager = getSystemService(Context.MEDIA_PROJECTION_SERVICE) as? MediaProjectionManager
         if (projectionManager == null) {
-            BubbleService.restoreOverlays()
             fail("No projection manager")
             return
         }
 
         try {
-            val projection = projectionManager.getMediaProjection(resultCode, data)
-            if (projection == null) {
-                BubbleService.restoreOverlays()
-                fail("No projection manager")
+            val proj = projectionManager.getMediaProjection(resultCode, data)
+            if (proj == null) {
+                fail("MediaProjection returned null")
                 return
             }
+            projection = proj
 
-            // Android 14 (API 34+) STRICT REQUIREMENT: register callback before createVirtualDisplay
-            val projectionCallback = object : android.media.projection.MediaProjection.Callback() {
+            // Android 14+ (API 34+) STRICT REQUIREMENT: register callback before createVirtualDisplay
+            val callback = object : MediaProjection.Callback() {
                 override fun onStop() {
                     super.onStop()
+                    Log.d(TAG, "projection_stopped [$currentSessionId]")
+                    cleanup()
                 }
             }
-            projection.registerCallback(projectionCallback, Handler(Looper.getMainLooper()))
+            projectionCallback = callback
+            proj.registerCallback(callback, Handler(Looper.getMainLooper()))
+            Log.d(TAG, "projection_initialized [$currentSessionId]")
 
             val windowManager = getSystemService(Context.WINDOW_SERVICE) as WindowManager
             val metrics = DisplayMetrics()
@@ -107,160 +139,109 @@ class ScreenshotCaptureActivity : Activity() {
             val height = metrics.heightPixels
             val densityDpi = metrics.densityDpi
 
-            val imageReader = ImageReader.newInstance(width, height, PixelFormat.RGBA_8888, 2)
-            val virtualDisplay = projection.createVirtualDisplay(
+            val reader = ImageReader.newInstance(width, height, PixelFormat.RGBA_8888, 2)
+            imageReader = reader
+
+            virtualDisplay = proj.createVirtualDisplay(
                 "DoItCleanScreenshot",
                 width,
                 height,
                 densityDpi,
                 DisplayManager.VIRTUAL_DISPLAY_FLAG_AUTO_MIRROR,
-                imageReader.surface,
+                reader.surface,
                 null,
                 null
             )
-
-            val captured = java.util.concurrent.atomic.AtomicBoolean(false)
-            val cleanupLock = Any()
-            var isCleanedUp = false
-
-            fun finishWithSuccess(outFile: File) {
-                synchronized(cleanupLock) {
-                    if (isCleanedUp) return
-                    isCleanedUp = true
-                }
-                try { virtualDisplay.release() } catch (_: Exception) {}
-                try { imageReader.close() } catch (_: Exception) {}
-                try { projection.unregisterCallback(projectionCallback) } catch (_: Exception) {}
-                try { projection.stop() } catch (_: Exception) {}
-                BubbleService.restoreOverlays()
-
-                pendingCallback?.invoke(outFile)
-                pendingCallback = null
-
-                if (pendingPromise != null) {
-                    val map = Arguments.createMap().apply {
-                        putString("uri", "file://${outFile.absolutePath}")
-                        putString("name", outFile.name)
-                        putInt("sizeBytes", outFile.length().toInt())
-                        putString("mimeType", "image/jpeg")
-                        putInt("width", width)
-                        putInt("height", height)
-                    }
-                    pendingPromise?.resolve(map)
-                    pendingPromise = null
-                }
-                finish()
-            }
-
-            fun finishWithError(err: String) {
-                synchronized(cleanupLock) {
-                    if (isCleanedUp) return
-                    isCleanedUp = true
-                }
-                try { virtualDisplay.release() } catch (_: Exception) {}
-                try { imageReader.close() } catch (_: Exception) {}
-                try { projection.unregisterCallback(projectionCallback) } catch (_: Exception) {}
-                try { projection.stop() } catch (_: Exception) {}
-                BubbleService.restoreOverlays()
-                fail(err)
-            }
-
-            val processImage: (android.media.Image) -> Unit = { image ->
-                try {
-                    val planes = image.planes
-                    val buffer = planes[0].buffer
-                    val pixelStride = planes[0].pixelStride
-                    val rowStride = planes[0].rowStride
-                    val rowPadding = rowStride - pixelStride * width
-
-                    val bitmap = Bitmap.createBitmap(
-                        width + rowPadding / pixelStride,
-                        height,
-                        Bitmap.Config.ARGB_8888
-                    )
-                    bitmap.copyPixelsFromBuffer(buffer)
-                    image.close()
-
-                    val cropped = Bitmap.createBitmap(bitmap, 0, 0, width, height)
-                    if (cropped != bitmap) {
-                        bitmap.recycle()
-                    }
-
-                    val maxDim = Math.max(width, height)
-                    val finalBitmap = if (maxDim > 1440) {
-                        val scale = 1440f / maxDim
-                        Bitmap.createScaledBitmap(cropped, (width * scale).toInt(), (height * scale).toInt(), true)
-                    } else {
-                        cropped
-                    }
-
-                    val outFile = File(cacheDir, "doit_clean_shot_${System.currentTimeMillis()}.jpg")
-                    FileOutputStream(outFile).use { fos ->
-                        finalBitmap.compress(Bitmap.CompressFormat.JPEG, 85, fos)
-                        fos.flush()
-                    }
-                    if (finalBitmap != cropped) {
-                        finalBitmap.recycle()
-                    }
-                    cropped.recycle()
-
-                    finishWithSuccess(outFile)
-                } catch (e: Exception) {
-                    try { image.close() } catch (_: Exception) {}
-                    finishWithError(e.message ?: "Frame processing error")
-                }
-            }
+            Log.d(TAG, "virtual_display_created [$currentSessionId]: ${width}x${height} @ ${densityDpi}dpi")
+            ScreenCaptureManager.setWaitingForFrame(currentSessionId)
 
             val handler = Handler(Looper.getMainLooper())
             val timeoutRunnable = Runnable {
-                if (!captured.getAndSet(true)) {
-                    val img = imageReader.acquireLatestImage() ?: imageReader.acquireNextImage()
+                if (!frameCaptured.getAndSet(true)) {
+                    Log.w(TAG, "Frame listener timed out; attempting fallback image acquisition [$currentSessionId]")
+                    val img = reader.acquireLatestImage() ?: reader.acquireNextImage()
                     if (img != null) {
-                        processImage(img)
+                        handleAcquiredFrame(img, width, height)
                     } else {
-                        finishWithError("Timeout waiting for frame from display")
+                        fail("Timeout waiting for frame from display")
                     }
                 }
             }
-            // 3-second safety timeout instead of 120ms premature abort
-            handler.postDelayed(timeoutRunnable, 3000)
+            // 2.5-second safety timeout
+            handler.postDelayed(timeoutRunnable, 2500)
 
-            imageReader.setOnImageAvailableListener({ reader ->
-                if (!captured.getAndSet(true)) {
+            reader.setOnImageAvailableListener({ r ->
+                if (!frameCaptured.getAndSet(true)) {
                     handler.removeCallbacks(timeoutRunnable)
-                    val img = reader.acquireLatestImage() ?: reader.acquireNextImage()
+                    val img = r.acquireLatestImage() ?: r.acquireNextImage()
                     if (img != null) {
-                        processImage(img)
+                        Log.d(TAG, "image_reader_frame_received [$currentSessionId]")
+                        handleAcquiredFrame(img, width, height)
                     } else {
-                        finishWithError("Acquired null frame from reader")
+                        fail("Acquired null frame from reader")
                     }
                 }
             }, handler)
         } catch (e: Exception) {
-            BubbleService.restoreOverlays()
+            Log.e(TAG, "captureWithProjection failed [$currentSessionId]: ${e.message}", e)
             fail(e.message ?: "Failed to start MediaProjection")
         }
     }
 
-    override fun onDestroy() {
-        super.onDestroy()
-        BubbleService.restoreOverlays()
-        if (pendingPromise != null) {
-            pendingPromise?.reject("CAPTURE_FAILED", "Activity destroyed before capture completed")
-            pendingPromise = null
-        }
-        if (pendingCallback != null) {
-            pendingCallback?.invoke(null)
-            pendingCallback = null
+    private fun handleAcquiredFrame(image: android.media.Image, width: Int, height: Int) {
+        val currentSessionId = sessionId ?: return
+        ScreenCaptureManager.processImageAsync(
+            sessionId = currentSessionId,
+            image = image,
+            width = width,
+            height = height,
+            cacheDir = cacheDir,
+            onSuccess = { outFile, outW, outH ->
+                cleanup()
+                BubbleService.restoreOverlays()
+                ScreenCaptureManager.completeSessionWithSuccess(currentSessionId, outFile, outW, outH)
+                finish()
+            },
+            onError = { errMsg ->
+                cleanup()
+                fail(errMsg)
+            }
+        )
+    }
+
+    private fun cleanup() {
+        if (isCleanedUp.compareAndSet(false, true)) {
+            val currentSessionId = sessionId
+            Log.d(TAG, "resources_released [$currentSessionId]")
+            try { virtualDisplay?.release() } catch (_: Exception) {}
+            try { imageReader?.close() } catch (_: Exception) {}
+            try {
+                if (projectionCallback != null) {
+                    projection?.unregisterCallback(projectionCallback!!)
+                }
+            } catch (_: Exception) {}
+            try { projection?.stop() } catch (_: Exception) {}
+            virtualDisplay = null
+            imageReader = null
+            projection = null
+            projectionCallback = null
         }
     }
 
     private fun fail(message: String) {
+        val currentSessionId = sessionId
+        cleanup()
         BubbleService.restoreOverlays()
-        pendingCallback?.invoke(null)
-        pendingCallback = null
-        pendingPromise?.reject("CAPTURE_FAILED", message)
-        pendingPromise = null
+        if (currentSessionId != null) {
+            ScreenCaptureManager.completeSessionWithError(currentSessionId, message)
+        }
         finish()
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        cleanup()
+        BubbleService.restoreOverlays()
+        ScreenCaptureManager.handleActivityDestroyed(sessionId)
     }
 }

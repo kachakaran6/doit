@@ -19,6 +19,7 @@ import {
   Button,
   Chip,
   AttachmentItem,
+  AttachmentSection,
 } from '../components/ui';
 import { http } from '../lib/http';
 import {
@@ -603,6 +604,16 @@ export const CaptureModal: React.FC = () => {
                     ]}
                   />
                 )}
+              </View>
+            )}
+
+            {mode !== 'voice' && (
+              <View style={{ marginTop: spacing.md }}>
+                <AttachmentSection
+                  attachments={attachments}
+                  onAddAttachment={(item) => setAttachments((prev) => [...prev, item])}
+                  onRemoveAttachment={(idx) => setAttachments((prev) => prev.filter((_, i) => i !== idx))}
+                />
               </View>
             )}
 

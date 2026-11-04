@@ -363,7 +363,7 @@ class OverlayServiceModule(private val reactContext: ReactApplicationContext) :
     }
 
     private fun saveBitmapAndResolve(bitmap: Bitmap, width: Int, height: Int, promise: Promise) {
-        Thread {
+        ScreenCaptureManager.backgroundExecutor.execute {
             try {
                 val outFile = File(
                     reactContext.cacheDir,
@@ -385,9 +385,10 @@ class OverlayServiceModule(private val reactContext: ReactApplicationContext) :
                 }
                 promise.resolve(map)
             } catch (e: Exception) {
+                try { bitmap.recycle() } catch (_: Exception) {}
                 promise.reject("SAVE_FAILED", e.message)
             }
-        }.start()
+        }
     }
 
     private fun captureViaCanvas(decorView: View, width: Int, height: Int, promise: Promise) {

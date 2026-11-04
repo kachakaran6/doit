@@ -26,6 +26,7 @@ export const WorkspaceTile: React.FC<WorkspaceTileProps> = ({
 
   return (
     <View
+      pointerEvents="none"
       style={[
         styles.tile,
         {

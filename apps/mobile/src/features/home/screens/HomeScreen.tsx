@@ -30,6 +30,8 @@ import { useUpdateTaskStatusMutation } from '../../tasks/api/mutations';
 import { useAuthStore } from '../../auth/store';
 import { useWorkspaceStore, useWorkspacesQuery, useProjectsQuery } from '../../workspace';
 import { WorkspaceSwitcherSheet } from '../../workspace/components/WorkspaceSwitcherSheet';
+import { ProjectSwitcherSheet } from '../../workspace/components/ProjectSwitcherSheet';
+import { LabelManagerSheet } from '../../labels/components/LabelManagerSheet';
 import { AccountMenuSheet } from '../../settings/components/AccountMenuSheet';
 import { RootStackParamList } from '../../../navigation/types';
 import { TaskStatus } from '../../tasks/types';
@@ -61,6 +63,8 @@ export const HomeScreen: React.FC = () => {
   const user = useAuthStore((s) => s.user);
 
   const [isWorkspaceSheetOpen, setWorkspaceSheetOpen] = useState(false);
+  const [isProjectSheetOpen, setProjectSheetOpen] = useState(false);
+  const [isLabelSheetOpen, setLabelSheetOpen] = useState(false);
   const [isAccountMenuOpen, setAccountMenuOpen] = useState(false);
 
   useWorkspacesQuery();
@@ -126,7 +130,52 @@ export const HomeScreen: React.FC = () => {
   }
 
   return (
-    <Screen style={{ paddingTop: spacing.sm }}>
+    <Screen style={{ paddingTop: spacing.xs }}>
+      {/* 1. Top Header: Pinned Workspace Selector & User Avatar */}
+      <View style={[styles.topBar, { paddingHorizontal: spacing.sm, marginBottom: spacing.sm }]}>
+        <TouchableOpacity
+          style={[
+            styles.workspaceSelector,
+            {
+              backgroundColor: colors.surface1 || colors.surface,
+              borderRadius: radius.pill,
+              paddingHorizontal: 12,
+              paddingVertical: 6,
+              minHeight: 44,
+            },
+          ]}
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          activeOpacity={0.7}
+          onPress={() => setWorkspaceSheetOpen(true)}
+          accessibilityRole="button"
+          accessibilityLabel="Switch workspace"
+        >
+          <WorkspaceTile
+            name={activeWorkspace?.name || 'DoIt'}
+            id={activeWorkspace?.id || 'default'}
+            size={30}
+          />
+          <Text variant="bodyStrong" numberOfLines={1} style={styles.workspaceName}>
+            {activeWorkspace?.name || 'Workspace'}
+          </Text>
+          <ChevronDown size={14} color={colors.textSecondary} style={{ marginLeft: 4 }} />
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          onPress={() => setAccountMenuOpen(true)}
+          hitSlop={{ top: 16, bottom: 16, left: 16, right: 16 }}
+          style={{ width: 44, height: 44, alignItems: 'center', justifyContent: 'center' }}
+          activeOpacity={0.7}
+          accessibilityRole="button"
+          accessibilityLabel="Open user account menu"
+        >
+          <Avatar
+            name={user?.fullName || user?.email || 'User'}
+            size={36}
+          />
+        </TouchableOpacity>
+      </View>
+
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
@@ -139,46 +188,6 @@ export const HomeScreen: React.FC = () => {
           />
         }
       >
-        {/* 1. Top Header: Workspace Selector & User Avatar */}
-        <View style={styles.topBar}>
-          <TouchableOpacity
-            style={[
-              styles.workspaceSelector,
-              {
-                backgroundColor: colors.surface1 || colors.surface,
-                borderRadius: radius.pill,
-                paddingHorizontal: 8,
-                paddingVertical: 5,
-              },
-            ]}
-            activeOpacity={0.7}
-            onPress={() => setWorkspaceSheetOpen(true)}
-            accessibilityRole="button"
-            accessibilityLabel="Switch workspace"
-          >
-            <WorkspaceTile
-              name={activeWorkspace?.name || 'DoIt'}
-              id={activeWorkspace?.id || 'default'}
-              size={28}
-            />
-            <Text variant="bodyStrong" numberOfLines={1} style={styles.workspaceName}>
-              {activeWorkspace?.name || 'Workspace'}
-            </Text>
-            <ChevronDown size={14} color={colors.textSecondary} style={{ marginLeft: 4 }} />
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            onPress={() => setAccountMenuOpen(true)}
-            activeOpacity={0.8}
-            accessibilityRole="button"
-            accessibilityLabel="Open user account menu"
-          >
-            <Avatar
-              name={user?.fullName || user?.email || 'User'}
-              size="sm"
-            />
-          </TouchableOpacity>
-        </View>
 
         {/* 2. Hero "Today" Card with ProgressRing */}
         <TouchableOpacity
@@ -466,11 +475,23 @@ export const HomeScreen: React.FC = () => {
         onClose={() => setWorkspaceSheetOpen(false)}
       />
 
+      <ProjectSwitcherSheet
+        visible={isProjectSheetOpen}
+        onClose={() => setProjectSheetOpen(false)}
+      />
+
+      <LabelManagerSheet
+        visible={isLabelSheetOpen}
+        onClose={() => setLabelSheetOpen(false)}
+      />
+
       <AccountMenuSheet
         visible={isAccountMenuOpen}
         onClose={() => setAccountMenuOpen(false)}
         onNavigateSettings={() => navigation.navigate('Settings')}
         onOpenWorkspaceSwitcher={() => setWorkspaceSheetOpen(true)}
+        onOpenProjectSwitcher={() => setProjectSheetOpen(true)}
+        onOpenLabelManager={() => setLabelSheetOpen(true)}
       />
     </Screen>
   );

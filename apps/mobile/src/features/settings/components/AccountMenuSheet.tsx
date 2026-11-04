@@ -12,6 +12,8 @@ import {
   User as UserIcon,
   Building2,
   HelpCircle,
+  Folder,
+  Tag,
 } from 'lucide-react-native';
 
 interface AccountMenuSheetProps {
@@ -19,6 +21,8 @@ interface AccountMenuSheetProps {
   onClose: () => void;
   onNavigateSettings?: () => void;
   onOpenWorkspaceSwitcher?: () => void;
+  onOpenProjectSwitcher?: () => void;
+  onOpenLabelManager?: () => void;
 }
 
 /**
@@ -34,11 +38,14 @@ export const AccountMenuSheet: React.FC<AccountMenuSheetProps> = ({
   onClose,
   onNavigateSettings,
   onOpenWorkspaceSwitcher,
+  onOpenProjectSwitcher,
+  onOpenLabelManager,
 }) => {
   const { colors, spacing, radius } = useTheme();
   const user = useAuthStore((s) => s.user);
   const logout = useAuthStore((s) => s.logout);
   const activeWorkspace = useWorkspaceStore((s) => s.activeWorkspace);
+  const activeProject = useWorkspaceStore((s) => s.activeProject);
 
   const handleLogout = () => {
     Alert.alert(
@@ -139,6 +146,60 @@ export const AccountMenuSheet: React.FC<AccountMenuSheetProps> = ({
                   <Text variant="bodyStrong">Workspace</Text>
                   <Text variant="caption" color="secondary">
                     {activeWorkspace?.name || 'Default Workspace'}
+                  </Text>
+                </View>
+              </View>
+              <ChevronRight size={16} color={colors.textTertiary || colors.textMuted} />
+            </TouchableOpacity>
+
+            <View style={[styles.divider, { backgroundColor: colors.hairline || colors.border }]} />
+
+            {/* Projects Row */}
+            <TouchableOpacity
+              style={styles.menuRow}
+              onPress={() => {
+                onClose();
+                if (onOpenProjectSwitcher) {
+                  onOpenProjectSwitcher();
+                }
+              }}
+              activeOpacity={0.7}
+            >
+              <View style={styles.menuLeft}>
+                <View style={[styles.menuIconBox, { backgroundColor: 'rgba(245, 158, 11, 0.12)' }]}>
+                  <Folder size={16} color="#F59E0B" />
+                </View>
+                <View>
+                  <Text variant="bodyStrong">Projects</Text>
+                  <Text variant="caption" color="secondary">
+                    {activeProject?.name || 'Select or create project'}
+                  </Text>
+                </View>
+              </View>
+              <ChevronRight size={16} color={colors.textTertiary || colors.textMuted} />
+            </TouchableOpacity>
+
+            <View style={[styles.divider, { backgroundColor: colors.hairline || colors.border }]} />
+
+            {/* Labels Row */}
+            <TouchableOpacity
+              style={styles.menuRow}
+              onPress={() => {
+                onClose();
+                if (onOpenLabelManager) {
+                  onOpenLabelManager();
+                }
+              }}
+              activeOpacity={0.7}
+            >
+              <View style={styles.menuLeft}>
+                <View style={[styles.menuIconBox, { backgroundColor: 'rgba(16, 185, 129, 0.12)' }]}>
+                  <Tag size={16} color="#10B981" />
+                </View>
+                <View>
+                  <Text variant="bodyStrong">Labels</Text>
+                  <Text variant="caption" color="secondary">
+                    Manage & create tags
                   </Text>
                 </View>
               </View>

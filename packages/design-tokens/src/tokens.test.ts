@@ -11,7 +11,7 @@ import {
   typography,
   DEFAULT_ACCENT,
   tokens,
-} from './tokens.js';
+} from './tokens';
 
 // 1. Surface Luminance Ramp (8% ladder)
 if (!neutrals.light.canvas || !neutrals.dark.canvas) {
