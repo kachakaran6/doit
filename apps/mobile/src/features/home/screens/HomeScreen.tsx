@@ -105,7 +105,13 @@ export const HomeScreen: React.FC = () => {
   const allStickies = stickies || [];
 
   const completedCount = allTasks.filter((t) => t.status === 'DONE').length;
-  const pendingTasks = allTasks.filter((t) => t.status !== 'DONE');
+  const pendingTasks = [...allTasks]
+    .filter((t) => t.status !== 'DONE')
+    .sort((a, b) => {
+      const timeA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+      const timeB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+      return timeB - timeA;
+    });
   const totalCount = allTasks.length;
   const completionRatio = totalCount > 0 ? completedCount / totalCount : 0;
   const completionPercentage = Math.round(completionRatio * 100);

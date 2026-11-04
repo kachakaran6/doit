@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   StyleSheet,
@@ -10,7 +10,17 @@ import {
   StatusBar,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { X, Image as ImageIcon, Eye, FileText, Download } from 'lucide-react-native';
+import { Audio } from 'expo-av';
+import {
+  X,
+  Image as ImageIcon,
+  Eye,
+  FileText,
+  Play,
+  Pause,
+  RotateCcw,
+  Mic,
+} from 'lucide-react-native';
 import { Text } from '../ui/Text';
 import { useTheme } from '../../theme/useTheme';
 import { TaskAttachment } from '../../features/tasks/types';
@@ -20,7 +30,106 @@ interface AttachmentGalleryProps {
   attachments?: TaskAttachment[];
 }
 
-const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
+
+/**
+ * AudioAttachmentCard:
+ * Handles inline playback of voice recording attachments via expo-av.
+ */
+const AudioAttachmentCard: React.FC<{
+  attachment: TaskAttachment;
+}> = ({ attachment }) => {
+  const { colors, radius } = useTheme();
+  const [sound, setSound] = useState<Audio.Sound | null>(null);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [positionMs, setPositionMs] = useState(0);
+  const [durationMs, setDurationMs] = useState(attachment.durationMs || 0);
+
+  useEffect(() => {
+    return () => {
+      if (sound) {
+        sound.unloadAsync().catch(() => {});
+      }
+    };
+  }, [sound]);
+
+  const togglePlayback = async () => {
+    try {
+      const url = attachment.url || attachment.thumbUrl;
+      if (!url) return;
+
+      if (sound) {
+        if (isPlaying) {
+          await sound.pauseAsync();
+          setIsPlaying(false);
+        } else {
+          await sound.playAsync();
+          setIsPlaying(true);
+        }
+        return;
+      }
+
+      await Audio.setAudioModeAsync({ allowsRecordingIOS: false, playsInSilentModeIOS: true });
+      const { sound: newSound } = await Audio.Sound.createAsync(
+        { uri: url },
+        { shouldPlay: true },
+        (status) => {
+          if (status.isLoaded) {
+            setPositionMs(status.positionMillis);
+            if (status.durationMillis) setDurationMs(status.durationMillis);
+            if (status.didJustFinish) {
+              setIsPlaying(false);
+              setPositionMs(0);
+            }
+          }
+        }
+      );
+      setSound(newSound);
+      setIsPlaying(true);
+    } catch (e) {
+      console.warn('Audio playback error', e);
+    }
+  };
+
+  const formatTime = (ms: number) => {
+    const totalSec = Math.floor(ms / 1000);
+    const m = Math.floor(totalSec / 60);
+    const s = totalSec % 60;
+    return `${m}:${s < 10 ? '0' : ''}${s}`;
+  };
+
+  return (
+    <View
+      style={[
+        styles.audioCard,
+        {
+          backgroundColor: colors.surface,
+          borderRadius: radius.md,
+          borderColor: colors.border,
+        },
+      ]}
+    >
+      <TouchableOpacity
+        onPress={togglePlayback}
+        activeOpacity={0.8}
+        style={[styles.audioPlayBtn, { backgroundColor: colors.accent }]}
+      >
+        {isPlaying ? <Pause size={14} color="#FFF" /> : <Play size={14} color="#FFF" />}
+      </TouchableOpacity>
+      <View style={{ flex: 1, marginLeft: 10 }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+          <Mic size={12} color={colors.accent} style={{ marginRight: 4 }} />
+          <Text variant="caption" style={{ fontWeight: '700', color: colors.textPrimary }} numberOfLines={1}>
+            Voice Recording
+          </Text>
+        </View>
+        <Text variant="caption" color="secondary" style={{ fontSize: 11, marginTop: 2 }}>
+          {formatTime(isPlaying ? positionMs : durationMs || 0)}
+        </Text>
+      </View>
+    </View>
+  );
+};
 
 export const AttachmentGallery: React.FC<AttachmentGalleryProps> = ({
   title = 'ATTACHMENTS',
@@ -45,6 +154,13 @@ export const AttachmentGallery: React.FC<AttachmentGalleryProps> = ({
   const getDisplayUrl = (att: TaskAttachment): string | null => {
     return att.url || att.thumbUrl || null;
   };
+
+  const audioAttachments = attachments.filter(
+    (a) => a.kind === 'AUDIO' || a.mimeType?.startsWith('audio/')
+  );
+  const nonAudioAttachments = attachments.filter(
+    (a) => a.kind !== 'AUDIO' && !a.mimeType?.startsWith('audio/')
+  );
 
   return (
     <View style={styles.container}>
@@ -73,83 +189,94 @@ export const AttachmentGallery: React.FC<AttachmentGalleryProps> = ({
         </View>
       </View>
 
-      {/* Grid */}
-      <View style={styles.grid}>
-        {attachments.map((att, idx) => {
-          const displayUrl = getDisplayUrl(att);
-          const isImage = att.kind === 'IMAGE' || att.mimeType?.startsWith('image/');
-          const isError = imageErrors[att.id];
-          const isLoading = imageLoadingStates[att.id];
+      {/* Audio Attachments */}
+      {audioAttachments.length > 0 && (
+        <View style={styles.audioList}>
+          {audioAttachments.map((att, idx) => (
+            <AudioAttachmentCard key={att.id || `audio_${idx}`} attachment={att} />
+          ))}
+        </View>
+      )}
 
-          return (
-            <TouchableOpacity
-              key={att.id || idx}
-              activeOpacity={0.85}
-              style={[
-                styles.thumbnailCard,
-                {
-                  backgroundColor: colors.surface,
-                  borderColor: colors.border,
-                  borderRadius: radius.md,
-                  ...elevation.e1,
-                },
-              ]}
-              onPress={() => {
-                if (displayUrl) {
-                  setSelectedAttachment(att);
-                }
-              }}
-            >
-              {isImage && displayUrl && !isError ? (
-                <View style={styles.imageWrapper}>
-                  <Image
-                    source={{ uri: displayUrl }}
-                    style={styles.thumbnailImage}
-                    resizeMode="cover"
-                    onLoadStart={() =>
-                      setImageLoadingStates((prev) => ({ ...prev, [att.id]: true }))
-                    }
-                    onLoadEnd={() =>
-                      setImageLoadingStates((prev) => ({ ...prev, [att.id]: false }))
-                    }
-                    onError={() =>
-                      setImageErrors((prev) => ({ ...prev, [att.id]: true }))
-                    }
-                  />
-                  {isLoading && (
-                    <View style={styles.loadingOverlay}>
-                      <ActivityIndicator size="small" color={colors.accent} />
+      {/* Image and File Grid */}
+      {nonAudioAttachments.length > 0 && (
+        <View style={styles.grid}>
+          {nonAudioAttachments.map((att, idx) => {
+            const displayUrl = getDisplayUrl(att);
+            const isImage = att.kind === 'IMAGE' || att.mimeType?.startsWith('image/');
+            const isError = imageErrors[att.id];
+            const isLoading = imageLoadingStates[att.id];
+
+            return (
+              <TouchableOpacity
+                key={att.id || idx}
+                activeOpacity={0.85}
+                style={[
+                  styles.thumbnailCard,
+                  {
+                    backgroundColor: colors.surface,
+                    borderColor: colors.border,
+                    borderRadius: radius.md,
+                    ...elevation.e1,
+                  },
+                ]}
+                onPress={() => {
+                  if (displayUrl) {
+                    setSelectedAttachment(att);
+                  }
+                }}
+              >
+                {isImage && displayUrl && !isError ? (
+                  <View style={styles.imageWrapper}>
+                    <Image
+                      source={{ uri: displayUrl }}
+                      style={styles.thumbnailImage}
+                      resizeMode="cover"
+                      onLoadStart={() =>
+                        setImageLoadingStates((prev) => ({ ...prev, [att.id]: true }))
+                      }
+                      onLoadEnd={() =>
+                        setImageLoadingStates((prev) => ({ ...prev, [att.id]: false }))
+                      }
+                      onError={() =>
+                        setImageErrors((prev) => ({ ...prev, [att.id]: true }))
+                      }
+                    />
+                    {isLoading && (
+                      <View style={styles.loadingOverlay}>
+                        <ActivityIndicator size="small" color={colors.accent} />
+                      </View>
+                    )}
+                    {/* Tap to view hint overlay */}
+                    <View style={styles.viewBadge}>
+                      <Eye size={12} color="#FFF" />
                     </View>
-                  )}
-                  {/* Tap to view hint overlay */}
-                  <View style={styles.viewBadge}>
-                    <Eye size={12} color="#FFF" />
                   </View>
-                </View>
-              ) : (
-                <View style={styles.fileFallback}>
-                  <FileText size={28} color={colors.textTertiary} />
-                  <Text variant="caption" color="secondary" numberOfLines={1} style={{ marginTop: 4 }}>
-                    {att.mimeType || 'Attachment'}
-                  </Text>
-                </View>
-              )}
-
-              {/* Meta footer */}
-              <View style={[styles.metaFooter, { borderTopColor: colors.border }]}>
-                <Text variant="caption" color="secondary" numberOfLines={1} style={{ flex: 1, fontSize: 11 }}>
-                  {att.storageKey?.split('/').pop() || `attachment_${idx + 1}`}
-                </Text>
-                {att.sizeBytes > 0 && (
-                  <Text variant="caption" color="tertiary" style={{ fontSize: 10, marginLeft: 4 }}>
-                    {formatFileSize(att.sizeBytes)}
-                  </Text>
+                ) : (
+                  <View style={styles.fileFallback}>
+                    <FileText size={28} color={colors.textTertiary} />
+                    <Text variant="caption" color="secondary" numberOfLines={1} style={{ marginTop: 4 }}>
+                      {att.mimeType || 'Attachment'}
+                    </Text>
+                  </View>
                 )}
-              </View>
-            </TouchableOpacity>
-          );
-        })}
-      </View>
+
+                {/* Meta footer */}
+                <View style={[styles.metaFooter, { borderTopColor: colors.border }]}>
+                  <Text variant="caption" color="secondary" numberOfLines={1} style={{ flex: 1, fontSize: 11 }}>
+                    {att.storageKey?.split('/').pop() || `attachment_${idx + 1}`}
+                  </Text>
+                  {att.sizeBytes > 0 && (
+                    <Text variant="caption" color="tertiary" style={{ fontSize: 10, marginLeft: 4 }}>
+                      {formatFileSize(att.sizeBytes)}
+                    </Text>
+                  )}
+                </View>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+      )}
 
       {/* Full-Screen Image Viewer Modal */}
       <Modal
@@ -180,7 +307,7 @@ export const AttachmentGallery: React.FC<AttachmentGalleryProps> = ({
             </TouchableOpacity>
           </View>
 
-          {/* Image View */}
+          {/* Image Display */}
           <View style={styles.modalImageContainer}>
             {selectedAttachment && getDisplayUrl(selectedAttachment) ? (
               <Image
@@ -210,6 +337,23 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 2,
     borderWidth: 1,
+  },
+  audioList: {
+    marginBottom: 12,
+    gap: 8,
+  },
+  audioCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 10,
+    borderWidth: 1,
+  },
+  audioPlayBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   grid: {
     flexDirection: 'row',

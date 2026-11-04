@@ -31,6 +31,8 @@ export interface TaskViewModel {
   assigneeId?: string;
   labels?: Array<{ id: string; name: string; color: string }>;
   attachments?: TaskAttachment[];
+  createdAt?: string;
+  updatedAt?: string;
   isPending?: boolean;
   isFailed?: boolean;
 }

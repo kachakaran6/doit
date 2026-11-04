@@ -8,6 +8,7 @@ import android.app.Service
 import android.content.Context
 import android.content.Intent
 import android.content.SharedPreferences
+import android.content.pm.ServiceInfo
 import android.content.res.ColorStateList
 import android.graphics.Color
 import android.graphics.PixelFormat
@@ -17,6 +18,8 @@ import android.hardware.Sensor
 import android.hardware.SensorEvent
 import android.hardware.SensorEventListener
 import android.hardware.SensorManager
+import android.media.MediaPlayer
+import android.media.MediaRecorder
 import android.net.Uri
 import android.os.Build
 import android.os.Handler
@@ -24,6 +27,8 @@ import android.os.IBinder
 import android.os.Looper
 import android.os.VibrationEffect
 import android.os.Vibrator
+import android.text.Editable
+import android.text.TextWatcher
 import android.util.DisplayMetrics
 import android.util.TypedValue
 import android.view.Gravity
@@ -31,7 +36,6 @@ import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
 import android.view.WindowManager
-import android.widget.CheckBox
 import android.widget.EditText
 import android.widget.FrameLayout
 import android.widget.ImageView
@@ -43,17 +47,19 @@ import com.samyukt.doit.R
 import org.json.JSONObject
 import java.io.File
 import java.io.FileInputStream
-import java.io.OutputStream
 import java.net.HttpURLConnection
 import java.net.URL
 import java.nio.charset.StandardCharsets
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 /**
  * Android Foreground Service hosting:
  * 1. 44dp draggable floating Quick Capture bubble using official app icon
  * 2. Background accelerometer shake detector outside DoIt
- * 3. Compact Shake Prompt dialog ("Report a Bug" / "Create a Task" / "Cancel")
- * 4. Compact Quick Capture modal overlay with clean screenshot attachment
+ * 3. Compact Shake Prompt dialog ("Report a Bug" / "Create a Task" / "Cancel") with Lucide icons
+ * 4. Premium Quick Capture modal overlay with clean screenshot & voice recording attachments
  */
 class BubbleService : Service(), SensorEventListener {
 
@@ -83,8 +89,42 @@ class BubbleService : Service(), SensorEventListener {
     // Capture Modal State
     private var currentMode: String = "TASK" // "TASK" or "BUG"
     private var activeEditText: EditText? = null
-    private var activeCheckBox: CheckBox? = null
+    private var isScreenshotSelected: Boolean = false
+    private var screenshotToggleButton: LinearLayout? = null
+    private var screenshotIcon: ImageView? = null
+    private var screenshotText: TextView? = null
+
+    // Audio Recording State
+    private var mediaRecorder: MediaRecorder? = null
+    private var activeAudioFile: File? = null
+    private var audioDurationMs: Long = 0L
+    private var isRecordingAudio: Boolean = false
+    private var recordingStartTime: Long = 0L
+    private val recordingTimerHandler = Handler(Looper.getMainLooper())
+    private var recordingTimerText: TextView? = null
+    private var recordingStateLayout: LinearLayout? = null
+    private var voiceRecordButton: LinearLayout? = null
+    private var audioPreviewLayout: LinearLayout? = null
+    private var audioPreviewDurationText: TextView? = null
+    private var audioPlayPauseIcon: ImageView? = null
+    private var mediaPlayer: MediaPlayer? = null
+    private var isPlayingAudio: Boolean = false
+
+    // Submit Button
+    private var submitButton: LinearLayout? = null
+    private var submitButtonText: TextView? = null
+    private var submitButtonIcon: ImageView? = null
     private var isSubmitting: Boolean = false
+
+    private val timerRunnable = object : Runnable {
+        override fun run() {
+            if (!isRecordingAudio) return
+            val elapsedSec = ((System.currentTimeMillis() - recordingStartTime) / 1000).toInt()
+            val formatted = String.format(Locale.US, "%02d:%02d", elapsedSec / 60, elapsedSec % 60)
+            recordingTimerText?.text = formatted
+            recordingTimerHandler.postDelayed(this, 500)
+        }
+    }
 
     companion object {
         const val CHANNEL_ID = "doit_quick_capture_overlay"
@@ -163,7 +203,7 @@ class BubbleService : Service(), SensorEventListener {
             startForeground(
                 NOTIFICATION_ID,
                 createNotification(),
-                android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE
+                ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE
             )
         } else {
             startForeground(NOTIFICATION_ID, createNotification())
@@ -180,51 +220,6 @@ class BubbleService : Service(), SensorEventListener {
         ).toInt()
     }
 
-    private fun createNotificationChannel() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val channel = NotificationChannel(
-                CHANNEL_ID,
-                "DoIt Quick Capture",
-                NotificationManager.IMPORTANCE_LOW
-            ).apply {
-                description = "Active floating bubble for quick task and bug capture"
-                setShowBadge(false)
-            }
-            val manager = getSystemService(NotificationManager::class.java)
-            manager?.createNotificationChannel(channel)
-        }
-    }
-
-    private fun createNotification(): Notification {
-        val stopIntent = Intent(this, BubbleService::class.java).apply {
-            action = ACTION_STOP
-        }
-        val stopPendingIntent = PendingIntent.getService(
-            this, 0, stopIntent,
-            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
-        )
-
-        val openIntent = packageManager.getLaunchIntentForPackage(packageName)?.apply {
-            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP
-        }
-        val openPendingIntent = if (openIntent != null) {
-            PendingIntent.getActivity(
-                this, 1, openIntent,
-                PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
-            )
-        } else null
-
-        return NotificationCompat.Builder(this, CHANNEL_ID)
-            .setContentTitle("DoIt Quick Capture is active")
-            .setContentText("Tap floating bubble or shake to add task or report bug")
-            .setSmallIcon(R.mipmap.ic_launcher_round)
-            .setContentIntent(openPendingIntent)
-            .addAction(android.R.drawable.ic_menu_close_clear_cancel, "Hide Bubble", stopPendingIntent)
-            .setOngoing(true)
-            .setPriority(NotificationCompat.PRIORITY_LOW)
-            .build()
-    }
-
     private fun getOverlayLayoutType(): Int {
         return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
@@ -234,48 +229,93 @@ class BubbleService : Service(), SensorEventListener {
         }
     }
 
+    private fun createNotificationChannel() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val channel = NotificationChannel(
+                CHANNEL_ID,
+                "DoIt Quick Capture",
+                NotificationManager.IMPORTANCE_LOW
+            ).apply {
+                description = "Shows the floating DoIt quick capture bubble and listens for shake"
+                setShowBadge(false)
+            }
+            val nm = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+            nm.createNotificationChannel(channel)
+        }
+    }
+
+    private fun createNotification(): Notification {
+        val openIntent = packageManager.getLaunchIntentForPackage(packageName)
+        val openPendingIntent = PendingIntent.getActivity(
+            this,
+            0,
+            openIntent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+
+        val stopIntent = Intent(this, BubbleService::class.java).apply {
+            action = ACTION_STOP
+        }
+        val stopPendingIntent = PendingIntent.getService(
+            this,
+            1,
+            stopIntent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+
+        return NotificationCompat.Builder(this, CHANNEL_ID)
+            .setContentTitle("DoIt Quick Capture")
+            .setContentText("Tap bubble or shake phone anywhere to capture a task or bug")
+            .setSmallIcon(R.mipmap.ic_launcher_round)
+            .setContentIntent(openPendingIntent)
+            .addAction(android.R.drawable.ic_menu_close_clear_cancel, "Hide Bubble", stopPendingIntent)
+            .setOngoing(true)
+            .setPriority(NotificationCompat.PRIORITY_LOW)
+            .build()
+    }
+
     // ==========================================
-    // 1. FLOATING BUBBLE (44dp with App Icon)
+    // 1. DRAGGABLE FLOATING BUBBLE OVERLAY
     // ==========================================
 
     private fun createBubbleView() {
-        val bubbleSizePx = dpToPx(44f)
+        val wm = windowManager ?: return
 
+        val bubbleSizePx = dpToPx(44f)
         bubbleParams = WindowManager.LayoutParams(
             bubbleSizePx,
             bubbleSizePx,
             getOverlayLayoutType(),
             WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
-                    WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
+                WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
             PixelFormat.TRANSLUCENT
         ).apply {
             gravity = Gravity.TOP or Gravity.START
-            x = dpToPx(12f)
-            y = dpToPx(200f)
-        }
-
-        // Circular card background: #17191C, border 1.5dp #7775D8
-        val bgDrawable = GradientDrawable().apply {
-            shape = GradientDrawable.OVAL
-            setColor(Color.parseColor("#17191C"))
-            setStroke(dpToPx(1.5f), Color.parseColor("#7775D8"))
+            x = dpToPx(16f)
+            y = dpToPx(240f)
         }
 
         bubbleContainer = FrameLayout(this).apply {
-            background = bgDrawable
-            val p = dpToPx(6f)
-            setPadding(p, p, p, p)
+            val bg = GradientDrawable().apply {
+                shape = GradientDrawable.OVAL
+                setColor(Color.parseColor("#1C1E24"))
+                setStroke(dpToPx(1.5f), Color.parseColor("#3D424D"))
+            }
+            background = bg
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
                 elevation = dpToPx(8f).toFloat()
             }
         }
 
-        val appIcon = ImageView(this).apply {
+        // Inner app icon
+        val iconView = ImageView(this).apply {
             setImageResource(R.mipmap.ic_launcher_round)
+            val p = dpToPx(5f)
+            setPadding(p, p, p, p)
             scaleType = ImageView.ScaleType.FIT_CENTER
         }
         bubbleContainer?.addView(
-            appIcon,
+            iconView,
             FrameLayout.LayoutParams(
                 FrameLayout.LayoutParams.MATCH_PARENT,
                 FrameLayout.LayoutParams.MATCH_PARENT,
@@ -372,7 +412,6 @@ class BubbleService : Service(), SensorEventListener {
     }
 
     private fun onBubbleTapped() {
-        // Tapping bubble opens the native compact capture modal directly over other apps
         showCompactModal("TASK")
     }
 
@@ -429,14 +468,13 @@ class BubbleService : Service(), SensorEventListener {
     private fun onShakeDetected() {
         Handler(Looper.getMainLooper()).post {
             triggerHaptic(60)
-            // If already displaying modal or prompt, don't overlap
             if (modalContainer != null || promptContainer != null) return@post
             showShakePrompt()
         }
     }
 
     // ==========================================
-    // 3. SHAKE CHOICE PROMPT ("Bug", "Task", "Cancel")
+    // 3. SHAKE CHOICE PROMPT (Clean Lucide Icons)
     // ==========================================
 
     private fun showShakePrompt() {
@@ -494,8 +532,8 @@ class BubbleService : Service(), SensorEventListener {
         }
         promptContainer?.addView(subtitleView)
 
-        // Button 1: Report a Bug
-        val bugBtn = createPromptButton("🐞 Report a Bug", Color.parseColor("#261B20"), Color.parseColor("#E05656")) {
+        // Button 1: Report a Bug (Lucide Bug icon, NO emoji)
+        val bugBtn = createPromptButton(R.drawable.ic_lucide_bug, "Report a Bug", Color.parseColor("#261B20"), Color.parseColor("#E05656")) {
             dismissShakePrompt()
             showCompactModal("BUG")
         }
@@ -509,8 +547,8 @@ class BubbleService : Service(), SensorEventListener {
             )
         })
 
-        // Button 2: Create a Task
-        val taskBtn = createPromptButton("📝 Create a Task", Color.parseColor("#1E2033"), Color.parseColor("#7775D8")) {
+        // Button 2: Create a Task (Lucide List-Checks icon, NO emoji)
+        val taskBtn = createPromptButton(R.drawable.ic_lucide_list_checks, "Create a Task", Color.parseColor("#1E2033"), Color.parseColor("#7775D8")) {
             dismissShakePrompt()
             showCompactModal("TASK")
         }
@@ -543,7 +581,7 @@ class BubbleService : Service(), SensorEventListener {
         } catch (_: Exception) {}
     }
 
-    private fun createPromptButton(text: String, bgColor: Int, textColor: Int, onClick: () -> Unit): LinearLayout {
+    private fun createPromptButton(iconRes: Int, text: String, bgColor: Int, textColor: Int, onClick: () -> Unit): LinearLayout {
         return LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER
@@ -562,6 +600,15 @@ class BubbleService : Service(), SensorEventListener {
             isClickable = true
             isFocusable = true
             setOnClickListener { onClick() }
+
+            val iv = ImageView(context).apply {
+                setImageResource(iconRes)
+                imageTintList = ColorStateList.valueOf(textColor)
+                layoutParams = LinearLayout.LayoutParams(dpToPx(18f), dpToPx(18f)).apply {
+                    marginEnd = dpToPx(8f)
+                }
+            }
+            addView(iv)
 
             val tv = TextView(context).apply {
                 this.text = text
@@ -582,7 +629,7 @@ class BubbleService : Service(), SensorEventListener {
     }
 
     // ==========================================
-    // 4. COMPACT QUICK CAPTURE MODAL OVERLAY
+    // 4. PREMIUM QUICK CAPTURE MODAL OVERLAY
     // ==========================================
 
     private fun showCompactModal(initialMode: String) {
@@ -592,6 +639,11 @@ class BubbleService : Service(), SensorEventListener {
         val wm = windowManager ?: return
         currentMode = initialMode.uppercase()
         isSubmitting = false
+        isScreenshotSelected = false
+        activeAudioFile = null
+        audioDurationMs = 0L
+        isRecordingAudio = false
+        isPlayingAudio = false
 
         val displayMetrics = resources.displayMetrics
         val screenWidth = displayMetrics.widthPixels
@@ -605,7 +657,7 @@ class BubbleService : Service(), SensorEventListener {
             PixelFormat.TRANSLUCENT
         ).apply {
             gravity = Gravity.TOP or Gravity.CENTER_HORIZONTAL
-            y = dpToPx(100f)
+            y = dpToPx(90f)
         }
 
         modalContainer = LinearLayout(this).apply {
@@ -623,7 +675,7 @@ class BubbleService : Service(), SensorEventListener {
             }
         }
 
-        // Header: "DoIt Quick Capture" + Close button
+        // Header: DoIt App Identity + Title + Close Button
         val headerLayout = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
@@ -633,21 +685,31 @@ class BubbleService : Service(), SensorEventListener {
             )
         }
 
+        val appIcon = ImageView(this).apply {
+            setImageResource(R.mipmap.ic_launcher_round)
+            layoutParams = LinearLayout.LayoutParams(dpToPx(20f), dpToPx(20f)).apply {
+                marginEnd = dpToPx(8f)
+            }
+        }
+        headerLayout.addView(appIcon)
+
         val headerTitle = TextView(this).apply {
-            text = "DoIt Quick Capture"
+            text = "Quick Capture"
             setTextColor(Color.WHITE)
-            setTextSize(TypedValue.COMPLEX_UNIT_SP, 15f)
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 15.5f)
             setTypeface(typeface, android.graphics.Typeface.BOLD)
             layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
         }
         headerLayout.addView(headerTitle)
 
-        val closeBtn = TextView(this).apply {
-            text = "✕"
-            setTextColor(Color.parseColor("#9EA3AE"))
-            setTextSize(TypedValue.COMPLEX_UNIT_SP, 16f)
-            val pC = dpToPx(6f)
+        val closeBtn = ImageView(this).apply {
+            setImageResource(R.drawable.ic_lucide_x)
+            imageTintList = ColorStateList.valueOf(Color.parseColor("#9EA3AE"))
+            val pC = dpToPx(4f)
             setPadding(pC, pC, pC, pC)
+            layoutParams = LinearLayout.LayoutParams(dpToPx(24f), dpToPx(24f))
+            isClickable = true
+            isFocusable = true
             setOnClickListener {
                 dismissCompactModal()
             }
@@ -655,12 +717,12 @@ class BubbleService : Service(), SensorEventListener {
         headerLayout.addView(closeBtn)
         modalContainer?.addView(headerLayout)
 
-        // Type Toggle Pills: Task / Bug
+        // Type Toggle Pills: Task / Bug (Lucide Icons, zero emojis)
         val toggleLayout = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             val lp = LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
-                LinearLayout.LayoutParams.WRAP_CONTENT
+                dpToPx(36f)
             ).apply {
                 topMargin = dpToPx(12f)
                 bottomMargin = dpToPx(12f)
@@ -668,22 +730,24 @@ class BubbleService : Service(), SensorEventListener {
             layoutParams = lp
         }
 
-        val taskPill = createModePill("📝 Task", currentMode == "TASK")
-        val bugPill = createModePill("🐞 Bug", currentMode == "BUG")
+        val taskPill = createModePill(R.drawable.ic_lucide_list_checks, "Task", currentMode == "TASK")
+        val bugPill = createModePill(R.drawable.ic_lucide_bug, "Bug", currentMode == "BUG")
 
         taskPill.setOnClickListener {
             currentMode = "TASK"
             updatePillStyle(taskPill, true)
             updatePillStyle(bugPill, false)
+            updateSubmitButtonState()
         }
         bugPill.setOnClickListener {
             currentMode = "BUG"
             updatePillStyle(bugPill, true)
             updatePillStyle(taskPill, false)
+            updateSubmitButtonState()
         }
 
-        toggleLayout.addView(taskPill, LinearLayout.LayoutParams(0, dpToPx(34f), 1f).apply { marginEnd = dpToPx(6f) })
-        toggleLayout.addView(bugPill, LinearLayout.LayoutParams(0, dpToPx(34f), 1f).apply { marginStart = dpToPx(6f) })
+        toggleLayout.addView(taskPill, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.MATCH_PARENT, 1f).apply { marginEnd = dpToPx(6f) })
+        toggleLayout.addView(bugPill, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.MATCH_PARENT, 1f).apply { marginStart = dpToPx(6f) })
         modalContainer?.addView(toggleLayout)
 
         // Multiline Input Field
@@ -711,26 +775,250 @@ class BubbleService : Service(), SensorEventListener {
             ).apply {
                 bottomMargin = dpToPx(12f)
             }
+            addTextChangedListener(object : TextWatcher {
+                override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+                override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
+                    updateSubmitButtonState()
+                }
+                override fun afterTextChanged(s: Editable?) {}
+            })
         }
         modalContainer?.addView(activeEditText)
 
-        // Screenshot Checkbox Row
-        activeCheckBox = CheckBox(this).apply {
-            text = "Attach current screen screenshot"
-            setTextColor(Color.parseColor("#D0D4DD"))
-            setTextSize(TypedValue.COMPLEX_UNIT_SP, 13f)
-            isChecked = false
-            buttonTintList = ColorStateList.valueOf(Color.parseColor("#7775D8"))
+        // Actions Toolbar: Screenshot Toggle & Record Voice Button
+        val toolbarLayout = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            val lp = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                dpToPx(36f)
+            ).apply {
+                bottomMargin = dpToPx(12f)
+            }
+            layoutParams = lp
+        }
+
+        // Screenshot Action Pill
+        screenshotToggleButton = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER
+            isClickable = true
+            isFocusable = true
+            val pX = dpToPx(8f)
+            setPadding(pX, 0, pX, 0)
+        }
+        screenshotIcon = ImageView(this).apply {
+            setImageResource(R.drawable.ic_lucide_camera)
+            layoutParams = LinearLayout.LayoutParams(dpToPx(16f), dpToPx(16f)).apply {
+                marginEnd = dpToPx(6f)
+            }
+        }
+        screenshotText = TextView(this).apply {
+            text = "Screenshot"
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 12.5f)
+        }
+        screenshotToggleButton?.addView(screenshotIcon)
+        screenshotToggleButton?.addView(screenshotText)
+        updateScreenshotToggleUI()
+
+        screenshotToggleButton?.setOnClickListener {
+            isScreenshotSelected = !isScreenshotSelected
+            updateScreenshotToggleUI()
+            updateSubmitButtonState()
+        }
+        toolbarLayout.addView(screenshotToggleButton, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.MATCH_PARENT, 1f).apply { marginEnd = dpToPx(6f) })
+
+        // Voice Record Action Pill
+        voiceRecordButton = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER
+            isClickable = true
+            isFocusable = true
+            background = GradientDrawable().apply {
+                shape = GradientDrawable.RECTANGLE
+                cornerRadius = dpToPx(8f).toFloat()
+                setColor(Color.parseColor("#202227"))
+                setStroke(dpToPx(1f), Color.parseColor("#2D3037"))
+            }
+            val pX = dpToPx(8f)
+            setPadding(pX, 0, pX, 0)
+            setOnClickListener {
+                startAudioRecording()
+            }
+        }
+        val micIcon = ImageView(this).apply {
+            setImageResource(R.drawable.ic_lucide_mic)
+            imageTintList = ColorStateList.valueOf(Color.parseColor("#9EA3AE"))
+            layoutParams = LinearLayout.LayoutParams(dpToPx(16f), dpToPx(16f)).apply {
+                marginEnd = dpToPx(6f)
+            }
+        }
+        val micText = TextView(this).apply {
+            text = "Record voice"
+            setTextColor(Color.parseColor("#9EA3AE"))
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 12.5f)
+        }
+        voiceRecordButton?.addView(micIcon)
+        voiceRecordButton?.addView(micText)
+        toolbarLayout.addView(voiceRecordButton, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.MATCH_PARENT, 1f).apply { marginStart = dpToPx(6f) })
+
+        modalContainer?.addView(toolbarLayout)
+
+        // Recording Active Bar (Hidden initially)
+        recordingStateLayout = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            visibility = View.GONE
+            background = GradientDrawable().apply {
+                shape = GradientDrawable.RECTANGLE
+                cornerRadius = dpToPx(8f).toFloat()
+                setColor(Color.parseColor("#261B20"))
+                setStroke(dpToPx(1f), Color.parseColor("#E05656"))
+            }
+            val pR = dpToPx(10f)
+            setPadding(pR, dpToPx(6f), pR, dpToPx(6f))
             layoutParams = LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
                 LinearLayout.LayoutParams.WRAP_CONTENT
             ).apply {
-                bottomMargin = dpToPx(16f)
+                bottomMargin = dpToPx(12f)
             }
         }
-        modalContainer?.addView(activeCheckBox)
 
-        // Actions Row: [ Cancel ] [ Submit ]
+        val recDot = ImageView(this).apply {
+            setImageResource(R.drawable.ic_lucide_mic)
+            imageTintList = ColorStateList.valueOf(Color.parseColor("#E05656"))
+            layoutParams = LinearLayout.LayoutParams(dpToPx(16f), dpToPx(16f)).apply {
+                marginEnd = dpToPx(6f)
+            }
+        }
+        recordingStateLayout?.addView(recDot)
+
+        val recLabel = TextView(this).apply {
+            text = "Recording"
+            setTextColor(Color.parseColor("#E05656"))
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 13f)
+            setTypeface(typeface, android.graphics.Typeface.BOLD)
+        }
+        recordingStateLayout?.addView(recLabel)
+
+        recordingTimerText = TextView(this).apply {
+            text = "00:00"
+            setTextColor(Color.WHITE)
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 13f)
+            layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f).apply {
+                marginStart = dpToPx(8f)
+            }
+        }
+        recordingStateLayout?.addView(recordingTimerText)
+
+        // Stop Recording Button
+        val stopBtn = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER
+            isClickable = true
+            isFocusable = true
+            background = GradientDrawable().apply {
+                shape = GradientDrawable.RECTANGLE
+                cornerRadius = dpToPx(6f).toFloat()
+                setColor(Color.parseColor("#E05656"))
+            }
+            val pS = dpToPx(6f)
+            setPadding(dpToPx(8f), pS, dpToPx(8f), pS)
+            setOnClickListener {
+                stopAudioRecording()
+            }
+        }
+        val stopIcon = ImageView(this).apply {
+            setImageResource(R.drawable.ic_lucide_square)
+            imageTintList = ColorStateList.valueOf(Color.WHITE)
+            layoutParams = LinearLayout.LayoutParams(dpToPx(12f), dpToPx(12f)).apply {
+                marginEnd = dpToPx(4f)
+            }
+        }
+        val stopText = TextView(this).apply {
+            text = "Stop"
+            setTextColor(Color.WHITE)
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 12f)
+            setTypeface(typeface, android.graphics.Typeface.BOLD)
+        }
+        stopBtn.addView(stopIcon)
+        stopBtn.addView(stopText)
+        recordingStateLayout?.addView(stopBtn)
+
+        modalContainer?.addView(recordingStateLayout)
+
+        // Recorded Audio Preview Card (Hidden initially)
+        audioPreviewLayout = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            visibility = View.GONE
+            background = GradientDrawable().apply {
+                shape = GradientDrawable.RECTANGLE
+                cornerRadius = dpToPx(8f).toFloat()
+                setColor(Color.parseColor("#1F2126"))
+                setStroke(dpToPx(1f), Color.parseColor("#30333C"))
+            }
+            val pP = dpToPx(10f)
+            setPadding(pP, dpToPx(6f), pP, dpToPx(6f))
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            ).apply {
+                bottomMargin = dpToPx(12f)
+            }
+        }
+
+        val previewMic = ImageView(this).apply {
+            setImageResource(R.drawable.ic_lucide_mic)
+            imageTintList = ColorStateList.valueOf(Color.parseColor("#7775D8"))
+            layoutParams = LinearLayout.LayoutParams(dpToPx(16f), dpToPx(16f)).apply {
+                marginEnd = dpToPx(6f)
+            }
+        }
+        audioPreviewLayout?.addView(previewMic)
+
+        audioPreviewDurationText = TextView(this).apply {
+            text = "Voice note"
+            setTextColor(Color.parseColor("#E0E0E0"))
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 13f)
+            layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+        }
+        audioPreviewLayout?.addView(audioPreviewDurationText)
+
+        audioPlayPauseIcon = ImageView(this).apply {
+            setImageResource(R.drawable.ic_lucide_play)
+            imageTintList = ColorStateList.valueOf(Color.parseColor("#7775D8"))
+            layoutParams = LinearLayout.LayoutParams(dpToPx(24f), dpToPx(24f))
+            val pI = dpToPx(3f)
+            setPadding(pI, pI, pI, pI)
+            isClickable = true
+            isFocusable = true
+            setOnClickListener {
+                togglePlayPauseAudio()
+            }
+        }
+        audioPreviewLayout?.addView(audioPlayPauseIcon)
+
+        val deleteIcon = ImageView(this).apply {
+            setImageResource(R.drawable.ic_lucide_trash_2)
+            imageTintList = ColorStateList.valueOf(Color.parseColor("#E05656"))
+            layoutParams = LinearLayout.LayoutParams(dpToPx(24f), dpToPx(24f)).apply {
+                marginStart = dpToPx(10f)
+            }
+            val pD = dpToPx(3f)
+            setPadding(pD, pD, pD, pD)
+            isClickable = true
+            isFocusable = true
+            setOnClickListener {
+                deleteAudioRecording()
+            }
+        }
+        audioPreviewLayout?.addView(deleteIcon)
+
+        modalContainer?.addView(audioPreviewLayout)
+
+        // Actions Row: [ Cancel ] [ Submit (Lucide Send icon) ]
         val actionsLayout = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
@@ -753,44 +1041,88 @@ class BubbleService : Service(), SensorEventListener {
         }
         actionsLayout.addView(cancelAction, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
 
-        val submitAction = TextView(this).apply {
-            text = "Submit"
-            setTextColor(Color.WHITE)
-            setTextSize(TypedValue.COMPLEX_UNIT_SP, 14.5f)
-            setTypeface(typeface, android.graphics.Typeface.BOLD)
+        submitButton = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER
-            background = GradientDrawable().apply {
-                shape = GradientDrawable.RECTANGLE
-                cornerRadius = dpToPx(10f).toFloat()
-                setColor(Color.parseColor("#7775D8"))
-            }
-            val pS = dpToPx(11f)
-            setPadding(dpToPx(18f), pS, dpToPx(18f), pS)
+            val pS = dpToPx(9f)
+            setPadding(dpToPx(16f), pS, dpToPx(16f), pS)
             setOnClickListener {
                 handleSubmit()
             }
         }
-        actionsLayout.addView(submitAction, LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT))
+
+        submitButtonIcon = ImageView(this).apply {
+            setImageResource(R.drawable.ic_lucide_send)
+            layoutParams = LinearLayout.LayoutParams(dpToPx(15f), dpToPx(15f)).apply {
+                marginEnd = dpToPx(6f)
+            }
+        }
+        submitButton?.addView(submitButtonIcon)
+
+        submitButtonText = TextView(this).apply {
+            text = "Submit"
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 14f)
+            setTypeface(typeface, android.graphics.Typeface.BOLD)
+        }
+        submitButton?.addView(submitButtonText)
+
+        actionsLayout.addView(submitButton, LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT))
 
         modalContainer?.addView(actionsLayout)
+
+        updateSubmitButtonState()
 
         try {
             modalParams?.let { wm.addView(modalContainer, it) }
         } catch (_: Exception) {}
     }
 
-    private fun createModePill(title: String, isSelected: Boolean): TextView {
-        return TextView(this).apply {
-            text = title
-            gravity = Gravity.CENTER
-            setTextSize(TypedValue.COMPLEX_UNIT_SP, 13.5f)
+    private fun updateScreenshotToggleUI() {
+        val isSelected = isScreenshotSelected
+        screenshotToggleButton?.background = GradientDrawable().apply {
+            shape = GradientDrawable.RECTANGLE
+            cornerRadius = dpToPx(8f).toFloat()
+            if (isSelected) {
+                setColor(Color.parseColor("#262445"))
+                setStroke(dpToPx(1f), Color.parseColor("#7775D8"))
+            } else {
+                setColor(Color.parseColor("#202227"))
+                setStroke(dpToPx(1f), Color.parseColor("#2D3037"))
+            }
+        }
+        val tint = if (isSelected) Color.parseColor("#A5A3F6") else Color.parseColor("#9EA3AE")
+        screenshotIcon?.imageTintList = ColorStateList.valueOf(tint)
+        screenshotText?.apply {
+            setTextColor(tint)
             setTypeface(typeface, if (isSelected) android.graphics.Typeface.BOLD else android.graphics.Typeface.NORMAL)
-            updatePillStyle(this, isSelected)
         }
     }
 
-    private fun updatePillStyle(view: TextView, isSelected: Boolean) {
-        val bg = GradientDrawable().apply {
+    private fun createModePill(iconRes: Int, title: String, isSelected: Boolean): LinearLayout {
+        val pill = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER
+            isClickable = true
+            isFocusable = true
+        }
+        val iconView = ImageView(this).apply {
+            setImageResource(iconRes)
+            layoutParams = LinearLayout.LayoutParams(dpToPx(16f), dpToPx(16f)).apply {
+                marginEnd = dpToPx(6f)
+            }
+        }
+        val textView = TextView(this).apply {
+            text = title
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 13.5f)
+        }
+        pill.addView(iconView)
+        pill.addView(textView)
+        updatePillStyle(pill, isSelected)
+        return pill
+    }
+
+    private fun updatePillStyle(pill: LinearLayout, isSelected: Boolean) {
+        pill.background = GradientDrawable().apply {
             shape = GradientDrawable.RECTANGLE
             cornerRadius = dpToPx(8f).toFloat()
             if (isSelected) {
@@ -800,43 +1132,257 @@ class BubbleService : Service(), SensorEventListener {
                 setStroke(dpToPx(1f), Color.parseColor("#2D3037"))
             }
         }
-        view.background = bg
-        view.setTextColor(if (isSelected) Color.WHITE else Color.parseColor("#9EA3AE"))
+        val iconView = pill.getChildAt(0) as? ImageView
+        val textView = pill.getChildAt(1) as? TextView
+
+        iconView?.imageTintList = ColorStateList.valueOf(if (isSelected) Color.WHITE else Color.parseColor("#9EA3AE"))
+        textView?.apply {
+            setTextColor(if (isSelected) Color.WHITE else Color.parseColor("#9EA3AE"))
+            setTypeface(typeface, if (isSelected) android.graphics.Typeface.BOLD else android.graphics.Typeface.NORMAL)
+        }
+    }
+
+    private fun updateSubmitButtonState() {
+        val hasText = activeEditText?.text?.toString()?.trim()?.isNotEmpty() == true
+        val hasAudio = activeAudioFile != null && activeAudioFile!!.exists() && activeAudioFile!!.length() > 0
+        val hasScreenshot = isScreenshotSelected
+        val canSubmit = (hasText || hasAudio || hasScreenshot) && !isRecordingAudio && !isSubmitting
+
+        submitButton?.apply {
+            isClickable = canSubmit
+            isFocusable = canSubmit
+            background = GradientDrawable().apply {
+                shape = GradientDrawable.RECTANGLE
+                cornerRadius = dpToPx(10f).toFloat()
+                setColor(if (canSubmit) Color.parseColor("#7775D8") else Color.parseColor("#262830"))
+            }
+        }
+        val contentColor = if (canSubmit) Color.WHITE else Color.parseColor("#5A5E6B")
+        submitButtonText?.setTextColor(contentColor)
+        submitButtonIcon?.imageTintList = ColorStateList.valueOf(contentColor)
+    }
+
+    // ==========================================
+    // 5. AUDIO RECORDING & PLAYBACK CONTROLS
+    // ==========================================
+
+    private fun startAudioRecording() {
+        AudioPermissionActivity.requestAudioPermission(this) { granted ->
+            if (!granted) {
+                Handler(Looper.getMainLooper()).post {
+                    Toast.makeText(this, "Microphone permission is required to record voice notes", Toast.LENGTH_SHORT).show()
+                }
+                return@requestAudioPermission
+            }
+
+            Handler(Looper.getMainLooper()).post {
+                try {
+                    stopAudioPlayback()
+
+                    val audioDir = File(cacheDir, "recordings").apply { mkdirs() }
+                    val file = File(audioDir, "doit_voice_${System.currentTimeMillis()}.m4a")
+                    activeAudioFile = file
+
+                    mediaRecorder = (if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                        MediaRecorder(this)
+                    } else {
+                        @Suppress("DEPRECATION")
+                        MediaRecorder()
+                    }).apply {
+                        setAudioSource(MediaRecorder.AudioSource.MIC)
+                        setOutputFormat(MediaRecorder.OutputFormat.MPEG_4)
+                        setAudioEncoder(MediaRecorder.AudioEncoder.AAC)
+                        setAudioEncodingBitRate(128000)
+                        setAudioSamplingRate(44100)
+                        setOutputFile(file.absolutePath)
+                        prepare()
+                        start()
+                    }
+
+                    isRecordingAudio = true
+                    recordingStartTime = System.currentTimeMillis()
+                    triggerHaptic(40)
+
+                    voiceRecordButton?.visibility = View.GONE
+                    audioPreviewLayout?.visibility = View.GONE
+                    recordingStateLayout?.visibility = View.VISIBLE
+                    updateSubmitButtonState()
+
+                    recordingTimerText?.text = "00:00"
+                    recordingTimerHandler.removeCallbacks(timerRunnable)
+                    recordingTimerHandler.post(timerRunnable)
+                } catch (e: Exception) {
+                    android.util.Log.e("BubbleService", "Failed to start recording: ${e.message}", e)
+                    Toast.makeText(this, "Failed to start audio recording", Toast.LENGTH_SHORT).show()
+                    stopAudioRecording(discard = true)
+                }
+            }
+        }
+    }
+
+    private fun stopAudioRecording(discard: Boolean = false) {
+        if (!isRecordingAudio) return
+        isRecordingAudio = false
+        recordingTimerHandler.removeCallbacks(timerRunnable)
+
+        try {
+            mediaRecorder?.apply {
+                stop()
+                release()
+            }
+        } catch (e: Exception) {
+            android.util.Log.w("BubbleService", "Error stopping MediaRecorder: ${e.message}")
+        } finally {
+            mediaRecorder = null
+        }
+
+        triggerHaptic(30)
+
+        if (discard || activeAudioFile == null || !activeAudioFile!!.exists() || activeAudioFile!!.length() < 100) {
+            try { activeAudioFile?.delete() } catch (_: Exception) {}
+            activeAudioFile = null
+            audioDurationMs = 0L
+
+            recordingStateLayout?.visibility = View.GONE
+            audioPreviewLayout?.visibility = View.GONE
+            voiceRecordButton?.visibility = View.VISIBLE
+        } else {
+            audioDurationMs = System.currentTimeMillis() - recordingStartTime
+            val seconds = (audioDurationMs / 1000).toInt()
+            val formattedTime = String.format(Locale.US, "%d:%02d", seconds / 60, seconds % 60)
+            audioPreviewDurationText?.text = "Voice note ($formattedTime)"
+
+            recordingStateLayout?.visibility = View.GONE
+            voiceRecordButton?.visibility = View.GONE
+            audioPreviewLayout?.visibility = View.VISIBLE
+        }
+
+        updateSubmitButtonState()
+    }
+
+    private fun togglePlayPauseAudio() {
+        val file = activeAudioFile ?: return
+        if (!file.exists()) return
+
+        if (isPlayingAudio) {
+            stopAudioPlayback()
+        } else {
+            try {
+                stopAudioPlayback()
+                mediaPlayer = MediaPlayer().apply {
+                    setDataSource(file.absolutePath)
+                    prepare()
+                    setOnCompletionListener {
+                        stopAudioPlayback()
+                    }
+                    start()
+                }
+                isPlayingAudio = true
+                audioPlayPauseIcon?.setImageResource(R.drawable.ic_lucide_pause)
+            } catch (e: Exception) {
+                android.util.Log.e("BubbleService", "Error playing audio: ${e.message}")
+                stopAudioPlayback()
+            }
+        }
+    }
+
+    private fun stopAudioPlayback() {
+        try {
+            mediaPlayer?.apply {
+                if (isPlaying) stop()
+                release()
+            }
+        } catch (_: Exception) {}
+        mediaPlayer = null
+        isPlayingAudio = false
+        audioPlayPauseIcon?.setImageResource(R.drawable.ic_lucide_play)
+    }
+
+    private fun deleteAudioRecording() {
+        stopAudioPlayback()
+        try { activeAudioFile?.delete() } catch (_: Exception) {}
+        activeAudioFile = null
+        audioDurationMs = 0L
+
+        audioPreviewLayout?.visibility = View.GONE
+        recordingStateLayout?.visibility = View.GONE
+        voiceRecordButton?.visibility = View.VISIBLE
+        updateSubmitButtonState()
     }
 
     private fun dismissCompactModal() {
+        stopAudioPlayback()
+        if (isRecordingAudio) {
+            stopAudioRecording(discard = true)
+        }
+        if (activeAudioFile != null && !isSubmitting) {
+            try { activeAudioFile?.delete() } catch (_: Exception) {}
+            activeAudioFile = null
+            audioDurationMs = 0L
+        }
+
         try {
             modalContainer?.let { windowManager?.removeView(it) }
         } catch (_: Exception) {}
         modalContainer = null
         activeEditText = null
-        activeCheckBox = null
+        screenshotToggleButton = null
+        screenshotIcon = null
+        screenshotText = null
+        isScreenshotSelected = false
+        recordingStateLayout = null
+        voiceRecordButton = null
+        audioPreviewLayout = null
+        audioPreviewDurationText = null
+        audioPlayPauseIcon = null
+        recordingTimerText = null
+        submitButton = null
+        submitButtonText = null
+        submitButtonIcon = null
     }
 
     // ==========================================
-    // 5. SUBMISSION & CLEAN SCREENSHOT PIPELINE
+    // 6. SUBMISSION & MULTI-ATTACHMENT PIPELINE
     // ==========================================
 
     private fun handleSubmit() {
         if (isSubmitting) return
-        val titleText = activeEditText?.text?.toString()?.trim() ?: ""
-        if (titleText.isEmpty()) {
-            Toast.makeText(this, "Please enter a title or description", Toast.LENGTH_SHORT).show()
+        if (isRecordingAudio) {
+            stopAudioRecording()
+        }
+
+        val rawText = activeEditText?.text?.toString()?.trim() ?: ""
+        val hasAudio = activeAudioFile != null && activeAudioFile!!.exists() && activeAudioFile!!.length() > 0
+        val hasScreenshot = isScreenshotSelected
+
+        if (rawText.isEmpty() && !hasAudio && !hasScreenshot) {
+            Toast.makeText(this, "Please enter details, record voice, or attach a screenshot", Toast.LENGTH_SHORT).show()
             return
         }
 
-        val shouldAttachScreenshot = activeCheckBox?.isChecked ?: false
-        val mode = currentMode
-        isSubmitting = true
-        android.util.Log.d("BubbleService", "handleSubmit initiated: mode=$mode, attachScreenshot=$shouldAttachScreenshot")
+        // Title fallback if user submitted attachment-only
+        val titleText = if (rawText.isNotEmpty()) {
+            rawText
+        } else {
+            val nowStr = SimpleDateFormat("MMM d, HH:mm", Locale.US).format(Date())
+            if (hasAudio) {
+                if (currentMode == "BUG") "Voice Bug - $nowStr" else "Voice Task - $nowStr"
+            } else {
+                if (currentMode == "BUG") "Quick Bug - $nowStr" else "Quick Task - $nowStr"
+            }
+        }
 
-        if (shouldAttachScreenshot) {
+        val mode = currentMode
+        val audioToUpload = activeAudioFile
+        val audioDuration = audioDurationMs
+        isSubmitting = true
+        updateSubmitButtonState()
+
+        if (hasScreenshot) {
             if (DoItAccessibilityService.isRunning()) {
-                // 1-tap silent screenshot via Accessibility API: ZERO system bottom sheets!
                 dismissCompactModal()
                 hideOverlays()
 
-                // Check rate limiting (Android Accessibility requires >= 1s between screenshots)
                 val timeSinceLast = ScreenCaptureManager.getTimeSinceLastAccessibilityCapture()
                 val delayMs = if (timeSinceLast < 1100) (1100 - timeSinceLast).coerceIn(150, 1100) else 150L
 
@@ -845,29 +1391,28 @@ class BubbleService : Service(), SensorEventListener {
                         if (file != null && file.exists() && file.length() > 0) {
                             Handler(Looper.getMainLooper()).post {
                                 bubbleContainer?.visibility = View.VISIBLE
-                                showToastForMode(mode)
-                                submitToBackend(titleText, mode, file)
+                                showToastForMode(mode, audioToUpload != null)
+                                submitToBackend(titleText, mode, file, audioToUpload, audioDuration)
                             }
                         } else {
-                            android.util.Log.w("BubbleService", "Silent screenshot failed or was throttled, falling back to clean screen capture")
                             Handler(Looper.getMainLooper()).post {
                                 restoreOverlays()
                                 ScreenshotCaptureActivity.captureCleanScreen(this, callback = { fallbackFile ->
                                     dismissCompactModal()
                                     bubbleContainer?.visibility = View.VISIBLE
-                                    showToastForMode(mode)
-                                    submitToBackend(titleText, mode, fallbackFile)
+                                    showToastForMode(mode, audioToUpload != null)
+                                    submitToBackend(titleText, mode, fallbackFile, audioToUpload, audioDuration)
                                 })
                             }
                         }
                     }
                     if (!handled) {
                         restoreOverlays()
-                        ScreenshotCaptureActivity.captureCleanScreen(this, callback = { file ->
+                        ScreenshotCaptureActivity.captureCleanScreen(this, callback = { fallbackFile ->
                             dismissCompactModal()
                             bubbleContainer?.visibility = View.VISIBLE
-                            showToastForMode(mode)
-                            submitToBackend(titleText, mode, file)
+                            showToastForMode(mode, audioToUpload != null)
+                            submitToBackend(titleText, mode, fallbackFile, audioToUpload, audioDuration)
                         })
                     }
                 }, delayMs)
@@ -875,24 +1420,31 @@ class BubbleService : Service(), SensorEventListener {
                 ScreenshotCaptureActivity.captureCleanScreen(this, callback = { file ->
                     dismissCompactModal()
                     bubbleContainer?.visibility = View.VISIBLE
-                    showToastForMode(mode)
-                    submitToBackend(titleText, mode, file)
+                    showToastForMode(mode, audioToUpload != null)
+                    submitToBackend(titleText, mode, file, audioToUpload, audioDuration)
                 })
             }
         } else {
             dismissCompactModal()
             bubbleContainer?.visibility = View.VISIBLE
-            showToastForMode(mode)
-            submitToBackend(titleText, mode, null)
+            showToastForMode(mode, audioToUpload != null)
+            submitToBackend(titleText, mode, null, audioToUpload, audioDuration)
         }
     }
 
-    private fun showToastForMode(mode: String) {
-        val msg = if (mode == "BUG") "✓ Bug reported in DoIt" else "✓ Task captured in DoIt"
-        Toast.makeText(this, msg, Toast.LENGTH_LONG).show()
+    private fun showToastForMode(mode: String, hasVoice: Boolean) {
+        val itemType = if (mode == "BUG") "Bug reported" else "Task captured"
+        val extra = if (hasVoice) " with voice note" else ""
+        Toast.makeText(this, "✓ $itemType$extra in DoIt", Toast.LENGTH_LONG).show()
     }
 
-    private fun submitToBackend(title: String, mode: String, screenshotFile: File?) {
+    private fun submitToBackend(
+        title: String,
+        mode: String,
+        screenshotFile: File?,
+        audioFile: File?,
+        audioDurationMs: Long
+    ) {
         Thread {
             try {
                 val sp = prefs ?: getSharedPreferences("doit_overlay_prefs", Context.MODE_PRIVATE)
@@ -989,82 +1541,18 @@ class BubbleService : Service(), SensorEventListener {
                 }
                 taskConn.disconnect()
 
-                // 2. Upload screenshot if exists and record was created
-                if (screenshotFile != null && screenshotFile.exists() && !createdTaskId.isNullOrEmpty()) {
-                    val sizeBytes = screenshotFile.length()
-                    android.util.Log.d("BubbleService", "upload_started: sizeBytes=$sizeBytes for task=$createdTaskId")
-
-                    // Step 2a: Init upload
-                    val initUrl = URL("$baseUrl/uploads/init")
-                    val initConn = (initUrl.openConnection() as HttpURLConnection).apply {
-                        requestMethod = "POST"
-                        setRequestProperty("Authorization", "Bearer $token")
-                        setRequestProperty("Content-Type", "application/json")
-                        doOutput = true
-                        connectTimeout = 10000
-                        readTimeout = 10000
+                if (!createdTaskId.isNullOrEmpty()) {
+                    // 2. Upload Screenshot if attached
+                    if (screenshotFile != null && screenshotFile.exists()) {
+                        uploadFileAttachment(baseUrl, token, createdTaskId, screenshotFile, "image/jpeg", mode, null)
+                        try { screenshotFile.delete() } catch (_: Exception) {}
                     }
-                    val initPayload = JSONObject().apply {
-                        put("contentType", "image/jpeg")
-                        put("sizeBytes", sizeBytes)
-                        put("purpose", mode)
+
+                    // 3. Upload Voice Recording if attached
+                    if (audioFile != null && audioFile.exists()) {
+                        uploadFileAttachment(baseUrl, token, createdTaskId, audioFile, "audio/m4a", "VOICE", audioDurationMs)
+                        try { audioFile.delete() } catch (_: Exception) {}
                     }
-                    initConn.outputStream.use { it.write(initPayload.toString().toByteArray(StandardCharsets.UTF_8)) }
-
-                    if (initConn.responseCode in 200..299) {
-                        val initRespRaw = JSONObject(initConn.inputStream.bufferedReader().use { it.readText() })
-                        val initResp = initRespRaw.optJSONObject("data") ?: initRespRaw
-                        val uploadId = initResp.optString("uploadId")
-                        val putUrlStr = initResp.optString("putUrl")
-
-                        initConn.disconnect()
-
-                        // Step 2b: PUT raw image bytes
-                        if (putUrlStr.isNotEmpty() && uploadId.isNotEmpty()) {
-                            val putUrl = URL(if (putUrlStr.startsWith("/")) "$baseUrl$putUrlStr" else putUrlStr)
-                            val putConn = (putUrl.openConnection() as HttpURLConnection).apply {
-                                requestMethod = "PUT"
-                                setRequestProperty("Content-Type", "image/jpeg")
-                                doOutput = true
-                                setFixedLengthStreamingMode(sizeBytes.toInt())
-                                connectTimeout = 15000
-                                readTimeout = 15000
-                            }
-                            FileInputStream(screenshotFile).use { fis ->
-                                putConn.outputStream.use { pos ->
-                                    fis.copyTo(pos)
-                                }
-                            }
-                            val putCode = putConn.responseCode
-                            putConn.disconnect()
-                            android.util.Log.d("BubbleService", "PUT image bytes: code=$putCode")
-
-                            // Step 2c: Complete upload
-                            if (putCode in 200..299) {
-                                val compUrl = URL("$baseUrl/uploads/$uploadId/complete")
-                                val compConn = (compUrl.openConnection() as HttpURLConnection).apply {
-                                    requestMethod = "POST"
-                                    setRequestProperty("Authorization", "Bearer $token")
-                                    setRequestProperty("Content-Type", "application/json")
-                                    doOutput = true
-                                    connectTimeout = 10000
-                                    readTimeout = 10000
-                                }
-                                val compPayload = JSONObject().apply {
-                                    put("taskId", createdTaskId)
-                                }
-                                compConn.outputStream.use { it.write(compPayload.toString().toByteArray(StandardCharsets.UTF_8)) }
-                                val compCode = compConn.responseCode
-                                android.util.Log.d("BubbleService", "upload_completed: code=$compCode uploadId=$uploadId for task=$createdTaskId")
-                                compConn.disconnect()
-                            }
-                        }
-                    } else {
-                        android.util.Log.e("BubbleService", "initUpload failed: code=${initConn.responseCode}")
-                        initConn.disconnect()
-                    }
-                    // Clean up temp screenshot file
-                    try { screenshotFile.delete() } catch (_: Exception) {}
                 }
             } catch (e: Exception) {
                 android.util.Log.e("BubbleService", "submitToBackend error: ${e.message}", e)
@@ -1073,6 +1561,101 @@ class BubbleService : Service(), SensorEventListener {
                 android.util.Log.d("BubbleService", "submission_lifecycle_finished: isSubmitting reset to false")
             }
         }.start()
+    }
+
+    private fun uploadFileAttachment(
+        baseUrl: String,
+        token: String,
+        taskId: String,
+        file: File,
+        contentType: String,
+        purpose: String,
+        durationMs: Long?
+    ): Boolean {
+        val sizeBytes = file.length()
+        if (sizeBytes <= 0) return false
+        android.util.Log.d("BubbleService", "uploadFileAttachment: file=${file.name}, type=$contentType, size=$sizeBytes, task=$taskId")
+
+        try {
+            // Step 1: /uploads/init
+            val initUrl = URL("$baseUrl/uploads/init")
+            val initConn = (initUrl.openConnection() as HttpURLConnection).apply {
+                requestMethod = "POST"
+                setRequestProperty("Authorization", "Bearer $token")
+                setRequestProperty("Content-Type", "application/json")
+                doOutput = true
+                connectTimeout = 10000
+                readTimeout = 10000
+            }
+            val initPayload = JSONObject().apply {
+                put("contentType", contentType)
+                put("sizeBytes", sizeBytes)
+                put("purpose", purpose)
+            }
+            initConn.outputStream.use { it.write(initPayload.toString().toByteArray(StandardCharsets.UTF_8)) }
+            val initCode = initConn.responseCode
+            if (initCode !in 200..299) {
+                android.util.Log.e("BubbleService", "init upload failed with code $initCode")
+                initConn.disconnect()
+                return false
+            }
+
+            val initRespRaw = JSONObject(initConn.inputStream.bufferedReader().use { it.readText() })
+            val initResp = initRespRaw.optJSONObject("data") ?: initRespRaw
+            val uploadId = initResp.optString("uploadId")
+            val putUrlStr = initResp.optString("putUrl")
+            initConn.disconnect()
+
+            if (uploadId.isEmpty() || putUrlStr.isEmpty()) {
+                android.util.Log.e("BubbleService", "init upload missing uploadId or putUrl")
+                return false
+            }
+
+            // Step 2: PUT raw file bytes
+            val putUrl = URL(if (putUrlStr.startsWith("/")) "$baseUrl$putUrlStr" else putUrlStr)
+            val putConn = (putUrl.openConnection() as HttpURLConnection).apply {
+                requestMethod = "PUT"
+                setRequestProperty("Content-Type", contentType)
+                doOutput = true
+                setFixedLengthStreamingMode(sizeBytes.toInt())
+                connectTimeout = 20000
+                readTimeout = 20000
+            }
+            FileInputStream(file).use { fis ->
+                putConn.outputStream.use { pos ->
+                    fis.copyTo(pos)
+                }
+            }
+            val putCode = putConn.responseCode
+            putConn.disconnect()
+            android.util.Log.d("BubbleService", "PUT file completed with code $putCode")
+            if (putCode !in 200..299) return false
+
+            // Step 3: Complete upload
+            val compUrl = URL("$baseUrl/uploads/$uploadId/complete")
+            val compConn = (compUrl.openConnection() as HttpURLConnection).apply {
+                requestMethod = "POST"
+                setRequestProperty("Authorization", "Bearer $token")
+                setRequestProperty("Content-Type", "application/json")
+                doOutput = true
+                connectTimeout = 10000
+                readTimeout = 10000
+            }
+            val compPayload = JSONObject().apply {
+                put("taskId", taskId)
+                if (durationMs != null && durationMs > 0) {
+                    put("durationMs", durationMs.toInt())
+                }
+            }
+            compConn.outputStream.use { it.write(compPayload.toString().toByteArray(StandardCharsets.UTF_8)) }
+            val compCode = compConn.responseCode
+            compConn.disconnect()
+            android.util.Log.d("BubbleService", "complete upload code=$compCode for task=$taskId, uploadId=$uploadId")
+            return compCode in 200..299
+        } catch (e: Exception) {
+            android.util.Log.e("BubbleService", "uploadFileAttachment error: ${e.message}", e)
+            return false
+        }
     }
 
     private fun triggerHaptic(durationMs: Long) {
@@ -1091,6 +1674,17 @@ class BubbleService : Service(), SensorEventListener {
         if (intent?.action == ACTION_STOP) {
             stopSelf()
             return START_NOT_STICKY
+        }
+        if (intent?.action == "com.samyukt.doit.SHOW_MODAL") {
+            val mode = intent.getStringExtra("mode") ?: "TASK"
+            Handler(Looper.getMainLooper()).post {
+                showCompactModal(mode)
+            }
+        }
+        if (intent?.action == "com.samyukt.doit.SHOW_PROMPT") {
+            Handler(Looper.getMainLooper()).post {
+                showShakePrompt()
+            }
         }
         return START_STICKY
     }

@@ -49,7 +49,7 @@ export function sniffMimeType(buffer: Buffer): string | null {
   // MP4 / M4A: ....ftyp
   if (buffer.length >= 8 && buffer.toString('ascii', 4, 8) === 'ftyp') {
     const brand = buffer.toString('ascii', 8, 12).toLowerCase();
-    if (brand.includes('m4a') || brand.includes('mp42')) {
+    if (brand.includes('m4a') || brand.includes('mp42') || brand.includes('isom') || brand.includes('mp41')) {
       return 'audio/m4a';
     }
     return 'video/mp4';
@@ -71,6 +71,11 @@ export function validateMagicBytes(declaredMime: string, buffer: Buffer): boolea
 
   // Allow JPEG variants
   if ((declaredMime === 'image/jpeg' || declaredMime === 'image/jpg') && detected === 'image/jpeg') {
+    return true;
+  }
+
+  // Allow audio/m4a or audio/mp4 variants
+  if ((declaredMime === 'audio/m4a' || declaredMime === 'audio/mp4') && (detected === 'audio/m4a' || detected === 'video/mp4')) {
     return true;
   }
 

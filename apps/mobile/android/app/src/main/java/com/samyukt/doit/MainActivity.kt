@@ -25,6 +25,43 @@ class MainActivity : ReactActivity() {
    */
     override fun onResume() {
     super.onResume()
+    try {
+      if (android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.M || android.provider.Settings.canDrawOverlays(this)) {
+        val serviceIntent = android.content.Intent(this, com.samyukt.doit.overlay.BubbleService::class.java).apply {
+          action = com.samyukt.doit.overlay.BubbleService.ACTION_START
+        }
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+          startForegroundService(serviceIntent)
+        } else {
+          startService(serviceIntent)
+        }
+      }
+    } catch (_: Exception) {}
+    if (intent?.hasExtra("show_modal") == true) {
+      val mode = intent.getStringExtra("show_modal") ?: "TASK"
+      try {
+        val sIntent = android.content.Intent(this, com.samyukt.doit.overlay.BubbleService::class.java).apply {
+          action = "com.samyukt.doit.SHOW_MODAL"
+          putExtra("mode", mode)
+        }
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+          startForegroundService(sIntent)
+        } else {
+          startService(sIntent)
+        }
+      } catch (_: Exception) {}
+    } else if (intent?.hasExtra("show_prompt") == true) {
+      try {
+        val sIntent = android.content.Intent(this, com.samyukt.doit.overlay.BubbleService::class.java).apply {
+          action = "com.samyukt.doit.SHOW_PROMPT"
+        }
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+          startForegroundService(sIntent)
+        } else {
+          startService(sIntent)
+        }
+      } catch (_: Exception) {}
+    }
     com.samyukt.doit.overlay.BubbleService.setAppInForeground(true)
   }
 
