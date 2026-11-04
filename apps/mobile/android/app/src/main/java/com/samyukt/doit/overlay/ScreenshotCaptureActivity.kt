@@ -85,6 +85,20 @@ class ScreenshotCaptureActivity : Activity() {
 
         try {
             val projection = projectionManager.getMediaProjection(resultCode, data)
+            if (projection == null) {
+                BubbleService.restoreOverlays()
+                fail("No projection manager")
+                return
+            }
+
+            // Android 14 (API 34+) STRICT REQUIREMENT: register callback before createVirtualDisplay
+            val projectionCallback = object : android.media.projection.MediaProjection.Callback() {
+                override fun onStop() {
+                    super.onStop()
+                }
+            }
+            projection.registerCallback(projectionCallback, Handler(Looper.getMainLooper()))
+
             val windowManager = getSystemService(Context.WINDOW_SERVICE) as WindowManager
             val metrics = DisplayMetrics()
             @Suppress("DEPRECATION")
@@ -116,6 +130,7 @@ class ScreenshotCaptureActivity : Activity() {
                 }
                 try { virtualDisplay.release() } catch (_: Exception) {}
                 try { imageReader.close() } catch (_: Exception) {}
+                try { projection.unregisterCallback(projectionCallback) } catch (_: Exception) {}
                 try { projection.stop() } catch (_: Exception) {}
                 BubbleService.restoreOverlays()
 
@@ -144,6 +159,7 @@ class ScreenshotCaptureActivity : Activity() {
                 }
                 try { virtualDisplay.release() } catch (_: Exception) {}
                 try { imageReader.close() } catch (_: Exception) {}
+                try { projection.unregisterCallback(projectionCallback) } catch (_: Exception) {}
                 try { projection.stop() } catch (_: Exception) {}
                 BubbleService.restoreOverlays()
                 fail(err)
@@ -223,6 +239,19 @@ class ScreenshotCaptureActivity : Activity() {
         } catch (e: Exception) {
             BubbleService.restoreOverlays()
             fail(e.message ?: "Failed to start MediaProjection")
+        }
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        BubbleService.restoreOverlays()
+        if (pendingPromise != null) {
+            pendingPromise?.reject("CAPTURE_FAILED", "Activity destroyed before capture completed")
+            pendingPromise = null
+        }
+        if (pendingCallback != null) {
+            pendingCallback?.invoke(null)
+            pendingCallback = null
         }
     }
 

@@ -345,7 +345,6 @@ export const CaptureModal: React.FC = () => {
             await overlayService.uploadFile(item.uri, putTarget, normalizedMime);
             await http.post(`/uploads/${initRes.uploadId}/complete`, {
               taskId: createdId,
-              bugId: current.mode === 'bug' ? createdId : undefined,
             });
           } catch (uploadErr) {
             console.warn('[CaptureModal] Attachment upload error:', uploadErr);

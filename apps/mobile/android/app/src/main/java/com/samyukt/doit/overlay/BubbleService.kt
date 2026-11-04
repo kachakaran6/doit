@@ -999,7 +999,6 @@ class BubbleService : Service(), SensorEventListener {
                                 }
                                 val compPayload = JSONObject().apply {
                                     put("taskId", createdTaskId)
-                                    put("bugId", createdTaskId)
                                 }
                                 compConn.outputStream.use { it.write(compPayload.toString().toByteArray(StandardCharsets.UTF_8)) }
                                 val compCode = compConn.responseCode

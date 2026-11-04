@@ -22,7 +22,7 @@
     <meta-data android:name="expo.modules.updates.ENABLED" android:value="false"/>
     <meta-data android:name="expo.modules.updates.EXPO_UPDATES_CHECK_ON_LAUNCH" android:value="ALWAYS"/>
     <meta-data android:name="expo.modules.updates.EXPO_UPDATES_LAUNCH_WAIT_MS" android:value="0"/>
-    <service android:name="com.samyukt.doit.overlay.BubbleService" android:enabled="true" android:exported="false" android:foregroundServiceType="specialUse">
+    <service android:name="com.samyukt.doit.overlay.BubbleService" android:enabled="true" android:exported="false" android:foregroundServiceType="specialUse|mediaProjection">
       <property android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE" android:value="Floating quick capture bubble for tasks and bug reporting"/>
     </service>
     <activity android:name="com.samyukt.doit.overlay.ScreenshotCaptureActivity" android:theme="@android:style/Theme.Translucent.NoTitleBar" android:exported="false"/>
