@@ -1,130 +1,573 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useWorkspaceStore } from '@/lib/workspace-store';
+import { api } from '@/lib/api';
+import { Task } from '@/lib/types';
 import { Card } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Plus, LayoutList, Columns3, CheckCircle2, Circle } from 'lucide-react';
+import { StatusBadge, PriorityBadge } from '@/components/ui/badge';
+import { Skeleton } from '@/components/ui/skeleton';
+import { EmptyState } from '@/components/ui/empty-state';
+import { useToast } from '@/components/ui/toast';
+import {
+  LayoutList,
+  Columns3,
+  Table as TableIcon,
+  Search,
+  CheckCircle2,
+  Circle,
+  X,
+  Paperclip,
+  Trash2,
+} from 'lucide-react';
 
 export function TasksPage() {
-  const [view, setView] = useState<'list' | 'board'>('list');
+  const { activeProject, projects, setActiveProject } = useWorkspaceStore();
+  const queryClient = useQueryClient();
+  const { success, error } = useToast();
 
-  const tasks = [
-    { id: 'SMP-1', title: 'Implement Linear graphite design system', status: 'IN_PROGRESS', priority: 'HIGH' },
-    { id: 'SMP-2', title: 'Verify native camera & microphone audio capture', status: 'DONE', priority: 'URGENT' },
-    { id: 'SMP-3', title: 'Add real-time sync conflict resolver', status: 'TODO', priority: 'MEDIUM' },
-    { id: 'SMP-4', title: 'Standardize bottom floating navigation bar', status: 'DONE', priority: 'HIGH' },
-    { id: 'SMP-5', title: 'Audit and redesign settings view with avatar', status: 'IN_PROGRESS', priority: 'MEDIUM' },
-  ];
+  const [view, setView] = useState<'list' | 'board' | 'table'>('list');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState<string>('ALL');
+  const [priorityFilter, setPriorityFilter] = useState<string>('ALL');
+  const [selectedTask, setSelectedTask] = useState<Task | null>(null);
+
+  const pId = activeProject?.id || projects[0]?.id;
+
+  // 1. Fetch real tasks from backend
+  const { data: tasks = [], isLoading } = useQuery({
+    queryKey: ['tasks', pId],
+    queryFn: () => (pId ? api.tasks.list(pId) : []),
+    enabled: Boolean(pId),
+  });
+
+  // 2. Status Mutation
+  const updateStatusMutation = useMutation({
+    mutationFn: ({ taskId, newStatus }: { taskId: string; newStatus: string }) =>
+      api.tasks.updateStatus(taskId, newStatus),
+    onSuccess: (updated) => {
+      queryClient.invalidateQueries({ queryKey: ['tasks'] });
+      if (selectedTask?.id === updated.id) {
+        setSelectedTask(updated);
+      }
+      success('Status updated', `Moved to ${updated.status}`);
+    },
+    onError: (err: any) => {
+      error('Failed to update status', err.message);
+    },
+  });
+
+  // 3. Delete Task Mutation
+  const deleteTaskMutation = useMutation({
+    mutationFn: (id: string) => api.tasks.delete(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['tasks'] });
+      setSelectedTask(null);
+      success('Task deleted', 'Removed from workspace.');
+    },
+    onError: (err: any) => {
+      error('Failed to delete task', err.message);
+    },
+  });
+
+  // Filter tasks
+  const filteredTasks = useMemo(() => {
+    return tasks.filter((t) => {
+      if (searchQuery.trim()) {
+        const q = searchQuery.toLowerCase();
+        const matchTitle = t.title.toLowerCase().includes(q);
+        const matchId = t.humanId.toLowerCase().includes(q);
+        if (!matchTitle && !matchId) return false;
+      }
+      if (statusFilter !== 'ALL' && t.status !== statusFilter) {
+        return false;
+      }
+      if (priorityFilter !== 'ALL' && t.priority !== priorityFilter) {
+        return false;
+      }
+      return true;
+    });
+  }, [tasks, searchQuery, statusFilter, priorityFilter]);
+
+  // Group by status for List and Board
+  const todoTasks = filteredTasks.filter((t) => t.status === 'TODO');
+  const inProgressTasks = filteredTasks.filter((t) => t.status === 'IN_PROGRESS');
+  const doneTasks = filteredTasks.filter((t) => t.status === 'DONE');
+
+  const handleToggleDone = (e: React.MouseEvent, task: Task) => {
+    e.stopPropagation();
+    const nextStatus = task.status === 'DONE' ? 'TODO' : 'DONE';
+    updateStatusMutation.mutate({ taskId: task.id, newStatus: nextStatus });
+  };
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="space-y-6 select-none relative">
+      {/* Header & Controls */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-[var(--text-primary)]">Tasks</h1>
-          <p className="text-sm text-[var(--text-secondary)] mt-1">
-            Track, filter, and prioritize your team's sprint backlogs
-          </p>
-        </div>
-
-        <div className="flex items-center gap-2">
-          <div className="flex border border-[var(--border)] rounded-md p-0.5 bg-[var(--surface-raised)]">
-            <button
-              onClick={() => setView('list')}
-              className={`p-1.5 rounded text-xs font-medium cursor-pointer ${
-                view === 'list'
-                  ? 'bg-[var(--surface)] text-[var(--text-primary)] shadow-sm'
-                  : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
-              }`}
-            >
-              <LayoutList className="w-4 h-4" />
-            </button>
-            <button
-              onClick={() => setView('board')}
-              className={`p-1.5 rounded text-xs font-medium cursor-pointer ${
-                view === 'board'
-                  ? 'bg-[var(--surface)] text-[var(--text-primary)] shadow-sm'
-                  : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
-              }`}
-            >
-              <Columns3 className="w-4 h-4" />
-            </button>
+          <div className="flex items-center gap-3">
+            <h1 className="text-2xl font-bold tracking-tight text-[var(--foreground)]">Tasks</h1>
+            <span className="px-2 py-0.5 rounded-full text-[11px] font-semibold bg-[var(--muted)] text-[var(--muted-foreground)] tabular">
+              {filteredTasks.length}
+            </span>
           </div>
 
-          <Button size="sm" className="gap-1.5">
-            <Plus className="w-4 h-4" />
-            <span>New Task</span>
-          </Button>
+          {/* Project Switcher if multiple projects */}
+          {projects.length > 1 && (
+            <div className="mt-1 flex items-center gap-2">
+              <span className="text-[12px] text-[var(--muted-foreground)]">Project:</span>
+              <select
+                value={pId}
+                onChange={(e) => {
+                  const found = projects.find((p) => p.id === e.target.value);
+                  if (found) setActiveProject(found);
+                }}
+                className="text-[12px] font-medium bg-transparent border-none text-[var(--primary-text)] cursor-pointer focus:outline-none"
+              >
+                {projects.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.name} ({p.key})
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+        </div>
+
+        {/* View Switcher: List · Board · Table */}
+        <div className="flex items-center gap-2 self-start sm:self-auto">
+          <div className="flex rounded-lg bg-[var(--muted)] p-0.5 border border-[var(--border)]">
+            <button
+              type="button"
+              onClick={() => setView('list')}
+              className={`flex items-center gap-1.5 px-3 py-1 rounded-md text-[12px] font-medium transition-all cursor-pointer ${
+                view === 'list'
+                  ? 'bg-[var(--card)] text-[var(--foreground)] shadow-xs'
+                  : 'text-[var(--muted-foreground)] hover:text-[var(--foreground)]'
+              }`}
+            >
+              <LayoutList className="w-3.5 h-3.5" />
+              <span>List</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setView('board')}
+              className={`flex items-center gap-1.5 px-3 py-1 rounded-md text-[12px] font-medium transition-all cursor-pointer ${
+                view === 'board'
+                  ? 'bg-[var(--card)] text-[var(--foreground)] shadow-xs'
+                  : 'text-[var(--muted-foreground)] hover:text-[var(--foreground)]'
+              }`}
+            >
+              <Columns3 className="w-3.5 h-3.5" />
+              <span>Board</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setView('table')}
+              className={`flex items-center gap-1.5 px-3 py-1 rounded-md text-[12px] font-medium transition-all cursor-pointer ${
+                view === 'table'
+                  ? 'bg-[var(--card)] text-[var(--foreground)] shadow-xs'
+                  : 'text-[var(--muted-foreground)] hover:text-[var(--foreground)]'
+              }`}
+            >
+              <TableIcon className="w-3.5 h-3.5" />
+              <span>Table</span>
+            </button>
+          </div>
         </div>
       </div>
 
-      {view === 'list' ? (
-        <Card>
-          <div className="divide-y divide-[var(--border)]">
-            {tasks.map((t) => (
-              <div
-                key={t.id}
-                className="p-4 flex items-center justify-between hover:bg-[var(--surface-raised)] transition-colors"
-              >
-                <div className="flex items-center gap-3">
-                  {t.status === 'DONE' ? (
-                    <CheckCircle2 className="w-4 h-4 text-[var(--success)] shrink-0" />
-                  ) : (
-                    <Circle className="w-4 h-4 text-[var(--text-muted)] shrink-0" />
-                  )}
-                  <span className="text-xs font-mono font-semibold text-[var(--text-muted)]">{t.id}</span>
-                  <span
-                    className={`text-sm font-medium ${
-                      t.status === 'DONE' ? 'line-through text-[var(--text-muted)]' : 'text-[var(--text-primary)]'
-                    }`}
-                  >
-                    {t.title}
-                  </span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Badge variant={t.priority === 'HIGH' || t.priority === 'URGENT' ? 'danger' : 'secondary'}>
-                    {t.priority}
-                  </Badge>
-                  <Badge variant={t.status === 'DONE' ? 'success' : 'secondary'}>
-                    {t.status}
-                  </Badge>
-                </div>
-              </div>
-            ))}
-          </div>
-        </Card>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          {['TODO', 'IN_PROGRESS', 'BLOCKED', 'DONE'].map((col) => {
-            const colTasks = tasks.filter((t) => t.status === col);
+      {/* Filter Bar */}
+      <div className="flex flex-wrap items-center gap-2.5">
+        <div className="relative flex-1 min-w-[200px] max-w-sm">
+          <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-[var(--muted-foreground)]" />
+          <input
+            type="text"
+            placeholder="Filter tasks by title or ID…"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full pl-8.5 pr-3 py-1.5 rounded-lg border border-[var(--input)] bg-[var(--card)] text-[13px] text-[var(--foreground)] placeholder:text-[var(--muted-foreground)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]"
+          />
+          {searchQuery && (
+            <button
+              onClick={() => setSearchQuery('')}
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[var(--muted-foreground)] hover:text-[var(--foreground)] cursor-pointer"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          )}
+        </div>
+
+        {/* Status Filter */}
+        <select
+          value={statusFilter}
+          onChange={(e) => setStatusFilter(e.target.value)}
+          className="h-8 rounded-lg border border-[var(--input)] bg-[var(--card)] px-2.5 text-[12px] font-medium text-[var(--foreground)] focus:outline-none"
+        >
+          <option value="ALL">All statuses</option>
+          <option value="TODO">To do</option>
+          <option value="IN_PROGRESS">In progress</option>
+          <option value="DONE">Done</option>
+        </select>
+
+        {/* Priority Filter */}
+        <select
+          value={priorityFilter}
+          onChange={(e) => setPriorityFilter(e.target.value)}
+          className="h-8 rounded-lg border border-[var(--input)] bg-[var(--card)] px-2.5 text-[12px] font-medium text-[var(--foreground)] focus:outline-none"
+        >
+          <option value="ALL">All priorities</option>
+          <option value="URGENT">Urgent</option>
+          <option value="HIGH">High</option>
+          <option value="MEDIUM">Medium</option>
+          <option value="LOW">Low</option>
+        </select>
+
+        {(searchQuery || statusFilter !== 'ALL' || priorityFilter !== 'ALL') && (
+          <button
+            onClick={() => {
+              setSearchQuery('');
+              setStatusFilter('ALL');
+              setPriorityFilter('ALL');
+            }}
+            className="text-[12px] font-medium text-[var(--primary-text)] hover:underline cursor-pointer"
+          >
+            Clear filters
+          </button>
+        )}
+      </div>
+
+      {/* Main View Area */}
+      {isLoading ? (
+        <div className="space-y-3 py-4">
+          <Skeleton className="h-11 w-full rounded-xl" />
+          <Skeleton className="h-11 w-full rounded-xl" />
+          <Skeleton className="h-11 w-full rounded-xl" />
+          <Skeleton className="h-11 w-full rounded-xl" />
+        </div>
+      ) : filteredTasks.length === 0 ? (
+        <EmptyState
+          title="No tasks found"
+          description={
+            searchQuery || statusFilter !== 'ALL'
+              ? 'No tasks match your active search or filters.'
+              : 'Create your first task using the "+ New task" button above.'
+          }
+        />
+      ) : view === 'list' ? (
+        /* LIST VIEW */
+        <div className="space-y-6">
+          {[
+            { title: 'In progress', list: inProgressTasks, status: 'IN_PROGRESS' },
+            { title: 'To do', list: todoTasks, status: 'TODO' },
+            { title: 'Done', list: doneTasks, status: 'DONE' },
+          ].map((grp) => {
+            if (grp.list.length === 0) return null;
             return (
-              <div
-                key={col}
-                className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-4 flex flex-col space-y-3"
-              >
-                <div className="flex items-center justify-between pb-2 border-b border-[var(--border)]">
-                  <span className="text-xs font-semibold uppercase tracking-wider text-[var(--text-secondary)]">
-                    {col.replace('_', ' ')}
-                  </span>
-                  <Badge variant="secondary" className="px-1.5 py-0 text-[10px]">
-                    {colTasks.length}
-                  </Badge>
+              <div key={grp.status} className="space-y-2">
+                <div className="flex items-center gap-2 px-1 text-[12px] font-semibold text-[var(--muted-foreground)]">
+                  <span>{grp.title}</span>
+                  <span className="tabular text-[11px] font-normal">({grp.list.length})</span>
                 </div>
-                <div className="space-y-2 flex-1">
-                  {colTasks.map((t) => (
+
+                <div className="divide-y divide-[var(--border)] rounded-xl border border-[var(--border)] bg-[var(--card)] overflow-hidden shadow-2xs">
+                  {grp.list.map((task) => (
                     <div
-                      key={t.id}
-                      className="p-3 rounded-md border border-[var(--border)] bg-[var(--surface-raised)] text-xs space-y-1.5 shadow-sm"
+                      key={task.id}
+                      onClick={() => setSelectedTask(task)}
+                      className="px-4 py-3 flex items-center justify-between gap-4 hover:bg-[var(--accent)] transition-colors cursor-pointer group"
                     >
-                      <div className="font-mono text-[10px] text-[var(--text-muted)]">{t.id}</div>
-                      <div className="font-medium text-[var(--text-primary)]">{t.title}</div>
-                      <Badge variant="secondary" className="text-[10px]">
-                        {t.priority}
-                      </Badge>
+                      <div className="flex items-center gap-3.5 min-w-0">
+                        {/* Circular Checkbox */}
+                        <button
+                          type="button"
+                          onClick={(e) => handleToggleDone(e, task)}
+                          className="text-[var(--muted-foreground)] hover:text-[var(--success-text)] transition-colors cursor-pointer shrink-0"
+                        >
+                          {task.status === 'DONE' ? (
+                            <CheckCircle2 className="w-4 h-4 text-[var(--success-text)] fill-[var(--success-text)]/10" />
+                          ) : (
+                            <Circle className="w-4 h-4 stroke-[1.5]" />
+                          )}
+                        </button>
+
+                        <span className="text-[12px] font-mono text-[var(--muted-foreground)] shrink-0">
+                          {task.humanId}
+                        </span>
+
+                        <span
+                          className={`text-[14px] font-medium truncate ${
+                            task.status === 'DONE'
+                              ? 'line-through text-[var(--muted-foreground)]'
+                              : 'text-[var(--foreground)]'
+                          }`}
+                        >
+                          {task.title}
+                        </span>
+                      </div>
+
+                      <div className="flex items-center gap-3 shrink-0">
+                        <PriorityBadge priority={task.priority} />
+                        <StatusBadge status={task.status} />
+                      </div>
                     </div>
                   ))}
                 </div>
               </div>
             );
           })}
+        </div>
+      ) : view === 'board' ? (
+        /* KANBAN BOARD VIEW */
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-start">
+          {[
+            { title: 'To do', status: 'TODO', list: todoTasks },
+            { title: 'In progress', status: 'IN_PROGRESS', list: inProgressTasks },
+            { title: 'Done', status: 'DONE', list: doneTasks },
+          ].map((col) => (
+            <div
+              key={col.status}
+              className="rounded-xl bg-[var(--surface-raised)] border border-[var(--border)] p-3 space-y-3 min-h-[300px]"
+            >
+              <div className="flex items-center justify-between px-1">
+                <div className="flex items-center gap-2">
+                  <span className="text-[13px] font-semibold text-[var(--foreground)]">
+                    {col.title}
+                  </span>
+                  <span className="px-1.5 py-0.2 rounded-full text-[11px] font-medium bg-[var(--muted)] text-[var(--muted-foreground)] tabular">
+                    {col.list.length}
+                  </span>
+                </div>
+              </div>
+
+              <div className="space-y-2.5">
+                {col.list.map((task) => (
+                  <Card
+                    key={task.id}
+                    onClick={() => setSelectedTask(task)}
+                    className="p-3.5 hover:border-[var(--border-strong)] transition-all cursor-pointer shadow-2xs space-y-2"
+                  >
+                    <div className="flex items-center justify-between text-[11px] text-[var(--muted-foreground)]">
+                      <span className="font-mono font-semibold">{task.humanId}</span>
+                      <PriorityBadge priority={task.priority} />
+                    </div>
+
+                    <h4 className="text-[13px] font-medium text-[var(--foreground)] leading-snug">
+                      {task.title}
+                    </h4>
+
+                    {/* Quick move buttons */}
+                    <div className="pt-2 border-t border-[var(--border)] flex items-center justify-between text-[11px]">
+                      <span className="text-[var(--muted-foreground)]">
+                        {task.status === 'DONE' ? 'Done' : 'Move to:'}
+                      </span>
+                      <div className="flex gap-1">
+                        {col.status !== 'TODO' && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              updateStatusMutation.mutate({ taskId: task.id, newStatus: 'TODO' });
+                            }}
+                            className="px-1.5 py-0.5 rounded bg-[var(--muted)] hover:bg-[var(--accent)] text-[var(--foreground)] cursor-pointer text-[10px]"
+                          >
+                            To do
+                          </button>
+                        )}
+                        {col.status !== 'IN_PROGRESS' && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              updateStatusMutation.mutate({
+                                taskId: task.id,
+                                newStatus: 'IN_PROGRESS',
+                              });
+                            }}
+                            className="px-1.5 py-0.5 rounded bg-[var(--primary-soft)] hover:brightness-95 text-[var(--primary-text)] cursor-pointer text-[10px]"
+                          >
+                            In progress
+                          </button>
+                        )}
+                        {col.status !== 'DONE' && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              updateStatusMutation.mutate({ taskId: task.id, newStatus: 'DONE' });
+                            }}
+                            className="px-1.5 py-0.5 rounded bg-[rgba(14,133,80,0.15)] hover:bg-[rgba(14,133,80,0.25)] text-[var(--success-text)] cursor-pointer text-[10px]"
+                          >
+                            Done
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  </Card>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : (
+        /* TABLE VIEW */
+        <div className="rounded-xl border border-[var(--border)] bg-[var(--card)] overflow-x-auto shadow-2xs">
+          <table className="w-full text-left text-[13px]">
+            <thead className="bg-[var(--surface-raised)] border-b border-[var(--border)] text-[12px] font-medium text-[var(--muted-foreground)]">
+              <tr>
+                <th className="py-2.5 px-4 w-12"></th>
+                <th className="py-2.5 px-4 w-28">ID</th>
+                <th className="py-2.5 px-4">Title</th>
+                <th className="py-2.5 px-4 w-36">Status</th>
+                <th className="py-2.5 px-4 w-32">Priority</th>
+                <th className="py-2.5 px-4 w-36">Created</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-[var(--border)]">
+              {filteredTasks.map((task) => (
+                <tr
+                  key={task.id}
+                  onClick={() => setSelectedTask(task)}
+                  className="hover:bg-[var(--accent)] transition-colors cursor-pointer"
+                >
+                  <td className="py-2.5 px-4 text-center">
+                    <button
+                      type="button"
+                      onClick={(e) => handleToggleDone(e, task)}
+                      className="text-[var(--muted-foreground)] hover:text-[var(--success-text)] cursor-pointer"
+                    >
+                      {task.status === 'DONE' ? (
+                        <CheckCircle2 className="w-4 h-4 text-[var(--success-text)]" />
+                      ) : (
+                        <Circle className="w-4 h-4 stroke-[1.5]" />
+                      )}
+                    </button>
+                  </td>
+                  <td className="py-2.5 px-4 font-mono text-[12px] text-[var(--muted-foreground)]">
+                    {task.humanId}
+                  </td>
+                  <td className="py-2.5 px-4 font-medium text-[var(--foreground)]">
+                    {task.title}
+                  </td>
+                  <td className="py-2.5 px-4">
+                    <StatusBadge status={task.status} />
+                  </td>
+                  <td className="py-2.5 px-4">
+                    <PriorityBadge priority={task.priority} />
+                  </td>
+                  <td className="py-2.5 px-4 text-[12px] text-[var(--muted-foreground)]">
+                    {new Date(task.createdAt).toLocaleDateString()}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {/* PEEK PANEL (Slide-over Details) */}
+      {selectedTask && (
+        <div className="fixed inset-y-0 right-0 z-50 w-full max-w-md bg-[var(--card)] shadow-2xl border-l border-[var(--border)] flex flex-col animate-in slide-in-from-right duration-200">
+          {/* Header */}
+          <div className="p-4 border-b border-[var(--border)] flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="font-mono text-[12px] font-semibold text-[var(--muted-foreground)]">
+                {selectedTask.humanId}
+              </span>
+              <StatusBadge status={selectedTask.status} />
+            </div>
+            <div className="flex items-center gap-1">
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                onClick={() => deleteTaskMutation.mutate(selectedTask.id)}
+                className="text-[var(--danger-text)] hover:bg-[rgba(201,60,53,0.1)]"
+                title="Delete task"
+              >
+                <Trash2 className="w-4 h-4" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                onClick={() => setSelectedTask(null)}
+                aria-label="Close panel"
+              >
+                <X className="w-4 h-4" />
+              </Button>
+            </div>
+          </div>
+
+          {/* Body */}
+          <div className="p-5 flex-1 overflow-y-auto space-y-6">
+            <div>
+              <h2 className="text-[17px] font-semibold text-[var(--foreground)] leading-snug">
+                {selectedTask.title}
+              </h2>
+            </div>
+
+            {/* Properties List */}
+            <div className="space-y-3 p-3.5 rounded-xl bg-[var(--surface-raised)] border border-[var(--border)] text-[13px]">
+              <div className="flex items-center justify-between">
+                <span className="text-[var(--muted-foreground)]">Status</span>
+                <select
+                  value={selectedTask.status}
+                  onChange={(e) =>
+                    updateStatusMutation.mutate({
+                      taskId: selectedTask.id,
+                      newStatus: e.target.value,
+                    })
+                  }
+                  className="rounded-md bg-[var(--card)] px-2 py-1 text-[12px] border border-[var(--border)] font-medium text-[var(--foreground)]"
+                >
+                  <option value="TODO">To do</option>
+                  <option value="IN_PROGRESS">In progress</option>
+                  <option value="DONE">Done</option>
+                </select>
+              </div>
+
+              <div className="flex items-center justify-between">
+                <span className="text-[var(--muted-foreground)]">Priority</span>
+                <PriorityBadge priority={selectedTask.priority} />
+              </div>
+
+              <div className="flex items-center justify-between">
+                <span className="text-[var(--muted-foreground)]">Created</span>
+                <span className="text-[12px] text-[var(--foreground)]">
+                  {new Date(selectedTask.createdAt).toLocaleString()}
+                </span>
+              </div>
+            </div>
+
+            {/* Description */}
+            <div className="space-y-1.5">
+              <div className="text-[12px] font-semibold text-[var(--muted-foreground)] uppercase tracking-wide">
+                Description
+              </div>
+              <p className="text-[13px] text-[var(--foreground)] leading-relaxed whitespace-pre-wrap">
+                {selectedTask.description || 'No description provided.'}
+              </p>
+            </div>
+
+            {/* Attachments if any */}
+            {selectedTask.attachments && selectedTask.attachments.length > 0 && (
+              <div className="space-y-2">
+                <div className="text-[12px] font-semibold text-[var(--muted-foreground)] uppercase tracking-wide">
+                  Attachments ({selectedTask.attachments.length})
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  {selectedTask.attachments.map((att) => (
+                    <a
+                      key={att.id}
+                      href={att.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="p-2 rounded-lg border border-[var(--border)] bg-[var(--surface-raised)] hover:bg-[var(--accent)] flex items-center gap-2 text-[12px] text-[var(--foreground)] truncate transition-colors"
+                    >
+                      <Paperclip className="w-3.5 h-3.5 text-[var(--primary-text)] shrink-0" />
+                      <span className="truncate">{att.kind} attachment</span>
+                    </a>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       )}
     </div>

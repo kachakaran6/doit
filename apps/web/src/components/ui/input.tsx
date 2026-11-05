@@ -4,32 +4,40 @@ import { cn } from '@/lib/utils';
 export interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   label?: string;
   error?: string;
+  helperText?: string;
 }
 
 export const Input = React.forwardRef<HTMLInputElement, InputProps>(
-  ({ className, label, error, type = 'text', ...props }, ref) => {
+  ({ className, label, error, helperText, type = 'text', id, ...props }, ref) => {
+    const generatedId = React.useId();
+    const inputId = id || generatedId;
+
     return (
-      <div className="w-full">
+      <div className="w-full space-y-1">
         {label && (
-          <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1.5 uppercase tracking-wider">
+          <label htmlFor={inputId} className="block text-[13px] font-medium text-[var(--foreground)]">
             {label}
           </label>
         )}
         <input
           ref={ref}
+          id={inputId}
           type={type}
           className={cn(
-            'flex h-10 w-full rounded-md border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none focus:border-[var(--accent)] transition-colors disabled:cursor-not-allowed disabled:opacity-50',
-            error && 'border-[var(--danger)] focus:border-[var(--danger)]',
+            'flex h-9 w-full rounded-lg border border-[var(--input)] bg-[var(--card)] px-3 py-1.5 text-[14px] text-[var(--foreground)] placeholder:text-[var(--muted-foreground)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)] focus-visible:border-transparent transition-all duration-150 disabled:cursor-not-allowed disabled:opacity-50',
+            error && 'border-[var(--destructive)] focus-visible:ring-[var(--destructive)]',
             className
           )}
           {...props}
         />
-        {error && <p className="mt-1 text-xs text-[var(--danger)]">{error}</p>}
+        {error ? (
+          <p className="text-[12px] text-[var(--danger-text)]">{error}</p>
+        ) : helperText ? (
+          <p className="text-[12px] text-[var(--muted-foreground)]">{helperText}</p>
+        ) : null}
       </div>
     );
   }
 );
 
 Input.displayName = 'Input';
-

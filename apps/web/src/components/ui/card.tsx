@@ -1,11 +1,22 @@
 import React from 'react';
 import { cn } from '@/lib/utils';
 
-export function Card({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
+export interface CardProps extends React.HTMLAttributes<HTMLDivElement> {
+  variant?: 'flat' | 'raised' | 'bordered';
+}
+
+export function Card({ className, variant = 'flat', ...props }: CardProps) {
+  const variants = {
+    flat: 'bg-[var(--card)] text-[var(--card-foreground)] shadow-[var(--shadow-card)]',
+    raised: 'bg-[var(--surface-raised)] text-[var(--card-foreground)]',
+    bordered: 'bg-[var(--card)] text-[var(--card-foreground)] border border-[var(--border)] shadow-[var(--shadow-card)]',
+  };
+
   return (
     <div
       className={cn(
-        'rounded-lg border border-[var(--border)] bg-[var(--surface)] text-[var(--text-primary)] shadow-sm',
+        'rounded-xl transition-all duration-150',
+        variants[variant],
         className
       )}
       {...props}
@@ -18,11 +29,21 @@ export function CardHeader({ className, ...props }: React.HTMLAttributes<HTMLDiv
 }
 
 export function CardTitle({ className, ...props }: React.HTMLAttributes<HTMLHeadingElement>) {
-  return <h3 className={cn('text-lg font-semibold leading-none tracking-tight', className)} {...props} />;
+  return (
+    <h3
+      className={cn('text-[15px] font-semibold leading-5 text-[var(--foreground)] tracking-tight', className)}
+      {...props}
+    />
+  );
 }
 
 export function CardDescription({ className, ...props }: React.HTMLAttributes<HTMLParagraphElement>) {
-  return <p className={cn('text-sm text-[var(--text-secondary)]', className)} {...props} />;
+  return (
+    <p
+      className={cn('text-[13px] text-[var(--muted-foreground)] leading-snug', className)}
+      {...props}
+    />
+  );
 }
 
 export function CardContent({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
@@ -32,4 +53,3 @@ export function CardContent({ className, ...props }: React.HTMLAttributes<HTMLDi
 export function CardFooter({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
   return <div className={cn('flex items-center p-5 pt-0', className)} {...props} />;
 }
-
