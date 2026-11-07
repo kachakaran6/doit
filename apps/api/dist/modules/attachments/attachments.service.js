@@ -124,7 +124,7 @@ let AttachmentsService = AttachmentsService_1 = class AttachmentsService {
         return {
             ...attachment,
             url,
-            thumbUrl,
+            thumbUrl: thumbUrl || url,
         };
     }
     async findOne(id) {
@@ -141,7 +141,7 @@ let AttachmentsService = AttachmentsService_1 = class AttachmentsService {
         return {
             ...attachment,
             url,
-            thumbUrl,
+            thumbUrl: thumbUrl || url,
         };
     }
     async delete(id) {

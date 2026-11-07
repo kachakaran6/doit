@@ -27,7 +27,7 @@ export declare class AttachmentsService {
     directPut(storageKey: string, buffer: Buffer, mimeType: string): Promise<string>;
     completeUpload(uploadId: string, userId: string, dto: CompleteUploadDto): Promise<{
         url: string;
-        thumbUrl: string | null;
+        thumbUrl: string;
         id: string;
         createdAt: Date;
         taskId: string | null;
@@ -44,7 +44,7 @@ export declare class AttachmentsService {
     }>;
     findOne(id: string): Promise<{
         url: string;
-        thumbUrl: string | null;
+        thumbUrl: string;
         id: string;
         createdAt: Date;
         taskId: string | null;

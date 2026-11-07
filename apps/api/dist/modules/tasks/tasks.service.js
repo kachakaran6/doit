@@ -216,9 +216,9 @@ let TasksService = TasksService_1 = class TasksService {
                     try {
                         const [url, thumbUrl] = await Promise.all([
                             this.storage.getSignedUrl(att.storageKey, 3600),
-                            att.thumbKey ? this.storage.getSignedUrl(att.thumbKey, 3600) : Promise.resolve(null),
+                            att.thumbKey ? this.storage.getSignedUrl(att.thumbKey, 3600) : Promise.resolve(''),
                         ]);
-                        return { ...att, url, thumbUrl };
+                        return { ...att, url, thumbUrl: thumbUrl || url };
                     }
                     catch {
                         return { ...att, url: null, thumbUrl: null };
@@ -293,12 +293,12 @@ let TasksService = TasksService_1 = class TasksService {
             try {
                 const [url, thumbUrl] = await Promise.all([
                     this.storage.getSignedUrl(att.storageKey, 3600),
-                    att.thumbKey ? this.storage.getSignedUrl(att.thumbKey, 3600) : Promise.resolve(null),
+                    att.thumbKey ? this.storage.getSignedUrl(att.thumbKey, 3600) : Promise.resolve(''),
                 ]);
                 return {
                     ...att,
                     url,
-                    thumbUrl,
+                    thumbUrl: thumbUrl || url,
                 };
             }
             catch {

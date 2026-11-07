@@ -163,7 +163,7 @@ export class AttachmentsService {
     return {
       ...attachment,
       url,
-      thumbUrl,
+      thumbUrl: thumbUrl || url,
     };
   }
 
@@ -184,7 +184,7 @@ export class AttachmentsService {
     return {
       ...attachment,
       url,
-      thumbUrl,
+      thumbUrl: thumbUrl || url,
     };
   }
 

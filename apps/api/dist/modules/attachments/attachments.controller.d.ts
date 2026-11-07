@@ -16,7 +16,7 @@ export declare class AttachmentsController {
     directPut(key: string, contentType: string, req: RawBodyRequest<Request>): Promise<string>;
     completeUpload(user: AuthUserPayload, uploadId: string, dto: CompleteUploadDto): Promise<{
         url: string;
-        thumbUrl: string | null;
+        thumbUrl: string;
         id: string;
         createdAt: Date;
         taskId: string | null;
@@ -33,7 +33,7 @@ export declare class AttachmentsController {
     }>;
     findOne(id: string): Promise<{
         url: string;
-        thumbUrl: string | null;
+        thumbUrl: string;
         id: string;
         createdAt: Date;
         taskId: string | null;

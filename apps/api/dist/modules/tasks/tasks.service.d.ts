@@ -28,7 +28,7 @@ export declare class TasksService {
         }[];
         attachments: ({
             url: string;
-            thumbUrl: string | null;
+            thumbUrl: string;
             id: string;
             createdAt: Date;
             taskId: string | null;
@@ -60,8 +60,8 @@ export declare class TasksService {
             thumbKey: string | null;
         })[];
         bug: {
-            expected: string | null;
             id: string;
+            expected: string | null;
             taskId: string;
             sessionId: string | null;
             reporterId: string | null;

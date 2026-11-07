@@ -19,6 +19,38 @@ import {
   X,
 } from 'lucide-react';
 
+function BugThumbnailItem({ bug }: { bug: any }) {
+  const [error, setError] = useState(false);
+  const imgAtt = bug.attachments?.find(
+    (a: any) =>
+      a.kind === 'IMAGE' ||
+      a.mimeType?.includes('image') ||
+      a.url?.match(/\.(png|jpg|jpeg|webp)$/i) ||
+      a.thumbUrl?.match(/\.(png|jpg|jpeg|webp)$/i),
+  );
+
+  // Prioritize real uploaded url over thumbUrl
+  const rawUrl = imgAtt?.url || imgAtt?.thumbUrl || bug.attachments?.[0]?.url;
+  const resolvedUrl = rawUrl ? resolveAttachmentUrl(rawUrl) : null;
+
+  if (!resolvedUrl || error) {
+    return (
+      <div className="w-10 h-7 rounded-md bg-[var(--surface-raised)] border border-[var(--border)] flex items-center justify-center text-[var(--muted-foreground)] shrink-0">
+        <ImageIcon className="w-3.5 h-3.5 opacity-40" />
+      </div>
+    );
+  }
+
+  return (
+    <img
+      src={resolvedUrl}
+      alt={bug.humanId}
+      onError={() => setError(true)}
+      className="w-10 h-7 rounded-md object-cover bg-black/40 border border-[var(--border)] shrink-0"
+    />
+  );
+}
+
 export function BugsPage() {
   const { activeProject, projects } = useWorkspaceStore();
   const queryClient = useQueryClient();
@@ -95,7 +127,7 @@ export function BugsPage() {
   const screenshotAttachment = activeBug?.attachments?.find((a) => a.kind === 'IMAGE' || a.mimeType?.includes('image'));
   const audioAttachment = activeBug?.attachments?.find((a) => a.kind === 'AUDIO' || a.mimeType?.includes('audio'));
 
-  const screenshotUrl = resolveAttachmentUrl(screenshotAttachment?.url);
+  const screenshotUrl = resolveAttachmentUrl(screenshotAttachment?.url || screenshotAttachment?.thumbUrl);
 
   useEffect(() => {
     setImgError(false);
@@ -174,7 +206,6 @@ export function BugsPage() {
           <div className="lg:col-span-7 rounded-xl border border-[var(--border)] bg-[var(--card)] overflow-hidden shadow-2xs divide-y divide-[var(--border)]">
             {filteredBugs.map((bug) => {
               const isSelected = activeBug?.id === bug.id;
-              const thumb = bug.attachments?.[0]?.thumbUrl || bug.attachments?.[0]?.url;
 
               return (
                 <div
@@ -185,18 +216,7 @@ export function BugsPage() {
                   }`}
                 >
                   <div className="flex items-center gap-3 min-w-0">
-                    {/* Screenshot Thumbnail */}
-                    {thumb ? (
-                      <img
-                        src={resolveAttachmentUrl(thumb)}
-                        alt="Preview"
-                        className="w-10 h-7 rounded-md object-cover bg-black/40 border border-[var(--border)] shrink-0"
-                      />
-                    ) : (
-                      <div className="w-10 h-7 rounded-md bg-[var(--muted)] flex items-center justify-center text-[var(--muted-foreground)] shrink-0">
-                        <ImageIcon className="w-3.5 h-3.5 opacity-60" />
-                      </div>
-                    )}
+                    <BugThumbnailItem bug={bug} />
 
                     <div className="min-w-0">
                       <div className="flex items-center gap-2">

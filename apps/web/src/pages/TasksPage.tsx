@@ -10,6 +10,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { EmptyState } from '@/components/ui/empty-state';
 import { useToast } from '@/components/ui/toast';
 import { PageContainer } from '@/components/layout/PageContainer';
+import { Modal } from '@/components/ui/modal';
 import { Avatar } from '@/components/ui/avatar';
 import { ProjectContextPanel } from '@/components/tasks/ProjectContextPanel';
 import { SolutionPromptPanel } from '@/components/tasks/SolutionPromptPanel';
@@ -23,6 +24,7 @@ import {
   X,
   Paperclip,
   Trash2,
+  BookOpen,
 } from 'lucide-react';
 
 export function TasksPage() {
@@ -35,6 +37,7 @@ export function TasksPage() {
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
   const [priorityFilter, setPriorityFilter] = useState<string>('ALL');
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
+  const [contextModalOpen, setContextModalOpen] = useState(false);
 
   const pId = activeProject?.id || projects[0]?.id;
 
@@ -144,10 +147,22 @@ export function TasksPage() {
           )}
         </div>
 
-        {pId ? <ProjectContextPanel projectId={pId} projectName={activeProject?.name} /> : null}
+        {/* Actions & View Switcher */}
+        <div className="flex items-center gap-2.5 self-start sm:self-auto">
+          {pId && (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setContextModalOpen(true)}
+              className="text-[12px] h-8 text-[var(--foreground)] gap-1.5"
+            >
+              <BookOpen className="w-3.5 h-3.5 text-[var(--primary-text)]" />
+              <span>Project context</span>
+            </Button>
+          )}
 
-        {/* View Switcher: List · Board · Table */}
-        <div className="flex items-center gap-2 self-start sm:self-auto">
+          {/* View Switcher: List · Board · Table */}
           <div className="flex rounded-lg bg-[var(--muted)] p-0.5 border border-[var(--border)]">
             <button
               type="button"
@@ -686,6 +701,23 @@ export function TasksPage() {
           </div>
         </div>
       )}
+
+      {/* Project Context Dialog */}
+      <Modal
+        open={contextModalOpen}
+        onClose={() => setContextModalOpen(false)}
+        title={`${activeProject?.name || 'Project'} Context`}
+        description="Architecture conventions, tech stack, and instructions used by AI solution prompts."
+        maxWidth="2xl"
+      >
+        {pId && (
+          <ProjectContextPanel
+            projectId={pId}
+            projectName={activeProject?.name}
+            onClose={() => setContextModalOpen(false)}
+          />
+        )}
+      </Modal>
     </PageContainer>
   );
 }

@@ -47,7 +47,13 @@ let LocalStorageAdapter = LocalStorageAdapter_1 = class LocalStorageAdapter {
         return fs.promises.readFile(fullPath);
     }
     async getSignedUrl(key, _expiresInSeconds = 3600) {
+        if (!key)
+            return '';
         const cleanKey = key.startsWith('/') ? key.substring(1) : key;
+        const fullPath = path.join(this.storageRoot, cleanKey);
+        if (!fs.existsSync(fullPath)) {
+            return '';
+        }
         return `${this.baseUrl}/static/${cleanKey}`;
     }
     async createPresignedPutUrl(key, contentType, _expiresInSeconds = 900) {

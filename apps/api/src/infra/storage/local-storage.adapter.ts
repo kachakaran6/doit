@@ -47,7 +47,12 @@ export class LocalStorageAdapter implements IStorageAdapter {
   }
 
   async getSignedUrl(key: string, _expiresInSeconds = 3600): Promise<string> {
+    if (!key) return '';
     const cleanKey = key.startsWith('/') ? key.substring(1) : key;
+    const fullPath = path.join(this.storageRoot, cleanKey);
+    if (!fs.existsSync(fullPath)) {
+      return '';
+    }
     return `${this.baseUrl}/static/${cleanKey}`;
   }
 
