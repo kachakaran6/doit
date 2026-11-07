@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Breadcrumbs } from './Breadcrumbs';
-import { UserMenu } from './UserMenu';
+import { WorkspaceSwitcher } from './WorkspaceSwitcher';
 import { Button } from '@/components/ui/button';
 import { Search, Plus, Menu, ChevronDown, CheckSquare, Bug, StickyNote, Bell, FolderKanban, UserPlus } from 'lucide-react';
 import { CreateType } from './CreateModal';
@@ -145,9 +145,9 @@ export function TopBar({
           )}
         </div>
 
-        {/* Separator & User Profile Menu in the top right corner */}
+        {/* Separator & Workspace Switcher in the top right corner */}
         <div className="h-5 w-[1px] bg-[var(--border)] mx-1" />
-        <UserMenu />
+        <WorkspaceSwitcher />
       </div>
     </header>
   );

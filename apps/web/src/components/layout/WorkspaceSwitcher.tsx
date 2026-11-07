@@ -58,33 +58,37 @@ export function WorkspaceSwitcher() {
   };
 
   const initials = activeWorkspace?.name ? activeWorkspace.name.slice(0, 2).toUpperCase() : 'DO';
+  const role = activeWorkspace?.role ? activeWorkspace.role.toLowerCase() : 'owner';
 
   return (
     <div className="relative" ref={menuRef}>
       <button
         type="button"
         onClick={() => setOpen(!open)}
-        className="w-full flex items-center justify-between p-2 rounded-xl hover:bg-[var(--accent)] transition-colors text-left cursor-pointer group"
+        className="flex items-center gap-2 p-1 pl-1.5 pr-2 rounded-lg hover:bg-[var(--accent)] transition-colors cursor-pointer group border border-transparent hover:border-[var(--border)]"
+        aria-label="Switch workspace"
       >
-        <div className="flex items-center gap-2.5 min-w-0">
-          <div className="w-8 h-8 rounded-lg bg-[var(--primary)] text-white font-semibold flex items-center justify-center text-[12px] shrink-0 shadow-xs">
-            {initials}
-          </div>
-          <div className="min-w-0 flex-1">
-            <div className="text-[13px] font-semibold text-[var(--foreground)] truncate leading-tight">
-              {activeWorkspace?.name || 'Workspace'}
-            </div>
-            <div className="text-[11px] text-[var(--muted-foreground)] leading-tight">
-              {activeWorkspace?.role ? activeWorkspace.role.toLowerCase() : 'active'}
-            </div>
-          </div>
+        <div className="w-6 h-6 rounded-md bg-[var(--primary)] text-white font-bold flex items-center justify-center text-[10px] shrink-0 shadow-xs">
+          {initials}
         </div>
-        <ChevronDown className="w-4 h-4 text-[var(--muted-foreground)] shrink-0 transition-transform group-hover:text-[var(--foreground)]" />
+        <div className="hidden sm:flex flex-col text-left min-w-0 max-w-[130px] md:max-w-[170px]">
+          <span className="text-[12px] font-semibold text-[var(--foreground)] leading-tight truncate">
+            {activeWorkspace?.name || 'Workspace'}
+          </span>
+          <span className="text-[10px] text-[var(--muted-foreground)] leading-tight truncate capitalize">
+            {role}
+          </span>
+        </div>
+        <ChevronDown
+          className={`w-3.5 h-3.5 text-[var(--muted-foreground)] shrink-0 transition-transform duration-150 group-hover:text-[var(--foreground)] ${
+            open ? 'rotate-180' : ''
+          }`}
+        />
       </button>
 
       {open && (
-        <div className="absolute top-full left-0 mt-1 w-64 rounded-xl bg-[var(--popover)] text-[var(--popover-foreground)] shadow-xl border border-[var(--border)] p-1.5 z-40 animate-in fade-in zoom-in-95 duration-100">
-          <div className="px-2 py-1.5 text-[11px] font-medium text-[var(--muted-foreground)]">
+        <div className="absolute top-full right-0 mt-2 w-64 rounded-xl bg-[var(--popover)] text-[var(--popover-foreground)] shadow-xl border border-[var(--border)] p-1.5 z-50 animate-in fade-in zoom-in-95 duration-100">
+          <div className="px-2.5 py-1.5 text-[11px] font-medium text-[var(--muted-foreground)]">
             Workspaces
           </div>
           <div className="space-y-0.5 max-h-56 overflow-y-auto">

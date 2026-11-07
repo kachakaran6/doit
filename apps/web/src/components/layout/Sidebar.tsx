@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { NavLink } from 'react-router-dom';
 import { useWorkspaceStore } from '@/lib/workspace-store';
 import { useThemeStore } from '@/lib/theme-store';
-import { WorkspaceSwitcher } from './WorkspaceSwitcher';
+import { UserMenu } from './UserMenu';
 import { NewProjectDialog } from './NewProjectDialog';
 import {
   LayoutDashboard,
@@ -59,11 +59,6 @@ export function Sidebar({
             alt="DoIt"
             className="h-7 w-auto object-contain"
           />
-        </div>
-
-        {/* Workspace Switcher */}
-        <div className="px-3 pb-3">
-          <WorkspaceSwitcher />
         </div>
 
         {/* Main Navigation */}
@@ -127,6 +122,11 @@ export function Sidebar({
               );
             })}
         </div>
+      </div>
+
+      {/* User Profile Menu at Bottom */}
+      <div className="p-3 border-t border-[var(--sidebar-border)] shrink-0">
+        <UserMenu />
       </div>
 
       <NewProjectDialog open={projectOpen} onClose={() => setProjectOpen(false)} />
