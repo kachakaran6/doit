@@ -17,6 +17,28 @@ class MainActivity : ReactActivity() {
     // This is required for expo-splash-screen.
     setTheme(R.style.AppTheme);
     super.onCreate(null)
+    consumeDeepLinkIntent()
+  }
+
+  override fun onNewIntent(intent: android.content.Intent) {
+    super.onNewIntent(intent)
+    setIntent(intent)
+    consumeDeepLinkIntent()
+  }
+
+  private fun consumeDeepLinkIntent() {
+    window?.decorView?.postDelayed({
+      try {
+        val curIntent = intent
+        if (curIntent != null && android.content.Intent.ACTION_VIEW == curIntent.action) {
+          val cleanIntent = android.content.Intent(this, MainActivity::class.java).apply {
+            action = android.content.Intent.ACTION_MAIN
+            addCategory(android.content.Intent.CATEGORY_LAUNCHER)
+          }
+          setIntent(cleanIntent)
+        }
+      } catch (_: Exception) {}
+    }, 2500)
   }
 
   /**
@@ -68,6 +90,15 @@ class MainActivity : ReactActivity() {
   override fun onPause() {
     super.onPause()
     com.samyukt.doit.overlay.BubbleService.setAppInForeground(false)
+    try {
+      if (android.content.Intent.ACTION_VIEW == intent?.action) {
+        val cleanIntent = android.content.Intent(this, MainActivity::class.java).apply {
+          action = android.content.Intent.ACTION_MAIN
+          addCategory(android.content.Intent.CATEGORY_LAUNCHER)
+        }
+        setIntent(cleanIntent)
+      }
+    } catch (_: Exception) {}
   }
 
   override fun getMainComponentName(): String = "main"

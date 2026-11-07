@@ -12,6 +12,7 @@ import { useAuthStore } from '../features/auth/store';
 import { useWorkspaceStore } from '../features/workspace/store';
 import { http } from '../lib/http';
 import { RootStackParamList } from '../navigation/types';
+import { extractInviteToken, markInviteTokenConsumed, isInviteTokenConsumed } from '../navigation/invite-link';
 import { CheckCircle2, AlertTriangle, Users, ArrowRight } from 'lucide-react-native';
 
 type InviteAcceptRouteProp = RouteProp<RootStackParamList, 'InviteAccept'>;
@@ -38,7 +39,7 @@ export const InviteAcceptScreen: React.FC = () => {
   const [accepting, setAccepting] = useState(false);
 
   useEffect(() => {
-    if (!token) {
+    if (!token || isInviteTokenConsumed(token)) {
       navigation.reset({
         index: 0,
         routes: [{ name: isAuthenticated ? 'MainTabs' : 'Auth' }],
@@ -49,7 +50,7 @@ export const InviteAcceptScreen: React.FC = () => {
   }, [token, isAuthenticated]);
 
   const validateToken = async () => {
-    if (!token) {
+    if (!token || isInviteTokenConsumed(token)) {
       setValid(false);
       setLoading(false);
       return;
@@ -62,10 +63,12 @@ export const InviteAcceptScreen: React.FC = () => {
         setValid(true);
         setInviteData(res);
       } else {
+        markInviteTokenConsumed(token);
         setValid(false);
         setInviteData(res);
       }
     } catch {
+      markInviteTokenConsumed(token);
       setValid(false);
     } finally {
       setLoading(false);
@@ -78,6 +81,7 @@ export const InviteAcceptScreen: React.FC = () => {
       setAccepting(true);
       const res: any = await http.post('/invitations/accept', { token });
       if (res && res.success) {
+        markInviteTokenConsumed(token);
         // Refresh workspaces list
         await useWorkspaceStore.getState().fetchAndInitializeWorkspaces();
         Alert.alert(
@@ -148,7 +152,13 @@ export const InviteAcceptScreen: React.FC = () => {
         <Button
           variant="secondary"
           title="Go Back"
-          onPress={() => navigation.navigate(isAuthenticated ? 'MainTabs' : 'Auth')}
+          onPress={() => {
+            markInviteTokenConsumed(token);
+            navigation.reset({
+              index: 0,
+              routes: [{ name: isAuthenticated ? 'MainTabs' : 'Auth' }],
+            });
+          }}
           style={{ marginTop: 24, minWidth: 160 }}
         />
       </View>

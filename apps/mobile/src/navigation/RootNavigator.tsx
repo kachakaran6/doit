@@ -33,13 +33,17 @@ import { useTheme } from '../theme/useTheme';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
+let hasProcessedInitialUrl = false;
+
 const linking: LinkingOptions<RootStackParamList> = {
   async getInitialURL() {
+    if (hasProcessedInitialUrl) return null;
     const url = await Linking.getInitialURL();
     if (!url) return null;
     if (/\/invite(?:\/|$)/i.test(url) && !extractInviteToken(url)) {
       return null;
     }
+    hasProcessedInitialUrl = true;
     return url;
   },
   subscribe(listener) {

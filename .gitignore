@@ -6,6 +6,8 @@ node_modules/
 poco_*.png
 crop_*.png
 device_*.png
+screenshots/
+*.zip
 
 dist-web/
 build/

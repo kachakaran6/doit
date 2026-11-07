@@ -3,6 +3,17 @@
  * Empty, missing, or placeholder tokens must not open the invitation screen.
  */
 const PLACEHOLDERS = new Set(['undefined', 'null', 'invite', '']);
+const consumedTokens = new Set<string>();
+
+export function markInviteTokenConsumed(token: string | null | undefined): void {
+  if (!token) return;
+  consumedTokens.add(token.trim().toLowerCase());
+}
+
+export function isInviteTokenConsumed(token: string | null | undefined): boolean {
+  if (!token) return true;
+  return consumedTokens.has(token.trim().toLowerCase());
+}
 
 export function extractInviteToken(url: string | null | undefined): string | null {
   if (!url || typeof url !== 'string') return null;
@@ -33,6 +44,7 @@ export function extractInviteToken(url: string | null | undefined): string | nul
   }
   if (PLACEHOLDERS.has(token.toLowerCase())) return null;
   if (token.length < 8) return null;
+  if (consumedTokens.has(token.toLowerCase())) return null;
   return token;
 }
 
