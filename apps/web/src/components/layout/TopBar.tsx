@@ -1,7 +1,8 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { Breadcrumbs } from './Breadcrumbs';
 import { Button } from '@/components/ui/button';
-import { Search, Plus, Menu, ChevronDown, CheckSquare, Bug, StickyNote } from 'lucide-react';
+import { Search, Plus, Menu, ChevronDown, CheckSquare, Bug, StickyNote, Bell } from 'lucide-react';
 import { CreateType } from './CreateModal';
 
 export function TopBar({
@@ -49,6 +50,13 @@ export function TopBar({
 
       {/* Right: Single Global Create Split Button */}
       <div className="relative flex items-center gap-2">
+        <Link
+          to="/notifications"
+          aria-label="Notifications"
+          className="p-2 rounded-lg text-[var(--muted-foreground)] hover:text-[var(--foreground)] hover:bg-[var(--accent)]"
+        >
+          <Bell className="w-4 h-4" />
+        </Link>
         <div className="inline-flex rounded-lg shadow-xs">
           <Button
             size="sm"

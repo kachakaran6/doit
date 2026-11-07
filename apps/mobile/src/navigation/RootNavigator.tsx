@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
-import { NavigationContainer, LinkingOptions } from '@react-navigation/native';
+import { Linking } from 'react-native';
+import { DefaultTheme, DarkTheme, NavigationContainer, LinkingOptions, getStateFromPath } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { RootStackParamList } from './types';
 import { TabsNavigator } from './TabsNavigator';
@@ -12,6 +13,9 @@ import {
 } from '../screens';
 import { StickyBoardScreen } from '../features/stickies';
 import { SettingsScreen } from '../features/settings';
+import { AiProviderScreen } from '../features/settings/screens/AiProviderScreen';
+import { QuickCapturePrefsScreen } from '../features/settings/screens/QuickCapturePrefsScreen';
+import { ProjectContextScreen } from '../features/projects/ProjectContextScreen';
 import { TeamMembersScreen } from '../features/workspace';
 import { PendingSyncScreen } from '../features/outbox/screens/PendingSyncScreen';
 import { NotificationsScreen } from '../features/notifications';
@@ -24,10 +28,35 @@ import { useVersionPolicy } from '../features/system/useVersionPolicy';
 import { ForceUpdateScreen } from '../features/system/ForceUpdateScreen';
 
 import { navigationRef } from './navigationRef';
+import { extractInviteToken } from './invite-link';
+import { useTheme } from '../theme/useTheme';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
 const linking: LinkingOptions<RootStackParamList> = {
+  async getInitialURL() {
+    const url = await Linking.getInitialURL();
+    if (!url) return null;
+    if (/\/invite(?:\/|$)/i.test(url) && !extractInviteToken(url)) {
+      return null;
+    }
+    return url;
+  },
+  subscribe(listener) {
+    const sub = Linking.addEventListener('url', ({ url }) => {
+      if (/\/invite(?:\/|$)/i.test(url) && !extractInviteToken(url)) return;
+      listener(url);
+    });
+    return () => sub.remove();
+  },
+  getStateFromPath(path, options) {
+    const normalized = path.startsWith('/') ? path : `/${path}`;
+    if (normalized === '/' || normalized === '') return undefined;
+    if (/^\/invite\/?$/.test(normalized)) return undefined;
+    const invite = normalized.match(/^\/invite\/([^/?#]+)/);
+    if (invite && !extractInviteToken(`doit://invite/${invite[1]}`)) return undefined;
+    return getStateFromPath(path, options);
+  },
   prefixes: [
     'doit://',
     'samyukt://',
@@ -65,6 +94,17 @@ const linking: LinkingOptions<RootStackParamList> = {
 export const RootNavigator: React.FC = () => {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const versionPolicy = useVersionPolicy();
+  const { colors, resolvedTheme } = useTheme();
+  const baseTheme = resolvedTheme === 'dark' ? DarkTheme : DefaultTheme;
+  const navigationTheme = {
+    ...baseTheme,
+    colors: {
+      ...baseTheme.colors,
+      background: colors.canvas,
+      card: 'transparent',
+      border: 'transparent',
+    },
+  };
 
   useEffect(() => {
     useAuthStore.getState().initAuth().catch(() => {});
@@ -87,17 +127,16 @@ export const RootNavigator: React.FC = () => {
 
   return (
     <NavBarScrollProvider>
-      <NavigationContainer ref={navigationRef} linking={linking}>
+      <NavigationContainer ref={navigationRef} linking={linking} theme={navigationTheme}>
         <Stack.Navigator
+          key={isAuthenticated ? 'signed-in' : 'signed-out'}
           initialRouteName={isAuthenticated ? 'MainTabs' : 'Auth'}
           screenOptions={{
             headerShown: false,
             animation: 'slide_from_right',
+            contentStyle: { backgroundColor: colors.canvas },
           }}
         >
-          {/* Always permit invitation acceptance deep-links */}
-          <Stack.Screen name="InviteAccept" component={InviteAcceptScreen} />
-
           {!isAuthenticated ? (
             <Stack.Screen name="Auth" component={AuthScreen} />
           ) : (
@@ -107,6 +146,9 @@ export const RootNavigator: React.FC = () => {
               <Stack.Screen name="BugDetail" component={BugDetailScreen} />
               <Stack.Screen name="StickyBoard" component={StickyBoardScreen} />
               <Stack.Screen name="Settings" component={SettingsScreen} />
+              <Stack.Screen name="AiProvider" component={AiProviderScreen} />
+              <Stack.Screen name="QuickCapturePrefs" component={QuickCapturePrefsScreen} />
+              <Stack.Screen name="ProjectContext" component={ProjectContextScreen} />
               <Stack.Screen name="TeamMembers" component={TeamMembersScreen} />
               <Stack.Screen name="PendingSync" component={PendingSyncScreen} />
               <Stack.Screen name="Notifications" component={NotificationsScreen} />
@@ -122,6 +164,7 @@ export const RootNavigator: React.FC = () => {
               <Stack.Screen name="FoundationGallery" component={FoundationGallery} />
             </>
           )}
+          <Stack.Screen name="InviteAccept" component={InviteAcceptScreen} />
         </Stack.Navigator>
       </NavigationContainer>
     </NavBarScrollProvider>

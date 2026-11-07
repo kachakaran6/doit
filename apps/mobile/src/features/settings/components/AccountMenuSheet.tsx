@@ -88,7 +88,7 @@ export const AccountMenuSheet: React.FC<AccountMenuSheetProps> = ({
             />
             <View style={{ marginLeft: spacing.sm, flex: 1 }}>
               <Text variant="bodyStrong" numberOfLines={1}>
-                {user?.fullName || 'Active User'}
+                {user?.fullName || user?.email?.split('@')[0] || 'Signed in'}
               </Text>
               <Text variant="caption" color="secondary" numberOfLines={1}>
                 {user?.email || 'user@doit.local'}

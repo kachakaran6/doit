@@ -25,7 +25,7 @@ export const InviteAcceptScreen: React.FC = () => {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const currentUser = useAuthStore((s) => s.user);
 
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(Boolean(token));
   const [valid, setValid] = useState<boolean | null>(null);
   const [inviteData, setInviteData] = useState<{
     workspace?: { id: string; name: string; slug: string };
@@ -38,8 +38,15 @@ export const InviteAcceptScreen: React.FC = () => {
   const [accepting, setAccepting] = useState(false);
 
   useEffect(() => {
+    if (!token) {
+      navigation.reset({
+        index: 0,
+        routes: [{ name: isAuthenticated ? 'MainTabs' : 'Auth' }],
+      });
+      return;
+    }
     validateToken();
-  }, [token]);
+  }, [token, isAuthenticated]);
 
   const validateToken = async () => {
     if (!token) {
@@ -100,6 +107,10 @@ export const InviteAcceptScreen: React.FC = () => {
     // Navigate to Auth screen
     navigation.navigate('Auth');
   };
+
+  if (!token) {
+    return <View style={[styles.container, { backgroundColor: colors.bg }]} />;
+  }
 
   if (loading) {
     return (

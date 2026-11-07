@@ -26,6 +26,7 @@ const attachments_module_1 = require("./modules/attachments/attachments.module")
 const voice_module_1 = require("./modules/voice/voice.module");
 const notifications_module_1 = require("./modules/notifications/notifications.module");
 const email_module_1 = require("./modules/email/email.module");
+const context_ai_module_1 = require("./modules/context-ai/context-ai.module");
 let AppModule = class AppModule {
 };
 exports.AppModule = AppModule;
@@ -50,6 +51,7 @@ exports.AppModule = AppModule = __decorate([
             voice_module_1.VoiceModule,
             notifications_module_1.NotificationsModule,
             email_module_1.EmailModule,
+            context_ai_module_1.ContextAiModule,
         ],
         controllers: [health_controller_1.HealthController, config_controller_1.ConfigController],
         providers: [],

@@ -9,6 +9,8 @@ import { StatusBadge, PriorityBadge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { EmptyState } from '@/components/ui/empty-state';
 import { useToast } from '@/components/ui/toast';
+import { ProjectContextPanel } from '@/components/tasks/ProjectContextPanel';
+import { SolutionPromptPanel } from '@/components/tasks/SolutionPromptPanel';
 import {
   LayoutList,
   Columns3,
@@ -22,7 +24,7 @@ import {
 } from 'lucide-react';
 
 export function TasksPage() {
-  const { activeProject, projects, setActiveProject } = useWorkspaceStore();
+  const { activeProject, projects, setActiveProject, labels, activeWorkspace } = useWorkspaceStore();
   const queryClient = useQueryClient();
   const { success, error } = useToast();
 
@@ -35,6 +37,12 @@ export function TasksPage() {
   const pId = activeProject?.id || projects[0]?.id;
 
   // 1. Fetch real tasks from backend
+  const { data: members = [] } = useQuery({
+    queryKey: ['workspace-members', activeWorkspace?.id],
+    queryFn: () => (activeWorkspace?.id ? api.workspaces.members(activeWorkspace.id) : []),
+    enabled: Boolean(activeWorkspace?.id),
+  });
+
   const { data: tasks = [], isLoading } = useQuery({
     queryKey: ['tasks', pId],
     queryFn: () => (pId ? api.tasks.list(pId) : []),
@@ -133,6 +141,8 @@ export function TasksPage() {
             </div>
           )}
         </div>
+
+        {pId ? <ProjectContextPanel projectId={pId} projectName={activeProject?.name} /> : null}
 
         {/* View Switcher: List · Board · Table */}
         <div className="flex items-center gap-2 self-start sm:self-auto">
@@ -527,6 +537,62 @@ export function TasksPage() {
                 <PriorityBadge priority={selectedTask.priority} />
               </div>
 
+              <div className="flex items-center justify-between gap-3">
+                <span className="text-[var(--muted-foreground)]">Assignee</span>
+                <select
+                  value={selectedTask.assigneeId || ''}
+                  onChange={async (e) => {
+                    const assigneeId = e.target.value || null;
+                    try {
+                      await api.tasks.assign(selectedTask.id, assigneeId);
+                      setSelectedTask({ ...selectedTask, assigneeId });
+                      success('Assignee updated', '');
+                    } catch (err: any) {
+                      error('Could not assign', err.message);
+                    }
+                  }}
+                  className="rounded-md bg-[var(--card)] px-2 py-1 text-[12px] border border-[var(--border)]"
+                >
+                  <option value="">Unassigned</option>
+                  {members.map((member) => (
+                    <option key={member.userId} value={member.userId}>{member.user?.name || member.user?.email}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="space-y-1">
+                <span className="text-[var(--muted-foreground)]">Labels</span>
+                <div className="flex flex-wrap gap-1">
+                  {labels.map((label) => {
+                    const on = selectedTask.labels?.some((entry) => entry.label?.id === label.id || entry.id === label.id);
+                    return (
+                      <button
+                        key={label.id}
+                        type="button"
+                        className={`text-[11px] px-2 py-0.5 rounded-md border ${on ? 'border-[var(--primary)]' : 'border-[var(--border)]'}`}
+                        onClick={async () => {
+                          const current = new Set(
+                            (selectedTask.labels || []).map((entry) => entry.label?.id || entry.id),
+                          );
+                          if (on) current.delete(label.id);
+                          else current.add(label.id);
+                          const labelIds = [...current];
+                          try {
+                            await api.tasks.setLabels(selectedTask.id, labelIds);
+                            setSelectedTask({
+                              ...selectedTask,
+                              labels: labels.filter((item) => labelIds.includes(item.id)).map((item) => ({ id: item.id, label: item })),
+                            });
+                          } catch (err: any) {
+                            error('Could not update labels', err.message);
+                          }
+                        }}
+                      >
+                        {label.name}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
               <div className="flex items-center justify-between">
                 <span className="text-[var(--muted-foreground)]">Created</span>
                 <span className="text-[12px] text-[var(--foreground)]">
@@ -534,6 +600,8 @@ export function TasksPage() {
                 </span>
               </div>
             </div>
+
+            <SolutionPromptPanel taskId={selectedTask.id} attachments={selectedTask.attachments} />
 
             {/* Description */}
             <div className="space-y-1.5">

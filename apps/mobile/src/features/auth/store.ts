@@ -26,8 +26,12 @@ export const useAuthStore = create<AuthState>((set) => ({
       if (saved && saved.accessToken) {
         http.setAuthToken(saved.accessToken);
         overlayService.syncAuthCredentials(saved.accessToken, 'https://doit.samyukt.pro/api/v1', null, saved.refreshToken);
+        const savedUser = saved.user as UserViewModel & { name?: string };
         set({
-          user: saved.user,
+          user: {
+            ...savedUser,
+            fullName: savedUser.fullName || savedUser.name || savedUser.email?.split('@')[0] || '',
+          },
           accessToken: saved.accessToken,
           refreshToken: saved.refreshToken,
           isAuthenticated: true,
@@ -39,11 +43,19 @@ export const useAuthStore = create<AuthState>((set) => ({
   },
 
   setSession: (session) => {
+    const raw = session.user as UserViewModel & { name?: string };
+    const user: UserViewModel = {
+      id: raw.id,
+      email: raw.email,
+      fullName: raw.fullName || raw.name || raw.email?.split('@')[0] || '',
+      avatarUrl: raw.avatarUrl,
+    };
+    const normalized = { ...session, user };
     http.setAuthToken(session.accessToken);
-    AuthStorage.setSession(session).catch(() => {});
+    AuthStorage.setSession(normalized).catch(() => {});
     overlayService.syncAuthCredentials(session.accessToken, 'https://doit.samyukt.pro/api/v1', null, session.refreshToken);
     set({
-      user: session.user,
+      user,
       accessToken: session.accessToken,
       refreshToken: session.refreshToken,
       isAuthenticated: true,

@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '@/lib/auth-store';
+import { useWorkspaceStore } from '@/lib/workspace-store';
 import { useThemeStore } from '@/lib/theme-store';
 import { Avatar } from '@/components/ui/avatar';
 import { Settings, LogOut, Sun, Moon, Laptop, ChevronUp } from 'lucide-react';
@@ -9,6 +10,11 @@ import { useToast } from '@/components/ui/toast';
 export function UserMenu() {
   const navigate = useNavigate();
   const { user, logout } = useAuthStore();
+  const activeWorkspace = useWorkspaceStore((s) => s.activeWorkspace);
+  const displayName = user?.name?.trim() || user?.email?.split('@')[0] || 'Signed in';
+  const role =
+    user?.memberships?.find((m) => m.workspaceId === activeWorkspace?.id)?.role ||
+    activeWorkspace?.role;
   const { mode, setMode } = useThemeStore();
   const { info } = useToast();
   const [open, setOpen] = useState(false);
@@ -42,10 +48,10 @@ export function UserMenu() {
         className="w-full flex items-center justify-between p-2 rounded-xl hover:bg-[var(--accent)] transition-colors text-left cursor-pointer group"
       >
         <div className="flex items-center gap-2.5 min-w-0">
-          <Avatar name={user?.name} email={user?.email} size="sm" />
+          <Avatar name={displayName} email={user?.email} size="sm" />
           <div className="min-w-0 flex-1">
             <div className="text-[13px] font-semibold text-[var(--foreground)] truncate leading-tight">
-              {user?.name || 'Account'}
+              {displayName}
             </div>
             <div className="text-[11px] text-[var(--muted-foreground)] truncate leading-tight">
               {user?.email || ''}
@@ -60,10 +66,11 @@ export function UserMenu() {
           {/* User Info Header */}
           <div className="px-2.5 py-2 border-b border-[var(--border)]">
             <div className="text-[13px] font-semibold text-[var(--foreground)] truncate">
-              {user?.name}
+              {displayName}
             </div>
             <div className="text-[11px] text-[var(--muted-foreground)] truncate">
               {user?.email}
+              {role ? ` · ${role.charAt(0)}${role.slice(1).toLowerCase()}` : ''}
             </div>
           </div>
 

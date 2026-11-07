@@ -36,6 +36,9 @@ export declare const EnvSchema: z.ZodEffects<z.ZodObject<{
     SMTP_FROM: z.ZodOptional<z.ZodString>;
     SMTP_FROM_NAME: z.ZodDefault<z.ZodString>;
     SMTP_SECURE: z.ZodOptional<z.ZodString>;
+    AI_CREDENTIALS_KEY: z.ZodOptional<z.ZodString>;
+    AI_GENERATION_ENABLED: z.ZodOptional<z.ZodString>;
+    AI_CONTEXT_MAX_CHARS: z.ZodDefault<z.ZodNumber>;
 }, "strip", z.ZodTypeAny, {
     PORT: number;
     NODE_ENV: "development" | "production" | "test";
@@ -57,6 +60,7 @@ export declare const EnvSchema: z.ZodEffects<z.ZodObject<{
     MIN_APP_VERSION: string;
     APP_URL: string;
     SMTP_FROM_NAME: string;
+    AI_CONTEXT_MAX_CHARS: number;
     PUBLIC_BASE_URL?: string | undefined;
     COOKIE_SECRET?: string | undefined;
     S3_ENDPOINT?: string | undefined;
@@ -73,6 +77,8 @@ export declare const EnvSchema: z.ZodEffects<z.ZodObject<{
     SMTP_FROM_EMAIL?: string | undefined;
     SMTP_FROM?: string | undefined;
     SMTP_SECURE?: string | undefined;
+    AI_CREDENTIALS_KEY?: string | undefined;
+    AI_GENERATION_ENABLED?: string | undefined;
 }, {
     PORT?: number | undefined;
     NODE_ENV?: "development" | "production" | "test" | undefined;
@@ -110,6 +116,9 @@ export declare const EnvSchema: z.ZodEffects<z.ZodObject<{
     SMTP_FROM?: string | undefined;
     SMTP_FROM_NAME?: string | undefined;
     SMTP_SECURE?: string | undefined;
+    AI_CREDENTIALS_KEY?: string | undefined;
+    AI_GENERATION_ENABLED?: string | undefined;
+    AI_CONTEXT_MAX_CHARS?: number | undefined;
 }>, {
     PORT: number;
     NODE_ENV: "development" | "production" | "test";
@@ -131,6 +140,7 @@ export declare const EnvSchema: z.ZodEffects<z.ZodObject<{
     MIN_APP_VERSION: string;
     APP_URL: string;
     SMTP_FROM_NAME: string;
+    AI_CONTEXT_MAX_CHARS: number;
     PUBLIC_BASE_URL?: string | undefined;
     COOKIE_SECRET?: string | undefined;
     S3_ENDPOINT?: string | undefined;
@@ -147,6 +157,8 @@ export declare const EnvSchema: z.ZodEffects<z.ZodObject<{
     SMTP_FROM_EMAIL?: string | undefined;
     SMTP_FROM?: string | undefined;
     SMTP_SECURE?: string | undefined;
+    AI_CREDENTIALS_KEY?: string | undefined;
+    AI_GENERATION_ENABLED?: string | undefined;
 }, {
     PORT?: number | undefined;
     NODE_ENV?: "development" | "production" | "test" | undefined;
@@ -184,6 +196,9 @@ export declare const EnvSchema: z.ZodEffects<z.ZodObject<{
     SMTP_FROM?: string | undefined;
     SMTP_FROM_NAME?: string | undefined;
     SMTP_SECURE?: string | undefined;
+    AI_CREDENTIALS_KEY?: string | undefined;
+    AI_GENERATION_ENABLED?: string | undefined;
+    AI_CONTEXT_MAX_CHARS?: number | undefined;
 }>;
 export type EnvConfig = z.infer<typeof EnvSchema>;
 export declare function validateEnv(config: Record<string, unknown>): EnvConfig;

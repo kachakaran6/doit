@@ -25,10 +25,10 @@ export declare class AuthService {
     getSessions(userId: string): Promise<{
         id: string;
         createdAt: Date;
+        appVersion: string | null;
         deviceName: string | null;
         deviceId: string | null;
         platform: string | null;
-        appVersion: string | null;
         lastSeenAt: Date;
     }[]>;
     revokeSession(userId: string, sessionId: string): Promise<void>;

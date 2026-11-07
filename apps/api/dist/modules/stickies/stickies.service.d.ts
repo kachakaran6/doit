@@ -20,10 +20,10 @@ export declare class StickiesService {
         id: string;
         createdAt: Date;
         updatedAt: Date;
-        deletedAt: Date | null;
-        color: import(".prisma/client").$Enums.AccentName;
         projectId: string;
         order: Prisma.Decimal;
+        deletedAt: Date | null;
+        color: import(".prisma/client").$Enums.AccentName;
         authorId: string;
         body: string;
         pinned: boolean;
@@ -44,10 +44,10 @@ export declare class StickiesService {
         id: string;
         createdAt: Date;
         updatedAt: Date;
-        deletedAt: Date | null;
-        color: import(".prisma/client").$Enums.AccentName;
         projectId: string;
         order: Prisma.Decimal;
+        deletedAt: Date | null;
+        color: import(".prisma/client").$Enums.AccentName;
         authorId: string;
         body: string;
         pinned: boolean;
@@ -68,10 +68,10 @@ export declare class StickiesService {
         id: string;
         createdAt: Date;
         updatedAt: Date;
-        deletedAt: Date | null;
-        color: import(".prisma/client").$Enums.AccentName;
         projectId: string;
         order: Prisma.Decimal;
+        deletedAt: Date | null;
+        color: import(".prisma/client").$Enums.AccentName;
         authorId: string;
         body: string;
         pinned: boolean;
@@ -92,10 +92,10 @@ export declare class StickiesService {
         id: string;
         createdAt: Date;
         updatedAt: Date;
-        deletedAt: Date | null;
-        color: import(".prisma/client").$Enums.AccentName;
         projectId: string;
         order: Prisma.Decimal;
+        deletedAt: Date | null;
+        color: import(".prisma/client").$Enums.AccentName;
         authorId: string;
         body: string;
         pinned: boolean;
@@ -113,7 +113,6 @@ export declare class StickiesService {
             id: string;
             createdAt: Date;
             updatedAt: Date;
-            deletedAt: Date | null;
             source: import(".prisma/client").$Enums.TaskSource;
             description: string | null;
             projectId: string;
@@ -126,15 +125,16 @@ export declare class StickiesService {
             assigneeId: string | null;
             completedAt: Date | null;
             convertedFromStickyId: string | null;
+            deletedAt: Date | null;
         };
         sticky: {
             id: string;
             createdAt: Date;
             updatedAt: Date;
-            deletedAt: Date | null;
-            color: import(".prisma/client").$Enums.AccentName;
             projectId: string;
             order: Prisma.Decimal;
+            deletedAt: Date | null;
+            color: import(".prisma/client").$Enums.AccentName;
             authorId: string;
             body: string;
             pinned: boolean;

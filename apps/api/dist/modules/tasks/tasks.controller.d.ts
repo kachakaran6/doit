@@ -12,8 +12,8 @@ export declare class TasksController {
     findOneBug(id: string): Promise<{
         checklist: {
             id: string;
-            taskId: string;
             order: import("@prisma/client/runtime/library").Decimal;
+            taskId: string;
             text: string;
             done: boolean;
         }[];
@@ -54,7 +54,6 @@ export declare class TasksController {
             expected: string | null;
             id: string;
             taskId: string;
-            appVersion: string | null;
             sessionId: string | null;
             reporterId: string | null;
             severity: import(".prisma/client").$Enums.Severity;
@@ -64,6 +63,7 @@ export declare class TasksController {
             deviceModel: string | null;
             osVersion: string | null;
             appUnderTest: string | null;
+            appVersion: string | null;
             buildNumber: string | null;
             capturedAt: Date;
             autoContext: import("@prisma/client/runtime/library").JsonValue;
@@ -75,12 +75,12 @@ export declare class TasksController {
             };
         } & {
             id: string;
-            workspaceId: string;
             createdAt: Date;
-            action: string;
-            meta: import("@prisma/client/runtime/library").JsonValue;
+            workspaceId: string;
             taskId: string | null;
             actorId: string;
+            action: string;
+            meta: import("@prisma/client/runtime/library").JsonValue;
         })[];
         id: string;
         humanId: string;
@@ -127,8 +127,8 @@ export declare class TasksController {
     findOne(id: string): Promise<{
         checklist: {
             id: string;
-            taskId: string;
             order: import("@prisma/client/runtime/library").Decimal;
+            taskId: string;
             text: string;
             done: boolean;
         }[];
@@ -169,7 +169,6 @@ export declare class TasksController {
             expected: string | null;
             id: string;
             taskId: string;
-            appVersion: string | null;
             sessionId: string | null;
             reporterId: string | null;
             severity: import(".prisma/client").$Enums.Severity;
@@ -179,6 +178,7 @@ export declare class TasksController {
             deviceModel: string | null;
             osVersion: string | null;
             appUnderTest: string | null;
+            appVersion: string | null;
             buildNumber: string | null;
             capturedAt: Date;
             autoContext: import("@prisma/client/runtime/library").JsonValue;
@@ -190,12 +190,12 @@ export declare class TasksController {
             };
         } & {
             id: string;
-            workspaceId: string;
             createdAt: Date;
-            action: string;
-            meta: import("@prisma/client/runtime/library").JsonValue;
+            workspaceId: string;
             taskId: string | null;
             actorId: string;
+            action: string;
+            meta: import("@prisma/client/runtime/library").JsonValue;
         })[];
         id: string;
         humanId: string;
@@ -241,15 +241,15 @@ export declare class TasksController {
     }>;
     addChecklistItem(id: string, dto: CreateChecklistItemDto): Promise<{
         id: string;
-        taskId: string;
         order: import("@prisma/client/runtime/library").Decimal;
+        taskId: string;
         text: string;
         done: boolean;
     }>;
     updateChecklistItem(itemId: string, dto: UpdateChecklistItemDto): Promise<{
         id: string;
-        taskId: string;
         order: import("@prisma/client/runtime/library").Decimal;
+        taskId: string;
         text: string;
         done: boolean;
     }>;

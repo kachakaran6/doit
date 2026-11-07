@@ -11,12 +11,15 @@ import { Input } from '@/components/ui/input';
 import { Avatar } from '@/components/ui/avatar';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/components/ui/toast';
+import { AiProviderSettings, QuickCaptureSettings } from '@/components/settings/AiAndCaptureSettings';
 import {
   User,
   Palette,
   Shield,
   Building,
   Mail,
+  Sparkles,
+  SlidersHorizontal,
   Sun,
   Moon,
   Laptop,
@@ -27,7 +30,7 @@ import {
   Server,
 } from 'lucide-react';
 
-type SettingsTab = 'profile' | 'appearance' | 'workspace' | 'sessions' | 'smtp';
+type SettingsTab = 'profile' | 'appearance' | 'workspace' | 'sessions' | 'smtp' | 'ai' | 'capture';
 
 export function SettingsPage() {
   const { user } = useAuthStore();
@@ -191,7 +194,7 @@ export function SettingsPage() {
   ];
 
   return (
-    <div className="space-y-8 select-none max-w-4xl">
+    <div className="space-y-8 select-none w-full">
       {/* Header */}
       <div>
         <h1 className="text-2xl font-bold tracking-tight text-[var(--foreground)]">Settings</h1>
@@ -208,6 +211,8 @@ export function SettingsPage() {
           { id: 'workspace', label: 'Workspace', icon: Building },
           { id: 'sessions', label: 'Security & Sessions', icon: Shield },
           { id: 'smtp', label: 'SMTP Config', icon: Mail },
+          { id: 'capture', label: 'Quick capture', icon: SlidersHorizontal },
+          { id: 'ai', label: 'AI', icon: Sparkles },
         ].map((tab) => {
           const Icon = tab.icon;
           const isActive = activeTab === tab.id;
@@ -494,11 +499,31 @@ export function SettingsPage() {
                 })}
               </div>
             )}
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              className="mt-4"
+              onClick={async () => {
+                try {
+                  await api.auth.logoutAll();
+                  success('Signed out everywhere', 'Other sessions were revoked.');
+                  queryClient.invalidateQueries({ queryKey: ['auth-sessions'] });
+                } catch (err: any) {
+                  error('Could not sign out other sessions', err.message);
+                }
+              }}
+            >
+              Sign out everywhere
+            </Button>
           </CardContent>
         </Card>
       )}
 
       {/* Tab 5: SMTP Configuration */}
+      {activeTab === 'capture' && <QuickCaptureSettings />}
+      {activeTab === 'ai' && <AiProviderSettings />}
+
       {activeTab === 'smtp' && (
         <Card variant="bordered">
           <CardHeader>

@@ -7,8 +7,9 @@ export function useCreateStickyMutation(projectId: string = 'default') {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (payload: { body: string; color?: string; pinned?: boolean; isPinned?: boolean }) => {
-      return http.post<StickyViewModel>(`/projects/${projectId}/stickies`, payload);
+    mutationFn: async (payload: { body: string; color?: string; pinned?: boolean; isPinned?: boolean; projectId?: string }) => {
+      const targetProject = payload.projectId || projectId;
+      return http.post<StickyViewModel>(`/projects/${targetProject}/stickies`, payload);
     },
     onMutate: async (newSticky) => {
       await queryClient.cancelQueries({ queryKey: stickyKeys.lists() });

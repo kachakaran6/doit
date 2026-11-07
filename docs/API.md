@@ -130,3 +130,24 @@ Authorization: Bearer <access_token>
 }
 ```
 
+---
+
+## Project context and solution prompts
+
+Personal AI keys are encrypted at rest and are never returned after save. Responses include only `provider`, `model`, `keyHint`, `enabled`, `status`, and `lastTestedAt`.
+
+- `GET /projects/:projectId/context` — Markdown context, version, editor, character limit
+- `PUT /projects/:projectId/context` — body `{ markdown, version }`. Version mismatch returns `STALE_WRITE`
+- `GET /me/quick-capture-preferences?workspaceId=`
+- `PUT /me/quick-capture-preferences`
+- `GET /me/ai-providers`
+- `PUT /me/ai-providers/openai` — body `{ apiKey?, model, enabled? }`
+- `POST /me/ai-providers/openai/test`
+- `DELETE /me/ai-providers/openai`
+- `GET /tasks/:taskId/solution-prompts`
+- `POST /tasks/:taskId/solution-prompts/generate` — body `{ selectedAttachmentIds?, force?, useTemplate? }`
+- `PATCH /solution-prompts/:promptId` — body `{ promptMarkdown }`
+- `POST /solution-prompts/:promptId/regenerate`
+
+`useTemplate: true` assembles a prompt from saved task and project data and does not call a provider. Provider generation uses the signed-in user's own key. Supported models: `gpt-4o-mini`, `gpt-4o`, `gpt-4.1-mini`, `gpt-4.1`.
+

@@ -41,6 +41,9 @@ exports.EnvSchema = zod_1.z
     SMTP_FROM: zod_1.z.string().optional(),
     SMTP_FROM_NAME: zod_1.z.string().default('DoIt'),
     SMTP_SECURE: zod_1.z.string().optional(),
+    AI_CREDENTIALS_KEY: zod_1.z.string().optional(),
+    AI_GENERATION_ENABLED: zod_1.z.string().optional(),
+    AI_CONTEXT_MAX_CHARS: zod_1.z.coerce.number().default(32000),
 })
     .superRefine((data, ctx) => {
     if (data.NODE_ENV === 'production') {

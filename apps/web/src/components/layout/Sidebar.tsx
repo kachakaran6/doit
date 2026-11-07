@@ -1,16 +1,21 @@
+import { useState } from 'react';
 import { NavLink } from 'react-router-dom';
 import { useWorkspaceStore } from '@/lib/workspace-store';
 import { useThemeStore } from '@/lib/theme-store';
 import { WorkspaceSwitcher } from './WorkspaceSwitcher';
 import { UserMenu } from './UserMenu';
+import { NewProjectDialog } from './NewProjectDialog';
 import {
   LayoutDashboard,
   CheckSquare,
   Bug,
   StickyNote,
   Users,
-  Settings,
+  FolderKanban,
+  Search,
+  Inbox,
   Folder,
+  Plus,
 } from 'lucide-react';
 
 export function Sidebar({
@@ -21,6 +26,7 @@ export function Sidebar({
   onCloseMobile?: () => void;
 }) {
   const { projects, activeProject, setActiveProject } = useWorkspaceStore();
+  const [projectOpen, setProjectOpen] = useState(false);
   const { mode } = useThemeStore();
 
   const isDarkMode =
@@ -33,7 +39,9 @@ export function Sidebar({
     { to: '/bugs', label: 'Bug Queue', icon: Bug },
     { to: '/stickies', label: 'Stickies', icon: StickyNote },
     { to: '/team', label: 'Team', icon: Users },
-    { to: '/settings', label: 'Settings', icon: Settings },
+    { to: '/projects', label: 'Projects', icon: FolderKanban },
+    { to: '/search', label: 'Search', icon: Search },
+    { to: '/notifications', label: 'Inbox', icon: Inbox },
   ];
 
   const handleNavClick = () => {
@@ -85,11 +93,17 @@ export function Sidebar({
         </div>
 
         {/* Projects Sub-section */}
-        {projects.length > 0 && (
-          <div className="px-3 pt-4 space-y-0.5">
+        <div className="px-3 pt-4 space-y-0.5">
             <div className="px-2 py-1 text-[11px] font-medium text-[var(--muted-foreground)] flex items-center justify-between">
               <span>Projects</span>
-              <span className="text-[10px] tabular">{projects.length}</span>
+              <button
+                type="button"
+                aria-label="New project"
+                onClick={() => setProjectOpen(true)}
+                className="p-0.5 rounded hover:bg-[var(--sidebar-accent)] text-[var(--muted-foreground)] hover:text-[var(--foreground)]"
+              >
+                <Plus className="w-3.5 h-3.5" />
+              </button>
             </div>
             {projects.map((p) => {
               const isSelected = activeProject?.id === p.id;
@@ -113,14 +127,14 @@ export function Sidebar({
                 </button>
               );
             })}
-          </div>
-        )}
+        </div>
       </div>
 
       {/* Bottom User Profile Section */}
       <div className="p-3 border-t border-[var(--sidebar-border)] shrink-0">
         <UserMenu />
       </div>
+      <NewProjectDialog open={projectOpen} onClose={() => setProjectOpen(false)} />
     </aside>
   );
 }

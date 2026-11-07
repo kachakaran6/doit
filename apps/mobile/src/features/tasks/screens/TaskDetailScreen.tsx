@@ -16,6 +16,7 @@ import { useTaskDetailQuery } from '../api/queries';
 import { useUpdateTaskStatusMutation, useDeleteTaskMutation } from '../api/mutations';
 import { RootStackParamList } from '../../../navigation/types';
 import { CheckCircle2, Clock, Flag, Tag, Check, Calendar, Trash2 } from 'lucide-react-native';
+import { SolutionPromptSection } from '../components/SolutionPromptSection';
 
 type DetailRouteProp = RouteProp<RootStackParamList, 'TaskDetail'>;
 
@@ -240,6 +241,8 @@ export const TaskDetailScreen: React.FC = () => {
         {task.attachments && task.attachments.length > 0 ? (
           <AttachmentGallery title="Attachments" attachments={task.attachments} />
         ) : null}
+
+        <SolutionPromptSection taskId={task.id} attachments={task.attachments} />
 
         {/* Status & Trash Action Buttons */}
         <View style={{ marginTop: spacing.xl, gap: spacing.md }}>

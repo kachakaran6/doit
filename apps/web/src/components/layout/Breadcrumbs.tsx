@@ -20,6 +20,14 @@ export function Breadcrumbs() {
         return 'Team';
       case 'settings':
         return 'Settings';
+      case 'projects':
+        return 'Projects';
+      case 'search':
+        return 'Search';
+      case 'notifications':
+        return 'Inbox';
+      case 'workspace':
+        return 'Workspace';
       default:
         return seg ? seg.charAt(0).toUpperCase() + seg.slice(1) : '';
     }

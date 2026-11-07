@@ -4,6 +4,11 @@ export interface User {
   name: string;
   locale?: string;
   avatarUrl?: string | null;
+  memberships?: Array<{
+    workspaceId: string;
+    workspaceName?: string;
+    role: 'OWNER' | 'ADMIN' | 'MEMBER' | 'TESTER' | 'VIEWER';
+  }>;
   prefs?: {
     theme?: 'LIGHT' | 'DARK' | 'SYSTEM';
     accent?: string;

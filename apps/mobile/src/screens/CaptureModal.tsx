@@ -32,6 +32,7 @@ import { useCreateBugMutation } from '../features/bugs/api/mutations';
 import { useCreateStickyMutation } from '../features/stickies/api/mutations';
 import { useCreateVoiceNoteMutation } from '../features/voice/api/mutations';
 import { useWorkspaceStore } from '../features/workspace';
+import { useLabelsQuery } from '../features/labels/api/queries';
 import { overlayService } from '../native/overlay';
 import { RootStackParamList } from '../navigation/types';
 import {
@@ -47,6 +48,7 @@ import {
   Calendar,
   Flag,
   Tag,
+  Folder,
   Paperclip,
   Send,
   Plus,
@@ -82,7 +84,10 @@ export const CaptureModal: React.FC = () => {
   const initialMode = (route.params?.initialMode as CaptureMode) ?? 'task';
 
   const activeProject = useWorkspaceStore((s) => s.activeProject);
-  const projectId = activeProject?.id || 'default';
+  const activeWorkspace = useWorkspaceStore((s) => s.activeWorkspace);
+  const projects = activeWorkspace?.projects ?? [];
+  const projectId = activeProject?.id || projects[0]?.id || 'default';
+  const { data: workspaceLabels = [] } = useLabelsQuery(activeWorkspace?.id);
 
   // Form State
   const [mode, setMode] = useState<CaptureMode>(initialMode);
@@ -102,6 +107,47 @@ export const CaptureModal: React.FC = () => {
 
   // Popover selector states
   const [activePicker, setActivePicker] = useState<'due' | 'priority' | 'severity' | null>(null);
+  const [selectedProjectId, setSelectedProjectId] = useState(projectId);
+  const [selectedLabelIds, setSelectedLabelIds] = useState<string[]>([]);
+  const [projectQuery, setProjectQuery] = useState('');
+  const [labelQuery, setLabelQuery] = useState('');
+  const [showProjectList, setShowProjectList] = useState(true);
+  const [showLabelList, setShowLabelList] = useState(false);
+  const [labelNotice, setLabelNotice] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!activeWorkspace?.id) return;
+    let cancelled = false;
+    http
+      .get<any>(`/me/quick-capture-preferences?workspaceId=${activeWorkspace.id}`)
+      .then((prefs) => {
+        if (cancelled || !prefs) return;
+        const allowed = new Set(projects.map((p) => p.id));
+        const preferred = prefs.rememberLastProject ? prefs.lastProjectId || prefs.defaultProjectId : prefs.defaultProjectId;
+        if (preferred && allowed.has(preferred)) setSelectedProjectId(preferred);
+        else if (activeProject?.id) setSelectedProjectId(activeProject.id);
+        const labelIds: string[] = Array.isArray(prefs.defaultLabelIds) ? prefs.defaultLabelIds : [];
+        const known = new Set(workspaceLabels.map((l) => l.id));
+        const valid = labelIds.filter((id) => known.has(id) || known.size === 0);
+        setSelectedLabelIds(valid);
+        setShowProjectList(prefs.showProjectSelector !== false);
+        setShowLabelList(Boolean(prefs.labelsExpanded));
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [activeWorkspace?.id]);
+
+  useEffect(() => {
+    if (!workspaceLabels.length) return;
+    const known = new Set(workspaceLabels.map((l) => l.id));
+    setSelectedLabelIds((curr) => {
+      const next = curr.filter((id) => known.has(id));
+      if (next.length !== curr.length) setLabelNotice('A label from another workspace was removed.');
+      return next;
+    });
+  }, [workspaceLabels]);
 
   // Voice recording state
   const [recording, setRecording] = useState<Audio.Recording | null>(null);
@@ -242,6 +288,8 @@ export const CaptureModal: React.FC = () => {
           title: title.trim(),
           description: description.trim() || undefined,
           severity,
+          labelIds: selectedLabelIds,
+          projectId: selectedProjectId,
           telemetry: {
             platform: Platform.OS,
             version: Platform.Version,
@@ -256,6 +304,7 @@ export const CaptureModal: React.FC = () => {
           body: fullBody,
           color: stickyColor,
           pinned: isPinned,
+          projectId: selectedProjectId,
         });
       } else if (mode === 'voice') {
         await createVoiceNote.mutateAsync({
@@ -270,6 +319,8 @@ export const CaptureModal: React.FC = () => {
           description: description.trim() || undefined,
           dueDate: dueAtIso,
           priority,
+          labelIds: selectedLabelIds,
+          projectId: selectedProjectId,
         });
         createdId = res?.task?.id || res?.id || null;
       }
@@ -295,6 +346,14 @@ export const CaptureModal: React.FC = () => {
         setIsUploadingAttachments(false);
       }
 
+      if (activeWorkspace?.id && selectedProjectId && selectedProjectId !== 'default') {
+        http
+          .put('/me/quick-capture-preferences', {
+            workspaceId: activeWorkspace.id,
+            lastProjectId: selectedProjectId,
+          })
+          .catch(() => {});
+      }
       navigation.goBack();
     } catch (err: any) {
       setIsUploadingAttachments(false);
@@ -423,6 +482,95 @@ export const CaptureModal: React.FC = () => {
               <Text variant="caption" color="danger">
                 {errorMessage}
               </Text>
+            </View>
+          ) : null}
+
+          {mode !== 'voice' ? (
+            <View style={{ paddingHorizontal: spacing.screenMargin, gap: 8, marginBottom: 4 }}>
+              <TouchableOpacity
+                onPress={() => setShowProjectList((v) => !v)}
+                style={{ flexDirection: 'row', alignItems: 'center', gap: 8, minHeight: 44 }}
+              >
+                <Folder size={16} color={colors.textSecondary} />
+                <Text variant="body" style={{ flex: 1 }}>
+                  {projects.find((p) => p.id === selectedProjectId)?.name || 'Project'}
+                </Text>
+                <ChevronDown size={16} color={colors.textMuted} />
+              </TouchableOpacity>
+              {showProjectList ? (
+                <View>
+                  <TextInput
+                    value={projectQuery}
+                    onChangeText={setProjectQuery}
+                    placeholder="Search projects"
+                    placeholderTextColor={colors.textMuted}
+                    style={{ color: colors.textPrimary, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.border, marginBottom: 6, minHeight: 36 }}
+                  />
+                  {projects
+                    .filter((p) => p.name.toLowerCase().includes(projectQuery.trim().toLowerCase()))
+                    .map((p) => (
+                      <TouchableOpacity
+                        key={p.id}
+                        onPress={() => {
+                          setSelectedProjectId(p.id);
+                          setShowProjectList(false);
+                        }}
+                        style={{ minHeight: 40, justifyContent: 'center' }}
+                      >
+                        <Text variant="body" style={{ fontWeight: p.id === selectedProjectId ? '700' : '400' }}>
+                          {p.name}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  {projects.length === 0 ? <Text variant="caption" color="secondary">No projects in this workspace.</Text> : null}
+                </View>
+              ) : null}
+              {mode !== 'sticky' ? (
+                <>
+                  <TouchableOpacity
+                    onPress={() => setShowLabelList((v) => !v)}
+                    style={{ flexDirection: 'row', alignItems: 'center', gap: 8, minHeight: 44 }}
+                  >
+                    <Tag size={16} color={colors.textSecondary} />
+                    <Text variant="body" style={{ flex: 1 }}>
+                      {selectedLabelIds.length ? `${selectedLabelIds.length} label${selectedLabelIds.length === 1 ? '' : 's'}` : 'Labels'}
+                    </Text>
+                    <ChevronDown size={16} color={colors.textMuted} />
+                  </TouchableOpacity>
+                  {labelNotice ? <Text variant="caption" color="secondary">{labelNotice}</Text> : null}
+                  {showLabelList ? (
+                    <View>
+                      <TextInput
+                        value={labelQuery}
+                        onChangeText={setLabelQuery}
+                        placeholder="Search labels"
+                        placeholderTextColor={colors.textMuted}
+                        style={{ color: colors.textPrimary, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.border, marginBottom: 6, minHeight: 36 }}
+                      />
+                      {workspaceLabels.length === 0 ? <Text variant="caption" color="secondary">No labels in this workspace.</Text> : null}
+                      {workspaceLabels
+                        .filter((l) => l.name.toLowerCase().includes(labelQuery.trim().toLowerCase()))
+                        .map((l) => {
+                          const on = selectedLabelIds.includes(l.id);
+                          return (
+                            <TouchableOpacity
+                              key={l.id}
+                              onPress={() => {
+                                setLabelNotice(null);
+                                setSelectedLabelIds((curr) => (curr.includes(l.id) ? curr.filter((id) => id !== l.id) : [...curr, l.id]));
+                              }}
+                              style={{ minHeight: 40, justifyContent: 'center' }}
+                            >
+                              <Text variant="body" style={{ fontWeight: on ? '700' : '400' }}>
+                                {on ? 'Selected · ' : ''}{l.name}
+                              </Text>
+                            </TouchableOpacity>
+                          );
+                        })}
+                    </View>
+                  ) : null}
+                </>
+              ) : null}
             </View>
           ) : null}
 

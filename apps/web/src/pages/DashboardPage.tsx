@@ -283,32 +283,6 @@ export function DashboardPage() {
             </CardContent>
           </Card>
 
-          {/* Quick Platform Status */}
-          <Card variant="bordered">
-            <CardHeader className="pb-2">
-              <CardTitle>System & sync</CardTitle>
-              <CardDescription>Cross-platform connectivity</CardDescription>
-            </CardHeader>
-            <CardContent className="text-[12px] space-y-2.5">
-              <div className="flex items-center justify-between py-1 border-b border-[var(--border)]">
-                <span className="text-[var(--muted-foreground)]">Backend API</span>
-                <span className="text-[var(--success-text)] font-medium flex items-center gap-1.5">
-                  <span className="w-1.5 h-1.5 rounded-full bg-[var(--success-text)]" />
-                  Operational
-                </span>
-              </div>
-              <div className="flex items-center justify-between py-1 border-b border-[var(--border)]">
-                <span className="text-[var(--muted-foreground)]">Active project</span>
-                <span className="font-medium text-[var(--foreground)] truncate max-w-[140px]">
-                  {activeProject?.name || 'General'}
-                </span>
-              </div>
-              <div className="flex items-center justify-between py-1">
-                <span className="text-[var(--muted-foreground)]">Storage mode</span>
-                <span className="font-mono text-[var(--foreground)]">Encrypted S3</span>
-              </div>
-            </CardContent>
-          </Card>
         </div>
       </div>
     </div>

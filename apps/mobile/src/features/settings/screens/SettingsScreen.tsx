@@ -25,6 +25,7 @@ import { useAuthStore } from '../../auth/store';
 import { overlayService } from '../../../native/overlay';
 import { useShakeCapture } from '../../../core/providers/ShakeCaptureProvider';
 import { AccentName } from '@doit/tokens';
+import { Folder, Sparkles as SparklesIcon, SlidersHorizontal } from 'lucide-react-native';
 import {
   Palette,
   Sun,
@@ -238,6 +239,32 @@ export const SettingsScreen: React.FC = () => {
               </View>
               <ChevronRight size={18} color={colors.textMuted} />
             </TouchableOpacity>
+          </View>
+        </View>
+
+        <View>
+          <Text variant="caption" color="secondary" style={styles.sectionHeader}>
+            CAPTURE AND AI
+          </Text>
+          <View style={[styles.groupedCard, { backgroundColor: colors.surface1, borderRadius: radius.lg }]}>
+            <SettingsItem
+              icon={<Folder size={18} color={colors.accent} />}
+              label="Project context"
+              description="Markdown the AI prompt uses for this project"
+              onPress={() => (navigation as any).navigate('ProjectContext')}
+            />
+            <SettingsItem
+              icon={<SlidersHorizontal size={18} color={colors.accent} />}
+              label="Quick capture"
+              description="Default project and labels"
+              onPress={() => (navigation as any).navigate('QuickCapturePrefs')}
+            />
+            <SettingsItem
+              icon={<SparklesIcon size={18} color={colors.accent} />}
+              label="AI provider"
+              description="Personal key, stored only on the server"
+              onPress={() => (navigation as any).navigate('AiProvider')}
+            />
           </View>
         </View>
 

@@ -10,12 +10,13 @@ export declare class MembersService {
     getMembers(workspaceId: string): Promise<({
         user: {
             id: string;
-            email: string;
             name: string;
+            email: string;
             avatarUrl: string | null;
         };
     } & {
         id: string;
+        createdAt: Date;
         workspaceId: string;
         userId: string;
         role: import(".prisma/client").$Enums.Role;
@@ -23,7 +24,6 @@ export declare class MembersService {
         inviteToken: string | null;
         inviteExpiresAt: Date | null;
         acceptedAt: Date | null;
-        createdAt: Date;
     })[]>;
     getInvitations(workspaceId: string): Promise<{
         id: string;
@@ -39,8 +39,8 @@ export declare class MembersService {
         createdAt: Date;
         invitedBy: {
             id: string;
-            email: string;
             name: string;
+            email: string;
         };
     }[]>;
     inviteMember(workspaceId: string, invitedById: string, dto: InviteMemberDto): Promise<{
@@ -117,6 +117,7 @@ export declare class MembersService {
     }>;
     updateRole(workspaceId: string, memberId: string, dto: UpdateMemberRoleDto): Promise<{
         id: string;
+        createdAt: Date;
         workspaceId: string;
         userId: string;
         role: import(".prisma/client").$Enums.Role;
@@ -124,7 +125,6 @@ export declare class MembersService {
         inviteToken: string | null;
         inviteExpiresAt: Date | null;
         acceptedAt: Date | null;
-        createdAt: Date;
     }>;
     removeMember(workspaceId: string, memberId: string): Promise<{
         success: boolean;

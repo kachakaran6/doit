@@ -193,7 +193,21 @@ export const api = {
       }
       return res;
     },
-    me: () => apiRequest<User>('/auth/me'),
+    me: async () => {
+      const res = await apiRequest<any>('/auth/me');
+      const raw = res?.user?.email ? res.user : res;
+      const name = String(raw?.name || raw?.fullName || '').trim();
+      return {
+        id: raw.id,
+        email: raw.email,
+        name,
+        locale: raw.locale,
+        avatarUrl: raw.avatarUrl ?? null,
+        prefs: raw.prefs,
+        memberships: Array.isArray(res?.memberships) ? res.memberships : [],
+      } as User;
+    },
+    logoutAll: () => apiRequest('/auth/logout-all', { method: 'POST' }),
     logout: async () => {
       try {
         await apiRequest('/auth/logout', { method: 'POST' });
@@ -260,6 +274,9 @@ export const api = {
         method: 'POST',
         body: JSON.stringify(data),
       }),
+    updateLabel: (id: string, data: { name?: string; color?: string }) =>
+      apiRequest<Label>(`/labels/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
+    deleteLabel: (id: string) => apiRequest(`/labels/${id}`, { method: 'DELETE' }),
   },
 
   projects: {
@@ -271,11 +288,12 @@ export const api = {
         method: 'POST',
         body: JSON.stringify(data),
       }),
-    update: (id: string, data: Partial<Project>) =>
+    update: (id: string, data: Partial<Project> & { archived?: boolean }) =>
       apiRequest<Project>(`/projects/${id}`, {
         method: 'PATCH',
         body: JSON.stringify(data),
       }),
+    delete: (id: string) => apiRequest(`/projects/${id}`, { method: 'DELETE' }),
   },
 
   tasks: {
@@ -337,6 +355,16 @@ export const api = {
       apiRequest(`/tasks/${id}`, {
         method: 'DELETE',
       }),
+    assign: (id: string, assigneeId: string | null) =>
+      apiRequest(`/tasks/${id}/assign`, {
+        method: 'POST',
+        body: JSON.stringify({ assigneeId }),
+      }),
+    setLabels: (id: string, labelIds: string[]) =>
+      apiRequest(`/tasks/${id}/labels`, {
+        method: 'POST',
+        body: JSON.stringify({ labelIds }),
+      }),
   },
 
   bugs: {
@@ -361,6 +389,7 @@ export const api = {
         title: string;
         description?: string;
         severity?: string;
+        labelIds?: string[];
       }
     ) =>
       apiRequest<Bug>(`/projects/${projectId}/bugs`, {
@@ -398,6 +427,15 @@ export const api = {
       apiRequest<Task>(`/stickies/${id}/convert`, {
         method: 'POST',
       }),
+  },
+
+  notifications: {
+    list: () => apiRequest<any[]>('/notifications'),
+    markRead: (id: string) => apiRequest(`/notifications/${id}/read`, { method: 'PATCH' }),
+  },
+
+  system: {
+    health: () => apiRequest<any>('/health'),
   },
 
   search: {
@@ -442,6 +480,47 @@ export const api = {
       apiRequest<{ success: boolean; message: string }>('/admin/smtp/send-test', {
         method: 'POST',
         body: JSON.stringify({ to, smtp }),
+      }),
+  },
+
+  context: {
+    get: (projectId: string) => apiRequest<any>(`/projects/${projectId}/context`),
+    save: (projectId: string, markdown: string, version?: number) =>
+      apiRequest<any>(`/projects/${projectId}/context`, {
+        method: 'PUT',
+        body: JSON.stringify({ markdown, version }),
+      }),
+  },
+
+  quickCapture: {
+    get: (workspaceId: string) =>
+      apiRequest<any>(`/me/quick-capture-preferences?workspaceId=${workspaceId}`),
+    save: (data: Record<string, unknown>) =>
+      apiRequest<any>('/me/quick-capture-preferences', {
+        method: 'PUT',
+        body: JSON.stringify(data),
+      }),
+  },
+
+  ai: {
+    list: () => apiRequest<any>('/me/ai-providers'),
+    save: (model: string, apiKey?: string, enabled = true) =>
+      apiRequest<any>('/me/ai-providers/openai', {
+        method: 'PUT',
+        body: JSON.stringify({ model, enabled, ...(apiKey ? { apiKey } : {}) }),
+      }),
+    test: () => apiRequest<any>('/me/ai-providers/openai/test', { method: 'POST', body: '{}' }),
+    remove: () => apiRequest<any>('/me/ai-providers/openai', { method: 'DELETE' }),
+    prompts: (taskId: string) => apiRequest<any>(`/tasks/${taskId}/solution-prompts`),
+    generate: (taskId: string, body: Record<string, unknown>) =>
+      apiRequest<any>(`/tasks/${taskId}/solution-prompts/generate`, {
+        method: 'POST',
+        body: JSON.stringify(body),
+      }),
+    updatePrompt: (promptId: string, promptMarkdown: string) =>
+      apiRequest<any>(`/solution-prompts/${promptId}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ promptMarkdown }),
       }),
   },
 };

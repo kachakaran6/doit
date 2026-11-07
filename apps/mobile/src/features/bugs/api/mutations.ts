@@ -13,8 +13,11 @@ export function useCreateBugMutation(projectId: string = 'default') {
       severity: BugSeverity;
       reproductionSteps?: string[];
       telemetry?: any;
+      labelIds?: string[];
+      projectId?: string;
     }) => {
-      return http.post<BugViewModel>(`/projects/${projectId}/bugs`, payload);
+      const targetProject = payload.projectId || projectId;
+      return http.post<BugViewModel>(`/projects/${targetProject}/bugs`, payload);
     },
     onMutate: async (newBug) => {
       await queryClient.cancelQueries({ queryKey: bugKeys.lists() });

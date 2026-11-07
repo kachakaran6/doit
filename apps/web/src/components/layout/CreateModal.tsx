@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { useWorkspaceStore } from '@/lib/workspace-store';
 import { api } from '@/lib/api';
 import { Modal } from '@/components/ui/modal';
@@ -19,7 +20,7 @@ export function CreateModal({
   onClose: () => void;
   initialType?: CreateType;
 }) {
-  const { activeProject, projects } = useWorkspaceStore();
+  const { activeProject, projects, activeWorkspace } = useWorkspaceStore();
   const queryClient = useQueryClient();
   const { success, error } = useToast();
 
@@ -30,14 +31,34 @@ export function CreateModal({
   const [priority, setPriority] = useState('MEDIUM');
   const [severity, setSeverity] = useState('MAJOR');
   const [isPinned, setIsPinned] = useState(false);
+  const [selectedLabelIds, setSelectedLabelIds] = useState<string[]>([]);
+  const [labelQuery, setLabelQuery] = useState('');
   const [loading, setLoading] = useState(false);
+  const { data: labels = [] } = useQuery({
+    queryKey: ['labels', activeWorkspace?.id],
+    queryFn: () => (activeWorkspace?.id ? api.workspaces.labels(activeWorkspace.id) : []),
+    enabled: open && Boolean(activeWorkspace?.id),
+  });
 
   React.useEffect(() => {
     setType(initialType);
-    if (activeProject?.id && !selectedProjectId) {
-      setSelectedProjectId(activeProject.id);
-    }
-  }, [initialType, activeProject]);
+    if (!open || !activeWorkspace?.id) return;
+    api.quickCapture
+      .get(activeWorkspace.id)
+      .then((prefs) => {
+        const allowed = new Set(projects.map((p) => p.id));
+        const preferred = prefs?.rememberLastProject ? prefs.lastProjectId || prefs.defaultProjectId : prefs?.defaultProjectId;
+        if (preferred && allowed.has(preferred)) setSelectedProjectId(preferred);
+        else if (activeProject?.id) setSelectedProjectId(activeProject.id);
+        if (Array.isArray(prefs?.defaultLabelIds)) {
+          const known = new Set(labels.map((l) => l.id));
+          setSelectedLabelIds(prefs.defaultLabelIds.filter((id: string) => known.size === 0 || known.has(id)));
+        }
+      })
+      .catch(() => {
+        if (activeProject?.id) setSelectedProjectId(activeProject.id);
+      });
+  }, [initialType, activeProject, open, activeWorkspace?.id]);
 
   const pId = selectedProjectId || activeProject?.id || projects[0]?.id;
 
@@ -57,6 +78,7 @@ export function CreateModal({
           title: title.trim(),
           description: description.trim() || undefined,
           priority,
+          labelIds: selectedLabelIds,
         });
         success('Task created', title.trim());
         queryClient.invalidateQueries({ queryKey: ['tasks'] });
@@ -65,6 +87,7 @@ export function CreateModal({
           title: title.trim(),
           description: description.trim() || undefined,
           severity,
+          labelIds: selectedLabelIds,
         });
         success('Bug reported', title.trim());
         queryClient.invalidateQueries({ queryKey: ['bugs'] });
@@ -137,8 +160,36 @@ export function CreateModal({
           </button>
         </div>
 
+        {type !== 'sticky' && (
+          <div className="space-y-1">
+            <label className="block text-[13px] font-medium text-[var(--foreground)]">Labels</label>
+            <input
+              value={labelQuery}
+              onChange={(e) => setLabelQuery(e.target.value)}
+              placeholder="Search labels"
+              className="flex h-9 w-full rounded-lg border border-[var(--input)] bg-[var(--card)] px-3 text-[13px]"
+            />
+            <div className="flex flex-wrap gap-2 pt-1">
+              {labels.filter((l) => l.name.toLowerCase().includes(labelQuery.trim().toLowerCase())).map((label) => {
+                const on = selectedLabelIds.includes(label.id);
+                return (
+                  <button
+                    key={label.id}
+                    type="button"
+                    onClick={() => setSelectedLabelIds((curr) => (curr.includes(label.id) ? curr.filter((id) => id !== label.id) : [...curr, label.id]))}
+                    className={`text-[12px] px-2 py-1 rounded-md border ${on ? 'border-[var(--primary)] bg-[var(--primary-soft)]' : 'border-[var(--border)]'}`}
+                  >
+                    {label.name}
+                  </button>
+                );
+              })}
+              {labels.length === 0 ? <span className="text-[12px] text-[var(--muted-foreground)]">No labels in this workspace.</span> : null}
+            </div>
+          </div>
+        )}
+
         {/* Project Selector if multiple */}
-        {projects.length > 1 && (
+        {projects.length > 0 && (
           <div className="space-y-1">
             <label className="block text-[13px] font-medium text-[var(--foreground)]">
               Project

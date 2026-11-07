@@ -19,11 +19,15 @@ export const TabsNavigator: React.FC = () => {
       tabBar={(props) => <FloatingNavBar {...props} />}
       screenOptions={{
         headerShown: false,
+        sceneStyle: { backgroundColor: 'transparent' },
+        tabBarBackground: () => null,
         tabBarStyle: {
           position: 'absolute',
           backgroundColor: 'transparent',
           borderTopWidth: 0,
+          borderWidth: 0,
           elevation: 0,
+          shadowOpacity: 0,
         },
       }}
     >

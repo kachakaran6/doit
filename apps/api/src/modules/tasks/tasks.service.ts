@@ -84,6 +84,15 @@ export class TasksService {
       }
     }
 
+    if (dto.labelIds?.length && project) {
+      const found = await this.prisma.label.count({
+        where: { workspaceId: project.workspaceId, id: { in: dto.labelIds } },
+      });
+      if (found !== dto.labelIds.length) {
+        throw new AppError(ErrorCode.LABEL_NOT_FOUND, 'One or more labels are not in this workspace.', 400);
+      }
+    }
+
     const task = await this.prisma.$transaction(async (tx) => {
       // Find highest number in project
       const latestTask = await tx.task.findFirst({

@@ -18,10 +18,10 @@ export declare class AuthController {
     getSessions(user: AuthUserPayload): Promise<{
         id: string;
         createdAt: Date;
+        appVersion: string | null;
         deviceName: string | null;
         deviceId: string | null;
         platform: string | null;
-        appVersion: string | null;
         lastSeenAt: Date;
     }[]>;
     revokeSession(user: AuthUserPayload, sessionId: string): Promise<{

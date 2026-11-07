@@ -34,7 +34,7 @@ let TasksController = class TasksController {
             source: 'BUG',
             projectId,
             dueHasTime: false,
-            labelIds: [],
+            labelIds: Array.isArray(dto.labelIds) ? dto.labelIds : [],
         }, idempotencyKey);
     }
     async listBugsByProject(projectId, query) {

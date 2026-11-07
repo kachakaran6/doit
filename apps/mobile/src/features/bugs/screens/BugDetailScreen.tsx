@@ -18,6 +18,7 @@ import { useUpdateBugStatusMutation, useDeleteBugMutation } from '../api/mutatio
 import { RootStackParamList } from '../../../navigation/types';
 import { BugStatus } from '../types';
 import { Trash2, CheckCircle2, RotateCcw } from 'lucide-react-native';
+import { SolutionPromptSection } from '../../tasks/components/SolutionPromptSection';
 
 type BugRouteProp = RouteProp<RootStackParamList, 'BugDetail'>;
 
@@ -129,6 +130,8 @@ export const BugDetailScreen: React.FC = () => {
           </Text>
         </View>
       ) : null}
+
+      <SolutionPromptSection taskId={bug.id} attachments={bug.attachments} />
 
       {/* Reproduction Steps */}
       {bug.reproductionSteps && bug.reproductionSteps.length > 0 && (

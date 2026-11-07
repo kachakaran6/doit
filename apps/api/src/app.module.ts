@@ -17,6 +17,7 @@ import { AttachmentsModule } from './modules/attachments/attachments.module';
 import { VoiceModule } from './modules/voice/voice.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
 import { EmailModule } from './modules/email/email.module';
+import { ContextAiModule } from './modules/context-ai/context-ai.module';
 
 @Module({
   imports: [
@@ -38,6 +39,7 @@ import { EmailModule } from './modules/email/email.module';
     VoiceModule,
     NotificationsModule,
     EmailModule,
+    ContextAiModule,
   ],
   controllers: [HealthController, ConfigController],
   providers: [],

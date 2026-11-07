@@ -25,9 +25,10 @@ export function useCreateTaskMutation(projectId: string = 'default') {
           finalDueAt = undefined;
         }
       }
-      return http.post<TaskViewModel>(`/projects/${projectId}/tasks`, {
+      const targetProject = payload.projectId || projectId;
+      return http.post<TaskViewModel>(`/projects/${targetProject}/tasks`, {
         ...rest,
-        projectId,
+        projectId: targetProject,
         dueAt: finalDueAt,
       });
     },

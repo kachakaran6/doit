@@ -67,8 +67,8 @@ export function AppLayout() {
           onToggleMobileSidebar={() => setMobileSidebarOpen(true)}
         />
 
-        <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
-          <div className="max-w-6xl mx-auto w-full">
+        <main className="flex-1 overflow-y-auto">
+          <div className="mx-auto w-full max-w-[1280px] px-6 py-6 lg:px-8 lg:py-8">
             <Outlet />
           </div>
         </main>

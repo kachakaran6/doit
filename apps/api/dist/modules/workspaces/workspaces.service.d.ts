@@ -5,8 +5,13 @@ export declare class WorkspacesService {
     constructor(prisma: PrismaService);
     create(userId: string, dto: CreateWorkspaceDto): Promise<{
         role: string;
+        _count: {
+            memberships: number;
+            projects: number;
+        };
         memberships: {
             id: string;
+            createdAt: Date;
             workspaceId: string;
             userId: string;
             role: import(".prisma/client").$Enums.Role;
@@ -14,27 +19,22 @@ export declare class WorkspacesService {
             inviteToken: string | null;
             inviteExpiresAt: Date | null;
             acceptedAt: Date | null;
-            createdAt: Date;
         }[];
-        _count: {
-            memberships: number;
-            projects: number;
-        };
         projects: {
             id: string;
-            workspaceId: string;
             createdAt: Date;
-            name: string;
             updatedAt: Date;
+            name: string;
             description: string | null;
+            workspaceId: string;
             key: string;
             color: import(".prisma/client").$Enums.AccentName;
             archivedAt: Date | null;
         }[];
         id: string;
         createdAt: Date;
-        name: string;
         updatedAt: Date;
+        name: string;
         slug: string;
         ownerId: string;
     }>;
@@ -46,19 +46,19 @@ export declare class WorkspacesService {
         };
         projects: {
             id: string;
-            workspaceId: string;
             createdAt: Date;
-            name: string;
             updatedAt: Date;
+            name: string;
             description: string | null;
+            workspaceId: string;
             key: string;
             color: import(".prisma/client").$Enums.AccentName;
             archivedAt: Date | null;
         }[];
         id: string;
         createdAt: Date;
-        name: string;
         updatedAt: Date;
+        name: string;
         slug: string;
         ownerId: string;
     }[]>;
@@ -66,12 +66,13 @@ export declare class WorkspacesService {
         memberships: ({
             user: {
                 id: string;
-                email: string;
                 name: string;
+                email: string;
                 avatarUrl: string | null;
             };
         } & {
             id: string;
+            createdAt: Date;
             workspaceId: string;
             userId: string;
             role: import(".prisma/client").$Enums.Role;
@@ -79,15 +80,14 @@ export declare class WorkspacesService {
             inviteToken: string | null;
             inviteExpiresAt: Date | null;
             acceptedAt: Date | null;
-            createdAt: Date;
         })[];
         projects: {
             id: string;
-            workspaceId: string;
             createdAt: Date;
-            name: string;
             updatedAt: Date;
+            name: string;
             description: string | null;
+            workspaceId: string;
             key: string;
             color: import(".prisma/client").$Enums.AccentName;
             archivedAt: Date | null;
@@ -95,16 +95,16 @@ export declare class WorkspacesService {
     } & {
         id: string;
         createdAt: Date;
-        name: string;
         updatedAt: Date;
+        name: string;
         slug: string;
         ownerId: string;
     }>;
     update(workspaceId: string, dto: UpdateWorkspaceDto): Promise<{
         id: string;
         createdAt: Date;
-        name: string;
         updatedAt: Date;
+        name: string;
         slug: string;
         ownerId: string;
     }>;

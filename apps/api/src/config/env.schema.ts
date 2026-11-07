@@ -38,6 +38,9 @@ export const EnvSchema = z
     SMTP_FROM: z.string().optional(),
     SMTP_FROM_NAME: z.string().default('DoIt'),
     SMTP_SECURE: z.string().optional(),
+    AI_CREDENTIALS_KEY: z.string().optional(),
+    AI_GENERATION_ENABLED: z.string().optional(),
+    AI_CONTEXT_MAX_CHARS: z.coerce.number().default(32000),
   })
   .superRefine((data, ctx) => {
     if (data.NODE_ENV === 'production') {

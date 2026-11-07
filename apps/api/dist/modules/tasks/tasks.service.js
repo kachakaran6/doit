@@ -82,6 +82,14 @@ let TasksService = TasksService_1 = class TasksService {
                 }
             }
         }
+        if (dto.labelIds?.length && project) {
+            const found = await this.prisma.label.count({
+                where: { workspaceId: project.workspaceId, id: { in: dto.labelIds } },
+            });
+            if (found !== dto.labelIds.length) {
+                throw new app_error_1.AppError(error_code_enum_1.ErrorCode.LABEL_NOT_FOUND, 'One or more labels are not in this workspace.', 400);
+            }
+        }
         const task = await this.prisma.$transaction(async (tx) => {
             const latestTask = await tx.task.findFirst({
                 where: { projectId: project.id },

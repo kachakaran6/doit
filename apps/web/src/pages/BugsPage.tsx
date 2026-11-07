@@ -7,6 +7,7 @@ import { SeverityBadge, StatusBadge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { EmptyState } from '@/components/ui/empty-state';
 import { useToast } from '@/components/ui/toast';
+import { SolutionPromptPanel } from '@/components/tasks/SolutionPromptPanel';
 import {
   Search,
   Image as ImageIcon,
@@ -348,6 +349,8 @@ export function BugsPage() {
                     </p>
                   </div>
                 )}
+
+                <SolutionPromptPanel taskId={activeBug.id} attachments={activeBug.attachments || []} />
               </>
             ) : (
               <div className="py-12 text-center text-[13px] text-[var(--muted-foreground)]">
