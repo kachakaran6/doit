@@ -28,7 +28,6 @@ export function WorkspaceSettingsPage() {
 
   return (
     <PageContainer width="settings" className="space-y-4">
-      <h1 className="text-2xl font-bold tracking-tight">Workspace settings</h1>
       <div className="flex gap-4 border-b border-[var(--border)] text-[13px]">
         {(['general', 'labels', 'roles', 'about'] as const).map((id) => (
           <button

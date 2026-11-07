@@ -34,10 +34,9 @@ export function ProjectsPage() {
   return (
     <PageContainer width="data" className="space-y-6">
       <div className="flex items-center justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Projects</h1>
-          <p className="text-[13px] text-[var(--muted-foreground)]">{activeWorkspace?.name}</p>
-        </div>
+        <span className="px-2.5 py-1 rounded-full text-[11px] font-medium bg-[var(--muted)] text-[var(--muted-foreground)] tabular">
+          {projects.length} {projects.length === 1 ? 'project' : 'projects'}
+        </span>
         <Button size="sm" onClick={() => setOpen(true)}>New project</Button>
       </div>
       <div className="grid gap-3 sm:grid-cols-2">

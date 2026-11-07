@@ -136,23 +136,11 @@ export function BugsPage() {
 
   return (
     <PageContainer width="data" className="space-y-6 select-none">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-3">
-            <h1 className="text-2xl font-bold tracking-tight text-[var(--foreground)]">Bug Queue</h1>
-            <span className="px-2 py-0.5 rounded-full text-[11px] font-semibold bg-[var(--muted)] text-[var(--muted-foreground)] tabular">
-              {filteredBugs.length}
-            </span>
-          </div>
-          <p className="text-[13px] text-[var(--muted-foreground)] mt-1">
-            Issues captured from mobile shake gesture, overlay bubble, and web reports.
-          </p>
-        </div>
-      </div>
-
       {/* Filter Bar */}
       <div className="flex flex-wrap items-center gap-2.5">
+        <span className="px-2.5 py-1 rounded-full text-[11px] font-medium bg-[var(--muted)] text-[var(--muted-foreground)] tabular">
+          {filteredBugs.length} {filteredBugs.length === 1 ? 'bug' : 'bugs'}
+        </span>
         <div className="relative flex-1 min-w-[200px] max-w-sm">
           <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-[var(--muted-foreground)]" />
           <input

@@ -14,7 +14,6 @@ export function NotificationsPage() {
 
   return (
     <PageContainer width="data" className="space-y-4">
-      <h1 className="text-2xl font-bold tracking-tight">Inbox</h1>
       {isLoading ? <p className="text-[13px] text-[var(--muted-foreground)]">Loading notifications…</p> : null}
       {isError ? (
         <Button size="sm" variant="outline" onClick={() => refetch()}>

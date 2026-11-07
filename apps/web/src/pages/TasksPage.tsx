@@ -115,36 +115,29 @@ export function TasksPage() {
 
   return (
     <PageContainer width="data" className="space-y-6 select-none relative">
-      {/* Header & Controls */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-3">
-            <h1 className="text-2xl font-bold tracking-tight text-[var(--foreground)]">Tasks</h1>
-            <span className="px-2 py-0.5 rounded-full text-[11px] font-semibold bg-[var(--muted)] text-[var(--muted-foreground)] tabular">
-              {filteredTasks.length}
-            </span>
-          </div>
+      {/* Top Controls & View Switcher */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="flex items-center gap-2">
+          {projects.length > 1 ? (
+            <select
+              value={pId}
+              onChange={(e) => {
+                const found = projects.find((p) => p.id === e.target.value);
+                if (found) setActiveProject(found);
+              }}
+              className="h-8 px-2.5 rounded-lg border border-[var(--border)] bg-[var(--card)] text-[12px] font-medium text-[var(--foreground)] cursor-pointer focus:outline-none"
+            >
+              {projects.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.name} ({p.key})
+                </option>
+              ))}
+            </select>
+          ) : null}
 
-          {/* Project Switcher if multiple projects */}
-          {projects.length > 1 && (
-            <div className="mt-1 flex items-center gap-2">
-              <span className="text-[12px] text-[var(--muted-foreground)]">Project:</span>
-              <select
-                value={pId}
-                onChange={(e) => {
-                  const found = projects.find((p) => p.id === e.target.value);
-                  if (found) setActiveProject(found);
-                }}
-                className="text-[12px] font-medium bg-transparent border-none text-[var(--primary-text)] cursor-pointer focus:outline-none"
-              >
-                {projects.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.name} ({p.key})
-                  </option>
-                ))}
-              </select>
-            </div>
-          )}
+          <span className="px-2.5 py-1 rounded-full text-[11px] font-medium bg-[var(--muted)] text-[var(--muted-foreground)] tabular">
+            {filteredTasks.length} {filteredTasks.length === 1 ? 'task' : 'tasks'}
+          </span>
         </div>
 
         {/* Actions & View Switcher */}

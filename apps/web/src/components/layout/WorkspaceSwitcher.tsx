@@ -65,22 +65,24 @@ export function WorkspaceSwitcher() {
       <button
         type="button"
         onClick={() => setOpen(!open)}
-        className="flex items-center gap-2 p-1 pl-1.5 pr-2 rounded-lg hover:bg-[var(--accent)] transition-colors cursor-pointer group border border-transparent hover:border-[var(--border)]"
+        className="w-[170px] sm:w-[185px] h-9 flex items-center justify-between px-2 rounded-lg border border-[var(--border)] bg-[var(--card)] hover:bg-[var(--accent)] hover:border-[var(--primary)] transition-colors cursor-pointer group shadow-2xs shrink-0"
         aria-label="Switch workspace"
       >
-        <div className="w-6 h-6 rounded-md bg-[var(--primary)] text-white font-bold flex items-center justify-center text-[10px] shrink-0 shadow-xs">
-          {initials}
-        </div>
-        <div className="hidden sm:flex flex-col text-left min-w-0 max-w-[130px] md:max-w-[170px]">
-          <span className="text-[12px] font-semibold text-[var(--foreground)] leading-tight truncate">
-            {activeWorkspace?.name || 'Workspace'}
-          </span>
-          <span className="text-[10px] text-[var(--muted-foreground)] leading-tight truncate capitalize">
-            {role}
-          </span>
+        <div className="flex items-center gap-2 min-w-0 flex-1">
+          <div className="w-6 h-6 rounded-md bg-[var(--primary)] text-white font-bold flex items-center justify-center text-[10px] shrink-0 shadow-xs">
+            {initials}
+          </div>
+          <div className="flex flex-col text-left min-w-0 flex-1">
+            <span className="text-[12px] font-semibold text-[var(--foreground)] leading-tight truncate">
+              {activeWorkspace?.name || 'Workspace'}
+            </span>
+            <span className="text-[10px] text-[var(--muted-foreground)] leading-none capitalize truncate">
+              {role}
+            </span>
+          </div>
         </div>
         <ChevronDown
-          className={`w-3.5 h-3.5 text-[var(--muted-foreground)] shrink-0 transition-transform duration-150 group-hover:text-[var(--foreground)] ${
+          className={`w-3.5 h-3.5 text-[var(--muted-foreground)] shrink-0 ml-1 transition-transform duration-150 group-hover:text-[var(--foreground)] ${
             open ? 'rotate-180' : ''
           }`}
         />

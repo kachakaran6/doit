@@ -74,19 +74,11 @@ export function StickiesPage() {
 
   return (
     <PageContainer width="data" className="space-y-6 select-none">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-3">
-            <h1 className="text-2xl font-bold tracking-tight text-[var(--foreground)]">Sticky Board</h1>
-            <span className="px-2 py-0.5 rounded-full text-[11px] font-semibold bg-[var(--muted)] text-[var(--muted-foreground)] tabular">
-              {stickies.length}
-            </span>
-          </div>
-          <p className="text-[13px] text-[var(--muted-foreground)] mt-1">
-            Freeform scratchpad for quick ideas, team thoughts, and immediate to-dos.
-          </p>
-        </div>
+      {/* Top Bar */}
+      <div className="flex items-center justify-between gap-4">
+        <span className="px-2.5 py-1 rounded-full text-[11px] font-medium bg-[var(--muted)] text-[var(--muted-foreground)] tabular">
+          {stickies.length} {stickies.length === 1 ? 'sticky note' : 'sticky notes'}
+        </span>
       </div>
 
       {/* Main Grid */}

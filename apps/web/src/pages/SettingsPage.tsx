@@ -195,15 +195,7 @@ export function SettingsPage() {
   ];
 
   return (
-    <PageContainer width="settings" className="space-y-8 select-none">
-      {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight text-[var(--foreground)]">Settings</h1>
-        <p className="text-[13px] text-[var(--muted-foreground)] mt-1">
-          Manage your personal account, appearance, security, and integrations.
-        </p>
-      </div>
-
+    <PageContainer width="settings" className="space-y-6 select-none">
       <div className="flex flex-col md:flex-row gap-8 items-start">
         {/* Left Sub-nav */}
         <nav className="w-full md:w-[220px] shrink-0 md:sticky md:top-6 space-y-1">

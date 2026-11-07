@@ -74,15 +74,7 @@ export function DashboardPage() {
   const recentBugs = bugs.slice(0, 4);
 
   return (
-    <PageContainer width="data" className="space-y-8 select-none">
-      {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight text-[var(--foreground)]">Overview</h1>
-        <p className="text-[13px] text-[var(--muted-foreground)] mt-1">
-          Here's what's happening across your workspace and mobile app.
-        </p>
-      </div>
-
+    <PageContainer width="data" className="space-y-6 select-none">
       {/* KPI Row */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3.5">
         {kpis.map((kpi) => {

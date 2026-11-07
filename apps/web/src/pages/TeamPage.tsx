@@ -146,14 +146,11 @@ export function TeamPage() {
 
   return (
     <PageContainer width="data" className="space-y-8 select-none">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight text-[var(--foreground)]">Team & Members</h1>
-          <p className="text-[13px] text-[var(--muted-foreground)] mt-1">
-            Manage teammates, roles, and invitation links for {activeWorkspace?.name || 'this workspace'}.
-          </p>
-        </div>
+      {/* Actions */}
+      <div className="flex items-center justify-between gap-4">
+        <span className="px-2.5 py-1 rounded-full text-[11px] font-medium bg-[var(--muted)] text-[var(--muted-foreground)] tabular">
+          {members.length} {members.length === 1 ? 'teammate' : 'teammates'}
+        </span>
 
         <Button size="sm" onClick={() => {
           setGeneratedLink(null);

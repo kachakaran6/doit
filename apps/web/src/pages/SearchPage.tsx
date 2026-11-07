@@ -19,7 +19,6 @@ export function SearchPage() {
 
   return (
     <PageContainer width="data" className="space-y-4">
-      <h1 className="text-2xl font-bold tracking-tight">Search</h1>
       <p className="text-[13px] text-[var(--muted-foreground)]">
         Operators: #label, @assignee, is:bug, is:done, due:today, project:KEY
       </p>
