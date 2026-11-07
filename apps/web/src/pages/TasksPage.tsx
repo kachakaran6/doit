@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useWorkspaceStore } from '@/lib/workspace-store';
-import { api } from '@/lib/api';
+import { api, resolveAttachmentUrl } from '@/lib/api';
 import { Task } from '@/lib/types';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -671,7 +671,7 @@ export function TasksPage() {
                   {selectedTask.attachments.map((att) => (
                     <a
                       key={att.id}
-                      href={att.url}
+                      href={resolveAttachmentUrl(att.url)}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="p-2 rounded-lg border border-[var(--border)] bg-[var(--surface-raised)] hover:bg-[var(--accent)] flex items-center gap-2 text-[12px] text-[var(--foreground)] truncate transition-colors"

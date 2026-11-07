@@ -28,6 +28,7 @@ export const EnvSchema = z
     MIN_APP_VERSION: z.string().default('0.1.0'),
     REDIS_URL: z.string().optional(),
     APP_URL: z.string().default('https://doit.kachakaran.tech'),
+    STORAGE_BASE_URL: z.string().optional(),
     SMTP_HOST: z.string().optional(),
     SMTP_PORT: z.coerce.number().optional(),
     SMTP_USERNAME: z.string().optional(),

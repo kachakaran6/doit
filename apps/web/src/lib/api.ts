@@ -16,6 +16,35 @@ import {
 const ENV_API_URL = (import.meta as any).env?.VITE_API_URL as string;
 export const API_BASE = ENV_API_URL || 'https://doit.samyukt.pro/api/v1';
 
+/**
+ * Resolves static attachment URLs to the real backend host serving files.
+ * Handles relative /static/... paths, legacy localhost, and wrong frontend hostnames.
+ */
+export function resolveAttachmentUrl(url?: string | null): string {
+  if (!url) return '';
+  try {
+    const apiOrigin = new URL(API_BASE).origin;
+    if (url.startsWith('/')) {
+      return `${apiOrigin}${url}`;
+    }
+    const parsed = new URL(url);
+    if (parsed.pathname.startsWith('/static/')) {
+      return `${apiOrigin}${parsed.pathname}${parsed.search}`;
+    }
+  } catch {
+    const staticIdx = url.indexOf('/static/');
+    if (staticIdx !== -1) {
+      try {
+        const apiOrigin = new URL(API_BASE).origin;
+        return `${apiOrigin}${url.substring(staticIdx)}`;
+      } catch {
+        // fallback
+      }
+    }
+  }
+  return url;
+}
+
 const TOKEN_KEY = 'doit_access_token';
 const REFRESH_TOKEN_KEY = 'doit_refresh_token';
 const ACTIVE_WORKSPACE_KEY = 'doit_active_workspace_id';

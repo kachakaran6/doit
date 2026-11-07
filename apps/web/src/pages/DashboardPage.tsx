@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { PageContainer } from '@/components/layout/PageContainer';
 import { useWorkspaceStore } from '@/lib/workspace-store';
-import { api } from '@/lib/api';
+import { api, resolveAttachmentUrl } from '@/lib/api';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { StatusBadge, PriorityBadge, SeverityBadge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -206,7 +206,7 @@ export function DashboardPage() {
                           {/* Thumbnail */}
                           {firstAttachment?.thumbUrl || firstAttachment?.url ? (
                             <img
-                              src={firstAttachment.thumbUrl || firstAttachment.url}
+                              src={resolveAttachmentUrl(firstAttachment.thumbUrl || firstAttachment.url)}
                               alt="Screenshot"
                               className="w-10 h-7 rounded-md object-cover bg-black/40 border border-[var(--border)] shrink-0"
                             />

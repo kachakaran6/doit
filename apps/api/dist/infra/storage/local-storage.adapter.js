@@ -19,9 +19,11 @@ let LocalStorageAdapter = LocalStorageAdapter_1 = class LocalStorageAdapter {
         this.driver = 'local';
         this.logger = new common_1.Logger(LocalStorageAdapter_1.name);
         this.storageRoot = path.resolve(process.cwd(), process.env.UPLOAD_DIR || '.storage');
-        this.baseUrl = (process.env.BASE_URL ||
+        this.baseUrl = (process.env.STORAGE_BASE_URL ||
             process.env.PUBLIC_BASE_URL ||
-            process.env.APP_URL ||
+            process.env.BASE_URL ||
+            process.env.API_BASE_URL ||
+            process.env.API_URL ||
             'https://doit.samyukt.pro').replace(/\/$/, '');
         if (!fs.existsSync(this.storageRoot)) {
             fs.mkdirSync(this.storageRoot, { recursive: true });

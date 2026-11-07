@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useWorkspaceStore } from '@/lib/workspace-store';
-import { api } from '@/lib/api';
+import { api, resolveAttachmentUrl } from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { SeverityBadge, StatusBadge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -15,6 +15,8 @@ import {
   Mic,
   Smartphone,
   ExternalLink,
+  Maximize2,
+  X,
 } from 'lucide-react';
 
 export function BugsPage() {
@@ -86,8 +88,19 @@ export function BugsPage() {
     }
   }, [selectedBugId, firstFiltered]);
 
+  const [lightboxOpen, setLightboxOpen] = useState(false);
+  const [imgError, setImgError] = useState(false);
+  const [imgLoading, setImgLoading] = useState(true);
+
   const screenshotAttachment = activeBug?.attachments?.find((a) => a.kind === 'IMAGE' || a.mimeType?.includes('image'));
   const audioAttachment = activeBug?.attachments?.find((a) => a.kind === 'AUDIO' || a.mimeType?.includes('audio'));
+
+  const screenshotUrl = resolveAttachmentUrl(screenshotAttachment?.url);
+
+  useEffect(() => {
+    setImgError(false);
+    setImgLoading(true);
+  }, [selectedBugId, activeBug?.id, screenshotUrl]);
 
   return (
     <PageContainer width="data" className="space-y-6 select-none">
@@ -175,7 +188,7 @@ export function BugsPage() {
                     {/* Screenshot Thumbnail */}
                     {thumb ? (
                       <img
-                        src={thumb}
+                        src={resolveAttachmentUrl(thumb)}
                         alt="Preview"
                         className="w-10 h-7 rounded-md object-cover bg-black/40 border border-[var(--border)] shrink-0"
                       />
@@ -277,26 +290,69 @@ export function BugsPage() {
                 </div>
 
                 {/* Screenshot Viewer */}
-                {screenshotAttachment ? (
+                {screenshotAttachment && screenshotUrl ? (
                   <div className="space-y-1.5">
                     <div className="flex items-center justify-between text-[11px] font-medium text-[var(--muted-foreground)] uppercase tracking-wide">
                       <span>Captured screenshot</span>
-                      <a
-                        href={screenshotAttachment.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex items-center gap-1 text-[var(--primary-text)] hover:underline"
+                      <button
+                        type="button"
+                        onClick={() => setLightboxOpen(true)}
+                        className="flex items-center gap-1 text-[var(--primary-text)] hover:underline cursor-pointer"
                       >
                         <span>Full screen</span>
-                        <ExternalLink className="w-3 h-3" />
-                      </a>
+                        <Maximize2 className="w-3 h-3" />
+                      </button>
                     </div>
-                    <div className="rounded-xl overflow-hidden border border-[var(--border)] bg-black/50 aspect-video flex items-center justify-center">
-                      <img
-                        src={screenshotAttachment.url}
-                        alt="Bug Screenshot"
-                        className="w-full h-full object-contain"
-                      />
+                    <div
+                      onClick={() => !imgError && setLightboxOpen(true)}
+                      className={`relative rounded-xl overflow-hidden border border-[var(--border)] bg-black/60 aspect-video flex items-center justify-center transition-all ${
+                        !imgError ? 'cursor-pointer hover:border-[var(--primary)]' : ''
+                      }`}
+                    >
+                      {imgLoading && !imgError && (
+                        <div className="absolute inset-0 flex items-center justify-center bg-[var(--surface-raised)]/80 z-10">
+                          <Skeleton className="w-full h-full" />
+                        </div>
+                      )}
+
+                      {imgError ? (
+                        <div className="flex flex-col items-center justify-center gap-2 p-4 text-center">
+                          <ImageIcon className="w-8 h-8 opacity-40 text-[var(--muted-foreground)]" />
+                          <span className="text-[12px] text-[var(--muted-foreground)]">
+                            Unable to preview screenshot in this frame
+                          </span>
+                          <a
+                            href={screenshotUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1 text-[11px] text-[var(--primary-text)] hover:underline"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <span>Open directly</span>
+                            <ExternalLink className="w-3 h-3" />
+                          </a>
+                        </div>
+                      ) : (
+                        <img
+                          src={screenshotUrl}
+                          alt="Bug Screenshot"
+                          onLoad={() => setImgLoading(false)}
+                          onError={() => {
+                            setImgLoading(false);
+                            setImgError(true);
+                          }}
+                          className={`w-full h-full object-contain transition-opacity duration-200 ${
+                            imgLoading ? 'opacity-0' : 'opacity-100'
+                          }`}
+                        />
+                      )}
+
+                      {!imgLoading && !imgError && (
+                        <div className="absolute bottom-2 right-2 px-2 py-0.5 rounded-md bg-black/70 backdrop-blur-sm text-[10px] text-white flex items-center gap-1 opacity-80 hover:opacity-100">
+                          <Maximize2 className="w-2.5 h-2.5" />
+                          <span>Click to expand</span>
+                        </div>
+                      )}
                     </div>
                   </div>
                 ) : (
@@ -314,7 +370,7 @@ export function BugsPage() {
                       <span>Voice note attachment</span>
                     </div>
                     <audio controls className="w-full mt-2 h-8">
-                      <source src={audioAttachment.url} type={audioAttachment.mimeType} />
+                      <source src={resolveAttachmentUrl(audioAttachment.url)} type={audioAttachment.mimeType} />
                       Your browser does not support audio playback.
                     </audio>
                   </div>
@@ -358,6 +414,48 @@ export function BugsPage() {
                 Select a bug from the queue to view details and screenshots.
               </div>
             )}
+          </div>
+        </div>
+      )}
+      {/* Screenshot Lightbox Modal */}
+      {lightboxOpen && screenshotUrl && (
+        <div
+          className="fixed inset-0 z-50 bg-black/85 backdrop-blur-sm flex flex-col items-center justify-center p-4 sm:p-6"
+          onClick={() => setLightboxOpen(false)}
+        >
+          <div
+            className="relative max-w-5xl max-h-[90vh] w-full flex flex-col items-center"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="w-full flex items-center justify-between py-2 text-white text-[13px] mb-2 font-medium">
+              <span className="truncate">{activeBug?.humanId} — Screenshot</span>
+              <div className="flex items-center gap-3">
+                <a
+                  href={screenshotUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-1.5 text-zinc-300 hover:text-white px-2.5 py-1 rounded-md bg-white/10 hover:bg-white/20 transition-colors text-[12px]"
+                >
+                  <span>Open raw</span>
+                  <ExternalLink className="w-3.5 h-3.5" />
+                </a>
+                <button
+                  type="button"
+                  onClick={() => setLightboxOpen(false)}
+                  className="p-1 rounded-md bg-white/10 hover:bg-white/20 text-zinc-300 hover:text-white transition-colors cursor-pointer"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+            </div>
+
+            <div className="w-full rounded-xl overflow-hidden border border-white/10 bg-black flex items-center justify-center max-h-[80vh]">
+              <img
+                src={screenshotUrl}
+                alt="Full Screenshot"
+                className="max-w-full max-h-[80vh] object-contain select-none"
+              />
+            </div>
           </div>
         </div>
       )}

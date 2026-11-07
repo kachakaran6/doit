@@ -222,13 +222,35 @@ export class TasksService {
           assignee: { select: { id: true, name: true, avatarUrl: true } },
           labels: { select: { label: { select: { id: true, name: true, color: true } } } },
           checklist: { select: { id: true, done: true } },
+          attachments: query.type === 'BUG' ? true : false,
           _count: { select: { attachments: true, comments: true } },
         },
       }),
       this.prisma.task.count({ where }),
     ]);
 
-    const mapped = tasks.map((t) => mapTaskListItem(t as unknown as RawTaskModel));
+    const mapped = await Promise.all(
+      tasks.map(async (t) => {
+        const item = mapTaskListItem(t as unknown as RawTaskModel);
+        if (t.attachments && (t.attachments as any[]).length > 0) {
+          const attachmentsWithUrls = await Promise.all(
+            (t.attachments as any[]).map(async (att) => {
+              try {
+                const [url, thumbUrl] = await Promise.all([
+                  this.storage.getSignedUrl(att.storageKey, 3600),
+                  att.thumbKey ? this.storage.getSignedUrl(att.thumbKey, 3600) : Promise.resolve(null),
+                ]);
+                return { ...att, url, thumbUrl };
+              } catch {
+                return { ...att, url: null, thumbUrl: null };
+              }
+            }),
+          );
+          item.attachments = attachmentsWithUrls;
+        }
+        return item;
+      }),
+    );
     return CursorPage.create(mapped, limit, total);
   }
 

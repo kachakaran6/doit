@@ -27,6 +27,7 @@ export interface TaskListItemMapped {
   };
   attachmentCount: number;
   commentCount: number;
+  attachments?: any[];
   createdAt: Date;
   updatedAt: Date;
 }

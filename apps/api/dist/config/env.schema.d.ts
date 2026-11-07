@@ -26,6 +26,7 @@ export declare const EnvSchema: z.ZodEffects<z.ZodObject<{
     MIN_APP_VERSION: z.ZodDefault<z.ZodString>;
     REDIS_URL: z.ZodOptional<z.ZodString>;
     APP_URL: z.ZodDefault<z.ZodString>;
+    STORAGE_BASE_URL: z.ZodOptional<z.ZodString>;
     SMTP_HOST: z.ZodOptional<z.ZodString>;
     SMTP_PORT: z.ZodOptional<z.ZodNumber>;
     SMTP_USERNAME: z.ZodOptional<z.ZodString>;
@@ -68,6 +69,7 @@ export declare const EnvSchema: z.ZodEffects<z.ZodObject<{
     S3_SECRET_ACCESS_KEY?: string | undefined;
     CORS_ORIGINS?: string | undefined;
     REDIS_URL?: string | undefined;
+    STORAGE_BASE_URL?: string | undefined;
     SMTP_HOST?: string | undefined;
     SMTP_PORT?: number | undefined;
     SMTP_USERNAME?: string | undefined;
@@ -106,6 +108,7 @@ export declare const EnvSchema: z.ZodEffects<z.ZodObject<{
     MIN_APP_VERSION?: string | undefined;
     REDIS_URL?: string | undefined;
     APP_URL?: string | undefined;
+    STORAGE_BASE_URL?: string | undefined;
     SMTP_HOST?: string | undefined;
     SMTP_PORT?: number | undefined;
     SMTP_USERNAME?: string | undefined;
@@ -148,6 +151,7 @@ export declare const EnvSchema: z.ZodEffects<z.ZodObject<{
     S3_SECRET_ACCESS_KEY?: string | undefined;
     CORS_ORIGINS?: string | undefined;
     REDIS_URL?: string | undefined;
+    STORAGE_BASE_URL?: string | undefined;
     SMTP_HOST?: string | undefined;
     SMTP_PORT?: number | undefined;
     SMTP_USERNAME?: string | undefined;
@@ -186,6 +190,7 @@ export declare const EnvSchema: z.ZodEffects<z.ZodObject<{
     MIN_APP_VERSION?: string | undefined;
     REDIS_URL?: string | undefined;
     APP_URL?: string | undefined;
+    STORAGE_BASE_URL?: string | undefined;
     SMTP_HOST?: string | undefined;
     SMTP_PORT?: number | undefined;
     SMTP_USERNAME?: string | undefined;

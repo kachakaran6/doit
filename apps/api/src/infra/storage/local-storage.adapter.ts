@@ -13,9 +13,11 @@ export class LocalStorageAdapter implements IStorageAdapter {
   constructor() {
     this.storageRoot = path.resolve(process.cwd(), process.env.UPLOAD_DIR || '.storage');
     this.baseUrl = (
-      process.env.BASE_URL ||
+      process.env.STORAGE_BASE_URL ||
       process.env.PUBLIC_BASE_URL ||
-      process.env.APP_URL ||
+      process.env.BASE_URL ||
+      process.env.API_BASE_URL ||
+      process.env.API_URL ||
       'https://doit.samyukt.pro'
     ).replace(/\/$/, '');
 
