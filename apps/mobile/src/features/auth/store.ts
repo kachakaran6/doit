@@ -27,14 +27,36 @@ export const useAuthStore = create<AuthState>((set) => ({
         http.setAuthToken(saved.accessToken);
         overlayService.syncAuthCredentials(saved.accessToken, 'https://doit.samyukt.pro/api/v1', null, saved.refreshToken);
         const savedUser = saved.user as UserViewModel & { name?: string };
+        const rawName = (savedUser.fullName || savedUser.name || '').trim();
+        const cleanName = rawName.toLowerCase() === 'active user' ? '' : rawName;
+        const initialUser: UserViewModel = {
+          ...savedUser,
+          fullName: cleanName || savedUser.email?.split('@')[0] || '',
+        };
         set({
-          user: {
-            ...savedUser,
-            fullName: savedUser.fullName || savedUser.name || savedUser.email?.split('@')[0] || '',
-          },
+          user: initialUser,
           accessToken: saved.accessToken,
           refreshToken: saved.refreshToken,
           isAuthenticated: true,
+        });
+
+        // Background profile refresh from /auth/me
+        http.get<any>('/auth/me').then((res) => {
+          const liveUser = res?.user || res;
+          if (liveUser && liveUser.id) {
+            const liveName = (liveUser.name || liveUser.fullName || '').trim();
+            const resolvedName = (liveName.toLowerCase() === 'active user' ? '' : liveName) || liveUser.email?.split('@')[0] || '';
+            const updatedUser: UserViewModel = {
+              id: liveUser.id,
+              email: liveUser.email,
+              fullName: resolvedName,
+              avatarUrl: liveUser.avatarUrl || null,
+            };
+            set({ user: updatedUser });
+            AuthStorage.setSession({ ...saved, user: updatedUser }).catch(() => {});
+          }
+        }).catch(() => {
+          // Ignore network errors on background refresh
         });
       }
     } catch (e) {

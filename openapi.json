@@ -1,0 +1,2534 @@
+{
+  "openapi": "3.0.0",
+  "paths": {
+    "/api/v1/health": {
+      "get": {
+        "operationId": "HealthController_getHealth",
+        "summary": "Liveness health check verifying database",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Service is healthy and database is connected"
+          }
+        },
+        "tags": [
+          "Health"
+        ]
+      }
+    },
+    "/api/v1/health/ready": {
+      "get": {
+        "operationId": "HealthController_getReadiness",
+        "summary": "Readiness probe checking db, storage, and queue",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Component readiness status"
+          }
+        },
+        "tags": [
+          "Health"
+        ]
+      }
+    },
+    "/api/v1/config": {
+      "get": {
+        "operationId": "ConfigController_getConfig",
+        "summary": "Get client app policy and minimum required version",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Client app configuration and version policies"
+          }
+        },
+        "tags": [
+          "Config"
+        ]
+      }
+    },
+    "/api/v1/auth/register": {
+      "post": {
+        "operationId": "AuthController_register",
+        "summary": "Register a new account",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": "User successfully registered"
+          }
+        },
+        "tags": [
+          "Auth"
+        ]
+      }
+    },
+    "/api/v1/auth/login": {
+      "post": {
+        "operationId": "AuthController_login",
+        "summary": "Login with credentials and create device session",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Login successful"
+          }
+        },
+        "tags": [
+          "Auth"
+        ]
+      }
+    },
+    "/api/v1/auth/refresh": {
+      "post": {
+        "operationId": "AuthController_refresh",
+        "summary": "Rotate and exchange refresh token for a new pair",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Tokens rotated successfully"
+          }
+        },
+        "tags": [
+          "Auth"
+        ]
+      }
+    },
+    "/api/v1/auth/logout": {
+      "post": {
+        "operationId": "AuthController_logout",
+        "summary": "Logout and revoke current device session",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Auth"
+        ],
+        "security": [
+          {
+            "bearer-auth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/auth/logout-all": {
+      "post": {
+        "operationId": "AuthController_logoutAll",
+        "summary": "Revoke all device sessions for current user",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Auth"
+        ],
+        "security": [
+          {
+            "bearer-auth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/auth/sessions": {
+      "get": {
+        "operationId": "AuthController_getSessions",
+        "summary": "List active device sessions",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Auth"
+        ],
+        "security": [
+          {
+            "bearer-auth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/auth/sessions/{id}": {
+      "delete": {
+        "operationId": "AuthController_revokeSession",
+        "summary": "Revoke a specific device session",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Auth"
+        ],
+        "security": [
+          {
+            "bearer-auth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/auth/password/forgot": {
+      "post": {
+        "operationId": "AuthController_forgotPassword",
+        "summary": "Request password reset",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Auth"
+        ]
+      }
+    },
+    "/api/v1/auth/me": {
+      "get": {
+        "operationId": "AuthController_getMe",
+        "summary": "Get current user profile and workspace memberships",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Auth"
+        ],
+        "security": [
+          {
+            "bearer-auth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/workspaces": {
+      "post": {
+        "operationId": "WorkspacesController_create",
+        "summary": "Create a new workspace",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Workspaces"
+        ],
+        "security": [
+          {
+            "bearer-auth": []
+          }
+        ]
+      },
+      "get": {
+        "operationId": "WorkspacesController_findAll",
+        "summary": "List all workspaces the user belongs to",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Workspaces"
+        ],
+        "security": [
+          {
+            "bearer-auth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/workspaces/{workspaceId}": {
+      "get": {
+        "operationId": "WorkspacesController_findOne",
+        "summary": "Get workspace details",
+        "parameters": [
+          {
+            "name": "workspaceId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Workspaces"
+        ],
+        "security": [
+          {
+            "bearer-auth": []
+          }
+        ]
+      },
+      "patch": {
+        "operationId": "WorkspacesController_update",
+        "summary": "Update workspace (OWNER, ADMIN)",
+        "parameters": [
+          {
+            "name": "workspaceId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Workspaces"
+        ],
+        "security": [
+          {
+            "bearer-auth": []
+          }
+        ]
+      },
+      "delete": {
+        "operationId": "WorkspacesController_delete",
+        "summary": "Delete workspace (OWNER only)",
+        "parameters": [
+          {
+            "name": "workspaceId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Workspaces"
+        ],
+        "security": [
+          {
+            "bearer-auth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/workspaces/{workspaceId}/projects": {
+      "post": {
+        "operationId": "ProjectsController_create",
+        "summary": "Create project in workspace (OWNER, ADMIN)",
+        "parameters": [
+          {
+            "name": "workspaceId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Projects"
+        ],
+        "security": [
+          {
+            "bearer-auth": []
+          }
+        ]
+      },
+      "get": {
+        "operationId": "ProjectsController_findAll",
+        "summary": "List projects in workspace",
+        "parameters": [
+          {
+            "name": "workspaceId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Projects"
+        ],
+        "security": [
+          {
+            "bearer-auth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/projects/{id}": {
+      "get": {
+        "operationId": "ProjectsController_findOne",
+        "summary": "Get project by ID",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Projects"
+        ],
+        "security": [
+          {
+            "bearer-auth": []
+          }
+        ]
+      },
+      "patch": {
+        "operationId": "ProjectsController_update",
+        "summary": "Update project (OWNER, ADMIN)",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Projects"
+        ],
+        "security": [
+          {
+            "bearer-auth": []
+          }
+        ]
+      },
+      "delete": {
+        "operationId": "ProjectsController_delete",
+        "summary": "Delete project (OWNER, ADMIN)",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Projects"
+        ],
+        "security": [
+          {
+            "bearer-auth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/workspaces/{workspaceId}/members": {
+      "get": {
+        "operationId": "MembersController_getMembers",
+        "summary": "List workspace members",
+        "parameters": [
+          {
+            "name": "workspaceId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Members & Invitations"
+        ],
+        "security": [
+          {
+            "bearer-auth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/workspaces/{workspaceId}/invitations": {
+      "get": {
+        "operationId": "MembersController_getInvitations",
+        "summary": "List pending and active workspace invitations (OWNER, ADMIN)",
+        "parameters": [
+          {
+            "name": "workspaceId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Members & Invitations"
+        ],
+        "security": [
+          {
+            "bearer-auth": []
+          }
+        ]
+      },
+      "post": {
+        "operationId": "MembersController_createInvitation",
+        "summary": "Create invitation / shareable link (alias)",
+        "parameters": [
+          {
+            "name": "workspaceId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Members & Invitations"
+        ],
+        "security": [
+          {
+            "bearer-auth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/workspaces/{workspaceId}/members/invite": {
+      "post": {
+        "operationId": "MembersController_invite",
+        "summary": "Invite new member or generate shareable link (OWNER, ADMIN)",
+        "parameters": [
+          {
+            "name": "workspaceId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Members & Invitations"
+        ],
+        "security": [
+          {
+            "bearer-auth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/workspaces/{workspaceId}/invitations/{id}": {
+      "delete": {
+        "operationId": "MembersController_revokeInvitation",
+        "summary": "Revoke pending workspace invitation (OWNER, ADMIN)",
+        "parameters": [
+          {
+            "name": "workspaceId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Members & Invitations"
+        ],
+        "security": [
+          {
+            "bearer-auth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/workspaces/{workspaceId}/invitations/{id}/resend": {
+      "post": {
+        "operationId": "MembersController_resendInvitation",
+        "summary": "Resend invitation email (OWNER, ADMIN)",
+        "parameters": [
+          {
+            "name": "workspaceId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Members & Invitations"
+        ],
+        "security": [
+          {
+            "bearer-auth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/invitations/validate/{token}": {
+      "get": {
+        "operationId": "MembersController_validateToken",
+        "summary": "Publicly validate invitation token without authentication",
+        "parameters": [
+          {
+            "name": "token",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Members & Invitations"
+        ]
+      }
+    },
+    "/api/v1/invitations/accept": {
+      "post": {
+        "operationId": "MembersController_acceptInvitation",
+        "summary": "Accept workspace invitation token",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Members & Invitations"
+        ],
+        "security": [
+          {
+            "bearer-auth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/members/accept-invite": {
+      "post": {
+        "operationId": "MembersController_acceptInvite",
+        "summary": "Accept workspace invitation token (backward compatible alias)",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Members & Invitations"
+        ],
+        "security": [
+          {
+            "bearer-auth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/workspaces/{workspaceId}/members/{id}": {
+      "patch": {
+        "operationId": "MembersController_updateRole",
+        "summary": "Update member role (OWNER only)",
+        "parameters": [
+          {
+            "name": "workspaceId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Members & Invitations"
+        ],
+        "security": [
+          {
+            "bearer-auth": []
+          }
+        ]
+      },
+      "delete": {
+        "operationId": "MembersController_removeMember",
+        "summary": "Remove member from workspace (OWNER, ADMIN)",
+        "parameters": [
+          {
+            "name": "workspaceId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Members & Invitations"
+        ],
+        "security": [
+          {
+            "bearer-auth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/admin/smtp": {
+      "get": {
+        "operationId": "EmailController_getSettings",
+        "summary": "Get current public SMTP settings (passwords masked)",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Email & SMTP"
+        ],
+        "security": [
+          {
+            "bearer-auth": []
+          }
+        ]
+      },
+      "post": {
+        "operationId": "EmailController_saveSettings",
+        "summary": "Save or update SMTP configuration",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Email & SMTP"
+        ],
+        "security": [
+          {
+            "bearer-auth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/admin/smtp/test-connection": {
+      "post": {
+        "operationId": "EmailController_testConnection",
+        "summary": "Test connection to SMTP server",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Email & SMTP"
+        ],
+        "security": [
+          {
+            "bearer-auth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/admin/smtp/send-test": {
+      "post": {
+        "operationId": "EmailController_sendTest",
+        "summary": "Send test email via SMTP",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Email & SMTP"
+        ],
+        "security": [
+          {
+            "bearer-auth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/projects/{projectId}/bugs": {
+      "post": {
+        "operationId": "TasksController_createBug",
+        "summary": "Create a new bug in a project",
+        "parameters": [
+          {
+            "name": "projectId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Tasks"
+        ],
+        "security": [
+          {
+            "bearer-auth": []
+          }
+        ]
+      },
+      "get": {
+        "operationId": "TasksController_listBugsByProject",
+        "summary": "List bugs in a project",
+        "parameters": [
+          {
+            "name": "projectId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Tasks"
+        ],
+        "security": [
+          {
+            "bearer-auth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/bugs/{id}": {
+      "get": {
+        "operationId": "TasksController_findOneBug",
+        "summary": "Get bug details",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Tasks"
+        ],
+        "security": [
+          {
+            "bearer-auth": []
+          }
+        ]
+      },
+      "patch": {
+        "operationId": "TasksController_updateBug",
+        "summary": "Update bug status or details",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Tasks"
+        ],
+        "security": [
+          {
+            "bearer-auth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/projects/{projectId}/tasks": {
+      "post": {
+        "operationId": "TasksController_create",
+        "summary": "Create a new task in a project (idempotent)",
+        "parameters": [
+          {
+            "name": "projectId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "idempotency-key",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Tasks"
+        ],
+        "security": [
+          {
+            "bearer-auth": []
+          }
+        ]
+      },
+      "get": {
+        "operationId": "TasksController_listByProject",
+        "summary": "List tasks in a project with filtering & cursor pagination",
+        "parameters": [
+          {
+            "name": "projectId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Tasks"
+        ],
+        "security": [
+          {
+            "bearer-auth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/workspaces/{workspaceId}/tasks": {
+      "get": {
+        "operationId": "TasksController_listByWorkspace",
+        "summary": "List all tasks in a workspace",
+        "parameters": [
+          {
+            "name": "workspaceId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Tasks"
+        ],
+        "security": [
+          {
+            "bearer-auth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/workspaces/{workspaceId}/tasks/my-day": {
+      "get": {
+        "operationId": "TasksController_findMyDay",
+        "summary": "List My Day tasks for current user in workspace",
+        "parameters": [
+          {
+            "name": "workspaceId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Tasks"
+        ],
+        "security": [
+          {
+            "bearer-auth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/tasks/my-day": {
+      "get": {
+        "operationId": "TasksController_findMyDayQuery",
+        "summary": "List My Day tasks by query param workspaceId",
+        "parameters": [
+          {
+            "name": "workspaceId",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Tasks"
+        ],
+        "security": [
+          {
+            "bearer-auth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/workspaces/{workspaceId}/tasks/inbox": {
+      "get": {
+        "operationId": "TasksController_findInbox",
+        "summary": "List Inbox unassigned tasks in workspace",
+        "parameters": [
+          {
+            "name": "workspaceId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Tasks"
+        ],
+        "security": [
+          {
+            "bearer-auth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/tasks/inbox": {
+      "get": {
+        "operationId": "TasksController_findInboxQuery",
+        "summary": "List Inbox tasks by query param workspaceId",
+        "parameters": [
+          {
+            "name": "workspaceId",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Tasks"
+        ],
+        "security": [
+          {
+            "bearer-auth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/tasks/{id}": {
+      "get": {
+        "operationId": "TasksController_findOne",
+        "summary": "Get full task details",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Tasks"
+        ],
+        "security": [
+          {
+            "bearer-auth": []
+          }
+        ]
+      },
+      "patch": {
+        "operationId": "TasksController_update",
+        "summary": "Update task properties",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Tasks"
+        ],
+        "security": [
+          {
+            "bearer-auth": []
+          }
+        ]
+      },
+      "delete": {
+        "operationId": "TasksController_delete",
+        "summary": "Delete task",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Tasks"
+        ],
+        "security": [
+          {
+            "bearer-auth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/tasks/{id}/status": {
+      "post": {
+        "operationId": "TasksController_updateStatus",
+        "summary": "Update task status through validated state machine",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Tasks"
+        ],
+        "security": [
+          {
+            "bearer-auth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/tasks/{id}/reorder": {
+      "post": {
+        "operationId": "TasksController_reorder",
+        "summary": "Reorder task via fractional indexing",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Tasks"
+        ],
+        "security": [
+          {
+            "bearer-auth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/tasks/{id}/assign": {
+      "post": {
+        "operationId": "TasksController_assign",
+        "summary": "Assign task to user or unassign",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Tasks"
+        ],
+        "security": [
+          {
+            "bearer-auth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/tasks/{id}/labels": {
+      "post": {
+        "operationId": "TasksController_setLabels",
+        "summary": "Set task labels",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Tasks"
+        ],
+        "security": [
+          {
+            "bearer-auth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/tasks/{id}/checklist": {
+      "post": {
+        "operationId": "TasksController_addChecklistItem",
+        "summary": "Add an item to task checklist",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Tasks"
+        ],
+        "security": [
+          {
+            "bearer-auth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/checklist/{itemId}": {
+      "patch": {
+        "operationId": "TasksController_updateChecklistItem",
+        "summary": "Update a checklist item text or completion status",
+        "parameters": [
+          {
+            "name": "itemId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Tasks"
+        ],
+        "security": [
+          {
+            "bearer-auth": []
+          }
+        ]
+      },
+      "delete": {
+        "operationId": "TasksController_deleteChecklistItem",
+        "summary": "Delete a checklist item",
+        "parameters": [
+          {
+            "name": "itemId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Tasks"
+        ],
+        "security": [
+          {
+            "bearer-auth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/workspaces/{workspaceId}/labels": {
+      "post": {
+        "operationId": "LabelsController_create",
+        "summary": "Create label in workspace",
+        "parameters": [
+          {
+            "name": "workspaceId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Labels"
+        ],
+        "security": [
+          {
+            "bearer-auth": []
+          }
+        ]
+      },
+      "get": {
+        "operationId": "LabelsController_findAll",
+        "summary": "List all labels in workspace",
+        "parameters": [
+          {
+            "name": "workspaceId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Labels"
+        ],
+        "security": [
+          {
+            "bearer-auth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/labels/{id}": {
+      "get": {
+        "operationId": "LabelsController_findOne",
+        "summary": "Get label by ID",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Labels"
+        ],
+        "security": [
+          {
+            "bearer-auth": []
+          }
+        ]
+      },
+      "patch": {
+        "operationId": "LabelsController_update",
+        "summary": "Update label name or color",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Labels"
+        ],
+        "security": [
+          {
+            "bearer-auth": []
+          }
+        ]
+      },
+      "delete": {
+        "operationId": "LabelsController_delete",
+        "summary": "Delete label (detaches from all tasks)",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Labels"
+        ],
+        "security": [
+          {
+            "bearer-auth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/search": {
+      "get": {
+        "operationId": "SearchController_search",
+        "summary": "Global full-text search with operators (#label, @assignee, is:bug, is:done, due:today, project:KEY)",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Search"
+        ],
+        "security": [
+          {
+            "bearer-auth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/projects/{projectId}/stickies": {
+      "post": {
+        "operationId": "StickiesController_create",
+        "summary": "Create a sticky in project",
+        "parameters": [
+          {
+            "name": "projectId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Stickies"
+        ],
+        "security": [
+          {
+            "bearer-auth": []
+          }
+        ]
+      },
+      "get": {
+        "operationId": "StickiesController_findAll",
+        "summary": "List stickies in project (supports ?pinned=true)",
+        "parameters": [
+          {
+            "name": "projectId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "pinned",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Stickies"
+        ],
+        "security": [
+          {
+            "bearer-auth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/stickies/{id}": {
+      "get": {
+        "operationId": "StickiesController_findOne",
+        "summary": "Get sticky by ID",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Stickies"
+        ],
+        "security": [
+          {
+            "bearer-auth": []
+          }
+        ]
+      },
+      "patch": {
+        "operationId": "StickiesController_update",
+        "summary": "Update sticky body, color, or pinned status",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Stickies"
+        ],
+        "security": [
+          {
+            "bearer-auth": []
+          }
+        ]
+      },
+      "delete": {
+        "operationId": "StickiesController_delete",
+        "summary": "Delete sticky (keeps converted task intact)",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Stickies"
+        ],
+        "security": [
+          {
+            "bearer-auth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/stickies/{id}/reorder": {
+      "post": {
+        "operationId": "StickiesController_reorder",
+        "summary": "Reorder sticky with fractional indexing",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Stickies"
+        ],
+        "security": [
+          {
+            "bearer-auth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/stickies/{id}/convert": {
+      "post": {
+        "operationId": "StickiesController_convert",
+        "summary": "Convert sticky to task (atomic, links both ways)",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Stickies"
+        ],
+        "security": [
+          {
+            "bearer-auth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/uploads/init": {
+      "post": {
+        "operationId": "AttachmentsController_initUpload",
+        "summary": "Initiate 3-step resumable upload (returns presigned PUT URL valid 15m)",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Uploads & Attachments"
+        ],
+        "security": [
+          {
+            "bearer-auth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/uploads/raw/{key}": {
+      "put": {
+        "operationId": "AttachmentsController_directPut",
+        "summary": "Direct PUT endpoint for local dev driver",
+        "parameters": [
+          {
+            "name": "key",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "content-type",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Uploads & Attachments"
+        ]
+      }
+    },
+    "/api/v1/uploads/{id}/complete": {
+      "post": {
+        "operationId": "AttachmentsController_completeUpload",
+        "summary": "Complete upload: sniff magic bytes, verify existence, write row, queue thumbnail",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Uploads & Attachments"
+        ],
+        "security": [
+          {
+            "bearer-auth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/attachments/{id}": {
+      "get": {
+        "operationId": "AttachmentsController_findOne",
+        "summary": "Get attachment details and short-lived signed URLs",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Uploads & Attachments"
+        ],
+        "security": [
+          {
+            "bearer-auth": []
+          }
+        ]
+      },
+      "delete": {
+        "operationId": "AttachmentsController_delete",
+        "summary": "Delete attachment and queue background storage deletion",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Uploads & Attachments"
+        ],
+        "security": [
+          {
+            "bearer-auth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/voice": {
+      "post": {
+        "operationId": "VoiceController_create",
+        "summary": "Upload audio clip and begin async transcription",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Voice & Transcription"
+        ],
+        "security": [
+          {
+            "bearer-auth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/voice/{id}": {
+      "get": {
+        "operationId": "VoiceController_findOne",
+        "summary": "Poll transcription status and get transcript",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Voice & Transcription"
+        ],
+        "security": [
+          {
+            "bearer-auth": []
+          }
+        ]
+      },
+      "patch": {
+        "operationId": "VoiceController_updateText",
+        "summary": "Save user-edited transcript text (preserves rawTranscript)",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Voice & Transcription"
+        ],
+        "security": [
+          {
+            "bearer-auth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/voice/{id}/retry": {
+      "post": {
+        "operationId": "VoiceController_retry",
+        "summary": "Retry transcription on a failed voice note",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Voice & Transcription"
+        ],
+        "security": [
+          {
+            "bearer-auth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/voice/{id}/structure": {
+      "post": {
+        "operationId": "VoiceController_structure",
+        "summary": "Structure voice note into bug report suggestion (never auto-applied)",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Voice & Transcription"
+        ],
+        "security": [
+          {
+            "bearer-auth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/voice/{id}/attach": {
+      "post": {
+        "operationId": "VoiceController_attach",
+        "summary": "Attach voice note to a task or comment",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Voice & Transcription"
+        ],
+        "security": [
+          {
+            "bearer-auth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/notifications": {
+      "get": {
+        "operationId": "NotificationsController_getNotifications",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/v1/notifications/device": {
+      "post": {
+        "operationId": "NotificationsController_registerDevice",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/v1/notifications/{id}/read": {
+      "patch": {
+        "operationId": "NotificationsController_markRead",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/v1/projects/{projectId}/context": {
+      "get": {
+        "operationId": "ContextAiController_getContext",
+        "summary": "Get Markdown project context",
+        "parameters": [
+          {
+            "name": "projectId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Context and AI"
+        ],
+        "security": [
+          {
+            "bearer-auth": []
+          }
+        ]
+      },
+      "put": {
+        "operationId": "ContextAiController_putContext",
+        "summary": "Save Markdown project context",
+        "parameters": [
+          {
+            "name": "projectId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Context and AI"
+        ],
+        "security": [
+          {
+            "bearer-auth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/me/quick-capture-preferences": {
+      "get": {
+        "operationId": "ContextAiController_getPrefs",
+        "summary": "Get quick capture defaults for a workspace",
+        "parameters": [
+          {
+            "name": "workspaceId",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Context and AI"
+        ],
+        "security": [
+          {
+            "bearer-auth": []
+          }
+        ]
+      },
+      "put": {
+        "operationId": "ContextAiController_putPrefs",
+        "summary": "Save quick capture defaults",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Context and AI"
+        ],
+        "security": [
+          {
+            "bearer-auth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/me/ai-providers": {
+      "get": {
+        "operationId": "ContextAiController_listProviders",
+        "summary": "List personal AI providers without secrets",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Context and AI"
+        ],
+        "security": [
+          {
+            "bearer-auth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/me/ai-providers/{provider}": {
+      "put": {
+        "operationId": "ContextAiController_saveProvider",
+        "summary": "Save a personal AI provider key",
+        "parameters": [
+          {
+            "name": "provider",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Context and AI"
+        ],
+        "security": [
+          {
+            "bearer-auth": []
+          }
+        ]
+      },
+      "delete": {
+        "operationId": "ContextAiController_deleteProvider",
+        "summary": "Delete a personal AI provider key",
+        "parameters": [
+          {
+            "name": "provider",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Context and AI"
+        ],
+        "security": [
+          {
+            "bearer-auth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/me/ai-providers/{provider}/test": {
+      "post": {
+        "operationId": "ContextAiController_testProvider",
+        "summary": "Test a saved AI provider key",
+        "parameters": [
+          {
+            "name": "provider",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Context and AI"
+        ],
+        "security": [
+          {
+            "bearer-auth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/tasks/{taskId}/solution-prompts": {
+      "get": {
+        "operationId": "ContextAiController_listPrompts",
+        "summary": "List solution prompts for a task",
+        "parameters": [
+          {
+            "name": "taskId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Context and AI"
+        ],
+        "security": [
+          {
+            "bearer-auth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/tasks/{taskId}/solution-prompts/generate": {
+      "post": {
+        "operationId": "ContextAiController_generate",
+        "summary": "Assemble or generate a solution prompt",
+        "parameters": [
+          {
+            "name": "taskId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Context and AI"
+        ],
+        "security": [
+          {
+            "bearer-auth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/solution-prompts/{promptId}": {
+      "patch": {
+        "operationId": "ContextAiController_updatePrompt",
+        "summary": "Save a manual edit of a solution prompt",
+        "parameters": [
+          {
+            "name": "promptId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Context and AI"
+        ],
+        "security": [
+          {
+            "bearer-auth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/solution-prompts/{promptId}/regenerate": {
+      "post": {
+        "operationId": "ContextAiController_regenerate",
+        "summary": "Regenerate a solution prompt from the current task",
+        "parameters": [
+          {
+            "name": "promptId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Context and AI"
+        ],
+        "security": [
+          {
+            "bearer-auth": []
+          }
+        ]
+      }
+    }
+  },
+  "info": {
+    "title": "DoIt API",
+    "description": "DoIt Tasks & Bug Capture backend REST contract",
+    "version": "0.1.0",
+    "contact": {}
+  },
+  "tags": [],
+  "servers": [],
+  "components": {
+    "securitySchemes": {
+      "bearer-auth": {
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "type": "http"
+      }
+    },
+    "schemas": {}
+  }
+}

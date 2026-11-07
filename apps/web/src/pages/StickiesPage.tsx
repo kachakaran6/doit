@@ -4,6 +4,7 @@ import { api } from '@/lib/api';
 import { Skeleton } from '@/components/ui/skeleton';
 import { EmptyState } from '@/components/ui/empty-state';
 import { useToast } from '@/components/ui/toast';
+import { PageContainer } from '@/components/layout/PageContainer';
 import { Pin, Trash2, ArrowRight } from 'lucide-react';
 
 export function StickiesPage() {
@@ -72,7 +73,7 @@ export function StickiesPage() {
   ];
 
   return (
-    <div className="space-y-6 select-none">
+    <PageContainer width="data" className="space-y-6 select-none">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
@@ -157,6 +158,6 @@ export function StickiesPage() {
           })}
         </div>
       )}
-    </div>
+    </PageContainer>
   );
 }

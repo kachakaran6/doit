@@ -5,6 +5,7 @@ import { api } from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/components/ui/toast';
+import { PageContainer } from '@/components/layout/PageContainer';
 
 const COLORS = ['INDIGO', 'TEAL', 'AMBER', 'ROSE', 'VIOLET'];
 
@@ -26,7 +27,7 @@ export function WorkspaceSettingsPage() {
   }, [activeWorkspace?.id, activeWorkspace?.name]);
 
   return (
-    <div className="space-y-4">
+    <PageContainer width="settings" className="space-y-4">
       <h1 className="text-2xl font-bold tracking-tight">Workspace settings</h1>
       <div className="flex gap-4 border-b border-[var(--border)] text-[13px]">
         {(['general', 'labels', 'roles', 'about'] as const).map((id) => (
@@ -135,6 +136,6 @@ export function WorkspaceSettingsPage() {
           <p className="text-[var(--muted-foreground)]">This status is for workspace owners and admins. It replaces the overview system card.</p>
         </div>
       ) : null}
-    </div>
+    </PageContainer>
   );
 }

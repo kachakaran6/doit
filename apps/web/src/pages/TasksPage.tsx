@@ -9,6 +9,8 @@ import { StatusBadge, PriorityBadge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { EmptyState } from '@/components/ui/empty-state';
 import { useToast } from '@/components/ui/toast';
+import { PageContainer } from '@/components/layout/PageContainer';
+import { Avatar } from '@/components/ui/avatar';
 import { ProjectContextPanel } from '@/components/tasks/ProjectContextPanel';
 import { SolutionPromptPanel } from '@/components/tasks/SolutionPromptPanel';
 import {
@@ -109,7 +111,7 @@ export function TasksPage() {
   };
 
   return (
-    <div className="space-y-6 select-none relative">
+    <PageContainer width="data" className="space-y-6 select-none relative">
       {/* Header & Controls */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
@@ -285,39 +287,85 @@ export function TasksPage() {
                     <div
                       key={task.id}
                       onClick={() => setSelectedTask(task)}
-                      className="px-4 py-3 flex items-center justify-between gap-4 hover:bg-[var(--accent)] transition-colors cursor-pointer group"
+                      className="px-4 py-2.5 flex items-center gap-3 hover:bg-[var(--accent)] transition-colors cursor-pointer group text-[13px]"
                     >
-                      <div className="flex items-center gap-3.5 min-w-0">
-                        {/* Circular Checkbox */}
-                        <button
-                          type="button"
-                          onClick={(e) => handleToggleDone(e, task)}
-                          className="text-[var(--muted-foreground)] hover:text-[var(--success-text)] transition-colors cursor-pointer shrink-0"
-                        >
-                          {task.status === 'DONE' ? (
-                            <CheckCircle2 className="w-4 h-4 text-[var(--success-text)] fill-[var(--success-text)]/10" />
-                          ) : (
-                            <Circle className="w-4 h-4 stroke-[1.5]" />
-                          )}
-                        </button>
+                      {/* [checkbox 32] */}
+                      <button
+                        type="button"
+                        onClick={(e) => handleToggleDone(e, task)}
+                        className="w-8 shrink-0 flex items-center justify-center text-[var(--muted-foreground)] hover:text-[var(--success-text)] transition-colors cursor-pointer"
+                      >
+                        {task.status === 'DONE' ? (
+                          <CheckCircle2 className="w-4 h-4 text-[var(--success-text)] fill-[var(--success-text)]/10" />
+                        ) : (
+                          <Circle className="w-4 h-4 stroke-[1.5]" />
+                        )}
+                      </button>
 
-                        <span className="text-[12px] font-mono text-[var(--muted-foreground)] shrink-0">
-                          {task.humanId}
-                        </span>
+                      {/* [id 72] */}
+                      <span className="w-16 font-mono text-[11px] text-[var(--muted-foreground)] shrink-0">
+                        {task.humanId}
+                      </span>
 
-                        <span
-                          className={`text-[14px] font-medium truncate ${
-                            task.status === 'DONE'
-                              ? 'line-through text-[var(--muted-foreground)]'
-                              : 'text-[var(--foreground)]'
-                          }`}
-                        >
-                          {task.title}
-                        </span>
+                      {/* [title minmax(240px, 1fr)] */}
+                      <span
+                        className={`flex-1 min-w-[200px] max-w-[65ch] truncate font-medium ${
+                          task.status === 'DONE'
+                            ? 'line-through text-[var(--muted-foreground)]'
+                            : 'text-[var(--foreground)]'
+                        }`}
+                      >
+                        {task.title}
+                      </span>
+
+                      {/* [labels max 180] */}
+                      <div className="hidden md:flex items-center gap-1 max-w-[180px] shrink-0 overflow-hidden">
+                        {task.labels?.map((item) => {
+                          const label = 'label' in item && item.label ? item.label : (item as any);
+                          if (!label || !label.name) return null;
+                          return (
+                            <span
+                              key={item.id}
+                              className="px-1.5 py-0.5 rounded text-[10px] font-medium border"
+                              style={{
+                                backgroundColor: `${label.color || '#3b82f6'}15`,
+                                borderColor: `${label.color || '#3b82f6'}30`,
+                                color: label.color || '#3b82f6',
+                              }}
+                            >
+                              {label.name}
+                            </span>
+                          );
+                        })}
                       </div>
 
-                      <div className="flex items-center gap-3 shrink-0">
+                      {/* [assignee 32] */}
+                      <div className="hidden lg:flex w-8 shrink-0 items-center justify-center">
+                        {task.assignee ? (
+                          <Avatar
+                            name={task.assignee.name}
+                            email={task.assignee.email}
+                            size="xs"
+                          />
+                        ) : (
+                          <span className="w-5 h-5 rounded-full border border-dashed border-[var(--border)] flex items-center justify-center text-[10px] text-[var(--muted-foreground)] opacity-60">
+                            -
+                          </span>
+                        )}
+                      </div>
+
+                      {/* [due 96] */}
+                      <div className="hidden sm:flex w-24 text-[12px] text-[var(--muted-foreground)] shrink-0 truncate">
+                        {task.dueAt ? new Date(task.dueAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) : ''}
+                      </div>
+
+                      {/* [priority 108] */}
+                      <div className="w-24 shrink-0 flex justify-end">
                         <PriorityBadge priority={task.priority} />
+                      </div>
+
+                      {/* [status 132] */}
+                      <div className="w-28 shrink-0 flex justify-end">
                         <StatusBadge status={task.status} />
                       </div>
                     </div>
@@ -638,6 +686,6 @@ export function TasksPage() {
           </div>
         </div>
       )}
-    </div>
+    </PageContainer>
   );
 }

@@ -34,16 +34,18 @@ for (const [p, item] of Object.entries(spec.paths || {}))
 
 const rows = [];
 for (const op of ops) {
-  const rel = op.path.replace(new RegExp('^' + esc(base)), '');
+  const cleanPath = op.path.replace(new RegExp('^' + esc(base)), '');
+  const rel = cleanPath.replace(/^\/?api\/v1/, '') || '/';
   const segs = rel.split('/').filter(Boolean).map(s => /^\{.+\}$/.test(s) ? PARAM : esc(s));
   const pathRx = new RegExp("['\"`]\\/?(?:api\\/v1\\/)?" + segs.join('\\/') + "(?:['\"`?/]|\\$\\{)", 'g');
   const hits = new Set();
   for (const { f, t } of sources) {
     let m; pathRx.lastIndex = 0;
     while ((m = pathRx.exec(t))) {
-      const win = t.slice(Math.max(0, m.index - 120), m.index + 220);
-      const others = Object.entries(METHOD_RX).filter(([k]) => k !== op.method && METHOD_RX[k].test(win)).length;
-      if (METHOD_RX[op.method].test(win) || (op.method === 'get' && others === 0)) { hits.add(f); break; }
+      const closeIdx = t.indexOf(')', m.index);
+      const callWin = t.slice(Math.max(0, m.index - 40), closeIdx !== -1 ? Math.min(closeIdx + 5, m.index + 140) : m.index + 80);
+      const hasExplicitOther = Object.entries(METHOD_RX).some(([k, rx]) => k !== op.method && rx.test(callWin));
+      if (METHOD_RX[op.method].test(callWin) || (op.method === 'get' && !hasExplicitOther)) { hits.add(f); break; }
     }
     if (!hits.has(f) && op.opId && new RegExp('\\b' + esc(op.opId) + '\\b').test(t)) hits.add(f);
   }

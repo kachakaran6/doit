@@ -1,8 +1,8 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Breadcrumbs } from './Breadcrumbs';
 import { Button } from '@/components/ui/button';
-import { Search, Plus, Menu, ChevronDown, CheckSquare, Bug, StickyNote, Bell } from 'lucide-react';
+import { Search, Plus, Menu, ChevronDown, CheckSquare, Bug, StickyNote, Bell, FolderKanban, UserPlus } from 'lucide-react';
 import { CreateType } from './CreateModal';
 
 export function TopBar({
@@ -14,6 +14,7 @@ export function TopBar({
   onOpenCreate: (type: CreateType) => void;
   onToggleMobileSidebar: () => void;
 }) {
+  const navigate = useNavigate();
   const [dropdownOpen, setDropdownOpen] = useState(false);
 
   return (
@@ -114,6 +115,29 @@ export function TopBar({
             >
               <StickyNote className="w-3.5 h-3.5 text-[var(--warning-text)]" />
               <span>New sticky note</span>
+            </button>
+            <div className="my-1 border-t border-[var(--border)]" />
+            <button
+              type="button"
+              onClick={() => {
+                setDropdownOpen(false);
+                navigate('/projects');
+              }}
+              className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-[13px] text-[var(--foreground)] hover:bg-[var(--accent)] transition-colors cursor-pointer text-left"
+            >
+              <FolderKanban className="w-3.5 h-3.5 text-[var(--primary-text)]" />
+              <span>New project</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setDropdownOpen(false);
+                navigate('/team');
+              }}
+              className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-[13px] text-[var(--foreground)] hover:bg-[var(--accent)] transition-colors cursor-pointer text-left"
+            >
+              <UserPlus className="w-3.5 h-3.5 text-[var(--success-text)]" />
+              <span>Invite people</span>
             </button>
           </div>
         )}

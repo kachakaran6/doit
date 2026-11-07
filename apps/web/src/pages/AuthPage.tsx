@@ -6,6 +6,7 @@ import { useThemeStore } from '@/lib/theme-store';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
+import { Modal } from '@/components/ui/modal';
 import { useToast } from '@/components/ui/toast';
 import { ShieldCheck, UserCheck, ArrowRight } from 'lucide-react';
 
@@ -21,6 +22,28 @@ export function AuthPage() {
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
   const [loading, setLoading] = useState(false);
+  const [forgotOpen, setForgotOpen] = useState(false);
+  const [forgotEmail, setForgotEmail] = useState('');
+  const [forgotLoading, setForgotLoading] = useState(false);
+
+  const handleForgotSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!forgotEmail.trim()) {
+      error('Email required', 'Please enter your account email.');
+      return;
+    }
+    try {
+      setForgotLoading(true);
+      await api.auth.forgotPassword(forgotEmail.trim());
+      success('Reset email sent', 'If an account exists, password reset instructions have been dispatched.');
+      setForgotOpen(false);
+      setForgotEmail('');
+    } catch (err: any) {
+      error('Reset failed', err.message || 'Unable to request password reset.');
+    } finally {
+      setForgotLoading(false);
+    }
+  };
 
   const from = (location.state as any)?.from?.pathname || '/';
 
@@ -127,15 +150,31 @@ export function AuthPage() {
               required
             />
 
-            <Input
-              label="Password"
-              type="password"
-              placeholder="••••••••••••"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              autoComplete={isRegister ? 'new-password' : 'current-password'}
-              required
-            />
+            <div>
+              <Input
+                label="Password"
+                type="password"
+                placeholder="••••••••••••"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                autoComplete={isRegister ? 'new-password' : 'current-password'}
+                required
+              />
+              {!isRegister && (
+                <div className="mt-1 text-right">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setForgotEmail(email);
+                      setForgotOpen(true);
+                    }}
+                    className="text-[11px] text-[var(--muted-foreground)] hover:text-[var(--foreground)] hover:underline cursor-pointer"
+                  >
+                    Forgot password?
+                  </button>
+                </div>
+              )}
+            </div>
 
             <Button type="submit" className="w-full mt-2" loading={loading}>
               <span>{isRegister ? 'Create account' : 'Sign in to workspace'}</span>
@@ -178,6 +217,33 @@ export function AuthPage() {
           Protected by AES-256 enterprise encryption
         </p>
       </div>
+
+      <Modal
+        open={forgotOpen}
+        onClose={() => setForgotOpen(false)}
+        title="Reset password"
+        description="Enter the email associated with your account and we will send password reset instructions."
+      >
+        <form onSubmit={handleForgotSubmit} className="space-y-4">
+          <Input
+            label="Email address"
+            type="email"
+            value={forgotEmail}
+            onChange={(e) => setForgotEmail(e.target.value)}
+            placeholder="alice@samyukt.com"
+            required
+            autoFocus
+          />
+          <div className="flex justify-end gap-2 pt-2">
+            <Button type="button" variant="outline" size="sm" onClick={() => setForgotOpen(false)}>
+              Cancel
+            </Button>
+            <Button type="submit" size="sm" loading={forgotLoading}>
+              Send reset instructions
+            </Button>
+          </div>
+        </form>
+      </Modal>
     </div>
   );
 }

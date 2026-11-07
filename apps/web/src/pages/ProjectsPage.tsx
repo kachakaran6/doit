@@ -6,6 +6,7 @@ import { Project } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/components/ui/toast';
+import { PageContainer } from '@/components/layout/PageContainer';
 import { NewProjectDialog } from '@/components/layout/NewProjectDialog';
 
 export function ProjectsPage() {
@@ -31,7 +32,7 @@ export function ProjectsPage() {
   };
 
   return (
-    <div className="space-y-6">
+    <PageContainer width="data" className="space-y-6">
       <div className="flex items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Projects</h1>
@@ -132,6 +133,6 @@ export function ProjectsPage() {
         </section>
       ) : null}
       <NewProjectDialog open={open} onClose={() => setOpen(false)} />
-    </div>
+    </PageContainer>
   );
 }

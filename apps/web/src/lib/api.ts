@@ -207,6 +207,11 @@ export const api = {
         memberships: Array.isArray(res?.memberships) ? res.memberships : [],
       } as User;
     },
+    forgotPassword: (email: string) =>
+      apiRequest<{ success: boolean; message?: string }>('/auth/password/forgot', {
+        method: 'POST',
+        body: JSON.stringify({ email }),
+      }),
     logoutAll: () => apiRequest('/auth/logout-all', { method: 'POST' }),
     logout: async () => {
       try {
@@ -259,6 +264,19 @@ export const api = {
         method: 'POST',
         body: JSON.stringify(data),
       }),
+    inviteMember: (
+      workspaceId: string,
+      data: {
+        email?: string | null;
+        role: 'ADMIN' | 'MEMBER' | 'TESTER' | 'VIEWER';
+        maxUses?: number;
+        expiresInDays?: number;
+      }
+    ) =>
+      apiRequest<WorkspaceInvitation>(`/workspaces/${workspaceId}/members/invite`, {
+        method: 'POST',
+        body: JSON.stringify(data),
+      }),
     revokeInvitation: (workspaceId: string, invitationId: string) =>
       apiRequest(`/workspaces/${workspaceId}/invitations/${invitationId}`, {
         method: 'DELETE',
@@ -269,6 +287,8 @@ export const api = {
       }),
     labels: (workspaceId: string) =>
       apiRequest<Label[]>(`/workspaces/${workspaceId}/labels`),
+    getLabel: (id: string) =>
+      apiRequest<Label>(`/labels/${id}`),
     createLabel: (workspaceId: string, data: { name: string; color: string }) =>
       apiRequest<Label>(`/workspaces/${workspaceId}/labels`, {
         method: 'POST',
@@ -325,6 +345,10 @@ export const api = {
       if (Array.isArray(res)) return res;
       return (res as any)?.items || [];
     },
+    myDay: (workspaceId: string) =>
+      apiRequest<Task[]>(`/workspaces/${workspaceId}/tasks/my-day`),
+    inbox: (workspaceId: string) =>
+      apiRequest<Task[]>(`/workspaces/${workspaceId}/tasks/inbox`),
     get: (id: string) => apiRequest<Task>(`/tasks/${id}`),
     create: (
       projectId: string,
@@ -348,8 +372,13 @@ export const api = {
       }),
     updateStatus: (id: string, status: string) =>
       apiRequest<Task>(`/tasks/${id}/status`, {
-        method: 'PATCH',
+        method: 'POST',
         body: JSON.stringify({ status }),
+      }),
+    reorder: (id: string, data: { targetOrder: number; previousOrder?: number; nextOrder?: number }) =>
+      apiRequest<Task>(`/tasks/${id}/reorder`, {
+        method: 'POST',
+        body: JSON.stringify(data),
       }),
     delete: (id: string) =>
       apiRequest(`/tasks/${id}`, {
@@ -364,6 +393,20 @@ export const api = {
       apiRequest(`/tasks/${id}/labels`, {
         method: 'POST',
         body: JSON.stringify({ labelIds }),
+      }),
+    addChecklist: (id: string, title: string) =>
+      apiRequest<{ id: string; title: string; isCompleted: boolean }>(`/tasks/${id}/checklist`, {
+        method: 'POST',
+        body: JSON.stringify({ title }),
+      }),
+    updateChecklist: (itemId: string, data: { title?: string; isCompleted?: boolean }) =>
+      apiRequest<{ id: string; title: string; isCompleted: boolean }>(`/checklist/${itemId}`, {
+        method: 'PATCH',
+        body: JSON.stringify(data),
+      }),
+    deleteChecklist: (itemId: string) =>
+      apiRequest(`/checklist/${itemId}`, {
+        method: 'DELETE',
       }),
   },
 
@@ -409,6 +452,8 @@ export const api = {
       const res = await apiRequest<Sticky[]>(`/projects/${projectId}/stickies${q}`);
       return Array.isArray(res) ? res : [];
     },
+    get: (id: string) =>
+      apiRequest<Sticky>(`/stickies/${id}`),
     create: (projectId: string, data: { body: string; color?: string; isPinned?: boolean }) =>
       apiRequest<Sticky>(`/projects/${projectId}/stickies`, {
         method: 'POST',
@@ -418,6 +463,11 @@ export const api = {
       apiRequest<Sticky>(`/stickies/${id}`, {
         method: 'PATCH',
         body: JSON.stringify(data),
+      }),
+    reorder: (id: string, targetOrder: number) =>
+      apiRequest(`/stickies/${id}/reorder`, {
+        method: 'POST',
+        body: JSON.stringify({ targetOrder }),
       }),
     delete: (id: string) =>
       apiRequest(`/stickies/${id}`, {
@@ -436,6 +486,7 @@ export const api = {
 
   system: {
     health: () => apiRequest<any>('/health'),
+    config: () => apiRequest<any>('/config'),
   },
 
   search: {
@@ -521,6 +572,54 @@ export const api = {
       apiRequest<any>(`/solution-prompts/${promptId}`, {
         method: 'PATCH',
         body: JSON.stringify({ promptMarkdown }),
+      }),
+    regenerate: (promptId: string) =>
+      apiRequest<any>(`/solution-prompts/${promptId}/regenerate`, {
+        method: 'POST',
+      }),
+  },
+
+  uploads: {
+    init: (data: { filename: string; mimeType: string; sizeBytes: number }) =>
+      apiRequest<{ id: string; uploadUrl: string; key: string }>('/uploads/init', {
+        method: 'POST',
+        body: JSON.stringify(data),
+      }),
+    complete: (id: string) =>
+      apiRequest<{ success: boolean; attachment: any }>(`/uploads/${id}/complete`, {
+        method: 'POST',
+      }),
+  },
+
+  attachments: {
+    get: (id: string) => apiRequest<any>(`/attachments/${id}`),
+    delete: (id: string) => apiRequest(`/attachments/${id}`, { method: 'DELETE' }),
+  },
+
+  voice: {
+    upload: (formData: FormData) =>
+      apiRequest<{ id: string; status: string }>('/voice', {
+        method: 'POST',
+        body: formData,
+      }),
+    get: (id: string) => apiRequest<any>(`/voice/${id}`),
+    update: (id: string, transcript: string) =>
+      apiRequest<any>(`/voice/${id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ transcript }),
+      }),
+    retry: (id: string) =>
+      apiRequest<any>(`/voice/${id}/retry`, {
+        method: 'POST',
+      }),
+    structure: (id: string) =>
+      apiRequest<any>(`/voice/${id}/structure`, {
+        method: 'POST',
+      }),
+    attach: (id: string, taskId: string) =>
+      apiRequest<any>(`/voice/${id}/attach`, {
+        method: 'POST',
+        body: JSON.stringify({ taskId }),
       }),
   },
 };

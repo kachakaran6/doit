@@ -1,10 +1,10 @@
-import { useLocation, Link } from 'react-router-dom';
+import { useLocation } from 'react-router-dom';
 import { useWorkspaceStore } from '@/lib/workspace-store';
 import { ChevronRight } from 'lucide-react';
 
 export function Breadcrumbs() {
   const location = useLocation();
-  const { activeWorkspace } = useWorkspaceStore();
+  const { activeProject } = useWorkspaceStore();
 
   const pathSegments = location.pathname.split('/').filter(Boolean);
 
@@ -34,29 +34,23 @@ export function Breadcrumbs() {
   };
 
   const firstSeg = pathSegments[0];
+  const pageTitle = firstSeg ? getPageTitle(firstSeg) : 'Overview';
+  const showProject = Boolean(activeProject && (firstSeg === 'tasks' || firstSeg === 'bugs' || firstSeg === 'stickies'));
 
   return (
     <nav aria-label="Breadcrumb" className="flex items-center gap-1.5 text-[13px] text-[var(--muted-foreground)]">
-      <Link
-        to="/"
-        className="hover:text-[var(--foreground)] transition-colors truncate max-w-[140px] font-medium"
-      >
-        {activeWorkspace?.name || 'Workspace'}
-      </Link>
-
-      {firstSeg ? (
+      {showProject ? (
         <>
-          <ChevronRight className="w-3.5 h-3.5 opacity-50 shrink-0" />
-          <span className="font-semibold text-[var(--foreground)] truncate">
-            {getPageTitle(firstSeg)}
+          <span className="font-medium text-[var(--muted-foreground)] truncate max-w-[160px]">
+            {activeProject?.name}
           </span>
-        </>
-      ) : (
-        <>
           <ChevronRight className="w-3.5 h-3.5 opacity-50 shrink-0" />
-          <span className="font-semibold text-[var(--foreground)]">Overview</span>
         </>
-      )}
+      ) : null}
+
+      <span className="font-semibold text-[var(--foreground)] truncate">
+        {pageTitle}
+      </span>
     </nav>
   );
 }

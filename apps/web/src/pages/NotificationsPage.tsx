@@ -2,6 +2,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { EmptyState } from '@/components/ui/empty-state';
+import { PageContainer } from '@/components/layout/PageContainer';
 
 export function NotificationsPage() {
   const queryClient = useQueryClient();
@@ -12,7 +13,7 @@ export function NotificationsPage() {
   const items = Array.isArray(data) ? data : [];
 
   return (
-    <div className="space-y-4">
+    <PageContainer width="data" className="space-y-4">
       <h1 className="text-2xl font-bold tracking-tight">Inbox</h1>
       {isLoading ? <p className="text-[13px] text-[var(--muted-foreground)]">Loading notifications…</p> : null}
       {isError ? (
@@ -46,6 +47,6 @@ export function NotificationsPage() {
           </li>
         ))}
       </ul>
-    </div>
+    </PageContainer>
   );
 }

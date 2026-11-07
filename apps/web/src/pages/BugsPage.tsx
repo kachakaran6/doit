@@ -7,6 +7,7 @@ import { SeverityBadge, StatusBadge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { EmptyState } from '@/components/ui/empty-state';
 import { useToast } from '@/components/ui/toast';
+import { PageContainer } from '@/components/layout/PageContainer';
 import { SolutionPromptPanel } from '@/components/tasks/SolutionPromptPanel';
 import {
   Search,
@@ -89,7 +90,7 @@ export function BugsPage() {
   const audioAttachment = activeBug?.attachments?.find((a) => a.kind === 'AUDIO' || a.mimeType?.includes('audio'));
 
   return (
-    <div className="space-y-6 select-none">
+    <PageContainer width="data" className="space-y-6 select-none">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
@@ -360,6 +361,6 @@ export function BugsPage() {
           </div>
         </div>
       )}
-    </div>
+    </PageContainer>
   );
 }

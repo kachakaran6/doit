@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom';
 import { api } from '@/lib/api';
 import { useWorkspaceStore } from '@/lib/workspace-store';
 import { Input } from '@/components/ui/input';
+import { PageContainer } from '@/components/layout/PageContainer';
 
 export function SearchPage() {
   const workspaceId = useWorkspaceStore((s) => s.activeWorkspace?.id);
@@ -17,7 +18,7 @@ export function SearchPage() {
   const items = Array.isArray(data) ? data : data?.items || data?.results || [];
 
   return (
-    <div className="space-y-4 max-w-3xl">
+    <PageContainer width="data" className="space-y-4">
       <h1 className="text-2xl font-bold tracking-tight">Search</h1>
       <p className="text-[13px] text-[var(--muted-foreground)]">
         Operators: #label, @assignee, is:bug, is:done, due:today, project:KEY
@@ -46,6 +47,6 @@ export function SearchPage() {
           </li>
         ))}
       </ul>
-    </div>
+    </PageContainer>
   );
 }

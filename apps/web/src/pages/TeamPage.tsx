@@ -11,6 +11,7 @@ import { RoleBadge } from '@/components/ui/badge';
 import { Avatar } from '@/components/ui/avatar';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/components/ui/toast';
+import { PageContainer } from '@/components/layout/PageContainer';
 import {
   UserPlus,
   Mail,
@@ -144,7 +145,7 @@ export function TeamPage() {
   };
 
   return (
-    <div className="space-y-8 select-none">
+    <PageContainer width="data" className="space-y-8 select-none">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
@@ -457,6 +458,6 @@ export function TeamPage() {
           loading={removeMemberMutation.isPending}
         />
       )}
-    </div>
+    </PageContainer>
   );
 }

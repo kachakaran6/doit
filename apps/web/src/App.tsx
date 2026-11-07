@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ToastProvider } from './components/ui/toast';
 import { useThemeStore } from './lib/theme-store';
+import { useAuthStore } from './lib/auth-store';
 import { ProtectedRoute } from './components/layout/ProtectedRoute';
 import { AppLayout } from './components/layout/AppLayout';
 import { AuthPage } from './pages/AuthPage';
@@ -31,6 +32,7 @@ const queryClient = new QueryClient({
 export function App() {
   useEffect(() => {
     useThemeStore.getState().initTheme();
+    useAuthStore.getState().initAuth();
   }, []);
 
   return (

@@ -1,7 +1,8 @@
 import { useState, useRef, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useWorkspaceStore } from '@/lib/workspace-store';
 import { Workspace } from '@/lib/types';
-import { ChevronDown, Check, Plus, Building } from 'lucide-react';
+import { ChevronDown, Check, Plus, Building, Settings, UserPlus } from 'lucide-react';
 import { Modal } from '@/components/ui/modal';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -9,6 +10,7 @@ import { api } from '@/lib/api';
 import { useToast } from '@/components/ui/toast';
 
 export function WorkspaceSwitcher() {
+  const navigate = useNavigate();
   const { workspaces, activeWorkspace, setActiveWorkspace, loadWorkspaces } = useWorkspaceStore();
   const [open, setOpen] = useState(false);
   const [createModalOpen, setCreateModalOpen] = useState(false);
@@ -109,7 +111,7 @@ export function WorkspaceSwitcher() {
             })}
           </div>
 
-          <div className="mt-1 pt-1 border-t border-[var(--border)]">
+          <div className="mt-1 pt-1 border-t border-[var(--border)] space-y-0.5">
             <button
               type="button"
               onClick={() => {
@@ -120,6 +122,30 @@ export function WorkspaceSwitcher() {
             >
               <Plus className="w-3.5 h-3.5" />
               <span>Create workspace</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                setOpen(false);
+                navigate('/workspace/settings');
+              }}
+              className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-[12px] text-[var(--muted-foreground)] hover:text-[var(--foreground)] hover:bg-[var(--accent)] transition-colors cursor-pointer"
+            >
+              <Settings className="w-3.5 h-3.5" />
+              <span>Workspace settings</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                setOpen(false);
+                navigate('/team');
+              }}
+              className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-[12px] text-[var(--muted-foreground)] hover:text-[var(--foreground)] hover:bg-[var(--accent)] transition-colors cursor-pointer"
+            >
+              <UserPlus className="w-3.5 h-3.5" />
+              <span>Invite people</span>
             </button>
           </div>
         </div>

@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
+import { PageContainer } from '@/components/layout/PageContainer';
 import { useWorkspaceStore } from '@/lib/workspace-store';
 import { api } from '@/lib/api';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
@@ -73,7 +74,7 @@ export function DashboardPage() {
   const recentBugs = bugs.slice(0, 4);
 
   return (
-    <div className="space-y-8 select-none">
+    <PageContainer width="data" className="space-y-8 select-none">
       {/* Header */}
       <div>
         <h1 className="text-2xl font-bold tracking-tight text-[var(--foreground)]">Overview</h1>
@@ -285,6 +286,6 @@ export function DashboardPage() {
 
         </div>
       </div>
-    </div>
+    </PageContainer>
   );
 }

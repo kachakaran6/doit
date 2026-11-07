@@ -11,6 +11,7 @@ import { Input } from '@/components/ui/input';
 import { Avatar } from '@/components/ui/avatar';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/components/ui/toast';
+import { PageContainer } from '@/components/layout/PageContainer';
 import { AiProviderSettings, QuickCaptureSettings } from '@/components/settings/AiAndCaptureSettings';
 import {
   User,
@@ -194,45 +195,49 @@ export function SettingsPage() {
   ];
 
   return (
-    <div className="space-y-8 select-none w-full">
+    <PageContainer width="settings" className="space-y-8 select-none">
       {/* Header */}
       <div>
         <h1 className="text-2xl font-bold tracking-tight text-[var(--foreground)]">Settings</h1>
         <p className="text-[13px] text-[var(--muted-foreground)] mt-1">
-          Manage your account, appearance, workspace properties, and mail integrations.
+          Manage your personal account, appearance, security, and integrations.
         </p>
       </div>
 
-      {/* Settings Navigation Tabs */}
-      <div className="flex border-b border-[var(--border)] gap-6 text-[13px] font-medium overflow-x-auto">
-        {[
-          { id: 'appearance', label: 'Appearance', icon: Palette },
-          { id: 'profile', label: 'Profile', icon: User },
-          { id: 'workspace', label: 'Workspace', icon: Building },
-          { id: 'sessions', label: 'Security & Sessions', icon: Shield },
-          { id: 'smtp', label: 'SMTP Config', icon: Mail },
-          { id: 'capture', label: 'Quick capture', icon: SlidersHorizontal },
-          { id: 'ai', label: 'AI', icon: Sparkles },
-        ].map((tab) => {
-          const Icon = tab.icon;
-          const isActive = activeTab === tab.id;
-          return (
-            <button
-              key={tab.id}
-              type="button"
-              onClick={() => setActiveTab(tab.id as SettingsTab)}
-              className={`pb-3 flex items-center gap-2 border-b-2 transition-all cursor-pointer whitespace-nowrap ${
-                isActive
-                  ? 'border-[var(--primary)] text-[var(--foreground)] font-semibold'
-                  : 'border-transparent text-[var(--muted-foreground)] hover:text-[var(--foreground)]'
-              }`}
-            >
-              <Icon className="w-4 h-4" />
-              <span>{tab.label}</span>
-            </button>
-          );
-        })}
-      </div>
+      <div className="flex flex-col md:flex-row gap-8 items-start">
+        {/* Left Sub-nav */}
+        <nav className="w-full md:w-[220px] shrink-0 md:sticky md:top-6 space-y-1">
+          {[
+            { id: 'appearance', label: 'Appearance', icon: Palette },
+            { id: 'profile', label: 'Profile', icon: User },
+            { id: 'workspace', label: 'Workspace', icon: Building },
+            { id: 'sessions', label: 'Security & Sessions', icon: Shield },
+            { id: 'smtp', label: 'SMTP Config', icon: Mail },
+            { id: 'capture', label: 'Quick capture', icon: SlidersHorizontal },
+            { id: 'ai', label: 'AI Providers', icon: Sparkles },
+          ].map((tab) => {
+            const Icon = tab.icon;
+            const isActive = activeTab === tab.id;
+            return (
+              <button
+                key={tab.id}
+                type="button"
+                onClick={() => setActiveTab(tab.id as SettingsTab)}
+                className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-[13px] font-medium transition-colors text-left cursor-pointer ${
+                  isActive
+                    ? 'bg-[var(--accent)] text-[var(--foreground)] font-semibold'
+                    : 'text-[var(--muted-foreground)] hover:text-[var(--foreground)] hover:bg-[var(--accent)]'
+                }`}
+              >
+                <Icon className="w-4 h-4 shrink-0" />
+                <span>{tab.label}</span>
+              </button>
+            );
+          })}
+        </nav>
+
+        {/* Right Content Area (max 720px) */}
+        <div className="flex-1 w-full max-w-[720px] space-y-6">
 
       {/* Tab 1: Appearance */}
       {activeTab === 'appearance' && (
@@ -648,6 +653,8 @@ export function SettingsPage() {
           </CardContent>
         </Card>
       )}
-    </div>
+        </div>
+      </div>
+    </PageContainer>
   );
 }
