@@ -4,7 +4,7 @@ import { useAuthStore } from '@/lib/auth-store';
 import { useWorkspaceStore } from '@/lib/workspace-store';
 import { useThemeStore } from '@/lib/theme-store';
 import { Avatar } from '@/components/ui/avatar';
-import { Settings, LogOut, Sun, Moon, Laptop, ChevronUp } from 'lucide-react';
+import { Settings, LogOut, Sun, Moon, Laptop, ChevronDown } from 'lucide-react';
 import { useToast } from '@/components/ui/toast';
 
 export function UserMenu() {
@@ -45,24 +45,27 @@ export function UserMenu() {
       <button
         type="button"
         onClick={() => setOpen(!open)}
-        className="w-full flex items-center justify-between p-2 rounded-xl hover:bg-[var(--accent)] transition-colors text-left cursor-pointer group"
+        className="flex items-center gap-2 p-1 pl-1.5 pr-2 rounded-lg hover:bg-[var(--accent)] transition-colors cursor-pointer group border border-transparent hover:border-[var(--border)]"
+        aria-label="User account menu"
       >
-        <div className="flex items-center gap-2.5 min-w-0">
-          <Avatar name={displayName} email={user?.email} size="sm" />
-          <div className="min-w-0 flex-1">
-            <div className="text-[13px] font-semibold text-[var(--foreground)] truncate leading-tight">
-              {displayName}
-            </div>
-            <div className="text-[11px] text-[var(--muted-foreground)] truncate leading-tight">
-              {user?.email || ''}
-            </div>
-          </div>
+        <Avatar name={displayName} email={user?.email} size="sm" />
+        <div className="hidden sm:flex flex-col text-left min-w-0 max-w-[130px]">
+          <span className="text-[12px] font-semibold text-[var(--foreground)] leading-tight truncate">
+            {displayName}
+          </span>
+          <span className="text-[10px] text-[var(--muted-foreground)] leading-tight truncate">
+            {role ? `${role.charAt(0)}${role.slice(1).toLowerCase()}` : (user?.email || '')}
+          </span>
         </div>
-        <ChevronUp className="w-4 h-4 text-[var(--muted-foreground)] shrink-0 transition-transform group-hover:text-[var(--foreground)]" />
+        <ChevronDown
+          className={`w-3.5 h-3.5 text-[var(--muted-foreground)] shrink-0 transition-transform duration-150 group-hover:text-[var(--foreground)] ${
+            open ? 'rotate-180' : ''
+          }`}
+        />
       </button>
 
       {open && (
-        <div className="absolute bottom-full left-0 mb-1.5 w-64 rounded-xl bg-[var(--popover)] text-[var(--popover-foreground)] shadow-xl border border-[var(--border)] p-1.5 z-40 animate-in fade-in zoom-in-95 duration-100 space-y-1">
+        <div className="absolute top-full right-0 mt-2 w-64 rounded-xl bg-[var(--popover)] text-[var(--popover-foreground)] shadow-xl border border-[var(--border)] p-1.5 z-50 animate-in fade-in zoom-in-95 duration-100 space-y-1">
           {/* User Info Header */}
           <div className="px-2.5 py-2 border-b border-[var(--border)]">
             <div className="text-[13px] font-semibold text-[var(--foreground)] truncate">
