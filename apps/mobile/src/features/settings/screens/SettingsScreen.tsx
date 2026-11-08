@@ -603,7 +603,7 @@ export const SettingsScreen: React.FC = () => {
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
               <View>
                 <Text variant="bodyStrong">DoIt Mobile</Text>
-                <Text variant="caption" color="secondary">Version 0.2.3 (Build 23)</Text>
+                <Text variant="caption" color="secondary">Version 0.2.4 (Build 24)</Text>
               </View>
               <Text variant="caption" color="tertiary" style={{ fontSize: 11 }}>
                 by Samyukt

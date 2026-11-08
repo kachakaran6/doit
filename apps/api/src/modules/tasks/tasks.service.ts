@@ -152,7 +152,7 @@ export class TasksService {
             frequency: (dto as any).frequency || 'often',
             deviceModel: (dto as any).deviceModel || (dto as any).telemetry?.deviceModel || 'Mobile Device',
             osVersion: (dto as any).osVersion || (dto as any).telemetry?.osVersion || 'Android',
-            appVersion: (dto as any).appVersion || (dto as any).telemetry?.appVersion || '0.2.3',
+            appVersion: (dto as any).appVersion || (dto as any).telemetry?.appVersion || '0.2.4',
             autoContext: (dto as any).telemetry || {},
           },
         });
