@@ -25,6 +25,32 @@ Loop Cycle: `CAPTURE` -> `AUDIT` -> `CRITIQUE` -> `SCORE` -> `PLAN` -> `FIX` -> 
 | **L6** | M6 | States, Motion & Haptics | 48.2 / 50 | 48.9 / 50 | **COMPLETED** | 0.97 press scale, 180ms checkbox, layout transitions |
 | **L7** | M7 | Visual Polish & Rubric Audit | 48.9 / 50 | 49.2 / 50 | **COMPLETED** | Squint, grayscale, 5-sec, alignment sweeps (all >=48/50) |
 | **M0** | M0 | Baseline & Capture Harness (Plane-Class) | 38 / 55 | 45 / 55 | **COMPLETED** | Root cause fixes for quick-capture modes, bug severity, and task/bug separation; SCREEN_MATRIX.md generated; API coverage verified |
+| **M1** | M1 | Foundations v3 (Tokens, Rows & Controls) | 45 / 55 | 48 / 55 | **COMPLETED** | Tokens v3, 0 contrast fails, row anatomy (circle checkbox, priority dots), unified Switch, rebuilt AI & Context editors |
+
+---
+
+## Milestone M1: Foundations v3 (Tokens, Rows & Controls)
+- **Date**: 2026-11-08
+- **Milestone**: M1
+- **Scope**: Foundation Tokens v3, Surface Ramp, Canonical Accents, Row Anatomy & Editors
+- **Deliverables & Enhancements**:
+  1. **Tokens & Contrast Verification**:
+     - Verified `tokens.json` against `contrast.py`: 43/43 contrast pairs passed 100% (0 failures).
+     - Standardized on 5 canonical accents: `blue` (`#3A66F2`, default), `violet` (`#7B54E8`), `green` (`#0E8550`), `orange` (`#C24E07`), `rose` (`#D6305A`).
+  2. **Row Anatomy & Controls**:
+     - `TaskRow.tsx`: Integrated circular animated `Checkbox` and `PriorityDot`; eliminated raw `[HIGH]` text and square checkboxes.
+     - `Switch.tsx`: Built unified cross-platform switch ensuring accent track when checked, surface3 track when unchecked, and clean white thumb `#FFFFFF`.
+  3. **Rebuilt Missing/Raw Editor Screens**:
+     - `AiProviderScreen.tsx`: Replaced borderless inputs with styled `Input`, added status card, model chips, and secure key testing.
+     - `ProjectContextScreen.tsx`: Added structured card container, character count, markdown textarea, preview toggle, and save bar.
+     - `QuickCapturePrefsScreen.tsx`: Standardized card groups with tonal chip pickers and unified toggles.
+  4. **Settings Hub & Dev Galleries**:
+     - `SettingsScreen.tsx`: Sentence-case headers, visible accent outline swatches, isolated Log Out card, updated to `v0.2.3 (Build 23) by Samyukt`.
+     - `ComponentGallery.tsx` & `FoundationGallery.tsx`: Updated with 5 canonical accents and complete token ramps.
+- **Verification**:
+  - `pnpm --filter @doit/mobile typecheck`: 0 errors.
+  - `pnpm --filter @doit/web typecheck`: 0 errors.
+  - `pnpm --filter @doit/api test`: 20/20 test suites passed, 76/76 tests passed.
 
 ---
 

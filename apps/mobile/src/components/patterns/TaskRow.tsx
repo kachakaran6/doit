@@ -1,8 +1,8 @@
 import React from 'react';
 import { View, StyleSheet, Pressable } from 'react-native';
 import { useTheme } from '../../theme/useTheme';
-import { Text, LabelPill } from '../ui';
-import { CheckSquare, Square, AlertCircle, Clock } from 'lucide-react-native';
+import { Text, LabelPill, Checkbox, PriorityDot, PriorityLevel } from '../ui';
+import { Clock } from 'lucide-react-native';
 
 export interface TaskRowProps {
   id: string;
@@ -41,8 +41,8 @@ export const TaskRow: React.FC<TaskRowProps> = ({
       style={[
         styles.container,
         {
-          backgroundColor: colors.surface,
-          borderColor: isBlocked ? colors.danger : colors.border,
+          backgroundColor: colors.surface1 || colors.surface,
+          borderColor: isBlocked ? colors.danger : colors.hairline,
           borderRadius: radius.md,
           padding: spacing.md,
           ...elevation.e1,
@@ -50,23 +50,10 @@ export const TaskRow: React.FC<TaskRowProps> = ({
       ]}
     >
       <View style={styles.contentRow}>
-        {/* Toggle checkbox button */}
-        <Pressable
-          onPress={onToggleStatus}
-          hitSlop={8}
-          style={styles.checkTarget}
-          accessibilityRole="checkbox"
-          accessibilityState={{ checked: isDone }}
-          accessibilityLabel={`Mark task ${title} as ${isDone ? 'incomplete' : 'done'}`}
-        >
-          {isDone ? (
-            <CheckSquare size={20} color={colors.accentText} />
-          ) : isBlocked ? (
-            <AlertCircle size={20} color={colors.danger} />
-          ) : (
-            <Square size={20} color={colors.textTertiary} />
-          )}
-        </Pressable>
+        {/* Consistent circular checkbox */}
+        <View style={styles.checkTarget}>
+          <Checkbox checked={isDone} onPress={onToggleStatus} />
+        </View>
 
         {/* Text body */}
         <View style={styles.textContainer}>
@@ -74,14 +61,10 @@ export const TaskRow: React.FC<TaskRowProps> = ({
             <Text variant="caption" color="tertiary" style={styles.humanId}>
               {humanId}
             </Text>
-            {priority && priority !== 'MEDIUM' && (
-              <Text
-                variant="caption"
-                color={priority === 'URGENT' || priority === 'HIGH' ? 'danger' : 'secondary'}
-                style={{ marginLeft: spacing.xs }}
-              >
-                [{priority}]
-              </Text>
+            {priority && (
+              <View style={{ marginLeft: spacing.xs }}>
+                <PriorityDot level={priority.toLowerCase() as PriorityLevel} withLabel />
+              </View>
             )}
           </View>
 
@@ -98,12 +81,12 @@ export const TaskRow: React.FC<TaskRowProps> = ({
           {/* Meta row: due date + labels */}
           <View style={[styles.metaRow, { gap: spacing.xs, marginTop: spacing.xs }]}>
             {dueDate && (
-              <View style={[styles.dueTag, { backgroundColor: isOverdue ? colors.danger : colors.bgSubtle, borderRadius: radius.sm }]}>
-                <Clock size={11} color={isOverdue ? colors.bg : colors.textSecondary} />
+              <View style={[styles.dueTag, { backgroundColor: isOverdue ? colors.danger : colors.surface2, borderRadius: radius.sm }]}>
+                <Clock size={11} color={isOverdue ? '#FFFFFF' : colors.textSecondary} />
                 <Text
                   variant="caption"
                   style={{
-                    color: isOverdue ? colors.bg : colors.textSecondary,
+                    color: isOverdue ? '#FFFFFF' : colors.textSecondary,
                     fontSize: 10,
                     marginLeft: 2,
                   }}

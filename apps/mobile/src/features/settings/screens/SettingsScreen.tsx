@@ -8,7 +8,6 @@ import {
   TouchableOpacity,
   Pressable,
   AppState,
-  Switch,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { useTheme } from '../../../theme/useTheme';
@@ -20,6 +19,7 @@ import {
   LargeHeader,
   SettingsItem,
   Avatar,
+  Switch,
 } from '../../../components/ui';
 import { useAuthStore } from '../../auth/store';
 import { overlayService } from '../../../native/overlay';
@@ -58,11 +58,11 @@ import { QuickCaptureGuideSheet } from '../components/QuickCaptureGuideSheet';
 import { ShakeTestModal } from '../components/ShakeTestModal';
 
 const ACCENT_OPTIONS: Array<{ key: AccentName; label: string; hex: string }> = [
-  { key: 'indigo', label: 'Indigo', hex: '#6366F1' },
-  { key: 'teal', label: 'Teal', hex: '#14B8A6' },
-  { key: 'amber', label: 'Amber', hex: '#F59E0B' },
-  { key: 'rose', label: 'Rose', hex: '#F43F5E' },
-  { key: 'violet', label: 'Violet', hex: '#8B5CF6' },
+  { key: 'blue', label: 'Blue', hex: '#3A66F2' },
+  { key: 'violet', label: 'Violet', hex: '#7B54E8' },
+  { key: 'green', label: 'Green', hex: '#0E8550' },
+  { key: 'orange', label: 'Orange', hex: '#C24E07' },
+  { key: 'rose', label: 'Rose', hex: '#D6305A' },
 ];
 
 /**
@@ -201,7 +201,7 @@ export const SettingsScreen: React.FC = () => {
         {/* 1. Account Section */}
         <View>
           <Text variant="caption" color="secondary" style={styles.sectionHeader}>
-            ACCOUNT
+            Account
           </Text>
           <View style={[styles.groupedCard, { backgroundColor: colors.surface1, borderRadius: radius.lg }]}>
             <View style={styles.profileRow}>
@@ -244,7 +244,7 @@ export const SettingsScreen: React.FC = () => {
 
         <View>
           <Text variant="caption" color="secondary" style={styles.sectionHeader}>
-            CAPTURE AND AI
+            Capture and AI
           </Text>
           <View style={[styles.groupedCard, { backgroundColor: colors.surface1, borderRadius: radius.lg }]}>
             <SettingsItem
@@ -271,12 +271,12 @@ export const SettingsScreen: React.FC = () => {
         {/* 2. Appearance Section */}
         <View>
           <Text variant="caption" color="secondary" style={styles.sectionHeader}>
-            APPEARANCE
+            Appearance
           </Text>
           <View style={[styles.groupedCard, { backgroundColor: colors.surface1, borderRadius: radius.lg, padding: spacing.md }]}>
             {/* Theme mode segmented row */}
             <Text variant="caption" color="secondary" style={{ marginBottom: 8, fontWeight: '600' }}>
-              Color Theme
+              Color theme
             </Text>
             <View style={[styles.segmentedPill, { backgroundColor: colors.surface2, borderRadius: radius.pill }]}>
               <TouchableOpacity
@@ -342,11 +342,15 @@ export const SettingsScreen: React.FC = () => {
 
             {/* Accent color 5 round swatches with check */}
             <Text variant="caption" color="secondary" style={{ marginTop: 14, marginBottom: 8, fontWeight: '600' }}>
-              Accent Color
+              Accent color
             </Text>
             <View style={styles.accentRow}>
               {ACCENT_OPTIONS.map((opt) => {
-                const isSelected = accent === opt.key;
+                const isSelected =
+                  accent === opt.key ||
+                  (accent === 'indigo' && opt.key === 'blue') ||
+                  (accent === 'teal' && opt.key === 'green') ||
+                  (accent === 'amber' && opt.key === 'orange');
                 return (
                   <TouchableOpacity
                     key={opt.key}
@@ -355,11 +359,14 @@ export const SettingsScreen: React.FC = () => {
                       styles.accentCircle,
                       {
                         backgroundColor: opt.hex,
+                        borderWidth: isSelected ? 3 : 1,
+                        borderColor: isSelected ? (mode === 'dark' ? '#FFFFFF' : '#16161A') : colors.hairline,
+                        transform: [{ scale: isSelected ? 1.15 : 1 }],
                       },
                     ]}
                     accessibilityLabel={opt.label}
                   >
-                    {isSelected && <Check size={16} color="#FFFFFF" strokeWidth={3} />}
+                    {isSelected && <Check size={14} color="#FFFFFF" strokeWidth={3} />}
                   </TouchableOpacity>
                 );
               })}
@@ -435,7 +442,6 @@ export const SettingsScreen: React.FC = () => {
               <Switch
                 value={bubbleEnabled}
                 onValueChange={handleToggleBubble}
-                trackColor={{ false: colors.surface3, true: colors.accent }}
               />
             </View>
 
@@ -452,7 +458,6 @@ export const SettingsScreen: React.FC = () => {
               <Switch
                 value={shakeEnabled}
                 onValueChange={setShakeEnabled}
-                trackColor={{ false: colors.surface3, true: colors.accent }}
               />
             </View>
 
@@ -490,7 +495,7 @@ export const SettingsScreen: React.FC = () => {
         {/* 4. Notifications Section */}
         <View>
           <Text variant="caption" color="secondary" style={styles.sectionHeader}>
-            NOTIFICATIONS
+            Notifications
           </Text>
           <View style={[styles.groupedCard, { backgroundColor: colors.surface1, borderRadius: radius.lg }]}>
             <View style={styles.settingRow}>
@@ -505,7 +510,6 @@ export const SettingsScreen: React.FC = () => {
               <Switch
                 value={true}
                 onValueChange={() => {}}
-                trackColor={{ false: colors.surface3, true: colors.accent }}
               />
             </View>
           </View>
@@ -514,12 +518,12 @@ export const SettingsScreen: React.FC = () => {
         {/* 5. Privacy & Data Section */}
         <View>
           <Text variant="caption" color="secondary" style={styles.sectionHeader}>
-            PRIVACY & DATA
+            Storage and cache
           </Text>
           <View style={[styles.groupedCard, { backgroundColor: colors.surface1, borderRadius: radius.lg }]}>
             <TouchableOpacity
               onPress={() => Alert.alert('Offline Storage', `${cacheSizeMb} MB currently cached locally.`)}
-              style={[styles.settingRow, { borderBottomColor: colors.surface2, borderBottomWidth: 1 }]}
+              style={styles.settingRow}
             >
               <View style={{ flex: 1 }}>
                 <Text variant="bodyStrong" style={{ fontSize: 14 }}>
@@ -531,28 +535,13 @@ export const SettingsScreen: React.FC = () => {
               </View>
               <ChevronRight size={16} color={colors.textTertiary} />
             </TouchableOpacity>
-
-            <TouchableOpacity
-              onPress={handleSignOut}
-              style={styles.settingRow}
-            >
-              <View style={{ flex: 1 }}>
-                <Text variant="bodyStrong" style={{ fontSize: 14, color: colors.danger }}>
-                  Log Out
-                </Text>
-                <Text variant="caption" color="secondary">
-                  Sign out of this session
-                </Text>
-              </View>
-              <LogOut size={16} color={colors.danger} />
-            </TouchableOpacity>
           </View>
         </View>
 
         {/* 6. About Section (Tap 7x for developer tools) */}
         <View>
           <Text variant="caption" color="secondary" style={styles.sectionHeader}>
-            ABOUT
+            About
           </Text>
           <Pressable
             onPress={handleAboutTap}
@@ -561,7 +550,7 @@ export const SettingsScreen: React.FC = () => {
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
               <View>
                 <Text variant="bodyStrong">DoIt Mobile</Text>
-                <Text variant="caption" color="secondary">Version 0.1.0 (Build 12)</Text>
+                <Text variant="caption" color="secondary">Version 0.2.3 (Build 23)</Text>
               </View>
               <Text variant="caption" color="tertiary" style={{ fontSize: 11 }}>
                 by Samyukt
@@ -569,6 +558,34 @@ export const SettingsScreen: React.FC = () => {
             </View>
           </Pressable>
         </View>
+
+        {/* 7. Dedicated Log Out Card */}
+        <TouchableOpacity
+          onPress={handleSignOut}
+          style={[
+            styles.groupedCard,
+            {
+              backgroundColor: colors.surface1,
+              borderRadius: radius.lg,
+              borderWidth: 1,
+              borderColor: colors.hairline,
+              padding: spacing.md,
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+            },
+          ]}
+        >
+          <View>
+            <Text variant="bodyStrong" style={{ color: colors.danger, fontSize: 15 }}>
+              Log Out
+            </Text>
+            <Text variant="caption" color="secondary">
+              Sign out of this session
+            </Text>
+          </View>
+          <LogOut size={18} color={colors.danger} />
+        </TouchableOpacity>
 
         {/* Developer Section (Hidden until 7 taps) */}
         {devModeUnlocked && (

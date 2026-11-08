@@ -3,11 +3,11 @@ import {
   View,
   StyleSheet,
   TouchableOpacity,
-  Switch,
   ViewStyle,
 } from 'react-native';
 import { useTheme } from '../../theme/useTheme';
 import { Text } from './Text';
+import { Switch } from './Switch';
 import { ChevronRight } from 'lucide-react-native';
 
 export interface SettingsItemProps {
@@ -75,11 +75,9 @@ export const SettingsItem: React.FC<SettingsItemProps> = ({
 
       {isSwitch ? (
         <Switch
-          value={switchValue}
-          onValueChange={onSwitchChange}
+          value={Boolean(switchValue)}
+          onValueChange={onSwitchChange || (() => {})}
           disabled={disabled}
-          trackColor={{ false: colors.border, true: colors.accent }}
-          thumbColor={colors.accentOnPrimary}
         />
       ) : value ? (
         <View style={styles.rightContent}>

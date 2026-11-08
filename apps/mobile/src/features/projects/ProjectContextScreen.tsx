@@ -2,13 +2,14 @@ import React, { useEffect, useState } from 'react';
 import { View, TextInput, Alert, ActivityIndicator } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { useTheme } from '../../theme/useTheme';
-import { Screen, LargeHeader, Text, Button } from '../../components/ui';
+import { Screen, LargeHeader, Text, Button, Card, SearchInput } from '../../components/ui';
 import { http } from '../../lib/http';
 import { useWorkspaceStore } from '../workspace';
+import { FileCode, Eye, Edit3, Sparkles, CheckCircle2 } from 'lucide-react-native';
 
 export const ProjectContextScreen: React.FC = () => {
   const navigation = useNavigation();
-  const { colors, spacing } = useTheme();
+  const { colors, spacing, radius } = useTheme();
   const project = useWorkspaceStore((s) => s.activeProject);
   const [markdown, setMarkdown] = useState('');
   const [saved, setSaved] = useState('');
@@ -52,58 +53,125 @@ export const ProjectContextScreen: React.FC = () => {
       setSaved(res.markdown);
       setUpdatedAt(res.updatedAt);
       setUpdatedBy(res.updatedBy?.name || null);
-      Alert.alert('Saved', 'Project context is available to prompt generation.');
+      Alert.alert('Saved', 'Project context saved for AI prompt generation.');
     } catch (err: any) {
-      setError(err?.message || 'Could not save.');
+      setError(err?.message || 'Could not save context.');
     }
   };
 
+  const isDirty = markdown !== saved;
+
   return (
     <Screen scrollable includeBottomNavPadding={false}>
-      <LargeHeader title="Project context" onBack={() => navigation.goBack()} />
+      <LargeHeader title="Project Context" onBack={() => navigation.goBack()} />
       <View style={{ gap: spacing.md, paddingBottom: 48 }}>
-        <Text variant="caption" color="secondary">
-          {project?.name || 'No project selected'}. This Markdown is sent to your AI provider only when you generate a solution prompt.
-        </Text>
-        {updatedAt ? (
+        {/* Info Card */}
+        <Card variant="surface1">
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginBottom: spacing.xs }}>
+            <FileCode size={18} color={colors.accentText} />
+            <Text variant="headline">{project?.name || 'Active Project'}</Text>
+          </View>
           <Text variant="caption" color="secondary">
-            Updated {new Date(updatedAt).toLocaleString()}{updatedBy ? ` by ${updatedBy}` : ''} · version {version} · {markdown.length} characters
+            Structured Markdown describing codebase architecture, conventions, and constraints. Used by the AI prompt builder to ground fixes.
           </Text>
-        ) : null}
-        <TextInput
+          {updatedAt ? (
+            <View style={{ marginTop: spacing.sm, paddingTop: spacing.xs, borderTopWidth: 1, borderTopColor: colors.hairline }}>
+              <Text variant="caption" color="secondary">
+                v{version} · {markdown.length} chars · Updated {new Date(updatedAt).toLocaleDateString()}
+                {updatedBy ? ` by ${updatedBy}` : ''}
+              </Text>
+            </View>
+          ) : null}
+        </Card>
+
+        {/* Search bar */}
+        <SearchInput
           value={query}
           onChangeText={setQuery}
-          placeholder="Search in context"
-          placeholderTextColor={colors.textMuted}
-          style={{ minHeight: 40, color: colors.textPrimary }}
+          placeholder="Search in context..."
+          onClear={() => setQuery('')}
         />
         {query.trim() ? (
-          <Text variant="caption" color="secondary">
-            {markdown.toLowerCase().split(query.trim().toLowerCase()).length - 1} matches
+          <Text variant="caption" color="secondary" style={{ marginLeft: spacing.xs }}>
+            {markdown.toLowerCase().split(query.trim().toLowerCase()).length - 1} match(es) found
           </Text>
         ) : null}
-        {error ? <Text variant="caption" color="danger">{error}</Text> : null}
-        {loading ? <ActivityIndicator color={colors.accent} /> : null}
-        {!markdown && starter ? (
-          <Button title="Insert suggested structure" variant="secondary" onPress={() => setMarkdown(starter)} />
+
+        {error ? (
+          <View style={{ padding: spacing.sm, borderRadius: radius.md, backgroundColor: colors.danger + '18' }}>
+            <Text variant="caption" color="danger">{error}</Text>
+          </View>
         ) : null}
-        <Button title={preview ? 'Edit' : 'Preview'} variant="secondary" onPress={() => setPreview((v) => !v)} />
-        {preview ? (
-          <Text variant="body" style={{ lineHeight: 22 }}>{markdown || 'Nothing to preview.'}</Text>
-        ) : (
-          <TextInput
-            multiline
-            value={markdown}
-            onChangeText={setMarkdown}
-            placeholder="Describe the project, stack, conventions, and constraints."
-            placeholderTextColor={colors.textMuted}
-            style={{ minHeight: 280, color: colors.textPrimary, textAlignVertical: 'top' }}
+
+        {loading ? <ActivityIndicator color={colors.accent} style={{ marginVertical: spacing.md }} /> : null}
+
+        {/* Action Row */}
+        <View style={{ flexDirection: 'row', gap: spacing.sm, alignItems: 'center', justifyContent: 'space-between' }}>
+          {!markdown && starter ? (
+            <Button
+              title="Insert Suggested Structure"
+              variant="secondary"
+              onPress={() => setMarkdown(starter)}
+            />
+          ) : <View />}
+
+          <Button
+            title={preview ? 'Edit Mode' : 'Preview Mode'}
+            variant="secondary"
+            onPress={() => setPreview((v) => !v)}
           />
-        )}
-        <Button title="Save context" onPress={save} disabled={markdown === saved} />
-        {markdown !== saved ? (
-          <Button title="Cancel changes" variant="secondary" onPress={() => setMarkdown(saved)} />
-        ) : null}
+        </View>
+
+        {/* Visible Text Editor / Preview Card */}
+        <View
+          style={{
+            backgroundColor: colors.surface2,
+            borderRadius: radius.lg,
+            borderWidth: 1,
+            borderColor: colors.hairline,
+            padding: spacing.md,
+            minHeight: 300,
+          }}
+        >
+          {preview ? (
+            <Text variant="body" style={{ lineHeight: 22, color: colors.textPrimary }}>
+              {markdown || 'Nothing to preview. Tap Edit Mode to add context.'}
+            </Text>
+          ) : (
+            <TextInput
+              multiline
+              value={markdown}
+              onChangeText={setMarkdown}
+              placeholder="Purpose, stack, conventions, file paths, and architecture constraints..."
+              placeholderTextColor={colors.textMuted}
+              style={{
+                flex: 1,
+                minHeight: 280,
+                color: colors.textPrimary,
+                textAlignVertical: 'top',
+                fontSize: 14,
+                lineHeight: 20,
+              }}
+            />
+          )}
+        </View>
+
+        {/* Save Bar */}
+        <View style={{ gap: spacing.sm, marginTop: spacing.xs }}>
+          <Button
+            title={isDirty ? 'Save Context Changes' : 'Saved'}
+            variant="primary"
+            onPress={save}
+            disabled={!isDirty}
+          />
+          {isDirty ? (
+            <Button
+              title="Discard Unsaved Changes"
+              variant="secondary"
+              onPress={() => setMarkdown(saved)}
+            />
+          ) : null}
+        </View>
       </View>
     </Screen>
   );

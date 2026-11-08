@@ -33,7 +33,7 @@ export const ComponentGallery: React.FC = () => {
     setSelectedChips((prev) => ({ ...prev, [key]: !prev[key] }));
   };
 
-  const accentsList: Accent[] = ['indigo', 'teal', 'amber', 'rose', 'violet'];
+  const accentsList: Accent[] = ['blue', 'violet', 'green', 'orange', 'rose'];
   const modesList: ThemeMode[] = ['system', 'light', 'dark'];
 
   return (

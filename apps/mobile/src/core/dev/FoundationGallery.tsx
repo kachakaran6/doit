@@ -52,7 +52,7 @@ export const FoundationGallery: React.FC = () => {
   const [rowDoneState, setRowDoneState] = useState(false);
   const [fieldVal, setFieldVal] = useState('Verify screenshot attachment');
 
-  const accentsList: Accent[] = ['indigo', 'teal', 'amber', 'rose', 'violet'];
+  const accentsList: Accent[] = ['blue', 'violet', 'green', 'orange', 'rose'];
   const modesList: ThemeMode[] = ['dark', 'light'];
 
   return (
