@@ -1,3 +1,4 @@
+import { Alert } from 'react-native';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { taskKeys } from './keys';
 import { http } from '../../../lib/http';
@@ -73,29 +74,64 @@ export function useUpdateTaskStatusMutation(projectId: string = 'default') {
 
   return useMutation({
     mutationFn: async ({ id, status }: { id: string; status: TaskStatus }) => {
-      return http.patch<TaskViewModel>(`/tasks/${id}`, { status });
+      return http.patch<TaskViewModel>(`/tasks/${id}/status`, { status });
     },
     onMutate: async ({ id, status }) => {
       await queryClient.cancelQueries({ queryKey: taskKeys.lists() });
-      const previousTasks = queryClient.getQueryData<TaskViewModel[]>(taskKeys.list({ projectId })) || [];
+      await queryClient.cancelQueries({ queryKey: taskKeys.detail(id) });
 
+      const previousTasks = queryClient.getQueryData<TaskViewModel[]>(taskKeys.list({ projectId })) || [];
+      const previousDetail = queryClient.getQueryData<TaskViewModel>(taskKeys.detail(id));
+
+      // Optimistically update list
       queryClient.setQueryData<TaskViewModel[]>(
         taskKeys.list({ projectId }),
         previousTasks.map((t) => (t.id === id ? { ...t, status } : t))
       );
 
-      return { previousTasks };
+      // Optimistically update detail
+      if (previousDetail) {
+        queryClient.setQueryData<TaskViewModel>(taskKeys.detail(id), {
+          ...previousDetail,
+          status,
+        });
+      }
+
+      return { previousTasks, previousDetail };
     },
-    onError: (_err, _vars, context) => {
+    onError: (err: any, _vars, context) => {
       if (context?.previousTasks) {
         queryClient.setQueryData(taskKeys.list({ projectId }), context.previousTasks);
       }
+      if (context?.previousDetail && _vars?.id) {
+        queryClient.setQueryData(taskKeys.detail(_vars.id), context.previousDetail);
+      }
+      const message = err?.response?.data?.message || err?.message || 'Could not update task status.';
+      Alert.alert('Status Update Failed', message);
     },
     onSettled: (_data, _error, variables) => {
-      queryClient.invalidateQueries({ queryKey: taskKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: taskKeys.all });
       if (variables?.id) {
         queryClient.invalidateQueries({ queryKey: taskKeys.detail(variables.id) });
       }
+    },
+  });
+}
+
+export function useSetTaskLabelsMutation(projectId: string = 'default') {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ taskId, labelIds }: { taskId: string; labelIds: string[] }) => {
+      return http.post<TaskViewModel>(`/tasks/${taskId}/labels`, { labelIds });
+    },
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: taskKeys.all });
+      queryClient.invalidateQueries({ queryKey: taskKeys.detail(variables.taskId) });
+    },
+    onError: (err: any) => {
+      const message = err?.response?.data?.message || err?.message || 'Could not update labels.';
+      Alert.alert('Label Update Failed', message);
     },
   });
 }

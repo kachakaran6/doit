@@ -18,6 +18,7 @@ export type CreateTaskDto = z.infer<typeof CreateTaskSchema>;
 export const UpdateTaskSchema = z.object({
   title: z.string().min(1).optional(),
   description: z.string().optional(),
+  status: z.enum(['TODO', 'IN_PROGRESS', 'BLOCKED', 'DONE']).optional(),
   priority: z.enum(['LOW', 'MEDIUM', 'HIGH', 'URGENT']).optional(),
   dueAt: z.string().datetime().nullable().optional(),
   dueHasTime: z.boolean().optional(),

@@ -409,11 +409,22 @@ export class TasksService {
       throw new AppError(ErrorCode.TASK_NOT_FOUND, 'Task not found.', 404);
     }
 
+    if (dto.status) {
+      const targetStatus = dto.status as TaskStatus;
+      validateStatusTransition(existing.status, targetStatus);
+    }
+
     const updated = await this.prisma.task.update({
       where: { id: taskId },
       data: {
         ...(dto.title ? { title: dto.title } : {}),
         ...(dto.description !== undefined ? { description: dto.description } : {}),
+        ...(dto.status
+          ? {
+              status: dto.status as TaskStatus,
+              completedAt: dto.status === TaskStatus.DONE ? new Date() : null,
+            }
+          : {}),
         ...(dto.priority ? { priority: dto.priority as Priority } : {}),
         ...(dto.dueAt !== undefined ? { dueAt: dto.dueAt ? new Date(dto.dueAt) : null } : {}),
         ...(dto.dueHasTime !== undefined ? { dueHasTime: dto.dueHasTime } : {}),

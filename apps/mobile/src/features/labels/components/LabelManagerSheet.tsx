@@ -6,7 +6,10 @@ import {
   ScrollView,
   Alert,
   ActivityIndicator,
+  Modal,
+  Dimensions,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../../../theme/useTheme';
 import { Text, Input, Button } from '../../../components/ui';
 import { useLabelsQuery, useCreateLabelMutation } from '../api/queries';
@@ -32,6 +35,7 @@ export const LabelManagerSheet: React.FC<LabelManagerSheetProps> = ({
   onClose,
 }) => {
   const { colors, spacing, radius } = useTheme();
+  const insets = useSafeAreaInsets();
   const activeWorkspace = useWorkspaceStore((s) => s.activeWorkspace);
 
   const { data: labels = [], isLoading } = useLabelsQuery(activeWorkspace?.id);
@@ -61,22 +65,31 @@ export const LabelManagerSheet: React.FC<LabelManagerSheetProps> = ({
   };
 
   return (
-    <View style={styles.overlayRoot}>
-      <TouchableOpacity
-        style={[styles.backdrop, { backgroundColor: colors.overlay || 'rgba(0,0,0,0.65)' }]}
-        activeOpacity={1}
-        onPress={onClose}
-      />
-      <View
-        style={[
-          styles.sheet,
-          {
-            backgroundColor: colors.surface1 || colors.surface,
-            borderRadius: radius.xl,
-            padding: spacing.md,
-          },
-        ]}
-      >
+    <Modal
+      transparent
+      visible={visible}
+      animationType="fade"
+      onRequestClose={onClose}
+      statusBarTranslucent
+    >
+      <View style={styles.overlayRoot}>
+        <TouchableOpacity
+          style={[styles.backdrop, { backgroundColor: colors.overlay || 'rgba(0,0,0,0.65)' }]}
+          activeOpacity={1}
+          onPress={onClose}
+        />
+        <View
+          style={[
+            styles.sheet,
+            {
+              backgroundColor: colors.surface1 || colors.surface,
+              borderRadius: radius.xl,
+              padding: spacing.lg,
+              borderWidth: 1,
+              borderColor: colors.border,
+            },
+          ]}
+        >
         {/* Header */}
         <View style={[styles.header, { marginBottom: spacing.md }]}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
@@ -232,32 +245,25 @@ export const LabelManagerSheet: React.FC<LabelManagerSheetProps> = ({
             </TouchableOpacity>
           </View>
         )}
+        </View>
       </View>
-    </View>
+    </Modal>
   );
 };
 
 const styles = StyleSheet.create({
   overlayRoot: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    zIndex: 9999,
-    elevation: 999,
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   backdrop: {
     ...StyleSheet.absoluteFillObject,
   },
   sheet: {
-    position: 'absolute',
-    top: 110,
-    left: 16,
-    right: 16,
-    maxWidth: 360,
-    alignSelf: 'center',
-    maxHeight: '75%',
+    width: '90%',
+    maxWidth: 380,
+    maxHeight: '80%',
     shadowColor: '#000000',
     shadowOffset: { width: 0, height: 12 },
     shadowOpacity: 0.45,

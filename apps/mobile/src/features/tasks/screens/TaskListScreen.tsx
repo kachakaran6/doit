@@ -68,6 +68,11 @@ export const TaskListScreen: React.FC = () => {
   const deleteTask = useDeleteTaskMutation(projectId);
 
   const handleToggleStatus = (id: string, current: TaskStatus) => {
+    if (updateStatus.isPending) return;
+    if (current === 'BLOCKED') {
+      Alert.alert('Task is Blocked', 'Unblock this task first before marking it as complete.');
+      return;
+    }
     const nextStatus: TaskStatus = current === 'DONE' ? 'TODO' : 'DONE';
     updateStatus.mutate({ id, status: nextStatus });
   };
@@ -312,19 +317,22 @@ export const TaskListScreen: React.FC = () => {
 
                     return (
                       <View key={item.id}>
-                        <Pressable
-                          style={({ pressed }) => [
-                            styles.taskRow,
-                            pressed && { opacity: 0.6 },
-                          ]}
-                          onPress={() => navigation.navigate('TaskDetail', { id: item.id })}
-                          onLongPress={() => handleConfirmDelete(item)}
-                        >
-                          <Checkbox
-                            checked={item.status === 'DONE'}
-                            onChange={() => handleToggleStatus(item.id, item.status)}
-                          />
-                          <View style={{ flex: 1, marginLeft: spacing.sm }}>
+                        <View style={styles.taskRow}>
+                          <View style={{ marginRight: 6 }}>
+                            <Checkbox
+                              checked={item.status === 'DONE'}
+                              disabled={updateStatus.isPending && (updateStatus.variables as any)?.id === item.id}
+                              onChange={() => handleToggleStatus(item.id, item.status)}
+                            />
+                          </View>
+                          <Pressable
+                            style={({ pressed }) => [
+                              styles.taskContentPressable,
+                              pressed && { opacity: 0.6 },
+                            ]}
+                            onPress={() => navigation.navigate('TaskDetail', { id: item.id })}
+                            onLongPress={() => handleConfirmDelete(item)}
+                          >
                             <Text
                               variant="body"
                               numberOfLines={1}
@@ -344,8 +352,8 @@ export const TaskListScreen: React.FC = () => {
                                 </Text>
                               )}
                             </View>
-                          </View>
-                        </Pressable>
+                          </Pressable>
+                        </View>
                         {!isLast && (
                           <View
                             style={[
@@ -413,6 +421,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 8,
     paddingHorizontal: 4,
+  },
+  taskContentPressable: {
+    flex: 1,
+    paddingVertical: 2,
   },
   taskTitle: {
     fontSize: 14,

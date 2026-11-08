@@ -20,41 +20,45 @@ const APK_SOURCE = 'K:/Doit/apps/mobile/android/app/build/outputs/apk/release/ap
 const APK_TARGET = 'K:/Doit/release-builds/DoIt-v0.2.4-build24.apk';
 const SHA_TARGET = 'K:/Doit/release-builds/DoIt-v0.2.4-build24.apk.sha256';
 
-const RELEASE_BODY = `## DoIt v0.2.4 — Release Build 24 (Plane-Class Overhaul)
+const RELEASE_BODY = `## DoIt v0.2.4 — Release Build 24 (Plane-Class Overhaul & Critical UI Fixes)
 
 ### Key Highlights & Deliverables in Build 24:
 
-1. **Tokens v3 & System Design Foundations (Milestones M0–M1)**:
+1. **Task Completion & State Machine (Critical Bug Fix)**:
+   - Fixed task checkbox completion on mobile Home & Tasks lists: aligned mobile mutation to dedicated \`PATCH /tasks/:id/status\` endpoint.
+   - Added optimistic UI state updates with rollback on network failure, preventing state flickers.
+   - Isolated touch event propagation on checkbox components (\`e.stopPropagation()\`) preventing accidental navigation to Task Detail when toggling completion.
+   - Added interactive workflow status picker (\`TODO\`, \`IN_PROGRESS\`, \`BLOCKED\`, \`DONE\`) and real workspace label manager to mobile Task Detail.
+
+2. **Native Modal Bottom Sheets & Navigation Overhaul**:
+   - Rebuilt all bottom sheets (\`WorkspaceSwitcherSheet\`, \`ProjectSwitcherSheet\`, \`AccountMenuSheet\`, \`LabelManagerSheet\`) using React Native native \`<Modal>\` on the native Window layer.
+   - Completely resolved clipping by system navigation bars (gesture/3-button nav) using dynamic \`useSafeAreaInsets\`.
+   - Prevented elevated \`FloatingNavBar\` from drawing over sheets or absorbing touch events.
+   - Added full-height vertical scrolling so bottom actions ("Sign Out", "New Workspace", "Join with Code") are always reachable on all screen sizes.
+
+3. **Web Layout Stability & Clean Design**:
+   - Fixed Workspace Switcher jumping on the web: replaced relative variable button widths with a stable, fixed width (\`w-[170px] sm:w-[185px]\`) and elegant text truncation.
+   - Removed redundant duplicate page title headers across Overview, Tasks, Bugs, Stickies, Team, and Projects pages, aligning with modern Linear/Plane-class topbar breadcrumb navigation.
+
+4. **Tokens v3 & System Design Foundations (Milestones M0–M1)**:
    - 100% WCAG AA contrast pass (43/43 token pairs verified with 0 failures via \`contrast.py\`).
    - Standardized 5 canonical accents: Blue (\`#3A66F2\`, default), Violet (\`#7B54E8\`), Green (\`#0E8550\`), Orange (\`#C24E07\`), Rose (\`#D6305A\`) with visible selection rings and checkmarks.
    - Unified cross-platform \`Switch\` primitive with accent track and pure white thumb (\`#FFFFFF\`).
    - Circular animated 22px bounce \`Checkbox\` and color-coded \`PriorityDot\` replacing square boxes and raw text.
 
-2. **Plane-Class Launchpad Home & Global Bottom Sheets (Milestone M2, Gate G1)**:
-   - Launchpad Home (S12) featuring SVG \`ProgressRing\` Today card (\`X to do · Y done\`), stat chips, and dedicated Plane-style **Work** card.
-   - Header with workspace tile + truncated name + chevron on left; Bell icon with unread dot + Avatar on right. Removed redundant sub-bar chips.
-   - \`WorkspaceSwitcherSheet\` (S13) rebuilt as a native bottom sheet: eliminated slug exposures, added "New Workspace" and "Join with Code" (\`/invitations/accept\`).
-   - \`ProjectSwitcherSheet\` & \`AccountMenuSheet\` (S14) rebuilt as bottom sheets with user role badges, full name, email, and clean options.
-
-3. **Work Items & Intake Bug Queue (Milestones M3–M4, Gate G2)**:
+5. **Work Items & Intake Bug Queue (Milestones M3–M4, Gate G2)**:
    - Strict client and server separation between tasks and bugs.
    - Bug auto-severity defaulting (\`MAJOR\`, \`CRITICAL\`, \`MINOR\`, \`TRIVIAL\`) with accurate summing chips.
    - \`BugRow\` with genuine screenshot thumbnails, device model chip, and age.
    - \`BugAutoContextCard\` displaying complete device telemetry (model, OS, network, battery, orientation).
    - 4-mode Quick Capture (\`task\`, \`bug\`, \`voice\`, \`sticky\`) with reactive parameters and collapsed project chip.
 
-4. **Planning Contracts & Trash Recovery (Milestones M6–M9, Gate G3 & G4)**:
+6. **Planning Contracts & Trash Recovery (Milestones M6–M9, Gate G3 & G4)**:
    - Dedicated \`TrashScreen\` (\`doit://trash\`) with restoration and permanent deletion for Tasks, Bugs, and Stickies.
    - Task Comments endpoints (\`GET /tasks/:id/comments\`, \`POST /tasks/:id/comments\`, \`DELETE /tasks/:id/comments/:commentId\`).
    - Interactive Checklist items with fractional ordering and completion status.
    - Re-exported OpenAPI specification (71 paths) with 87% web coverage.
    - Full test suite: 20/20 test suites passed (76/76 unit tests).
-
-5. **Settings Hub & Compliance (Milestone M5, T1 Closeout)**:
-   - Sentence-case headers, 5-swatch palette picker, and isolated destructive Log Out card.
-   - Data & Privacy section with JSON workspace data archive export and secure account deletion flow.
-   - Rebuilt Project Context Markdown editor and encrypted AI provider key testing.
-   - App version updated to \`0.2.4 (Build 24) by Samyukt\`.
 
 ### Production Deployments:
 - **Web App**: Live at https://doit-web.samyukt.pro
@@ -106,3 +110,4 @@ main().catch((err) => {
   console.error('Fatal error:', err);
   process.exit(1);
 });
+

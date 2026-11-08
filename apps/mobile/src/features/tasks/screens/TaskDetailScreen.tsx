@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { View, StyleSheet, ScrollView, TouchableOpacity, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRoute, useNavigation, RouteProp } from '@react-navigation/native';
@@ -13,12 +13,44 @@ import {
 } from '../../../components/ui';
 import { AttachmentGallery } from '../../../components/patterns';
 import { useTaskDetailQuery } from '../api/queries';
-import { useUpdateTaskStatusMutation, useDeleteTaskMutation } from '../api/mutations';
+import {
+  useUpdateTaskStatusMutation,
+  useDeleteTaskMutation,
+  useSetTaskLabelsMutation,
+} from '../api/mutations';
+import { useWorkspaceStore } from '../../workspace';
 import { RootStackParamList } from '../../../navigation/types';
-import { CheckCircle2, Clock, Flag, Tag, Check, Calendar, Trash2 } from 'lucide-react-native';
+import { TaskStatus } from '../types';
+import {
+  Clock,
+  Flag,
+  Tag,
+  Check,
+  Calendar,
+  Trash2,
+  ChevronDown,
+  Workflow,
+  Edit3,
+  Circle,
+  AlertCircle,
+  CheckCircle2,
+} from 'lucide-react-native';
 import { SolutionPromptSection } from '../components/SolutionPromptSection';
+import { TaskStatusPickerSheet } from '../components/TaskStatusPickerSheet';
+import { TaskLabelPickerSheet } from '../components/TaskLabelPickerSheet';
+import { LabelManagerSheet } from '../../labels/components/LabelManagerSheet';
 
 type DetailRouteProp = RouteProp<RootStackParamList, 'TaskDetail'>;
+
+const STATUS_DISPLAY_CONFIG: Record<
+  TaskStatus,
+  { label: string; icon: typeof Circle; colorKey: string }
+> = {
+  TODO: { label: 'To Do', icon: Circle, colorKey: 'textSecondary' },
+  IN_PROGRESS: { label: 'In Progress', icon: Clock, colorKey: 'warning' },
+  BLOCKED: { label: 'Blocked', icon: AlertCircle, colorKey: 'danger' },
+  DONE: { label: 'Done', icon: CheckCircle2, colorKey: 'success' },
+};
 
 export const TaskDetailScreen: React.FC = () => {
   const { colors, spacing, radius, elevation } = useTheme();
@@ -26,9 +58,16 @@ export const TaskDetailScreen: React.FC = () => {
   const route = useRoute<DetailRouteProp>();
   const { id } = route.params;
 
+  const activeWorkspace = useWorkspaceStore((s) => s.activeWorkspace);
+
   const { data: task, isLoading, error, refetch } = useTaskDetailQuery(id);
   const updateStatus = useUpdateTaskStatusMutation(task?.projectId || 'default');
   const deleteTask = useDeleteTaskMutation(task?.projectId || 'default');
+  const setLabels = useSetTaskLabelsMutation(task?.projectId || 'default');
+
+  const [statusPickerOpen, setStatusPickerOpen] = useState(false);
+  const [labelPickerOpen, setLabelPickerOpen] = useState(false);
+  const [labelManagerOpen, setLabelManagerOpen] = useState(false);
 
   const handleConfirmDelete = () => {
     Alert.alert(
@@ -77,11 +116,37 @@ export const TaskDetailScreen: React.FC = () => {
   }
 
   const isDone = task.status === 'DONE';
+  const statusMeta = STATUS_DISPLAY_CONFIG[task.status] || STATUS_DISPLAY_CONFIG.TODO;
+  const StatusIcon = statusMeta.icon;
+
+  const getStatusColor = (key: string) => {
+    if (key === 'warning') return colors.warning || '#F59E0B';
+    if (key === 'danger') return colors.danger || '#EF4444';
+    if (key === 'success') return colors.success || '#10B981';
+    return colors.textSecondary;
+  };
+
+  const statusColor = getStatusColor(statusMeta.colorKey);
 
   const handleToggleDone = () => {
     updateStatus.mutate({
       id: task.id,
       status: isDone ? 'TODO' : 'DONE',
+    });
+  };
+
+  const handleSelectStatus = (newStatus: TaskStatus) => {
+    setStatusPickerOpen(false);
+    updateStatus.mutate({
+      id: task.id,
+      status: newStatus,
+    });
+  };
+
+  const handleSaveLabels = async (labelIds: string[]) => {
+    await setLabels.mutateAsync({
+      taskId: task.id,
+      labelIds,
     });
   };
 
@@ -103,7 +168,10 @@ export const TaskDetailScreen: React.FC = () => {
           onBack={() => navigation.goBack()}
           rightAction={
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-              <View
+              {/* Interactive Status Badge Header Trigger */}
+              <TouchableOpacity
+                activeOpacity={0.7}
+                onPress={() => setStatusPickerOpen(true)}
                 style={[
                   styles.statusBadge,
                   {
@@ -112,17 +180,24 @@ export const TaskDetailScreen: React.FC = () => {
                     borderRadius: radius.pill,
                   },
                 ]}
+                accessibilityRole="button"
+                accessibilityLabel={`Change status, current is ${statusMeta.label}`}
               >
-                <Text
-                  variant="caption"
-                  style={{
-                    color: isDone ? colors.success : colors.textSecondary,
-                    fontWeight: '600',
-                  }}
-                >
-                  {task.status}
-                </Text>
-              </View>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
+                  <StatusIcon size={12} color={isDone ? colors.success : statusColor} strokeWidth={2.4} />
+                  <Text
+                    variant="caption"
+                    style={{
+                      color: isDone ? colors.success : colors.textPrimary,
+                      fontWeight: '600',
+                    }}
+                  >
+                    {statusMeta.label}
+                  </Text>
+                  <ChevronDown size={11} color={colors.textSecondary} />
+                </View>
+              </TouchableOpacity>
+
               <TouchableOpacity
                 activeOpacity={0.7}
                 hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
@@ -134,6 +209,8 @@ export const TaskDetailScreen: React.FC = () => {
                   borderWidth: StyleSheet.hairlineWidth,
                   borderColor: colors.border,
                 }}
+                accessibilityRole="button"
+                accessibilityLabel="Move task to trash"
               >
                 <Trash2 size={16} color={colors.danger} />
               </TouchableOpacity>
@@ -166,8 +243,43 @@ export const TaskDetailScreen: React.FC = () => {
             },
           ]}
         >
-          {/* Priority */}
+          {/* Workflow Status Row */}
           <View style={styles.propRow}>
+            <View style={styles.propLabelGroup}>
+              <Workflow size={14} color={colors.textTertiary} />
+              <Text variant="caption" color="secondary" style={{ marginLeft: 6 }}>
+                Status
+              </Text>
+            </View>
+            <TouchableOpacity
+              style={[
+                styles.statusSelectorBtn,
+                {
+                  backgroundColor: colors.surface2 || colors.surfaceRaised,
+                  borderRadius: radius.sm,
+                  borderColor: colors.hairline,
+                  borderWidth: 1,
+                  paddingHorizontal: spacing.sm + 2,
+                  paddingVertical: 5,
+                },
+              ]}
+              onPress={() => setStatusPickerOpen(true)}
+              activeOpacity={0.7}
+              accessibilityRole="button"
+              accessibilityLabel="Select workflow status"
+            >
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                <StatusIcon size={13} color={statusColor} strokeWidth={2.4} />
+                <Text variant="bodySmall" style={{ fontWeight: '600', color: colors.textPrimary }}>
+                  {statusMeta.label}
+                </Text>
+                <ChevronDown size={13} color={colors.textSecondary} />
+              </View>
+            </TouchableOpacity>
+          </View>
+
+          {/* Priority */}
+          <View style={[styles.propRow, { marginTop: spacing.sm, paddingTop: spacing.sm, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.border }]}>
             <View style={styles.propLabelGroup}>
               <Flag size={14} color={colors.textTertiary} />
               <Text variant="caption" color="secondary" style={{ marginLeft: 6 }}>
@@ -195,22 +307,47 @@ export const TaskDetailScreen: React.FC = () => {
             </View>
           )}
 
-          {/* Labels */}
-          {task.labels && task.labels.length > 0 && (
-            <View style={[styles.propRow, { marginTop: spacing.sm, paddingTop: spacing.sm, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.border }]}>
-              <View style={styles.propLabelGroup}>
-                <Tag size={14} color={colors.textTertiary} />
-                <Text variant="caption" color="secondary" style={{ marginLeft: 6 }}>
-                  Labels
-                </Text>
-              </View>
-              <View style={{ flexDirection: 'row', gap: 4 }}>
-                {task.labels.map((lbl: any) => (
-                  <Chip key={lbl.id} label={lbl.name} />
-                ))}
-              </View>
+          {/* Labels Row with Editor */}
+          <View style={[styles.propRow, { marginTop: spacing.sm, paddingTop: spacing.sm, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.border }]}>
+            <View style={styles.propLabelGroup}>
+              <Tag size={14} color={colors.textTertiary} />
+              <Text variant="caption" color="secondary" style={{ marginLeft: 6 }}>
+                Labels
+              </Text>
             </View>
-          )}
+            <TouchableOpacity
+              style={styles.labelTouchContainer}
+              onPress={() => setLabelPickerOpen(true)}
+              activeOpacity={0.7}
+              accessibilityRole="button"
+              accessibilityLabel="Edit labels"
+            >
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 4, alignItems: 'center', justifyContent: 'flex-end', flex: 1 }}>
+                {task.labels && task.labels.length > 0 ? (
+                  task.labels.map((lbl: any) => (
+                    <Chip key={lbl.id} label={lbl.name} />
+                  ))
+                ) : (
+                  <Text variant="caption" color="secondary">
+                    No labels
+                  </Text>
+                )}
+                <View
+                  style={[
+                    styles.editIconBadge,
+                    {
+                      backgroundColor: colors.surface2 || colors.surfaceRaised,
+                      borderRadius: radius.xs,
+                      padding: 4,
+                      marginLeft: 2,
+                    },
+                  ]}
+                >
+                  <Edit3 size={11} color={colors.accentText} />
+                </View>
+              </View>
+            </TouchableOpacity>
+          </View>
         </View>
 
         {/* Description Box */}
@@ -262,6 +399,32 @@ export const TaskDetailScreen: React.FC = () => {
           />
         </View>
       </ScrollView>
+
+      {/* Workflow Status Picker Sheet */}
+      <TaskStatusPickerSheet
+        visible={statusPickerOpen}
+        currentStatus={task.status}
+        isLoading={updateStatus.isPending}
+        onSelectStatus={handleSelectStatus}
+        onClose={() => setStatusPickerOpen(false)}
+      />
+
+      {/* Task Labels Picker Sheet */}
+      <TaskLabelPickerSheet
+        visible={labelPickerOpen}
+        assignedLabels={task.labels || []}
+        workspaceId={activeWorkspace?.id || ''}
+        isLoading={setLabels.isPending}
+        onSaveLabels={handleSaveLabels}
+        onClose={() => setLabelPickerOpen(false)}
+        onOpenLabelManager={() => setLabelManagerOpen(true)}
+      />
+
+      {/* Workspace Label Manager Sheet */}
+      <LabelManagerSheet
+        visible={labelManagerOpen}
+        onClose={() => setLabelManagerOpen(false)}
+      />
     </SafeAreaView>
   );
 };
@@ -275,8 +438,12 @@ const styles = StyleSheet.create({
   },
   statusBadge: {
     paddingHorizontal: 10,
-    paddingVertical: 4,
+    paddingVertical: 5,
     borderWidth: 1,
+  },
+  statusSelectorBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   titleText: {
     fontWeight: '700',
@@ -293,6 +460,16 @@ const styles = StyleSheet.create({
   propLabelGroup: {
     flexDirection: 'row',
     alignItems: 'center',
+  },
+  labelTouchContainer: {
+    flex: 1,
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    alignItems: 'center',
+  },
+  editIconBadge: {
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   descBox: {
     borderWidth: 1,

@@ -6,6 +6,7 @@ import {
   RefreshControl,
   TouchableOpacity,
   Pressable,
+  Alert,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -119,6 +120,11 @@ export const HomeScreen: React.FC = () => {
   const completionPercentage = Math.round(completionRatio * 100);
 
   const handleToggleTask = (taskId: string, currentStatus: TaskStatus) => {
+    if (updateStatus.isPending) return;
+    if (currentStatus === 'BLOCKED') {
+      Alert.alert('Task is Blocked', 'Unblock this task first before marking it as complete.');
+      return;
+    }
     const nextStatus: TaskStatus = currentStatus === 'DONE' ? 'TODO' : 'DONE';
     updateStatus.mutate({ id: taskId, status: nextStatus });
   };
@@ -456,16 +462,28 @@ export const HomeScreen: React.FC = () => {
 
               return (
                 <View key={task.id}>
-                  <Pressable
-                    style={styles.taskRow}
-                    onPress={() => navigation.navigate('TaskDetail', { id: task.id })}
-                  >
-                    <Checkbox
-                      checked={task.status === 'DONE'}
-                      onChange={() => handleToggleTask(task.id, task.status)}
-                    />
-                    <View style={{ flex: 1, marginLeft: spacing.sm }}>
-                      <Text variant="bodyStrong" numberOfLines={1}>
+                  <View style={styles.taskRow}>
+                    <View style={styles.checkboxWrapper}>
+                      <Checkbox
+                        checked={task.status === 'DONE'}
+                        disabled={updateStatus.isPending && (updateStatus.variables as any)?.id === task.id}
+                        onChange={() => handleToggleTask(task.id, task.status)}
+                      />
+                    </View>
+                    <Pressable
+                      style={styles.taskContentPressable}
+                      onPress={() => (navigation as any).navigate('TaskDetail', { id: task.id })}
+                    >
+                      <Text
+                        variant="bodyStrong"
+                        numberOfLines={1}
+                        style={[
+                          task.status === 'DONE' && {
+                            textDecorationLine: 'line-through',
+                            opacity: 0.6,
+                          },
+                        ]}
+                      >
                         {task.title}
                       </Text>
                       <View style={[styles.taskMetaRow, { gap: spacing.xs, marginTop: 2 }]}>
@@ -477,8 +495,8 @@ export const HomeScreen: React.FC = () => {
                           </Text>
                         )}
                       </View>
-                    </View>
-                  </Pressable>
+                    </Pressable>
+                  </View>
                   {!isLast && (
                     <View
                       style={[
@@ -748,8 +766,15 @@ const styles = StyleSheet.create({
   taskRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 12,
-    paddingHorizontal: 14,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+  },
+  checkboxWrapper: {
+    marginRight: 6,
+  },
+  taskContentPressable: {
+    flex: 1,
+    paddingVertical: 2,
   },
   taskMetaRow: {
     flexDirection: 'row',

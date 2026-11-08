@@ -86,7 +86,8 @@ export const Checkbox: React.FC<CheckboxProps> = ({
     }
   }, [checked, scale, strokeOffset]);
 
-  const handleToggle = () => {
+  const handleToggle = (e?: any) => {
+    e?.stopPropagation?.();
     if (disabled) return;
     try {
       if (Platform.OS === 'android') {

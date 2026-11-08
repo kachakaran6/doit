@@ -7,6 +7,8 @@ import {
   KeyboardAvoidingView,
   Platform,
   Alert,
+  Modal,
+  Dimensions,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../../../theme/useTheme';
@@ -105,150 +107,166 @@ export const WorkspaceSwitcherSheet: React.FC<WorkspaceSwitcherSheetProps> = ({
   };
 
   return (
-    <View style={styles.overlayRoot}>
-      <TouchableOpacity
-        style={[styles.backdrop, { backgroundColor: colors.overlay || 'rgba(0,0,0,0.65)' }]}
-        activeOpacity={1}
-        onPress={() => {
-          resetMode();
-          onClose();
-        }}
-      />
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        style={styles.keyboardContainer}
-      >
-        <View
-          style={[
-            styles.sheet,
-            {
-              backgroundColor: colors.surface1 || colors.surface,
-              borderTopLeftRadius: 24,
-              borderTopRightRadius: 24,
-              paddingHorizontal: spacing.lg,
-              paddingTop: spacing.sm,
-              paddingBottom: Math.max(insets.bottom, 16) + spacing.md,
-            },
-          ]}
+    <Modal
+      transparent
+      visible={visible}
+      animationType="fade"
+      onRequestClose={() => {
+        resetMode();
+        onClose();
+      }}
+      statusBarTranslucent
+    >
+      <View style={styles.overlayRoot}>
+        <TouchableOpacity
+          style={[styles.backdrop, { backgroundColor: colors.overlay || 'rgba(0,0,0,0.65)' }]}
+          activeOpacity={1}
+          onPress={() => {
+            resetMode();
+            onClose();
+          }}
+        />
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          style={styles.keyboardContainer}
         >
-          {/* Drag Handle */}
-          <View style={styles.handleContainer}>
-            <View style={[styles.handleBar, { backgroundColor: colors.hairline || colors.border }]} />
-          </View>
-
-          {/* Header */}
-          <View style={[styles.header, { marginBottom: spacing.md }]}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-              <Building2 size={18} color={colors.accentText} />
-              <Text variant="h3" style={{ fontWeight: '700' }}>
-                {mode === 'create'
-                  ? 'Create Workspace'
-                  : mode === 'join'
-                  ? 'Join Workspace'
-                  : 'Switch Workspace'}
-              </Text>
-            </View>
-            <TouchableOpacity
-              onPress={() => {
-                resetMode();
-                onClose();
+          <View
+            style={[
+              styles.sheet,
+              {
+                backgroundColor: colors.surface1 || colors.surface,
+                borderTopLeftRadius: 24,
+                borderTopRightRadius: 24,
+                maxHeight: Dimensions.get('window').height * 0.88,
+              },
+            ]}
+          >
+            <ScrollView
+              showsVerticalScrollIndicator={false}
+              bounces={false}
+              keyboardShouldPersistTaps="handled"
+              contentContainerStyle={{
+                paddingHorizontal: spacing.lg,
+                paddingTop: spacing.sm,
+                paddingBottom: Math.max(insets.bottom, 24) + spacing.xl,
               }}
-              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-              style={[
-                styles.closeBtn,
-                {
-                  backgroundColor: colors.surface2 || colors.surfaceRaised,
-                  borderRadius: radius.pill,
-                },
-              ]}
-              accessibilityRole="button"
-              accessibilityLabel="Close workspace switcher"
             >
-              <X size={16} color={colors.textSecondary} />
-            </TouchableOpacity>
-          </View>
+              {/* Drag Handle */}
+              <View style={styles.handleContainer}>
+                <View style={[styles.handleBar, { backgroundColor: colors.hairline || colors.border }]} />
+              </View>
 
-          {errorMsg && (
-            <View
-              style={[
-                styles.errorBox,
-                {
-                  backgroundColor: 'rgba(239, 68, 68, 0.1)',
-                  borderRadius: radius.sm,
-                  padding: spacing.sm,
-                  marginBottom: spacing.sm,
-                },
-              ]}
-            >
-              <Text variant="caption" color="danger">
-                {errorMsg}
-              </Text>
-            </View>
-          )}
-
-          {mode === 'list' && (
-            <>
-              {/* List of workspaces */}
-              <ScrollView style={styles.list} showsVerticalScrollIndicator={false}>
-                <View style={{ gap: spacing.xs }}>
-                  {workspaces.map((ws) => {
-                    const isSelected = ws.id === activeWorkspace?.id;
-                    const initial = (ws.name || 'W').charAt(0).toUpperCase();
-
-                    return (
-                      <TouchableOpacity
-                        key={ws.id}
-                        style={[
-                          styles.workspaceItem,
-                          {
-                            backgroundColor: isSelected
-                              ? colors.surface2 || colors.surfaceRaised
-                              : colors.surface1 || colors.surface,
-                            borderColor: isSelected ? colors.accent : colors.hairline,
-                            borderWidth: 1,
-                            borderRadius: radius.md,
-                            padding: spacing.md,
-                          },
-                        ]}
-                        onPress={() => handleSelect(ws)}
-                        activeOpacity={0.7}
-                      >
-                        <View style={styles.itemLeft}>
-                          <View
-                            style={[
-                              styles.tileLogo,
-                              {
-                                backgroundColor: isSelected ? colors.accent : colors.surface2,
-                                borderRadius: radius.sm,
-                              },
-                            ]}
-                          >
-                            <Text
-                              variant="bodyStrong"
-                              style={{ color: isSelected ? '#FFFFFF' : colors.textPrimary }}
-                            >
-                              {initial}
-                            </Text>
-                          </View>
-                          <View style={{ marginLeft: spacing.md, flex: 1 }}>
-                            <Text variant="bodyStrong" numberOfLines={1}>
-                              {ws.name}
-                            </Text>
-                            <Text variant="caption" color="secondary" style={{ marginTop: 1, textTransform: 'capitalize' }}>
-                              {ws.role ? ws.role.toLowerCase() : 'member'}
-                            </Text>
-                          </View>
-                        </View>
-
-                        {isSelected && <Check size={18} color={colors.accentText} strokeWidth={2.5} />}
-                      </TouchableOpacity>
-                    );
-                  })}
+              {/* Header */}
+              <View style={[styles.header, { marginBottom: spacing.md }]}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                  <Building2 size={18} color={colors.accentText} />
+                  <Text variant="h3" style={{ fontWeight: '700' }}>
+                    {mode === 'create'
+                      ? 'Create Workspace'
+                      : mode === 'join'
+                      ? 'Join Workspace'
+                      : 'Switch Workspace'}
+                  </Text>
                 </View>
-              </ScrollView>
+                <TouchableOpacity
+                  onPress={() => {
+                    resetMode();
+                    onClose();
+                  }}
+                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                  style={[
+                    styles.closeBtn,
+                    {
+                      backgroundColor: colors.surface2 || colors.surfaceRaised,
+                      borderRadius: radius.pill,
+                    },
+                  ]}
+                  accessibilityRole="button"
+                  accessibilityLabel="Close workspace switcher"
+                >
+                  <X size={16} color={colors.textSecondary} />
+                </TouchableOpacity>
+              </View>
 
-              {/* Action buttons row */}
-              <View style={[styles.actionRow, { gap: spacing.sm, marginTop: spacing.md }]}>
+              {errorMsg && (
+                <View
+                  style={[
+                    styles.errorBox,
+                    {
+                      backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                      borderRadius: radius.sm,
+                      padding: spacing.sm,
+                      marginBottom: spacing.sm,
+                    },
+                  ]}
+                >
+                  <Text variant="caption" color="danger">
+                    {errorMsg}
+                  </Text>
+                </View>
+              )}
+
+              {mode === 'list' && (
+                <>
+                  {/* List of workspaces */}
+                  <View style={{ gap: spacing.xs }}>
+                    {workspaces.map((ws) => {
+                      const isSelected = ws.id === activeWorkspace?.id;
+                      const initial = (ws.name || 'W').charAt(0).toUpperCase();
+
+                      return (
+                        <TouchableOpacity
+                          key={ws.id}
+                          style={[
+                            styles.workspaceItem,
+                            {
+                              backgroundColor: isSelected
+                                ? colors.surface2 || colors.surfaceRaised
+                                : colors.surface1 || colors.surface,
+                              borderColor: isSelected ? colors.accent : colors.hairline,
+                              borderWidth: 1,
+                              borderRadius: radius.md,
+                              padding: spacing.md,
+                            },
+                          ]}
+                          onPress={() => handleSelect(ws)}
+                          activeOpacity={0.7}
+                        >
+                          <View style={styles.itemLeft}>
+                            <View
+                              style={[
+                                styles.tileLogo,
+                                {
+                                  backgroundColor: isSelected ? colors.accent : colors.surface2,
+                                  borderRadius: radius.sm,
+                                },
+                              ]}
+                            >
+                              <Text
+                                variant="bodyStrong"
+                                style={{ color: isSelected ? '#FFFFFF' : colors.textPrimary }}
+                              >
+                                {initial}
+                              </Text>
+                            </View>
+                            <View style={{ marginLeft: spacing.md, flex: 1 }}>
+                              <Text variant="bodyStrong" numberOfLines={1}>
+                                {ws.name}
+                              </Text>
+                              <Text variant="caption" color="secondary" style={{ marginTop: 1, textTransform: 'capitalize' }}>
+                                {ws.role ? ws.role.toLowerCase() : 'member'}
+                              </Text>
+                            </View>
+                          </View>
+
+                          {isSelected && <Check size={18} color={colors.accentText} strokeWidth={2.5} />}
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
+
+                  {/* Action buttons row */}
+                  <View style={[styles.actionRow, { gap: spacing.sm, marginTop: spacing.md }]}>
                 <TouchableOpacity
                   style={[
                     styles.actionBtn,
@@ -320,49 +338,50 @@ export const WorkspaceSwitcherSheet: React.FC<WorkspaceSwitcherSheetProps> = ({
             </View>
           )}
 
-          {mode === 'join' && (
-            <View style={{ gap: spacing.md }}>
-              <Input
-                label="Invitation Code or Link"
-                value={inviteCode}
-                onChangeText={setInviteCode}
-                placeholder="Paste code or invite URL"
-                autoFocus
-                autoCapitalize="none"
-                returnKeyType="done"
-                onSubmitEditing={handleJoin}
-              />
-              <View style={[styles.formActions, { gap: spacing.sm }]}>
-                <View style={{ flex: 1 }}>
-                  <Button
-                    title="Cancel"
-                    variant="secondary"
-                    onPress={resetMode}
+              {mode === 'join' && (
+                <View style={{ gap: spacing.md }}>
+                  <Input
+                    label="Invitation Code or Link"
+                    value={inviteCode}
+                    onChangeText={setInviteCode}
+                    placeholder="Paste code or invite URL"
+                    autoFocus
+                    autoCapitalize="none"
+                    returnKeyType="done"
+                    onSubmitEditing={handleJoin}
                   />
+                  <View style={[styles.formActions, { gap: spacing.sm }]}>
+                    <View style={{ flex: 1 }}>
+                      <Button
+                        title="Cancel"
+                        variant="secondary"
+                        onPress={resetMode}
+                      />
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Button
+                        title="Join"
+                        variant="primary"
+                        loading={isSubmitting}
+                        disabled={!inviteCode.trim()}
+                        onPress={handleJoin}
+                      />
+                    </View>
+                  </View>
                 </View>
-                <View style={{ flex: 1 }}>
-                  <Button
-                    title="Join"
-                    variant="primary"
-                    loading={isSubmitting}
-                    disabled={!inviteCode.trim()}
-                    onPress={handleJoin}
-                  />
-                </View>
-              </View>
-            </View>
-          )}
-        </View>
-      </KeyboardAvoidingView>
-    </View>
+              )}
+            </ScrollView>
+          </View>
+        </KeyboardAvoidingView>
+      </View>
+    </Modal>
   );
 };
 
 const styles = StyleSheet.create({
   overlayRoot: {
-    ...StyleSheet.absoluteFillObject,
-    zIndex: 9999,
-    elevation: 999,
+    flex: 1,
+    justifyContent: 'flex-end',
   },
   backdrop: {
     ...StyleSheet.absoluteFillObject,
