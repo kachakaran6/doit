@@ -28,6 +28,34 @@ Loop Cycle: `CAPTURE` -> `AUDIT` -> `CRITIQUE` -> `SCORE` -> `PLAN` -> `FIX` -> 
 | **M1** | M1 | Foundations v3 (Tokens, Rows & Controls) | 45 / 55 | 48 / 55 | **COMPLETED** | Tokens v3, 0 contrast fails, row anatomy (circle checkbox, priority dots), unified Switch, rebuilt AI & Context editors |
 | **M2** | M2 | Shell & Home (Plane-Class Launchpad & Sheets) | 44 / 55 | 49 / 55 | **COMPLETED (GATE G1)** | Plane launchpad Home, Work card, Bell unread dot, bottom sheets for workspace (no slugs + join code) & account |
 | **M3** | M3 | Work Items T1 (List/Board, Detail & Create) | 43 / 55 | 48 / 55 | **COMPLETED** | Work list with circular checkbox rows & board view; task detail with properties, attachments & AI prompt; task creation sheet |
+| **M4** | M4 | Bugs/Intake, Quick Capture, Stickies, Notifications & Search | 45 / 55 | 48 / 55 | **COMPLETED (GATE G2)** | Intake bug queue with verified severity & thumbnails; 4-mode quick capture; bug telemetry & AI solution prompt; stickies & search |
+
+---
+
+## Milestone M4: Bugs/Intake, Quick Capture, Stickies, Notifications & Search
+- **Date**: 2026-11-08
+- **Milestone**: M4 (GATE G2)
+- **Scope**: Bug Queue (S30), Bug Detail (S31), Redaction/Annotation (S32), Triage Actions (S33), Quick Capture 4-Mode (S35), Capture Overlay (S36), Sticky Board (S47), Sticky Editor (S48), Notifications (S15), Search (S16)
+- **Deliverables & Enhancements**:
+  1. **Intake Bug Queue (S30)**:
+     - Verified severity auto-defaulting (`MAJOR` / `CRITICAL` / `MINOR` / `TRIVIAL`) with accurate count chips matching item sums.
+     - `BugRow` displaying genuine thumbnail preview, humanId, device model, and age.
+  2. **Bug Detail & Telemetry (S31, S32, S33)**:
+     - `BugAutoContextCard` showing complete device telemetry (model, OS, network, battery, orientation, foreground package).
+     - Attachment viewer with screenshot carousel and voice player.
+     - One-tap AI prompt generation (`SolutionPromptSection`) grounded in workspace context.
+     - Triage actions (Resolve / Reopen / Move to Trash).
+  3. **Quick Capture 4-Mode Architecture (S35, S36)**:
+     - Programmatic deep link & parameter reactivity (`initialMode: 'task' | 'bug' | 'voice' | 'sticky'`).
+     - Collapsed project chip preventing vertical sheet consumption.
+     - Voice waveform recorder, screenshot annotator, and sticky color palette.
+  4. **Stickies & Search (S47, S48, S16)**:
+     - Masonry sticky cards (148×148) with color tokens.
+     - Full search with persistent SecureStore recents, query suggestions (`is:open`, `due:today`), and categorized results.
+- **Verification**:
+  - `pnpm --filter @doit/mobile typecheck`: 0 errors.
+  - `pnpm --filter @doit/web typecheck`: 0 errors.
+  - `SCREEN_MATRIX.md` updated: S30–S36, S47–S48 verified (`R`), all scores ≥ 47/55.
 
 ---
 

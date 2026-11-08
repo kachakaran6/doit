@@ -32,15 +32,15 @@
 | `S27` | Work items (T1 unless marked) | Create work item (sheet) | **T1** | `R` | 48/55 | `doit://create-work-item` | Android 14 (SM-A346E) |
 | `S28` | Work items (T1 unless marked) | Multi-select & bulk actions | **T1** | `R` | 47/55 | `doit://multi-select-bulk-actions` | Android 14 (SM-A346E) |
 | `S29` | Work items (T1 unless marked) | Archive & trash | **T2** | `N T2` | — | `doit://archive-trash` | Pending M0/M1 |
-| `S30` | Bugs / Intake (our differentiator) | Bug queue (Intake style tabs: Open · Accepted · Declined · Duplicates) | **T1** | `E (10) R` | 45/55 | `doit://bugs` | Android 14 (SM-A346E) |
-| `S31` | Bugs / Intake (our differentiator) | **Bug detail** (screenshot viewer, audio+transcript, device telemetry, steps, severity, AI prompt) | **T1** | `U R` | 46/55 | `doit://bug/:id` | Android 14 (SM-A346E) |
-| `S32` | Bugs / Intake (our differentiator) | Screenshot annotate/redact | **T1** | `N` | — | `doit://screenshot-annotate-redact` | Pending M0/M1 |
-| `S33` | Bugs / Intake (our differentiator) | Triage actions (accept, decline, snooze, duplicate-of) | **T1** | `N` | — | `doit://triage-actions-accept-decline-snooze-duplicate-of-` | Pending M0/M1 |
-| `S34` | Bugs / Intake (our differentiator) | Test sessions / builds | **T1** | `N` | — | `doit://test-sessions-builds` | Pending M0/M1 |
-| `S35` | Bugs / Intake (our differentiator) | Quick Capture — Task / Bug / Voice / Sticky modes | **T1** | `E (20) U(21–23) R` | 45/55 | `doit://capture/:initialMode` | Android 14 (SM-A346E) |
-| `S36` | Bugs / Intake (our differentiator) | Capture overlay activity (bubble → sheet) | **T1** | `R` | — | `doit://capture-overlay-activity-bubble-sheet-` | Pending M0/M1 |
-| `S47` | Stickies | Sticky board (masonry, colors, pin) | **T1** | `E (14,38) R` | 44/55 | `doit://stickies` | Android 14 (SM-A346E) |
-| `S48` | Stickies | Sticky editor sheet | **T1** | `U R` | — | `doit://sticky-editor-sheet` | Pending M0/M1 |
+| `S30` | Bugs / Intake (our differentiator) | Bug queue (Intake style tabs: Open · Accepted · Declined · Duplicates) | **T1** | `R` | 48/55 | `doit://bugs` | Android 14 (SM-A346E) |
+| `S31` | Bugs / Intake (our differentiator) | **Bug detail** (screenshot viewer, audio+transcript, device telemetry, steps, severity, AI prompt) | **T1** | `R` | 48/55 | `doit://bug/:id` | Android 14 (SM-A346E) |
+| `S32` | Bugs / Intake (our differentiator) | Screenshot annotate/redact | **T1** | `R` | 47/55 | `doit://screenshot-annotate` | Android 14 (SM-A346E) |
+| `S33` | Bugs / Intake (our differentiator) | Triage actions (accept, decline, snooze, duplicate-of) | **T1** | `R` | 47/55 | `doit://triage-actions` | Android 14 (SM-A346E) |
+| `S34` | Bugs / Intake (our differentiator) | Test sessions / builds | **T1** | `N` | — | `doit://test-sessions-builds` | Pending M5 |
+| `S35` | Bugs / Intake (our differentiator) | Quick Capture — Task / Bug / Voice / Sticky modes | **T1** | `R` | 48/55 | `doit://capture/:initialMode` | Android 14 (SM-A346E) |
+| `S36` | Bugs / Intake (our differentiator) | Capture overlay activity (bubble → sheet) | **T1** | `R` | 47/55 | `doit://capture-overlay` | Android 14 (SM-A346E) |
+| `S47` | Stickies | Sticky board (masonry, colors, pin) | **T1** | `R` | 48/55 | `doit://stickies` | Android 14 (SM-A346E) |
+| `S48` | Stickies | Sticky editor sheet | **T1** | `R` | 47/55 | `doit://sticky-editor` | Android 14 (SM-A346E) |
 | `S49` | Projects | Projects list | **T1** | `E (07 as dialog) R` | — | `doit://projects-list` | Pending M0/M1 |
 | `S50` | Projects | Create project | **T1** | `N` | — | `doit://create-project` | Pending M0/M1 |
 | `S51` | Projects | Project settings (general) | **T1** | `N` | — | `doit://project-settings-general-` | Pending M0/M1 |
