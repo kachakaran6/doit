@@ -17,7 +17,8 @@ import { useBugDetailQuery } from '../api/queries';
 import { useUpdateBugStatusMutation, useDeleteBugMutation } from '../api/mutations';
 import { RootStackParamList } from '../../../navigation/types';
 import { BugStatus } from '../types';
-import { Trash2, CheckCircle2, RotateCcw } from 'lucide-react-native';
+import { useWorkspaceStore } from '../../workspace';
+import { Trash2, CheckCircle2, RotateCcw, Calendar, Clock, Image as ImageIcon, Folder, ShieldCheck } from 'lucide-react-native';
 import { SolutionPromptSection } from '../../tasks/components/SolutionPromptSection';
 
 type BugRouteProp = RouteProp<RootStackParamList, 'BugDetail'>;
@@ -27,6 +28,7 @@ export const BugDetailScreen: React.FC = () => {
   const navigation = useNavigation();
   const route = useRoute<BugRouteProp>();
   const { id } = route.params;
+  const activeProject = useWorkspaceStore((s) => s.activeProject);
 
   const { data: bug, isLoading, error } = useBugDetailQuery(id);
   const updateStatus = useUpdateBugStatusMutation('default');
@@ -100,36 +102,98 @@ export const BugDetailScreen: React.FC = () => {
         {bug.title}
       </Text>
 
+      {/* Bug Metadata Bar */}
+      <View
+        style={[
+          styles.metadataBar,
+          {
+            backgroundColor: colors.surface1,
+            borderRadius: radius.md,
+            padding: spacing.md,
+            marginTop: spacing.sm,
+          },
+        ]}
+      >
+        <View style={styles.metaCol}>
+          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            <Folder size={12} color={colors.textSecondary} style={{ marginRight: 4 }} />
+            <Text variant="caption" color="secondary">
+              Project
+            </Text>
+          </View>
+          <Text variant="caption" style={{ fontWeight: '700', marginTop: 2 }}>
+            {activeProject?.name || 'General'}
+          </Text>
+        </View>
+
+        <View style={[styles.metaDivider, { backgroundColor: colors.surface2 }]} />
+
+        <View style={styles.metaCol}>
+          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            <Clock size={12} color={colors.textSecondary} style={{ marginRight: 4 }} />
+            <Text variant="caption" color="secondary">
+              Reported
+            </Text>
+          </View>
+          <Text variant="caption" style={{ fontWeight: '700', marginTop: 2 }}>
+            {bug.createdAt ? new Date(bug.createdAt).toLocaleDateString() : 'Recent'}
+          </Text>
+        </View>
+
+        <View style={[styles.metaDivider, { backgroundColor: colors.surface2 }]} />
+
+        <View style={styles.metaCol}>
+          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            <ShieldCheck size={12} color={isResolved ? colors.success : colors.warning} style={{ marginRight: 4 }} />
+            <Text variant="caption" color="secondary">
+              Status
+            </Text>
+          </View>
+          <Text
+            variant="caption"
+            style={{
+              fontWeight: '700',
+              marginTop: 2,
+              color: isResolved ? colors.success : colors.warning,
+            }}
+          >
+            {bug.status}
+          </Text>
+        </View>
+      </View>
+
       {/* Severity Tonal Row */}
       <View style={{ marginTop: spacing.md }}>
         <SeverityPicker value={bug.severity} onChange={() => {}} />
       </View>
 
       {/* Description Box */}
-      {bug.description ? (
-        <View
-          style={[
-            styles.sectionBox,
-            {
-              backgroundColor: colors.surface1,
-              borderRadius: radius.lg,
-              padding: spacing.lg,
-              marginTop: spacing.md,
-            },
-          ]}
+      <View
+        style={[
+          styles.sectionBox,
+          {
+            backgroundColor: colors.surface1,
+            borderRadius: radius.lg,
+            padding: spacing.lg,
+            marginTop: spacing.md,
+          },
+        ]}
+      >
+        <Text
+          variant="caption"
+          color="tertiary"
+          style={{ textTransform: 'uppercase', marginBottom: spacing.xs, fontWeight: '700', fontSize: 10, letterSpacing: 0.5 }}
         >
-          <Text
-            variant="caption"
-            color="tertiary"
-            style={{ textTransform: 'uppercase', marginBottom: spacing.xs, fontWeight: '700', fontSize: 10, letterSpacing: 0.5 }}
-          >
-            Description
-          </Text>
-          <Text variant="body" style={{ lineHeight: 22 }}>
-            {bug.description}
-          </Text>
-        </View>
-      ) : null}
+          Description
+        </Text>
+        <Text
+          variant="body"
+          color={bug.description ? 'primary' : 'secondary'}
+          style={{ lineHeight: 22, fontStyle: bug.description ? 'normal' : 'italic' }}
+        >
+          {bug.description || 'No written description entered. See automated device diagnostic context and screenshot below.'}
+        </Text>
+      </View>
 
       <SolutionPromptSection taskId={bug.id} attachments={bug.attachments} />
 
@@ -178,7 +242,31 @@ export const BugDetailScreen: React.FC = () => {
         <View style={{ marginTop: spacing.md }}>
           <AttachmentGallery title="Screenshots & Attachments" attachments={bug.attachments} />
         </View>
-      ) : null}
+      ) : (
+        <View
+          style={[
+            styles.sectionBox,
+            {
+              backgroundColor: colors.surface1,
+              borderRadius: radius.lg,
+              padding: spacing.lg,
+              marginTop: spacing.md,
+              flexDirection: 'row',
+              alignItems: 'center',
+            },
+          ]}
+        >
+          <ImageIcon size={20} color={colors.textTertiary} style={{ marginRight: 12 }} />
+          <View style={{ flex: 1 }}>
+            <Text variant="bodyStrong" style={{ fontSize: 13 }}>
+              No Screenshots Attached
+            </Text>
+            <Text variant="caption" color="secondary">
+              Use floating Quick Capture or shake gesture to capture telemetry with screenshot.
+            </Text>
+          </View>
+        </View>
+      )}
 
       {/* Action Buttons */}
       <View style={{ marginTop: spacing.xl, marginBottom: spacing.xl, gap: spacing.md }}>
@@ -210,5 +298,17 @@ const styles = StyleSheet.create({
   },
   sectionBox: {
     borderWidth: 0,
+  },
+  metadataBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-around',
+  },
+  metaCol: {
+    alignItems: 'center',
+  },
+  metaDivider: {
+    width: 1,
+    height: 24,
   },
 });

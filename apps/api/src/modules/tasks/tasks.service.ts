@@ -298,7 +298,28 @@ export class TasksService {
     return tasks.map((t) => mapTaskListItem(t as unknown as RawTaskModel));
   }
 
-  async findOne(taskId: string) {
+  private async resolveTaskId(idOrHumanId: string): Promise<string> {
+    if (!idOrHumanId) return idOrHumanId;
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(idOrHumanId);
+    if (isUuid) return idOrHumanId;
+    const match = idOrHumanId.match(/^([A-Z0-9]+)-(\d+)$/i);
+    if (match) {
+      const projectKey = match[1].toUpperCase();
+      const taskNumber = parseInt(match[2], 10);
+      const task = await this.prisma.task.findFirst({
+        where: {
+          number: taskNumber,
+          project: { key: projectKey },
+        },
+        select: { id: true },
+      });
+      return task?.id || idOrHumanId;
+    }
+    return idOrHumanId;
+  }
+
+  async findOne(rawTaskId: string) {
+    const taskId = await this.resolveTaskId(rawTaskId);
     const task = await this.prisma.task.findUnique({
       where: { id: taskId },
       include: {
@@ -351,7 +372,8 @@ export class TasksService {
     };
   }
 
-  async update(taskId: string, userId: string, dto: UpdateTaskDto) {
+  async update(rawTaskId: string, userId: string, dto: UpdateTaskDto) {
+    const taskId = await this.resolveTaskId(rawTaskId);
     const existing = await this.prisma.task.findUnique({
       where: { id: taskId },
       include: { project: true },
@@ -393,7 +415,8 @@ export class TasksService {
     return mapTaskListItem(updated as unknown as RawTaskModel);
   }
 
-  async updateStatus(taskId: string, userId: string, dto: UpdateStatusDto) {
+  async updateStatus(rawTaskId: string, userId: string, dto: UpdateStatusDto) {
+    const taskId = await this.resolveTaskId(rawTaskId);
     const task = await this.prisma.task.findUnique({
       where: { id: taskId },
       include: { project: true },

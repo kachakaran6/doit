@@ -103,9 +103,9 @@ capture('10_Bug_Queue_Screen.png');
 tap(350, 280);
 capture('11_Bug_Queue_Filtered.png');
 
-// 12. Bug Detail Screen (tap first bug ~500, 480)
-tap(500, 480);
-sleep(1200);
+// 12. Bug Detail Screen
+openUri('doit://bug/GEN-3');
+sleep(1500);
 capture('12_Bug_Detail_Screen.png');
 // scroll down bug detail
 swipe(500, 1500, 500, 500, 400);

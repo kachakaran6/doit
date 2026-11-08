@@ -25,7 +25,7 @@ import { useWorkspaceStore } from '../../workspace';
 import { ProjectSwitcherSheet } from '../../workspace/components/ProjectSwitcherSheet';
 import { RootStackParamList } from '../../../navigation/types';
 import { accents } from '@doit/tokens';
-import { ChevronDown, Bug as BugIcon } from 'lucide-react-native';
+import { ChevronDown, Bug as BugIcon, Sparkles, Plus, Smartphone, ShieldCheck } from 'lucide-react-native';
 
 export const BugQueueScreen: React.FC = () => {
   const { colors, spacing, radius } = useTheme();
@@ -193,28 +193,97 @@ export const BugQueueScreen: React.FC = () => {
           />
         </View>
       ) : (
-        <View style={styles.bugsList}>
-          {filteredBugs.map((item) => {
-            const firstImg = item.attachments?.find((a) => a.kind === 'IMAGE' || a.url?.match(/\.(png|jpg|jpeg|webp)$/i));
-            const thumbUrl = firstImg?.thumbUrl || firstImg?.url || null;
+        <View style={{ gap: spacing.md }}>
+          <View style={styles.bugsList}>
+            {filteredBugs.map((item) => {
+              const firstImg = item.attachments?.find((a) => a.kind === 'IMAGE' || a.url?.match(/\.(png|jpg|jpeg|webp)$/i));
+              const thumbUrl = firstImg?.thumbUrl || firstImg?.url || null;
 
-            return (
-              <BugRow
-                key={item.id}
-                id={item.id}
-                humanId={item.humanId}
-                title={item.title}
-                severity={item.severity}
-                status={item.status}
-                deviceInfo={item.telemetry?.deviceModel}
-                hasAttachment={item.hasAttachment || Boolean(firstImg)}
-                thumbnailUrl={thumbUrl}
-                createdAt={item.createdAt}
-                onPress={() => navigation.navigate('BugDetail', { id: item.id })}
-                onLongPress={() => handleConfirmDelete(item)}
-              />
-            );
-          })}
+              return (
+                <BugRow
+                  key={item.id}
+                  id={item.id}
+                  humanId={item.humanId}
+                  title={item.title}
+                  severity={item.severity}
+                  status={item.status}
+                  deviceInfo={item.telemetry?.deviceModel}
+                  hasAttachment={item.hasAttachment || Boolean(firstImg)}
+                  thumbnailUrl={thumbUrl}
+                  createdAt={item.createdAt}
+                  onPress={() => navigation.navigate('BugDetail', { id: item.id })}
+                  onLongPress={() => handleConfirmDelete(item)}
+                />
+              );
+            })}
+          </View>
+
+          {/* Quick Capture & Telemetry Insights Card */}
+          <View
+            style={[
+              styles.infoCard,
+              {
+                backgroundColor: colors.surface1,
+                borderRadius: radius.lg,
+                padding: spacing.lg,
+                marginTop: spacing.sm,
+              },
+            ]}
+          >
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: spacing.xs }}>
+              <View style={[styles.infoIconWrap, { backgroundColor: colors.surface2 }]}>
+                <Sparkles size={16} color={colors.accent} />
+              </View>
+              <Text variant="bodyStrong" style={{ marginLeft: 10 }}>
+                Instant Bug Telemetry
+              </Text>
+            </View>
+            <Text variant="body" color="secondary" style={{ fontSize: 13, lineHeight: 20 }}>
+              Shake your device anywhere in the app to capture the active screen, device memory, battery level, and logs automatically.
+            </Text>
+
+            <View style={{ flexDirection: 'row', gap: spacing.sm, marginTop: spacing.md }}>
+              <TouchableOpacity
+                onPress={() => navigation.navigate('CaptureModal', { initialMode: 'bug' })}
+                style={[
+                  styles.cardActionBtn,
+                  {
+                    backgroundColor: colors.accent,
+                    borderRadius: radius.pill,
+                  },
+                ]}
+              >
+                <Plus size={14} color="#FFF" style={{ marginRight: 6 }} />
+                <Text variant="caption" style={{ color: '#FFF', fontWeight: '700' }}>
+                  Report Bug
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                onPress={() => navigation.navigate('Settings')}
+                style={[
+                  styles.cardActionBtn,
+                  {
+                    backgroundColor: colors.surface2,
+                    borderRadius: radius.pill,
+                  },
+                ]}
+              >
+                <Smartphone size={14} color={colors.textSecondary} style={{ marginRight: 6 }} />
+                <Text variant="caption" color="secondary" style={{ fontWeight: '600' }}>
+                  Shake Settings
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+
+          {/* Queue Status Summary */}
+          <View style={styles.summaryBar}>
+            <ShieldCheck size={14} color={colors.success} style={{ marginRight: 6 }} />
+            <Text variant="caption" color="tertiary" style={{ fontSize: 12 }}>
+              {counts.ALL} total bugs monitored · {counts.CRITICAL} critical · {counts.MAJOR} major
+            </Text>
+          </View>
         </View>
       )}
 
@@ -242,5 +311,28 @@ const styles = StyleSheet.create({
   },
   bugsList: {
     gap: 4,
+  },
+  infoCard: {
+    borderWidth: 0,
+  },
+  infoIconWrap: {
+    width: 28,
+    height: 28,
+    borderRadius: 7,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  cardActionBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+  },
+  summaryBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 8,
+    marginBottom: 24,
   },
 });

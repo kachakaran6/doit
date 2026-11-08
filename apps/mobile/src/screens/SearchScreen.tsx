@@ -28,7 +28,18 @@ import { useBugsQuery } from '../features/bugs/api/queries';
 import { useStickiesQuery } from '../features/stickies/api/queries';
 import { useWorkspaceStore } from '../features/workspace';
 import { RootStackParamList } from '../navigation/types';
-import { Clock, History, ArrowUpRight } from 'lucide-react-native';
+import {
+  Clock,
+  History,
+  ArrowUpRight,
+  CheckSquare,
+  Bug as BugIcon,
+  FileText as StickyIcon,
+  Calendar,
+  Sparkles,
+  ChevronRight,
+  Layers,
+} from 'lucide-react-native';
 
 const RECENT_SEARCHES_KEY = 'doit.search.recent';
 
@@ -140,6 +151,17 @@ export const SearchScreen: React.FC = () => {
   }, [stickies, q]);
 
   const totalResults = matchingTasks.length + matchingBugs.length + matchingStickies.length;
+
+  const openTasks = useMemo(() => (tasks || []).filter((t) => t.status !== 'DONE'), [tasks]);
+  const openBugs = useMemo(() => (bugs || []).filter((b) => b.status !== 'RESOLVED' && b.status !== 'VERIFIED'), [bugs]);
+  const stickiesList = useMemo(() => stickies || [], [stickies]);
+  const dueTodayTasks = useMemo(() => {
+    const todayStr = new Date().toISOString().split('T')[0] ?? '';
+    return (tasks || []).filter((t) => Boolean(t.dueDate && t.dueDate.startsWith(todayStr)));
+  }, [tasks]);
+
+  const suggestedTasks = useMemo(() => openTasks.slice(0, 3), [openTasks]);
+  const suggestedBugs = useMemo(() => openBugs.slice(0, 2), [openBugs]);
 
   return (
     <Screen scrollable includeBottomNavPadding>
@@ -288,10 +310,10 @@ export const SearchScreen: React.FC = () => {
           )}
         </View>
       ) : (
-        <View style={{ marginTop: spacing.sm }}>
-          {/* Recent Searches */}
+        <View style={{ marginTop: spacing.xs, gap: spacing.xl }}>
+          {/* Recent Searches (if available) */}
           {recentSearches.length > 0 ? (
-            <View style={{ marginBottom: spacing.xl }}>
+            <View>
               <View style={styles.sectionHeaderRow}>
                 <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                   <History size={14} color={colors.textSecondary} style={{ marginRight: 6 }} />
@@ -330,6 +352,186 @@ export const SearchScreen: React.FC = () => {
             </View>
           ) : null}
 
+          {/* Quick Category Jump (2x2 Grid) */}
+          <View>
+            <View style={styles.sectionHeaderRow}>
+              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                <Layers size={14} color={colors.textSecondary} style={{ marginRight: 6 }} />
+                <Text variant="caption" color="secondary" style={styles.sectionHeaderText}>
+                  EXPLORE CATEGORIES
+                </Text>
+              </View>
+            </View>
+
+            <View style={[styles.categoriesGrid, { gap: spacing.sm, marginTop: spacing.sm }]}>
+              {/* Tasks Jump */}
+              <TouchableOpacity
+                onPress={() => appendToken('is:open')}
+                style={[
+                  styles.categoryCard,
+                  {
+                    backgroundColor: colors.surface1,
+                    borderRadius: radius.lg,
+                    padding: spacing.md,
+                  },
+                ]}
+              >
+                <View style={[styles.categoryIconWrap, { backgroundColor: colors.surface2 }]}>
+                  <CheckSquare size={16} color={colors.accent} />
+                </View>
+                <View style={{ flex: 1, marginLeft: 10 }}>
+                  <Text variant="bodyStrong" numberOfLines={1}>
+                    Tasks
+                  </Text>
+                  <Text variant="caption" color="secondary">
+                    {openTasks.length} open
+                  </Text>
+                </View>
+                <ChevronRight size={14} color={colors.textMuted} />
+              </TouchableOpacity>
+
+              {/* Bugs Jump */}
+              <TouchableOpacity
+                onPress={() => appendToken('is:open')}
+                style={[
+                  styles.categoryCard,
+                  {
+                    backgroundColor: colors.surface1,
+                    borderRadius: radius.lg,
+                    padding: spacing.md,
+                  },
+                ]}
+              >
+                <View style={[styles.categoryIconWrap, { backgroundColor: colors.surface2 }]}>
+                  <BugIcon size={16} color={colors.danger} />
+                </View>
+                <View style={{ flex: 1, marginLeft: 10 }}>
+                  <Text variant="bodyStrong" numberOfLines={1}>
+                    Bug Queue
+                  </Text>
+                  <Text variant="caption" color="secondary">
+                    {openBugs.length} reported
+                  </Text>
+                </View>
+                <ChevronRight size={14} color={colors.textMuted} />
+              </TouchableOpacity>
+
+              {/* Stickies Jump */}
+              <TouchableOpacity
+                onPress={() => navigation.navigate('StickyBoard')}
+                style={[
+                  styles.categoryCard,
+                  {
+                    backgroundColor: colors.surface1,
+                    borderRadius: radius.lg,
+                    padding: spacing.md,
+                  },
+                ]}
+              >
+                <View style={[styles.categoryIconWrap, { backgroundColor: colors.surface2 }]}>
+                  <StickyIcon size={16} color={colors.accent} />
+                </View>
+                <View style={{ flex: 1, marginLeft: 10 }}>
+                  <Text variant="bodyStrong" numberOfLines={1}>
+                    Sticky Board
+                  </Text>
+                  <Text variant="caption" color="secondary">
+                    {stickiesList.length} notes
+                  </Text>
+                </View>
+                <ChevronRight size={14} color={colors.textMuted} />
+              </TouchableOpacity>
+
+              {/* Due Soon Jump */}
+              <TouchableOpacity
+                onPress={() => appendToken('due:today')}
+                style={[
+                  styles.categoryCard,
+                  {
+                    backgroundColor: colors.surface1,
+                    borderRadius: radius.lg,
+                    padding: spacing.md,
+                  },
+                ]}
+              >
+                <View style={[styles.categoryIconWrap, { backgroundColor: colors.surface2 }]}>
+                  <Calendar size={16} color={colors.warning} />
+                </View>
+                <View style={{ flex: 1, marginLeft: 10 }}>
+                  <Text variant="bodyStrong" numberOfLines={1}>
+                    Due Today
+                  </Text>
+                  <Text variant="caption" color="secondary">
+                    {dueTodayTasks.length} scheduled
+                  </Text>
+                </View>
+                <ChevronRight size={14} color={colors.textMuted} />
+              </TouchableOpacity>
+            </View>
+          </View>
+
+          {/* Suggested Work / Active Items */}
+          {(suggestedTasks.length > 0 || suggestedBugs.length > 0) ? (
+            <View>
+              <View style={styles.sectionHeaderRow}>
+                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                  <Sparkles size={14} color={colors.textSecondary} style={{ marginRight: 6 }} />
+                  <Text variant="caption" color="secondary" style={styles.sectionHeaderText}>
+                    SUGGESTED WORK
+                  </Text>
+                </View>
+              </View>
+
+              <View style={{ gap: 4, marginTop: spacing.sm }}>
+                {suggestedTasks.map((t) => (
+                  <Card
+                    key={t.id}
+                    onPress={() => navigation.navigate('TaskDetail', { id: t.id })}
+                    padding={12}
+                    style={styles.taskResultCard}
+                  >
+                    <Checkbox checked={t.status === 'DONE'} disabled />
+                    <View style={{ flex: 1, marginLeft: 12 }}>
+                      <Text variant="bodyStrong" numberOfLines={1}>
+                        {t.title}
+                      </Text>
+                      <View style={styles.metaRow}>
+                        <Text variant="caption" color="secondary">
+                          {t.humanId}
+                        </Text>
+                        {t.priority && (
+                          <View style={styles.metaItem}>
+                            <PriorityDot level={t.priority} />
+                            <Text variant="caption" color="tertiary" style={{ marginLeft: 4 }}>
+                              {t.priority}
+                            </Text>
+                          </View>
+                        )}
+                        {t.dueDate && <DueText date={t.dueDate} />}
+                      </View>
+                    </View>
+                    <ChevronRight size={14} color={colors.textMuted} />
+                  </Card>
+                ))}
+
+                {suggestedBugs.map((b) => (
+                  <BugRow
+                    key={b.id}
+                    id={b.id}
+                    humanId={b.humanId}
+                    title={b.title}
+                    severity={b.severity}
+                    status={b.status}
+                    deviceInfo={b.telemetry?.deviceModel}
+                    hasAttachment={b.hasAttachment}
+                    createdAt={b.createdAt}
+                    onPress={() => navigation.navigate('BugDetail', { id: b.id })}
+                  />
+                ))}
+              </View>
+            </View>
+          ) : null}
+
           {/* Quick Search Guide / Hint */}
           <View
             style={[
@@ -338,6 +540,7 @@ export const SearchScreen: React.FC = () => {
                 backgroundColor: colors.surface1,
                 borderRadius: radius.lg,
                 padding: spacing.lg,
+                marginBottom: spacing.xl,
               },
             ]}
           >
@@ -397,5 +600,22 @@ const styles = StyleSheet.create({
   },
   hintBox: {
     borderWidth: 0,
+  },
+  categoriesGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+  },
+  categoryCard: {
+    width: '48.5%',
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  categoryIconWrap: {
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });

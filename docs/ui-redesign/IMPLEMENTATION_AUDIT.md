@@ -67,3 +67,4 @@ This document fulfills the implementation and QA requirements of `docs/DoIt_UI_R
 - [x] **Quick Capture**: 4 dedicated capture modes (Task, Bug, Voice, Sticky) with real project/label tagging.
 - [x] **Deep Linking & Intent Safety**: Native `consumeDeepLinkIntent` in `MainActivity.kt` + single-execution guard in `RootNavigator.tsx` + `isInviteTokenConsumed` in `InviteAcceptScreen.tsx`.
 - [x] **Tests & Builds**: Monorepo tests pass (20/20 test suites, 76/76 tests). Release APK build 23 compiles cleanly.
+
