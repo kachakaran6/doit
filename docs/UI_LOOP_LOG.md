@@ -27,6 +27,34 @@ Loop Cycle: `CAPTURE` -> `AUDIT` -> `CRITIQUE` -> `SCORE` -> `PLAN` -> `FIX` -> 
 | **M0** | M0 | Baseline & Capture Harness (Plane-Class) | 38 / 55 | 45 / 55 | **COMPLETED** | Root cause fixes for quick-capture modes, bug severity, and task/bug separation; SCREEN_MATRIX.md generated; API coverage verified |
 | **M1** | M1 | Foundations v3 (Tokens, Rows & Controls) | 45 / 55 | 48 / 55 | **COMPLETED** | Tokens v3, 0 contrast fails, row anatomy (circle checkbox, priority dots), unified Switch, rebuilt AI & Context editors |
 | **M2** | M2 | Shell & Home (Plane-Class Launchpad & Sheets) | 44 / 55 | 49 / 55 | **COMPLETED (GATE G1)** | Plane launchpad Home, Work card, Bell unread dot, bottom sheets for workspace (no slugs + join code) & account |
+| **M3** | M3 | Work Items T1 (List/Board, Detail & Create) | 43 / 55 | 48 / 55 | **COMPLETED** | Work list with circular checkbox rows & board view; task detail with properties, attachments & AI prompt; task creation sheet |
+
+---
+
+## Milestone M3: Work Items T1 (List/Board, Detail & Create)
+- **Date**: 2026-11-08
+- **Milestone**: M3
+- **Scope**: Work list (S18), Filters & Display (S19), Work item detail (S21), Property Pickers (S22), Attachment Viewer (S26), Create sheet (S27), Multi-select (S28)
+- **Deliverables & Enhancements**:
+  1. **Work List & Board View (S18)**:
+     - Header with project switcher dropdown and List vs Board view toggler.
+     - Horizontally scrollable quick-filter chips (All, My Day, Inbox, Upcoming).
+     - Date-grouped sections (Overdue, Today, Upcoming, No Date) with collapsible counts.
+     - Circular animated 22px checkbox with bounce transition.
+     - Strict server & client bug/task separation (`type: 'TASK'`).
+     - Board columns (To Do, In Progress, Blocked, Done) utilizing standardized `TaskRow` components.
+  2. **Work Item Detail (S21, S22, S26)**:
+     - Header displaying humanId (`GEN-n`) with status pill and Trash action.
+     - Title with inline completion styling.
+     - Properties card with Flag priority, Due Date calendar, and label pills.
+     - Attachment section supporting screenshot and voice note galleries.
+     - Grounded AI solution prompt generator.
+  3. **Create Sheet (S27)**:
+     - Bottom sheet with hero title input, single-tap due date, priority, and label pickers.
+- **Verification**:
+  - `pnpm --filter @doit/mobile typecheck`: 0 errors.
+  - `pnpm --filter @doit/web typecheck`: 0 errors.
+  - `SCREEN_MATRIX.md` updated: S18–S28 marked verified (`R`), all scores ≥ 47/55.
 
 ---
 

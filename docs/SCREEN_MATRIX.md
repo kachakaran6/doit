@@ -20,17 +20,17 @@
 | `S15` | Home & global | Notifications | **T1** | `R` | 47/55 | `doit://notifications` | Android 14 (SM-A346E) |
 | `S16` | Home & global | Search (+results, recents) | **T1** | `R` | 48/55 | `doit://search` | Android 14 (SM-A346E) |
 | `S17` | Home & global | Quick actions / long-press `+` | **T1** | `R` | 48/55 | `doit://quick-actions` | Android 14 (SM-A346E) |
-| `S18` | Work items (T1 unless marked) | Work list (List / Board / Calendar T2) | **T1** | `E (04,06) R` | 43/55 | `doit://tasks` | Android 14 (SM-A346E) |
-| `S19` | Work items (T1 unless marked) | Filters & Display sheet | **T1** | `N` | — | `doit://filters-display-sheet` | Pending M0/M1 |
+| `S18` | Work items (T1 unless marked) | Work list (List / Board / Calendar T2) | **T1** | `R` | 48/55 | `doit://tasks` | Android 14 (SM-A346E) |
+| `S19` | Work items (T1 unless marked) | Filters & Display sheet | **T1** | `R` | 47/55 | `doit://filters-display-sheet` | Android 14 (SM-A346E) |
 | `S20` | Work items (T1 unless marked) | Saved Views list + editor | **T2** | `N T2` | — | `doit://saved-views-list-editor` | Pending M0/M1 |
-| `S21` | Work items (T1 unless marked) | **Work item detail** | **T1** | `U R` | 44/55 | `doit://task/:id` | Android 14 (SM-A346E) |
-| `S22` | Work items (T1 unless marked) | Property pickers (state, priority, assignee, labels, start/due, estimate T2, cycle T2, module T2, parent T2) | **T1** | `N` | — | `doit://property-pickers-state-priority-assignee-labels-start-due-estimate-t2-cycle-t2-module-t2-parent-t2-` | Pending M0/M1 |
+| `S21` | Work items (T1 unless marked) | **Work item detail** | **T1** | `R` | 48/55 | `doit://task/:id` | Android 14 (SM-A346E) |
+| `S22` | Work items (T1 unless marked) | Property pickers (state, priority, assignee, labels, start/due, estimate T2, cycle T2, module T2, parent T2) | **T1** | `R` | 48/55 | `doit://property-pickers` | Android 14 (SM-A346E) |
 | `S23` | Work items (T1 unless marked) | Sub-work items | **T2** | `N T2` | — | `doit://sub-work-items` | Pending M0/M1 |
 | `S24` | Work items (T1 unless marked) | Relations & links | **T2** | `N T2` | — | `doit://relations-links` | Pending M0/M1 |
 | `S25` | Work items (T1 unless marked) | Comments & activity | **T2** | `N T2` | — | `doit://comments-activity` | Pending M0/M1 |
-| `S26` | Work items (T1 unless marked) | Attachment viewer (image zoom, audio+transcript) | **T1** | `N` | — | `doit://attachment-viewer-image-zoom-audio-transcript-` | Pending M0/M1 |
-| `S27` | Work items (T1 unless marked) | Create work item (sheet) | **T1** | `E (20) R` | — | `doit://create-work-item-sheet-` | Pending M0/M1 |
-| `S28` | Work items (T1 unless marked) | Multi-select & bulk actions | **T1** | `N` | — | `doit://multi-select-bulk-actions` | Pending M0/M1 |
+| `S26` | Work items (T1 unless marked) | Attachment viewer (image zoom, audio+transcript) | **T1** | `R` | 48/55 | `doit://attachment-viewer` | Android 14 (SM-A346E) |
+| `S27` | Work items (T1 unless marked) | Create work item (sheet) | **T1** | `R` | 48/55 | `doit://create-work-item` | Android 14 (SM-A346E) |
+| `S28` | Work items (T1 unless marked) | Multi-select & bulk actions | **T1** | `R` | 47/55 | `doit://multi-select-bulk-actions` | Android 14 (SM-A346E) |
 | `S29` | Work items (T1 unless marked) | Archive & trash | **T2** | `N T2` | — | `doit://archive-trash` | Pending M0/M1 |
 | `S30` | Bugs / Intake (our differentiator) | Bug queue (Intake style tabs: Open · Accepted · Declined · Duplicates) | **T1** | `E (10) R` | 45/55 | `doit://bugs` | Android 14 (SM-A346E) |
 | `S31` | Bugs / Intake (our differentiator) | **Bug detail** (screenshot viewer, audio+transcript, device telemetry, steps, severity, AI prompt) | **T1** | `U R` | 46/55 | `doit://bug/:id` | Android 14 (SM-A346E) |
