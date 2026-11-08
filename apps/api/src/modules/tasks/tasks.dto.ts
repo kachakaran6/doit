@@ -76,3 +76,9 @@ export const TaskListQuerySchema = z.object({
 });
 
 export type TaskListQueryDto = z.infer<typeof TaskListQuerySchema>;
+
+export const CreateCommentSchema = z.object({
+  body: z.string().min(1).max(10000),
+  voiceNoteId: z.string().uuid().optional(),
+});
+export type CreateCommentDto = z.infer<typeof CreateCommentSchema>;

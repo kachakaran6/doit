@@ -54,7 +54,7 @@ Spec: `openapi.json` · Source: `apps/mobile/src` · **52%** covered or waived (
 | `DELETE /workspaces/{workspaceId}/invitations/{id}` | Revoke pending workspace invitation (OWNER, ADMIN) | ✅ | apps\mobile\src\features\workspace\screens\TeamMembersScreen.tsx |
 | `POST /workspaces/{workspaceId}/invitations/{id}/resend` | Resend invitation email (OWNER, ADMIN) | ✅ | apps\mobile\src\features\workspace\screens\TeamMembersScreen.tsx |
 | `GET /invitations/validate/{token}` | Publicly validate invitation token without authentication | ✅ | apps\mobile\src\screens\InviteAcceptScreen.tsx |
-| `POST /invitations/accept` | Accept workspace invitation token | ✅ | apps\mobile\src\screens\InviteAcceptScreen.tsx |
+| `POST /invitations/accept` | Accept workspace invitation token | ✅ | apps\mobile\src\screens\InviteAcceptScreen.tsx<br>apps\mobile\src\features\workspace\components\WorkspaceSwitcherSheet.tsx |
 | `POST /members/accept-invite` | Accept workspace invitation token (backward compatible alias) | ❌ |  |
 | `PATCH /workspaces/{workspaceId}/members/{id}` | Update member role (OWNER only) | ❌ |  |
 | `DELETE /workspaces/{workspaceId}/members/{id}` | Remove member from workspace (OWNER, ADMIN) | ✅ | apps\mobile\src\features\workspace\screens\TeamMembersScreen.tsx |

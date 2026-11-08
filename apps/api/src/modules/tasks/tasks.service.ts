@@ -675,4 +675,75 @@ export class TasksService {
 
     return { success: true };
   }
+
+  async getComments(taskId: string) {
+    const task = await this.prisma.task.findUnique({
+      where: { id: taskId },
+      select: { id: true },
+    });
+    if (!task) {
+      throw new AppError(ErrorCode.TASK_NOT_FOUND, 'Task not found.', 404);
+    }
+    return this.prisma.comment.findMany({
+      where: { taskId, deletedAt: null },
+      orderBy: { createdAt: 'asc' },
+      include: {
+        author: {
+          select: { id: true, name: true, email: true, avatarUrl: true },
+        },
+      },
+    });
+  }
+
+  async createComment(taskId: string, userId: string, dto: { body: string; voiceNoteId?: string }) {
+    const task = await this.prisma.task.findUnique({
+      where: { id: taskId },
+      include: { project: true },
+    });
+    if (!task) {
+      throw new AppError(ErrorCode.TASK_NOT_FOUND, 'Task not found.', 404);
+    }
+
+    const comment = await this.prisma.comment.create({
+      data: {
+        taskId,
+        authorId: userId,
+        body: dto.body,
+        voiceNoteId: dto.voiceNoteId,
+      },
+      include: {
+        author: {
+          select: { id: true, name: true, email: true, avatarUrl: true },
+        },
+      },
+    });
+
+    await this.prisma.activityLog.create({
+      data: {
+        workspaceId: task.project.workspaceId,
+        taskId,
+        actorId: userId,
+        action: 'task.comment_added',
+        meta: { commentId: comment.id },
+      },
+    });
+
+    return comment;
+  }
+
+  async deleteComment(commentId: string, userId: string) {
+    const comment = await this.prisma.comment.findUnique({
+      where: { id: commentId },
+    });
+    if (!comment) {
+      throw new AppError(ErrorCode.NOT_FOUND, 'Comment not found.', 404);
+    }
+
+    await this.prisma.comment.update({
+      where: { id: commentId },
+      data: { deletedAt: new Date() },
+    });
+
+    return { success: true };
+  }
 }

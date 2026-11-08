@@ -30,6 +30,28 @@ Loop Cycle: `CAPTURE` -> `AUDIT` -> `CRITIQUE` -> `SCORE` -> `PLAN` -> `FIX` -> 
 | **M3** | M3 | Work Items T1 (List/Board, Detail & Create) | 43 / 55 | 48 / 55 | **COMPLETED** | Work list with circular checkbox rows & board view; task detail with properties, attachments & AI prompt; task creation sheet |
 | **M4** | M4 | Bugs/Intake, Quick Capture, Stickies, Notifications & Search | 45 / 55 | 48 / 55 | **COMPLETED (GATE G2)** | Intake bug queue with verified severity & thumbnails; 4-mode quick capture; bug telemetry & AI solution prompt; stickies & search |
 | **M5** | M5 | Projects, Workspace, Settings Hub & Compliance (T1 Closeout) | 43 / 55 | 49 / 55 | **COMPLETED (T1 CLOSE)** | Rebuilt Project Context markdown editor, AI Provider testing, Quick Capture prefs, Data & Privacy export/delete, Settings hub |
+| **M6** | M6 | Planning T2 Slice A (Comments, Activity & Relations) | 44 / 55 | 48 / 55 | **COMPLETED** | Comments and activity logs API & contracts; checklist items; OpenAPI re-exported with 71 paths; coverage updated |
+
+---
+
+## Milestone M6: Planning T2 Slice A (Comments, Activity & Relations)
+- **Date**: 2026-11-08
+- **Milestone**: M6
+- **Scope**: Comments API (GET/POST/DELETE), Activity Logs, Checklist Items, OpenAPI Spec
+- **Deliverables & Enhancements**:
+  1. **Comments Contract & Service**:
+     - Added `GET /tasks/:id/comments`, `POST /tasks/:id/comments`, `DELETE /tasks/:id/comments/:commentId` in `tasks.controller.ts` & `tasks.service.ts`.
+     - Validated payload with `CreateCommentSchema` (body 1-10000 chars, optional voiceNote attachment).
+     - Author details (name, email, avatar) included; activity logs tracked (`task.comment_added`).
+  2. **Checklist & Sub-Items**:
+     - Verified interactive checklist items with fractional ordering and completion status (`addChecklistItem`, `updateChecklistItem`, `deleteChecklistItem`).
+  3. **OpenAPI & Parity Matrix**:
+     - Re-exported `openapi.json` with 71 endpoint paths.
+     - Re-generated API coverage: Web at **87%** (84/97 ops), Mobile at **52%** (50/97 ops).
+- **Verification**:
+  - `pnpm --filter @doit/api test`: 20/20 test suites passed, 76/76 tests passed.
+  - `pnpm --filter @doit/api typecheck`: 0 errors.
+  - `SCREEN_MATRIX.md` updated: S23, S24, S25 marked verified (`R`).
 
 ---
 

@@ -340,7 +340,8 @@
     "key": "POST /invitations/accept",
     "covered": true,
     "files": [
-      "apps\\mobile\\src\\screens\\InviteAcceptScreen.tsx"
+      "apps\\mobile\\src\\screens\\InviteAcceptScreen.tsx",
+      "apps\\mobile\\src\\features\\workspace\\components\\WorkspaceSwitcherSheet.tsx"
     ]
   },
   {

@@ -31,6 +31,8 @@ import {
   UpdateChecklistItemSchema,
   TaskListQueryDto,
   TaskListQuerySchema,
+  CreateCommentDto,
+  CreateCommentSchema,
 } from './tasks.dto';
 import { ZodValidationPipe } from '../../common/pipes/zod-validation.pipe';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
@@ -297,5 +299,36 @@ export class TasksController {
   @ApiOperation({ summary: 'Delete a checklist item' })
   async deleteChecklistItem(@Param('itemId') itemId: string) {
     return this.tasksService.deleteChecklistItem(itemId);
+  }
+
+  @Get('tasks/:id/comments')
+  @UseGuards(WorkspaceMemberGuard)
+  @ApiBearerAuth('bearer-auth')
+  @ApiOperation({ summary: 'Get all comments for a task' })
+  async getComments(@Param('id') id: string) {
+    return this.tasksService.getComments(id);
+  }
+
+  @Post('tasks/:id/comments')
+  @UseGuards(WorkspaceMemberGuard)
+  @ApiBearerAuth('bearer-auth')
+  @ApiOperation({ summary: 'Add a comment to a task' })
+  async addComment(
+    @CurrentUser() user: AuthUserPayload,
+    @Param('id') id: string,
+    @Body(new ZodValidationPipe(CreateCommentSchema)) dto: CreateCommentDto,
+  ) {
+    return this.tasksService.createComment(id, user.sub, dto);
+  }
+
+  @Delete('tasks/:id/comments/:commentId')
+  @UseGuards(WorkspaceMemberGuard)
+  @ApiBearerAuth('bearer-auth')
+  @ApiOperation({ summary: 'Delete a task comment' })
+  async deleteComment(
+    @CurrentUser() user: AuthUserPayload,
+    @Param('commentId') commentId: string,
+  ) {
+    return this.tasksService.deleteComment(commentId, user.sub);
   }
 }
