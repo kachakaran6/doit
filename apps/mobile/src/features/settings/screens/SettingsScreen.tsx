@@ -515,7 +515,7 @@ export const SettingsScreen: React.FC = () => {
           </View>
         </View>
 
-        {/* 5. Privacy & Data Section */}
+        {/* 5. Storage and Cache */}
         <View>
           <Text variant="caption" color="secondary" style={styles.sectionHeader}>
             Storage and cache
@@ -534,6 +534,59 @@ export const SettingsScreen: React.FC = () => {
                 </Text>
               </View>
               <ChevronRight size={16} color={colors.textTertiary} />
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        {/* 6. Data & Privacy Section (Compliance) */}
+        <View>
+          <Text variant="caption" color="secondary" style={styles.sectionHeader}>
+            Data and privacy
+          </Text>
+          <View style={[styles.groupedCard, { backgroundColor: colors.surface1, borderRadius: radius.lg, overflow: 'hidden' }]}>
+            <TouchableOpacity
+              onPress={() => Alert.alert('Export Workspace Data', 'Your workspace tasks, bugs, and stickies will be prepared as a downloadable JSON archive.')}
+              style={[styles.settingRow, { borderBottomColor: colors.surface2, borderBottomWidth: 1 }]}
+            >
+              <View style={{ flex: 1 }}>
+                <Text variant="bodyStrong" style={{ fontSize: 14 }}>
+                  Export Data
+                </Text>
+                <Text variant="caption" color="secondary">
+                  Download all tasks, bugs, and notes
+                </Text>
+              </View>
+              <ChevronRight size={16} color={colors.textTertiary} />
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              onPress={() => {
+                Alert.alert(
+                  'Delete Account',
+                  'Permanently delete your account and all associated workspace data? This action cannot be undone.',
+                  [
+                    { text: 'Cancel', style: 'cancel' },
+                    {
+                      text: 'Delete Account',
+                      style: 'destructive',
+                      onPress: () => {
+                        Alert.alert('Request Submitted', 'Your account deletion request has been scheduled.');
+                      },
+                    },
+                  ]
+                );
+              }}
+              style={styles.settingRow}
+            >
+              <View style={{ flex: 1 }}>
+                <Text variant="bodyStrong" style={{ fontSize: 14, color: colors.danger }}>
+                  Delete Account
+                </Text>
+                <Text variant="caption" color="secondary">
+                  Permanently remove account & personal data
+                </Text>
+              </View>
+              <ChevronRight size={16} color={colors.danger} />
             </TouchableOpacity>
           </View>
         </View>

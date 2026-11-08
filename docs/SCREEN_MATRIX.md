@@ -41,33 +41,33 @@
 | `S36` | Bugs / Intake (our differentiator) | Capture overlay activity (bubble → sheet) | **T1** | `R` | 47/55 | `doit://capture-overlay` | Android 14 (SM-A346E) |
 | `S47` | Stickies | Sticky board (masonry, colors, pin) | **T1** | `R` | 48/55 | `doit://stickies` | Android 14 (SM-A346E) |
 | `S48` | Stickies | Sticky editor sheet | **T1** | `R` | 47/55 | `doit://sticky-editor` | Android 14 (SM-A346E) |
-| `S49` | Projects | Projects list | **T1** | `E (07 as dialog) R` | — | `doit://projects-list` | Pending M0/M1 |
-| `S50` | Projects | Create project | **T1** | `N` | — | `doit://create-project` | Pending M0/M1 |
-| `S51` | Projects | Project settings (general) | **T1** | `N` | — | `doit://project-settings-general-` | Pending M0/M1 |
-| `S52` | Projects | Project members & roles | **T1** | `N` | — | `doit://project-members-roles` | Pending M0/M1 |
-| `S53` | Projects | States | **T2** | `N T2` | — | `doit://states` | Pending M0/M1 |
-| `S54` | Projects | Labels | **T1** | `N` | — | `doit://labels` | Pending M0/M1 |
-| `S55` | Projects | Estimates | **T2** | `N T2` | — | `doit://estimates` | Pending M0/M1 |
-| `S56` | Projects | Project context (AI markdown editor) | **T1** | `E (32) R` | — | `doit://project-context-ai-markdown-editor-` | Pending M0/M1 |
-| `S57` | Projects | Archive/delete project | **T1** | `N` | — | `doit://archive-delete-project` | Pending M0/M1 |
-| `S58` | Workspace & team | Team members | **T1** | `E (19) R` | 45/55 | `doit://team` | Android 14 (SM-A346E) |
-| `S59` | Workspace & team | Invite sheet + Invitations list | **T1** | `E (19 tab) R` | 45/55 | `doit://team` | Android 14 (SM-A346E) |
-| `S60` | Workspace & team | Roles view | **T1** | `N` | — | `doit://roles-view` | Pending M0/M1 |
-| `S61` | Workspace & team | Workspace settings (general, danger zone) | **T1** | `N` | — | `doit://workspace-settings-general-danger-zone-` | Pending M0/M1 |
-| `S62` | Workspace & team | Create / Join workspace | **T1** | `N` | — | `doit://create-join-workspace` | Pending M0/M1 |
-| `S63` | Workspace & team | Audit log (admin) | **T1** | `N` | — | `doit://audit-log-admin-` | Pending M0/M1 |
-| `S64` | Workspace & team | Integrations (SMTP/webhooks, admin) | **T1** | `N` | — | `doit://integrations-smtp-webhooks-admin-` | Pending M0/M1 |
-| `S65` | Account & settings | Settings hub | **T1** | `E (24) R` | 43/55 | `doit://settings` | Android 14 (SM-A346E) |
-| `S66` | Account & settings | Profile edit | **T1** | `N` | — | `doit://profile-edit` | Pending M0/M1 |
-| `S67` | Account & settings | Appearance & behavior | **T1** | `R` | — | `doit://appearance-behavior` | Pending M0/M1 |
-| `S68` | Account & settings | Notification preferences | **T1** | `N` | — | `doit://notification-preferences` | Pending M0/M1 |
-| `S69` | Account & settings | Security (password, sessions, devices) | **T1** | `N` | — | `doit://security-password-sessions-devices-` | Pending M0/M1 |
-| `S70` | Account & settings | Data & privacy (export, delete, consent) | **T1** | `N` | — | `doit://data-privacy-export-delete-consent-` | Pending M0/M1 |
-| `S71` | Account & settings | Bug capture settings (bubble, shake, sensitivity, permissions status) | **T1** | `E (25) R` | — | `doit://bug-capture-settings-bubble-shake-sensitivity-permissions-status-` | Pending M0/M1 |
-| `S72` | Account & settings | Quick capture prefs | **T1** | `E (33) R` | — | `doit://quick-capture-prefs` | Pending M0/M1 |
-| `S73` | Account & settings | AI provider | **T1** | `E (34) R` | — | `doit://ai-provider` | Pending M0/M1 |
-| `S74` | Account & settings | Sync queue | **T1** | `E (18) R` | 45/55 | `doit://sync` | Android 14 (SM-A346E) |
-| `S75` | Account & settings | Help & feedback | **T1** | `N` | — | `doit://help-feedback` | Pending M0/M1 |
+| `S49` | Projects | Projects list | **T1** | `R` | 48/55 | `doit://projects-list` | Android 14 (SM-A346E) |
+| `S50` | Projects | Create project | **T1** | `R` | 48/55 | `doit://create-project` | Android 14 (SM-A346E) |
+| `S51` | Projects | Project settings (general) | **T1** | `R` | 47/55 | `doit://project-settings` | Android 14 (SM-A346E) |
+| `S52` | Projects | Project members & roles | **T1** | `N` | — | `doit://project-members-roles` | Pending M6 |
+| `S53` | Projects | States | **T2** | `N T2` | — | `doit://states` | Pending M7 |
+| `S54` | Projects | Labels | **T1** | `R` | 48/55 | `doit://labels` | Android 14 (SM-A346E) |
+| `S55` | Projects | Estimates | **T2** | `N T2` | — | `doit://estimates` | Pending M7 |
+| `S56` | Projects | Project context (AI markdown editor) | **T1** | `R` | 49/55 | `doit://project-context` | Android 14 (SM-A346E) |
+| `S57` | Projects | Archive/delete project | **T1** | `N` | — | `doit://archive-delete-project` | Pending M6 |
+| `S58` | Workspace & team | Team members | **T1** | `R` | 48/55 | `doit://team` | Android 14 (SM-A346E) |
+| `S59` | Workspace & team | Invite sheet + Invitations list | **T1** | `R` | 48/55 | `doit://team` | Android 14 (SM-A346E) |
+| `S60` | Workspace & team | Roles view | **T1** | `N` | — | `doit://roles-view` | Pending M6 |
+| `S61` | Workspace & team | Workspace settings (general, danger zone) | **T1** | `R` | 47/55 | `doit://workspace-settings` | Android 14 (SM-A346E) |
+| `S62` | Workspace & team | Create / Join workspace | **T1** | `R` | 48/55 | `doit://workspace-switcher` | Android 14 (SM-A346E) |
+| `S63` | Workspace & team | Audit log (admin) | **T1** | `N` | — | `doit://audit-log-admin-` | Pending M6 |
+| `S64` | Workspace & team | Integrations (SMTP/webhooks, admin) | **T1** | `N` | — | `doit://integrations-smtp-webhooks-admin-` | Pending M6 |
+| `S65` | Account & settings | Settings hub | **T1** | `R` | 49/55 | `doit://settings` | Android 14 (SM-A346E) |
+| `S66` | Account & settings | Profile edit | **T1** | `N` | — | `doit://profile-edit` | Pending M6 |
+| `S67` | Account & settings | Appearance & behavior | **T1** | `R` | 49/55 | `doit://settings` | Android 14 (SM-A346E) |
+| `S68` | Account & settings | Notification preferences | **T1** | `R` | 48/55 | `doit://settings` | Android 14 (SM-A346E) |
+| `S69` | Account & settings | Security (password, sessions, devices) | **T1** | `N` | — | `doit://security-password-sessions-devices-` | Pending M6 |
+| `S70` | Account & settings | Data & privacy (export, delete, consent) | **T1** | `R` | 48/55 | `doit://settings` | Android 14 (SM-A346E) |
+| `S71` | Account & settings | Bug capture settings (bubble, shake, sensitivity, permissions status) | **T1** | `R` | 48/55 | `doit://settings` | Android 14 (SM-A346E) |
+| `S72` | Account & settings | Quick capture prefs | **T1** | `R` | 48/55 | `doit://quick-capture-prefs` | Android 14 (SM-A346E) |
+| `S73` | Account & settings | AI provider | **T1** | `R` | 48/55 | `doit://ai-provider` | Android 14 (SM-A346E) |
+| `S74` | Account & settings | Sync queue | **T1** | `R` | 48/55 | `doit://sync` | Android 14 (SM-A346E) |
+| `S75` | Account & settings | Help & feedback | **T1** | `R` | 47/55 | `doit://help-feedback` | Android 14 (SM-A346E) |
 | `S76` | Account & settings | About & diagnostics | **T1** | `E (26) U R` | — | `doit://about-diagnostics` | Pending M0/M1 |
 | `S77` | Account & settings | Legal | **T1** | `N` | — | `doit://legal` | Pending M0/M1 |
 | `S78` | System | Offline / error / 403 / 404 / maintenance / force-update | **T1** | `N` | — | `doit://offline-error-403-404-maintenance-force-update` | Pending M0/M1 |

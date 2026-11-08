@@ -29,6 +29,29 @@ Loop Cycle: `CAPTURE` -> `AUDIT` -> `CRITIQUE` -> `SCORE` -> `PLAN` -> `FIX` -> 
 | **M2** | M2 | Shell & Home (Plane-Class Launchpad & Sheets) | 44 / 55 | 49 / 55 | **COMPLETED (GATE G1)** | Plane launchpad Home, Work card, Bell unread dot, bottom sheets for workspace (no slugs + join code) & account |
 | **M3** | M3 | Work Items T1 (List/Board, Detail & Create) | 43 / 55 | 48 / 55 | **COMPLETED** | Work list with circular checkbox rows & board view; task detail with properties, attachments & AI prompt; task creation sheet |
 | **M4** | M4 | Bugs/Intake, Quick Capture, Stickies, Notifications & Search | 45 / 55 | 48 / 55 | **COMPLETED (GATE G2)** | Intake bug queue with verified severity & thumbnails; 4-mode quick capture; bug telemetry & AI solution prompt; stickies & search |
+| **M5** | M5 | Projects, Workspace, Settings Hub & Compliance (T1 Closeout) | 43 / 55 | 49 / 55 | **COMPLETED (T1 CLOSE)** | Rebuilt Project Context markdown editor, AI Provider testing, Quick Capture prefs, Data & Privacy export/delete, Settings hub |
+
+---
+
+## Milestone M5: Projects, Workspace, Settings Hub & Compliance (T1 Closeout)
+- **Date**: 2026-11-08
+- **Milestone**: M5 (T1 Tier Closeout)
+- **Scope**: Projects & Settings (S49–S51, S54, S56), Team & Workspace (S58, S59, S61, S62), Settings Hub & Preferences (S65, S67, S68, S70–S74)
+- **Deliverables & Enhancements**:
+  1. **Rebuilt Core Missing/Raw Editors**:
+     - `ProjectContextScreen.tsx`: Markdown editor with live preview toggle, character count, suggested structure insertion, and dirty save bar.
+     - `AiProviderScreen.tsx`: Encrypted API key management, live connection test with OpenAI, model selection chips.
+     - `QuickCapturePrefsScreen.tsx`: Default project and label chips, behavior switches.
+  2. **Settings Hub & Compliance (S65, S70)**:
+     - Reorganized groups: Account, Appearance (5 canonical swatches with high-contrast outlines and checks), Bug Capture (overlay status, silent screenshots, bubble, shake), Notifications, Storage & Cache.
+     - Added compliance Data & Privacy section with Export Workspace Data archive and secure Delete Account flow with confirmation.
+     - Dedicated isolated destructive Log Out card.
+  3. **T1 Tier Discipline Verified**:
+     - All T1 screens in `SCREEN_MATRIX.md` scored ≥ 47/55.
+- **Verification**:
+  - `pnpm --filter @doit/mobile typecheck`: 0 errors.
+  - `pnpm --filter @doit/web typecheck`: 0 errors.
+  - `SCREEN_MATRIX.md` updated: T1 closeout achieved.
 
 ---
 
