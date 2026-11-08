@@ -1,11 +1,20 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, TouchableOpacity, ScrollView, Alert } from 'react-native';
+import {
+  View,
+  StyleSheet,
+  TouchableOpacity,
+  ScrollView,
+  KeyboardAvoidingView,
+  Platform,
+  Alert,
+} from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../../../theme/useTheme';
 import { Text, Input, Button } from '../../../components/ui';
 import { useWorkspaceStore } from '../store';
 import { useProjectsQuery } from '../queries';
 import { http } from '../../../lib/http';
-import { Check, Plus, X, Folder } from 'lucide-react-native';
+import { Check, Plus, X, FolderKanban } from 'lucide-react-native';
 
 interface ProjectSwitcherSheetProps {
   visible?: boolean;
@@ -20,6 +29,7 @@ export const ProjectSwitcherSheet: React.FC<ProjectSwitcherSheetProps> = ({
 }) => {
   const isSheetVisible = visible ?? isOpen ?? false;
   const { colors, spacing, radius } = useTheme();
+  const insets = useSafeAreaInsets();
   const activeWorkspace = useWorkspaceStore((s) => s.activeWorkspace);
   const activeProject = useWorkspaceStore((s) => s.activeProject);
   const setActiveProject = useWorkspaceStore((s) => s.setActiveProject);
@@ -31,6 +41,7 @@ export const ProjectSwitcherSheet: React.FC<ProjectSwitcherSheetProps> = ({
   const [isCreating, setIsCreating] = useState(false);
   const [newProjectName, setNewProjectName] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   if (!isSheetVisible) return null;
 
@@ -40,8 +51,12 @@ export const ProjectSwitcherSheet: React.FC<ProjectSwitcherSheetProps> = ({
   };
 
   const handleCreateProject = async () => {
-    if (!newProjectName.trim()) return;
+    if (!newProjectName.trim()) {
+      setErrorMsg('Project name is required');
+      return;
+    }
     setIsSubmitting(true);
+    setErrorMsg(null);
     try {
       const cleanName = newProjectName.trim();
       const rawKey = cleanName.replace(/[^a-zA-Z0-9]/g, '').slice(0, 4).toUpperCase();
@@ -59,10 +74,16 @@ export const ProjectSwitcherSheet: React.FC<ProjectSwitcherSheetProps> = ({
       setIsCreating(false);
       onClose();
     } catch (e: any) {
-      Alert.alert('Error', e.message || 'Failed to create project');
+      setErrorMsg(e.message || 'Failed to create project');
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const resetForm = () => {
+    setIsCreating(false);
+    setNewProjectName('');
+    setErrorMsg(null);
   };
 
   return (
@@ -70,180 +91,228 @@ export const ProjectSwitcherSheet: React.FC<ProjectSwitcherSheetProps> = ({
       <TouchableOpacity
         style={[styles.backdrop, { backgroundColor: colors.overlay || 'rgba(0,0,0,0.65)' }]}
         activeOpacity={1}
-        onPress={onClose}
+        onPress={() => {
+          resetForm();
+          onClose();
+        }}
       />
-      <View
-        style={[
-          styles.sheet,
-          {
-            backgroundColor: colors.surface1 || colors.surface,
-            borderRadius: radius.xl,
-            padding: spacing.md,
-          },
-        ]}
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        style={styles.keyboardContainer}
       >
-        {/* Header */}
-        <View style={[styles.header, { marginBottom: spacing.md }]}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-            <Folder size={18} color={colors.accent} />
-            <Text variant="h3" style={{ fontWeight: '700' }}>
-              Projects
-            </Text>
+        <View
+          style={[
+            styles.sheet,
+            {
+              backgroundColor: colors.surface1 || colors.surface,
+              borderTopLeftRadius: 24,
+              borderTopRightRadius: 24,
+              paddingHorizontal: spacing.lg,
+              paddingTop: spacing.sm,
+              paddingBottom: Math.max(insets.bottom, 16) + spacing.md,
+            },
+          ]}
+        >
+          {/* Drag Handle */}
+          <View style={styles.handleContainer}>
+            <View style={[styles.handleBar, { backgroundColor: colors.hairline || colors.border }]} />
           </View>
-          <TouchableOpacity
-            onPress={onClose}
-            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-            style={[
-              styles.closeBtn,
-              {
-                backgroundColor: colors.surface2 || colors.surfaceRaised,
-                borderRadius: radius.pill,
-              },
-            ]}
-            accessibilityRole="button"
-            accessibilityLabel="Close project switcher"
-          >
-            <X size={16} color={colors.textSecondary} />
-          </TouchableOpacity>
-        </View>
 
-        {/* List of projects */}
-        <ScrollView style={styles.list} showsVerticalScrollIndicator={false}>
-          <View style={{ gap: spacing.xs }}>
-            {projects.map((proj) => {
-              const isSelected = proj.id === activeProject?.id;
-              return (
-                <TouchableOpacity
-                  key={proj.id}
-                  style={[
-                    styles.projectItem,
-                    {
-                      backgroundColor: isSelected ? (colors.surface2 || colors.surfaceRaised) : 'transparent',
-                      borderRadius: radius.md,
-                      padding: spacing.md,
-                    },
-                  ]}
-                  onPress={() => handleSelect(proj)}
-                  activeOpacity={0.7}
+          {/* Header */}
+          <View style={[styles.header, { marginBottom: spacing.md }]}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+              <FolderKanban size={18} color={colors.accentText} />
+              <Text variant="h3" style={{ fontWeight: '700' }}>
+                {isCreating ? 'Create Project' : 'Projects'}
+              </Text>
+            </View>
+            <TouchableOpacity
+              onPress={() => {
+                resetForm();
+                onClose();
+              }}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              style={[
+                styles.closeBtn,
+                {
+                  backgroundColor: colors.surface2 || colors.surfaceRaised,
+                  borderRadius: radius.pill,
+                },
+              ]}
+              accessibilityRole="button"
+              accessibilityLabel="Close project switcher"
+            >
+              <X size={16} color={colors.textSecondary} />
+            </TouchableOpacity>
+          </View>
+
+          {errorMsg && (
+            <View
+              style={[
+                styles.errorBox,
+                {
+                  backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                  borderRadius: radius.sm,
+                  padding: spacing.sm,
+                  marginBottom: spacing.sm,
+                },
+              ]}
+            >
+              <Text variant="caption" color="danger">
+                {errorMsg}
+              </Text>
+            </View>
+          )}
+
+          {!isCreating ? (
+            <>
+              {/* List of projects */}
+              <ScrollView style={styles.list} showsVerticalScrollIndicator={false}>
+                <View style={{ gap: spacing.xs }}>
+                  {projects.map((p) => {
+                    const isSelected = p.id === activeProject?.id;
+
+                    return (
+                      <TouchableOpacity
+                        key={p.id}
+                        style={[
+                          styles.projectItem,
+                          {
+                            backgroundColor: isSelected
+                              ? colors.surface2 || colors.surfaceRaised
+                              : colors.surface1 || colors.surface,
+                            borderColor: isSelected ? colors.accent : colors.hairline,
+                            borderWidth: 1,
+                            borderRadius: radius.md,
+                            padding: spacing.md,
+                          },
+                        ]}
+                        onPress={() => handleSelect(p)}
+                        activeOpacity={0.7}
+                      >
+                        <View style={styles.itemLeft}>
+                          <View
+                            style={[
+                              styles.keyBadge,
+                              {
+                                backgroundColor: isSelected ? colors.accent : colors.surface2,
+                                borderRadius: radius.sm,
+                              },
+                            ]}
+                          >
+                            <Text
+                              variant="caption"
+                              style={{
+                                color: isSelected ? '#FFFFFF' : colors.textPrimary,
+                                fontWeight: '700',
+                              }}
+                            >
+                              {p.key || 'GEN'}
+                            </Text>
+                          </View>
+                          <View style={{ marginLeft: spacing.md, flex: 1 }}>
+                            <Text variant="bodyStrong" numberOfLines={1}>
+                              {p.name}
+                            </Text>
+                          </View>
+                        </View>
+
+                        {isSelected && <Check size={18} color={colors.accentText} strokeWidth={2.5} />}
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+              </ScrollView>
+
+              {/* Create Project Button */}
+              <TouchableOpacity
+                style={[
+                  styles.newProjectBtn,
+                  {
+                    backgroundColor: colors.surface2 || colors.surfaceRaised,
+                    borderRadius: radius.md,
+                    padding: spacing.md,
+                    marginTop: spacing.md,
+                  },
+                ]}
+                onPress={() => setIsCreating(true)}
+                activeOpacity={0.7}
+              >
+                <Plus size={16} color={colors.accentText} />
+                <Text
+                  variant="bodySmall"
+                  style={{ color: colors.accentText, marginLeft: spacing.xs, fontWeight: '600' }}
                 >
-                  <View style={styles.itemLeft}>
-                    <View
-                      style={[
-                        styles.projectBadge,
-                        {
-                          backgroundColor: colors.surface2 || colors.surfaceRaised,
-                          borderRadius: radius.sm,
-                        },
-                      ]}
-                    >
-                      <Text variant="bodySmall" style={{ fontWeight: '700', color: colors.accent }}>
-                        {proj.key || 'PRJ'}
-                      </Text>
-                    </View>
-                    <View style={{ marginLeft: spacing.md, flex: 1 }}>
-                      <Text variant="bodyStrong" numberOfLines={1}>
-                        {proj.name}
-                      </Text>
-                    </View>
-                  </View>
-
-                  {isSelected && <Check size={18} color={colors.accent} strokeWidth={2.5} />}
-                </TouchableOpacity>
-              );
-            })}
-          </View>
-        </ScrollView>
-
-        {/* Create Project Section */}
-        {isCreating ? (
-          <View
-            style={[
-              styles.createBox,
-              {
-                backgroundColor: colors.surface2 || colors.surfaceRaised,
-                borderRadius: radius.md,
-                padding: spacing.md,
-                marginTop: spacing.md,
-              },
-            ]}
-          >
-            <Input
-              label="New Project Name"
-              value={newProjectName}
-              onChangeText={setNewProjectName}
-              placeholder="e.g. Mobile App Redesign"
-              autoFocus
-              returnKeyType="done"
-              onSubmitEditing={handleCreateProject}
-            />
-            <View style={[styles.createActions, { gap: spacing.sm, marginTop: spacing.md }]}>
-              <View style={{ flex: 1 }}>
-                <Button
-                  title="Cancel"
-                  variant="secondary"
-                  onPress={() => setIsCreating(false)}
-                />
-              </View>
-              <View style={{ flex: 1 }}>
-                <Button
-                  title="Create"
-                  variant="primary"
-                  loading={isSubmitting}
-                  disabled={!newProjectName.trim()}
-                  onPress={handleCreateProject}
-                />
+                  New Project
+                </Text>
+              </TouchableOpacity>
+            </>
+          ) : (
+            <View style={{ gap: spacing.md }}>
+              <Input
+                label="Project Name"
+                value={newProjectName}
+                onChangeText={setNewProjectName}
+                placeholder="e.g. Mobile App"
+                autoFocus
+                returnKeyType="done"
+                onSubmitEditing={handleCreateProject}
+              />
+              <View style={[styles.formActions, { gap: spacing.sm }]}>
+                <View style={{ flex: 1 }}>
+                  <Button
+                    title="Cancel"
+                    variant="secondary"
+                    onPress={resetForm}
+                  />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Button
+                    title="Create"
+                    variant="primary"
+                    loading={isSubmitting}
+                    disabled={!newProjectName.trim()}
+                    onPress={handleCreateProject}
+                  />
+                </View>
               </View>
             </View>
-          </View>
-        ) : (
-          <TouchableOpacity
-            style={[
-              styles.newProjectBtn,
-              {
-                backgroundColor: colors.surface2 || colors.surfaceRaised,
-                borderRadius: radius.md,
-                padding: spacing.md,
-                marginTop: spacing.md,
-              },
-            ]}
-            onPress={() => setIsCreating(true)}
-            activeOpacity={0.7}
-          >
-            <Plus size={16} color={colors.accent} />
-            <Text variant="bodyStrong" style={{ color: colors.accent, marginLeft: spacing.sm }}>
-              New Project
-            </Text>
-          </TouchableOpacity>
-        )}
-      </View>
+          )}
+        </View>
+      </KeyboardAvoidingView>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
   overlayRoot: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
+    ...StyleSheet.absoluteFillObject,
     zIndex: 9999,
     elevation: 999,
   },
   backdrop: {
     ...StyleSheet.absoluteFillObject,
   },
+  keyboardContainer: {
+    flex: 1,
+    justifyContent: 'flex-end',
+  },
   sheet: {
-    position: 'absolute',
-    top: 110,
-    left: 16,
-    width: 320,
-    maxHeight: '75%',
     shadowColor: '#000000',
-    shadowOffset: { width: 0, height: 12 },
-    shadowOpacity: 0.45,
-    shadowRadius: 32,
+    shadowOffset: { width: 0, height: -6 },
+    shadowOpacity: 0.25,
+    shadowRadius: 20,
     elevation: 1000,
+    maxHeight: '80%',
+  },
+  handleContainer: {
+    alignItems: 'center',
+    paddingVertical: 8,
+  },
+  handleBar: {
+    width: 36,
+    height: 4,
+    borderRadius: 2,
   },
   header: {
     flexDirection: 'row',
@@ -251,13 +320,13 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   closeBtn: {
-    width: 28,
-    height: 28,
+    width: 30,
+    height: 30,
     alignItems: 'center',
     justifyContent: 'center',
   },
   list: {
-    maxHeight: 240,
+    maxHeight: 280,
   },
   projectItem: {
     flexDirection: 'row',
@@ -269,17 +338,19 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     flex: 1,
   },
-  projectBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-  },
-  createBox: {},
-  createActions: {
-    flexDirection: 'row',
+  keyBadge: {
+    width: 44,
+    height: 28,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   newProjectBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
   },
+  formActions: {
+    flexDirection: 'row',
+  },
+  errorBox: {},
 });

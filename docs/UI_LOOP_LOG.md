@@ -26,6 +26,40 @@ Loop Cycle: `CAPTURE` -> `AUDIT` -> `CRITIQUE` -> `SCORE` -> `PLAN` -> `FIX` -> 
 | **L7** | M7 | Visual Polish & Rubric Audit | 48.9 / 50 | 49.2 / 50 | **COMPLETED** | Squint, grayscale, 5-sec, alignment sweeps (all >=48/50) |
 | **M0** | M0 | Baseline & Capture Harness (Plane-Class) | 38 / 55 | 45 / 55 | **COMPLETED** | Root cause fixes for quick-capture modes, bug severity, and task/bug separation; SCREEN_MATRIX.md generated; API coverage verified |
 | **M1** | M1 | Foundations v3 (Tokens, Rows & Controls) | 45 / 55 | 48 / 55 | **COMPLETED** | Tokens v3, 0 contrast fails, row anatomy (circle checkbox, priority dots), unified Switch, rebuilt AI & Context editors |
+| **M2** | M2 | Shell & Home (Plane-Class Launchpad & Sheets) | 44 / 55 | 49 / 55 | **COMPLETED (GATE G1)** | Plane launchpad Home, Work card, Bell unread dot, bottom sheets for workspace (no slugs + join code) & account |
+
+---
+
+## Milestone M2: Shell & Home (Plane-Class Launchpad & Sheets)
+- **Date**: 2026-11-08
+- **Milestone**: M2 (GATE G1)
+- **Scope**: Home (S12), Workspace Switcher (S13), Account Menu (S14), Notifications (S15), Search (S16), Quick Actions (S17)
+- **Deliverables & Enhancements**:
+  1. **Plane-Class Home Launchpad (S12)**:
+     - Header: Workspace tile + truncated name + chevron (left). Bell icon with accent unread dot indicator + user avatar (right).
+     - Removed redundant subBar ("General / Labels" chips) per spec.
+     - Today Hero card: Sentence-case "Today", `${pendingTasks.length} to do · ${completedCount} done`, real SVG `ProgressRing`, 3 tonal stat chips (Done · Bugs · Stickies) with deep linking.
+     - Dedicated Plane-style **Work** card: Direct high-contrast entry point to full work queue.
+     - Grouped **Your work** list: Circle animated checkboxes, priority dots, due dates, human IDs.
+     - Quick capture strip: Dual tonal buttons ("Voice note" and "Report a bug").
+     - Recent stickies: 148×148 square pastel cards + "New Sticky" empty state.
+     - First-run checklist card: Friendly onboarding cues when starting fresh.
+  2. **Workspace Switcher as Bottom Sheet (S13)**:
+     - Rebuilt as a true bottom sheet with drag handle and safe-area padding.
+     - Removed all slugs (`ws.slug`), displaying user's actual role badge (`Owner` / `Member`).
+     - Added dual actions: "New Workspace" and "Join with Code" (accepts invite code/URL via `/invitations/accept`).
+  3. **Project Switcher as Bottom Sheet**:
+     - Bottom sheet modal with drag handle, project key badges (`GEN`), checkmark on active project, and "New Project" creation flow.
+  4. **Account Menu as Bottom Sheet (S14)**:
+     - Bottom sheet modal featuring user avatar, full name, email, and role badge.
+     - Clean grouped rows: Settings & Profile, Switch Workspace, Projects, Notifications, and isolated destructive Sign Out button.
+  5. **Navigation Shell & Polish (S15–S17)**:
+     - FloatingNavBar: 4-tab glass pill with detached circular '+' FAB. Long-press quick menu with haptics.
+     - Notifications bell shortcut directly on Home.
+- **Verification**:
+  - `pnpm --filter @doit/mobile typecheck`: 0 errors.
+  - `pnpm --filter @doit/web typecheck`: 0 errors.
+  - `SCREEN_MATRIX.md` updated: S11–S17 marked verified (`R`), all scores ≥ 47/55.
 
 ---
 

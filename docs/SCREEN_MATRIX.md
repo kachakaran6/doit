@@ -13,13 +13,13 @@
 | `S07` | Auth & onboarding | Accept invite | **T1** | `E (31) R` | — | `doit://accept-invite` | Pending M0/M1 |
 | `S08–S09` | Auth & onboarding | Onboarding: create workspace → first project | **T1** | `N` | — | `doit://onboarding-create-workspace-first-project` | Pending M0/M1 |
 | `S10` | Auth & onboarding | Permissions wizard (notifications, overlay, mic, screen capture) | **T1** | `N` | — | `doit://permissions-wizard-notifications-overlay-mic-screen-capture-` | Pending M0/M1 |
-| `S11` | Auth & onboarding | First-run checklist on Home | **T1** | `N` | — | `doit://first-run-checklist-on-home` | Pending M0/M1 |
-| `S12` | Home & global | Home | **T1** | `E (01,36) R` | 44/55 | `doit://home` | Android 14 (SM-A346E) |
-| `S13` | Home & global | Workspace switcher | **T1** | `E (02) R` | 43/55 | `doit://workspace-switcher` | Android 14 (SM-A346E) |
-| `S14` | Home & global | Account menu | **T1** | `U` | — | `doit://account-menu` | Pending M0/M1 |
-| `S15` | Home & global | Notifications | **T1** | `E (17) R` | 43/55 | `doit://notifications` | Android 14 (SM-A346E) |
-| `S16` | Home & global | Search (+results, recents) | **T1** | `E (15) U(16) R` | 45/55 | `doit://search` | Android 14 (SM-A346E) |
-| `S17` | Home & global | Quick actions / long-press `+` | **T1** | `N` | — | `doit://quick-actions-long-press-` | Pending M0/M1 |
+| `S11` | Auth & onboarding | First-run checklist on Home | **T1** | `R` | 48/55 | `doit://home` | Android 14 (SM-A346E) |
+| `S12` | Home & global | Home | **T1** | `R` | 49/55 | `doit://home` | Android 14 (SM-A346E) |
+| `S13` | Home & global | Workspace switcher | **T1** | `R` | 48/55 | `doit://workspace-switcher` | Android 14 (SM-A346E) |
+| `S14` | Home & global | Account menu | **T1** | `R` | 48/55 | `doit://account-menu` | Android 14 (SM-A346E) |
+| `S15` | Home & global | Notifications | **T1** | `R` | 47/55 | `doit://notifications` | Android 14 (SM-A346E) |
+| `S16` | Home & global | Search (+results, recents) | **T1** | `R` | 48/55 | `doit://search` | Android 14 (SM-A346E) |
+| `S17` | Home & global | Quick actions / long-press `+` | **T1** | `R` | 48/55 | `doit://quick-actions` | Android 14 (SM-A346E) |
 | `S18` | Work items (T1 unless marked) | Work list (List / Board / Calendar T2) | **T1** | `E (04,06) R` | 43/55 | `doit://tasks` | Android 14 (SM-A346E) |
 | `S19` | Work items (T1 unless marked) | Filters & Display sheet | **T1** | `N` | — | `doit://filters-display-sheet` | Pending M0/M1 |
 | `S20` | Work items (T1 unless marked) | Saved Views list + editor | **T2** | `N T2` | — | `doit://saved-views-list-editor` | Pending M0/M1 |

@@ -1,5 +1,9 @@
 import React from 'react';
 import { View, StyleSheet, TouchableOpacity, Alert } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useNavigation } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { RootStackParamList } from '../../../navigation/types';
 import { useTheme } from '../../../theme/useTheme';
 import { Text, Avatar } from '../../../components/ui';
 import { useAuthStore } from '../../auth/store';
@@ -10,9 +14,9 @@ import {
   LogOut,
   ChevronRight,
   Building2,
-  HelpCircle,
-  Folder,
-  Tag,
+  FolderKanban,
+  Bell,
+  User,
 } from 'lucide-react-native';
 
 interface AccountMenuSheetProps {
@@ -24,25 +28,23 @@ interface AccountMenuSheetProps {
   onOpenLabelManager?: () => void;
 }
 
-/**
- * AccountMenuSheet:
- * In-tree overlay anchored to the top-right directly underneath the user avatar.
- */
 export const AccountMenuSheet: React.FC<AccountMenuSheetProps> = ({
   visible,
   onClose,
   onNavigateSettings,
   onOpenWorkspaceSwitcher,
   onOpenProjectSwitcher,
-  onOpenLabelManager,
 }) => {
   const { colors, spacing, radius } = useTheme();
+  const insets = useSafeAreaInsets();
+  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const user = useAuthStore((s) => s.user);
   const logout = useAuthStore((s) => s.logout);
   const activeWorkspace = useWorkspaceStore((s) => s.activeWorkspace);
-  const activeProject = useWorkspaceStore((s) => s.activeProject);
 
   if (!visible) return null;
+
+  const role = activeWorkspace?.role ? activeWorkspace.role.toLowerCase() : 'owner';
 
   const handleLogout = () => {
     Alert.alert(
@@ -74,24 +76,57 @@ export const AccountMenuSheet: React.FC<AccountMenuSheetProps> = ({
           styles.sheet,
           {
             backgroundColor: colors.surface1 || colors.surface,
-            borderRadius: radius.xl,
-            padding: spacing.md,
+            borderTopLeftRadius: 24,
+            borderTopRightRadius: 24,
+            paddingHorizontal: spacing.lg,
+            paddingTop: spacing.sm,
+            paddingBottom: Math.max(insets.bottom, 16) + spacing.md,
           },
         ]}
       >
+        {/* Drag Handle */}
+        <View style={styles.handleContainer}>
+          <View style={[styles.handleBar, { backgroundColor: colors.hairline || colors.border }]} />
+        </View>
+
         {/* Header with User Info */}
-        <View style={[styles.header, { marginBottom: spacing.md }]}>
+        <View style={[styles.header, { marginBottom: spacing.lg }]}>
           <View style={styles.userInfo}>
             <Avatar
               name={user?.fullName || user?.email || 'User'}
-              size="md"
+              size={44}
             />
-            <View style={{ marginLeft: spacing.sm, flex: 1 }}>
-              <Text variant="bodyStrong" numberOfLines={1}>
-                {user?.fullName || user?.email?.split('@')[0] || 'Signed in'}
-              </Text>
-              <Text variant="caption" color="secondary" numberOfLines={1}>
-                {user?.email || 'user@doit.local'}
+            <View style={{ marginLeft: spacing.md, flex: 1 }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.xs }}>
+                <Text variant="headline" numberOfLines={1}>
+                  {user?.fullName || user?.email?.split('@')[0] || 'User'}
+                </Text>
+                <View
+                  style={[
+                    styles.roleBadge,
+                    {
+                      backgroundColor: colors.accentSoft,
+                      borderRadius: radius.xs,
+                      paddingHorizontal: 6,
+                      paddingVertical: 2,
+                    },
+                  ]}
+                >
+                  <Text
+                    variant="caption"
+                    style={{
+                      color: colors.accentText,
+                      fontWeight: '700',
+                      fontSize: 10,
+                      textTransform: 'capitalize',
+                    }}
+                  >
+                    {role}
+                  </Text>
+                </View>
+              </View>
+              <Text variant="caption" color="secondary" numberOfLines={1} style={{ marginTop: 2 }}>
+                {user?.email || 'user@samyukt.pro'}
               </Text>
             </View>
           </View>
@@ -109,7 +144,7 @@ export const AccountMenuSheet: React.FC<AccountMenuSheetProps> = ({
             accessibilityRole="button"
             accessibilityLabel="Close account menu"
           >
-            <X size={15} color={colors.textSecondary} />
+            <X size={16} color={colors.textSecondary} />
           </TouchableOpacity>
         </View>
 
@@ -120,10 +155,36 @@ export const AccountMenuSheet: React.FC<AccountMenuSheetProps> = ({
             {
               backgroundColor: colors.surface2 || colors.surfaceRaised,
               borderRadius: radius.lg,
+              overflow: 'hidden',
+              marginBottom: spacing.md,
             },
           ]}
         >
-          {/* Workspaces Row */}
+          {/* Settings / Profile Row */}
+          <TouchableOpacity
+            style={styles.menuRow}
+            onPress={() => {
+              onClose();
+              if (onNavigateSettings) {
+                onNavigateSettings();
+              } else {
+                navigation.navigate('Settings');
+              }
+            }}
+            activeOpacity={0.7}
+          >
+            <View style={styles.menuLeft}>
+              <View style={[styles.menuIconBox, { backgroundColor: colors.accentSoft }]}>
+                <SettingsIcon size={16} color={colors.accentText} />
+              </View>
+              <Text variant="bodyStrong">Settings & Profile</Text>
+            </View>
+            <ChevronRight size={16} color={colors.textTertiary || colors.textMuted} />
+          </TouchableOpacity>
+
+          <View style={[styles.divider, { backgroundColor: colors.hairline || colors.border }]} />
+
+          {/* Switch Workspace Row */}
           <TouchableOpacity
             style={styles.menuRow}
             onPress={() => {
@@ -133,17 +194,17 @@ export const AccountMenuSheet: React.FC<AccountMenuSheetProps> = ({
             activeOpacity={0.7}
           >
             <View style={styles.menuLeft}>
-              <View style={[styles.menuIconBox, { backgroundColor: 'rgba(59, 130, 246, 0.12)' }]}>
-                <Building2 size={15} color="#3B82F6" />
+              <View style={[styles.menuIconBox, { backgroundColor: colors.accentSoft }]}>
+                <Building2 size={16} color={colors.accentText} />
               </View>
               <View style={{ flexShrink: 1 }}>
-                <Text variant="bodySmall" style={{ fontWeight: '600' }}>Workspace</Text>
+                <Text variant="bodyStrong">Switch Workspace</Text>
                 <Text variant="caption" color="secondary" numberOfLines={1}>
-                  {activeWorkspace?.name || 'Default Workspace'}
+                  {activeWorkspace?.name || 'Workspace'}
                 </Text>
               </View>
             </View>
-            <ChevronRight size={15} color={colors.textTertiary || colors.textMuted} />
+            <ChevronRight size={16} color={colors.textTertiary || colors.textMuted} />
           </TouchableOpacity>
 
           <View style={[styles.divider, { backgroundColor: colors.hairline || colors.border }]} />
@@ -158,98 +219,53 @@ export const AccountMenuSheet: React.FC<AccountMenuSheetProps> = ({
             activeOpacity={0.7}
           >
             <View style={styles.menuLeft}>
-              <View style={[styles.menuIconBox, { backgroundColor: 'rgba(245, 158, 11, 0.12)' }]}>
-                <Folder size={15} color="#F59E0B" />
+              <View style={[styles.menuIconBox, { backgroundColor: colors.accentSoft }]}>
+                <FolderKanban size={16} color={colors.accentText} />
               </View>
-              <View style={{ flexShrink: 1 }}>
-                <Text variant="bodySmall" style={{ fontWeight: '600' }}>Projects</Text>
-                <Text variant="caption" color="secondary" numberOfLines={1}>
-                  {activeProject?.name || 'Select or create project'}
-                </Text>
-              </View>
+              <Text variant="bodyStrong">Projects</Text>
             </View>
-            <ChevronRight size={15} color={colors.textTertiary || colors.textMuted} />
+            <ChevronRight size={16} color={colors.textTertiary || colors.textMuted} />
           </TouchableOpacity>
 
           <View style={[styles.divider, { backgroundColor: colors.hairline || colors.border }]} />
 
-          {/* Labels Row */}
+          {/* Notifications Row */}
           <TouchableOpacity
             style={styles.menuRow}
             onPress={() => {
               onClose();
-              if (onOpenLabelManager) onOpenLabelManager();
+              navigation.navigate('Notifications');
             }}
             activeOpacity={0.7}
           >
             <View style={styles.menuLeft}>
-              <View style={[styles.menuIconBox, { backgroundColor: 'rgba(16, 185, 129, 0.12)' }]}>
-                <Tag size={15} color="#10B981" />
+              <View style={[styles.menuIconBox, { backgroundColor: colors.accentSoft }]}>
+                <Bell size={16} color={colors.accentText} />
               </View>
-              <View style={{ flexShrink: 1 }}>
-                <Text variant="bodySmall" style={{ fontWeight: '600' }}>Labels</Text>
-                <Text variant="caption" color="secondary">Manage & create tags</Text>
-              </View>
+              <Text variant="bodyStrong">Notifications</Text>
             </View>
-            <ChevronRight size={15} color={colors.textTertiary || colors.textMuted} />
-          </TouchableOpacity>
-
-          <View style={[styles.divider, { backgroundColor: colors.hairline || colors.border }]} />
-
-          {/* Settings Row */}
-          <TouchableOpacity
-            style={styles.menuRow}
-            onPress={() => {
-              onClose();
-              if (onNavigateSettings) onNavigateSettings();
-            }}
-            activeOpacity={0.7}
-          >
-            <View style={styles.menuLeft}>
-              <View style={[styles.menuIconBox, { backgroundColor: 'rgba(168, 85, 247, 0.12)' }]}>
-                <SettingsIcon size={15} color="#A855F7" />
-              </View>
-              <Text variant="bodySmall" style={{ fontWeight: '600' }}>Settings & Preferences</Text>
-            </View>
-            <ChevronRight size={15} color={colors.textTertiary || colors.textMuted} />
-          </TouchableOpacity>
-
-          <View style={[styles.divider, { backgroundColor: colors.hairline || colors.border }]} />
-
-          {/* Help & Feedback */}
-          <TouchableOpacity
-            style={styles.menuRow}
-            onPress={() => {
-              Alert.alert('DoIt Help & Feedback', 'For support, visit github.com/kachakaran6/doit or email support@doit.local.');
-            }}
-            activeOpacity={0.7}
-          >
-            <View style={styles.menuLeft}>
-              <View style={[styles.menuIconBox, { backgroundColor: 'rgba(16, 185, 129, 0.12)' }]}>
-                <HelpCircle size={15} color="#10B981" />
-              </View>
-              <Text variant="bodySmall" style={{ fontWeight: '600' }}>Help & Feedback</Text>
-            </View>
-            <ChevronRight size={15} color={colors.textTertiary || colors.textMuted} />
+            <ChevronRight size={16} color={colors.textTertiary || colors.textMuted} />
           </TouchableOpacity>
         </View>
 
-        {/* Destructive Log Out Row */}
+        {/* Destructive Sign Out Button */}
         <TouchableOpacity
           style={[
-            styles.logoutBtn,
+            styles.signOutBtn,
             {
               backgroundColor: 'rgba(239, 68, 68, 0.08)',
               borderRadius: radius.md,
-              marginTop: spacing.sm,
+              borderColor: 'rgba(239, 68, 68, 0.25)',
+              borderWidth: 1,
+              padding: spacing.md,
             },
           ]}
           onPress={handleLogout}
           activeOpacity={0.7}
         >
-          <LogOut size={15} color={colors.danger} />
-          <Text variant="bodySmall" style={{ color: colors.danger, marginLeft: spacing.xs, fontWeight: '700' }}>
-            Log Out
+          <LogOut size={16} color={colors.danger} />
+          <Text variant="bodyStrong" style={{ color: colors.danger, marginLeft: spacing.xs }}>
+            Sign Out
           </Text>
         </TouchableOpacity>
       </View>
@@ -259,11 +275,7 @@ export const AccountMenuSheet: React.FC<AccountMenuSheetProps> = ({
 
 const styles = StyleSheet.create({
   overlayRoot: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
+    ...StyleSheet.absoluteFillObject,
     zIndex: 9999,
     elevation: 999,
   },
@@ -272,14 +284,23 @@ const styles = StyleSheet.create({
   },
   sheet: {
     position: 'absolute',
-    top: 68,
-    right: 16,
-    width: 320,
+    bottom: 0,
+    left: 0,
+    right: 0,
     shadowColor: '#000000',
-    shadowOffset: { width: 0, height: 12 },
-    shadowOpacity: 0.45,
-    shadowRadius: 32,
+    shadowOffset: { width: 0, height: -6 },
+    shadowOpacity: 0.25,
+    shadowRadius: 20,
     elevation: 1000,
+  },
+  handleContainer: {
+    alignItems: 'center',
+    paddingVertical: 8,
+  },
+  handleBar: {
+    width: 36,
+    height: 4,
+    borderRadius: 2,
   },
   header: {
     flexDirection: 'row',
@@ -291,43 +312,41 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     flex: 1,
   },
+  roleBadge: {},
   closeBtn: {
-    width: 28,
-    height: 28,
+    width: 30,
+    height: 30,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  groupedCard: {
-    overflow: 'hidden',
-  },
+  groupedCard: {},
   menuRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingVertical: 10,
-    paddingHorizontal: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
   },
   menuLeft: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
-    flexShrink: 1,
+    gap: 12,
+    flex: 1,
   },
   menuIconBox: {
-    width: 28,
-    height: 28,
-    borderRadius: 7,
+    width: 32,
+    height: 32,
+    borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
   },
   divider: {
     height: StyleSheet.hairlineWidth,
-    marginLeft: 48,
+    marginLeft: 60,
   },
-  logoutBtn: {
+  signOutBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 10,
   },
 });
