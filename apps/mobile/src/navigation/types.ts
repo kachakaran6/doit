@@ -21,6 +21,7 @@ export type RootStackParamList = {
   InviteAccept: { token: string };
   PendingSync: undefined;
   Notifications: undefined;
+  Trash: undefined;
   DevGallery?: undefined;
   FoundationGallery?: undefined;
 };

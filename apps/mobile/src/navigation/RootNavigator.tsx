@@ -19,6 +19,7 @@ import { ProjectContextScreen } from '../features/projects/ProjectContextScreen'
 import { TeamMembersScreen } from '../features/workspace';
 import { PendingSyncScreen } from '../features/outbox/screens/PendingSyncScreen';
 import { NotificationsScreen } from '../features/notifications';
+import { TrashScreen } from '../features/tasks/screens/TrashScreen';
 import { ComponentGallery } from '../core/dev/ComponentGallery';
 import { FoundationGallery } from '../core/dev/FoundationGallery';
 import { NavBarScrollProvider } from './nav-bar-scroll.context';
@@ -89,6 +90,7 @@ const linking: LinkingOptions<RootStackParamList> = {
       Settings: 'settings',
       PendingSync: 'sync',
       Notifications: 'notifications',
+      Trash: 'trash',
       DevGallery: 'dev/gallery',
       FoundationGallery: 'dev/foundation',
     },
@@ -156,6 +158,7 @@ export const RootNavigator: React.FC = () => {
               <Stack.Screen name="TeamMembers" component={TeamMembersScreen} />
               <Stack.Screen name="PendingSync" component={PendingSyncScreen} />
               <Stack.Screen name="Notifications" component={NotificationsScreen} />
+              <Stack.Screen name="Trash" component={TrashScreen} />
               <Stack.Screen
                 name="CaptureModal"
                 component={CaptureModal}

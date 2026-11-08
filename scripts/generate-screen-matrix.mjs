@@ -116,3 +116,4 @@ for (const r of rows) {
 
 fs.writeFileSync(outPath, md, 'utf8');
 console.log(`Generated SCREEN_MATRIX.md with ${rows.length} screens`);
+

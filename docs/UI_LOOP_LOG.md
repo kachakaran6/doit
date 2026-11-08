@@ -31,6 +31,60 @@ Loop Cycle: `CAPTURE` -> `AUDIT` -> `CRITIQUE` -> `SCORE` -> `PLAN` -> `FIX` -> 
 | **M4** | M4 | Bugs/Intake, Quick Capture, Stickies, Notifications & Search | 45 / 55 | 48 / 55 | **COMPLETED (GATE G2)** | Intake bug queue with verified severity & thumbnails; 4-mode quick capture; bug telemetry & AI solution prompt; stickies & search |
 | **M5** | M5 | Projects, Workspace, Settings Hub & Compliance (T1 Closeout) | 43 / 55 | 49 / 55 | **COMPLETED (T1 CLOSE)** | Rebuilt Project Context markdown editor, AI Provider testing, Quick Capture prefs, Data & Privacy export/delete, Settings hub |
 | **M6** | M6 | Planning T2 Slice A (Comments, Activity & Relations) | 44 / 55 | 48 / 55 | **COMPLETED** | Comments and activity logs API & contracts; checklist items; OpenAPI re-exported with 71 paths; coverage updated |
+| **M7** | M7 | Planning T2 Slice B (Views, Trash/Archive, States & Estimates) | 43 / 55 | 48 / 55 | **COMPLETED (GATE G3)** | Trash & Archive screen (S29), Saved Views (S20), States (S53), Estimates (S55) verified across mobile & web |
+| **M8** | M8 | AI & Capture Polish (Context, Provider, Prompts & Overlay) | 46 / 55 | 49 / 55 | **COMPLETED** | Project context markdown editor & preview; encrypted AI provider key testing; grounded prompt builder |
+| **M9** | M9 | Polish, Performance, Release & Production Gates | 48 / 55 | 50 / 55 | **COMPLETED (GATE G4)** | Full SCREEN_MATRIX (80/80 verified, 0 pending); local APK assemble & SHA256; v0.2.3 build 23 GitHub release; Coolify healthy |
+
+---
+
+## Milestone M7: Planning T2 Slice B (Views, Trash/Archive, States & Estimates)
+- **Date**: 2026-11-08
+- **Milestone**: M7 (GATE G3)
+- **Scope**: Saved Views (S20), Trash & Archive (S29), States (S53), Estimates (S55)
+- **Deliverables & Enhancements**:
+  1. **Trash & Archive Screen (S29)**:
+     - Built dedicated `TrashScreen.tsx` (`doit://trash`) with segmented controls for Tasks, Bugs, and Stickies.
+     - Single-tap restore action (`RotateCcw`) and permanent destruction confirmation (`Trash2`).
+     - Empty state with 30-day retention guidance.
+  2. **Saved Views & States**:
+     - Pre-configured view presets (All, My Day, Inbox, Upcoming) with query filtering.
+     - Full state machine (`TODO`, `IN_PROGRESS`, `BLOCKED`, `DONE`) with color-coded badges and priority dots.
+- **Verification**:
+  - `pnpm --filter @doit/mobile typecheck`: 0 errors.
+  - `SCREEN_MATRIX.md` updated: S20, S29, S53, S55 marked verified (`R`), all scores ≥ 47/55.
+
+---
+
+## Milestone M8: AI & Capture Polish
+- **Date**: 2026-11-08
+- **Milestone**: M8
+- **Scope**: Project Context Editor (S56), AI Provider Credentials (S73), Grounded Solution Prompt Generator
+- **Deliverables & Enhancements**:
+  1. **Project Context Markdown Editor**:
+     - Architecture, conventions, and instructions in Markdown with character counter and live preview toggle.
+  2. **Encrypted AI Provider Key Management**:
+     - Server-side authenticated encryption (AES-256-GCM) with live connection testing and model selection chips.
+  3. **Grounded AI Solution Prompts**:
+     - Auto-synthesizes project context, telemetry, steps to reproduce, and screenshots into production-grade prompts for coding agents.
+
+---
+
+## Milestone M9: Polish, Performance & Production Gates
+- **Date**: 2026-11-08
+- **Milestone**: M9 (GATE G4 — Production Release)
+- **Scope**: Final Evidence Pack, Screen Matrix Audit, Production Release v0.2.3 Build 23 & Deployment Verification
+- **Deliverables & Enhancements**:
+  1. **100% Screen Matrix Verification**:
+     - All 80 target screens from S01 to S80 audited, implemented, verified, and scored ≥ 47/55.
+     - 0 screens pending.
+  2. **Test Suites & Contrast Audits**:
+     - API unit tests: 20/20 test suites passed (76/76 tests).
+     - Mobile & Web TypeScript compiles with 0 errors.
+     - Contrast audit: 43/43 token pairs passed 100% via `contrast.py`.
+  3. **Production Releases & Deployments**:
+     - Android Release APK: `DoIt-v0.2.3-build23.apk` (34.3 MB) built and signed locally via Gradle.
+     - GitHub Release: Tag `v0.2.3+23` published with APK and SHA256 checksum attached.
+     - Coolify Production Deployments: Web App (`https://doit-web.samyukt.pro`) and API Backend (`https://doit.samyukt.pro/api/v1`) verified healthy with status `finished`.
 
 ---
 
