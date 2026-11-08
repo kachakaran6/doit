@@ -1,0 +1,11 @@
+appId: com.samyukt.doit
+---
+- launchApp
+- tapOn: "Work"                      # nav tab label (adjust)
+- tapOn: "Verify Task Screenshot"    # seeded item
+- assertVisible: "Description"       # unique to the detail screen
+- assertVisible: "Priority"
+- takeScreenshot: S21-work-item-detail
+- scrollUntilVisible:
+    element: "Attachments"
+- takeScreenshot: S21-work-item-detail-attachments

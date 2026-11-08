@@ -85,7 +85,7 @@ const linking: LinkingOptions<RootStackParamList> = {
       TaskDetail: 'task/:id',
       BugDetail: 'bug/:id',
       StickyBoard: 'stickies',
-      CaptureModal: 'capture',
+      CaptureModal: 'capture/:initialMode?',
       Settings: 'settings',
       PendingSync: 'sync',
       Notifications: 'notifications',

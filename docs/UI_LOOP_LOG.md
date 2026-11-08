@@ -24,6 +24,29 @@ Loop Cycle: `CAPTURE` -> `AUDIT` -> `CRITIQUE` -> `SCORE` -> `PLAN` -> `FIX` -> 
 | **L5** | M5 | Creation, Account & Settings | 46.8 / 50 | 48.2 / 50 | **COMPLETED** | A1, A2, A5, B6, F1, F2, F3, F4 |
 | **L6** | M6 | States, Motion & Haptics | 48.2 / 50 | 48.9 / 50 | **COMPLETED** | 0.97 press scale, 180ms checkbox, layout transitions |
 | **L7** | M7 | Visual Polish & Rubric Audit | 48.9 / 50 | 49.2 / 50 | **COMPLETED** | Squint, grayscale, 5-sec, alignment sweeps (all >=48/50) |
+| **M0** | M0 | Baseline & Capture Harness (Plane-Class) | 38 / 55 | 45 / 55 | **COMPLETED** | Root cause fixes for quick-capture modes, bug severity, and task/bug separation; SCREEN_MATRIX.md generated; API coverage verified |
+
+---
+
+## Milestone M0: Baseline & Capture Harness (Plane-Class Kit)
+- **Date**: 2026-11-08
+- **Milestone**: M0
+- **Scope**: Mobile & Web Baseline Architecture, Capture Integrity & Data Parity
+- **Root-Cause Defect Fixes**:
+  1. **Quick-Capture Mode Switching (Task/Bug/Voice/Sticky)**:
+     - `CaptureModal.tsx`: Added `useEffect` listening to `route.params?.initialMode` to ensure programmatic mode switching always fires.
+     - `RootNavigator.tsx`: Added route parameter `capture/:initialMode?` for direct deep link routing.
+     - Collapsed `showProjectList` by default to prevent vertical eating of the sheet.
+  2. **Bug Severity Defaulting & 0 Counts**:
+     - `tasks.controller.ts` & `tasks.service.ts`: Enabled automatic creation of `BugReport` entries with severity on bug creation (`createBug`).
+     - `tasks.mapper.ts`: Mapped `severity` and `bug` telemetry into API list items and single item responses.
+  3. **Task List & Bug Separation**:
+     - `tasks.controller.ts`: Added default `type: query.type || 'TASK'` to `listByProject` and `listByWorkspace` so standard task views exclude bugs.
+- **Harness & Verification**:
+  - `api_coverage.mjs` run against `openapi.json`: Web at **87%**, Mobile at **52%**. Reports saved to `docs/API_COVERAGE_WEB.md` and `docs/API_COVERAGE_MOBILE.md`.
+  - `docs/SCREEN_MATRIX.md` generated with all 68 target screens mapped and scored.
+  - API unit tests: 20/20 test suites passed, 76/76 tests passed.
+  - Mobile & Web typechecks: 0 errors.
 
 ---
 

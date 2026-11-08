@@ -91,6 +91,13 @@ export const CaptureModal: React.FC = () => {
 
   // Form State
   const [mode, setMode] = useState<CaptureMode>(initialMode);
+
+  useEffect(() => {
+    if (route.params?.initialMode) {
+      setMode(route.params.initialMode as CaptureMode);
+    }
+  }, [route.params?.initialMode]);
+
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [showDetails, setShowDetails] = useState(false);
@@ -111,7 +118,7 @@ export const CaptureModal: React.FC = () => {
   const [selectedLabelIds, setSelectedLabelIds] = useState<string[]>([]);
   const [projectQuery, setProjectQuery] = useState('');
   const [labelQuery, setLabelQuery] = useState('');
-  const [showProjectList, setShowProjectList] = useState(true);
+  const [showProjectList, setShowProjectList] = useState(false);
   const [showLabelList, setShowLabelList] = useState(false);
   const [labelNotice, setLabelNotice] = useState<string | null>(null);
 

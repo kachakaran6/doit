@@ -130,9 +130,34 @@ export class TasksService {
           assignee: { select: { id: true, name: true, avatarUrl: true } },
           labels: { select: { label: { select: { id: true, name: true, color: true } } } },
           checklist: { select: { id: true, done: true } },
+          bug: true,
           _count: { select: { attachments: true, comments: true } },
         },
       });
+
+      if (dto.type === TaskType.BUG || (dto as any).type === 'BUG' || dto.source === TaskSource.BUG || (dto as any).source === 'BUG') {
+        const rawSev = (dto as any).severity;
+        const sev = rawSev === 'CRITICAL' || rawSev === 'BLOCKER' || rawSev === 'MAJOR' || rawSev === 'MINOR' || rawSev === 'COSMETIC'
+          ? (rawSev as any)
+          : (created.priority === Priority.URGENT ? 'CRITICAL' : 'MAJOR');
+
+        const bugReport = await tx.bugReport.create({
+          data: {
+            taskId: created.id,
+            reporterId: userId,
+            severity: sev,
+            steps: (dto as any).steps || [],
+            expected: (dto as any).expected || null,
+            actual: (dto as any).actual || null,
+            frequency: (dto as any).frequency || 'often',
+            deviceModel: (dto as any).deviceModel || (dto as any).telemetry?.deviceModel || 'Mobile Device',
+            osVersion: (dto as any).osVersion || (dto as any).telemetry?.osVersion || 'Android',
+            appVersion: (dto as any).appVersion || (dto as any).telemetry?.appVersion || '0.2.3',
+            autoContext: (dto as any).telemetry || {},
+          },
+        });
+        (created as any).bug = bugReport;
+      }
 
       // Write ActivityLog
       await tx.activityLog.create({
@@ -223,6 +248,7 @@ export class TasksService {
           labels: { select: { label: { select: { id: true, name: true, color: true } } } },
           checklist: { select: { id: true, done: true } },
           attachments: query.type === 'BUG' ? true : false,
+          bug: true,
           _count: { select: { attachments: true, comments: true } },
         },
       }),

@@ -1,12 +1,12 @@
-# API → UI coverage (2026-11-07)
+# API → UI coverage (2026-11-08)
 
-Spec: `openapi.json` · Source: `apps/mobile/src` · **59%** covered or waived (97 operations, 40 uncovered)
+Spec: `openapi.json` · Source: `apps/mobile/src` · **52%** covered or waived (97 operations, 47 uncovered)
 
 ## Health
 | Operation | Summary | UI | Where |
 |---|---|---|---|
-| `GET /health` | Liveness health check verifying database | ⚪ waived | infra probe, no UI |
-| `GET /health/ready` | Readiness probe checking db, storage, and queue | ⚪ waived | infra readiness probe, no UI |
+| `GET /health` | Liveness health check verifying database | ❌ |  |
+| `GET /health/ready` | Readiness probe checking db, storage, and queue | ❌ |  |
 
 ## Config
 | Operation | Summary | UI | Where |
@@ -18,7 +18,7 @@ Spec: `openapi.json` · Source: `apps/mobile/src` · **59%** covered or waived (
 |---|---|---|---|
 | `POST /auth/register` | Register a new account | ✅ | apps\mobile\src\features\auth\api\mutations.ts |
 | `POST /auth/login` | Login with credentials and create device session | ✅ | apps\mobile\src\features\auth\api\mutations.ts |
-| `POST /auth/refresh` | Rotate and exchange refresh token for a new pair | ⚪ waived | silent refresh handled by auth token rotation layer |
+| `POST /auth/refresh` | Rotate and exchange refresh token for a new pair | ❌ |  |
 | `POST /auth/logout` | Logout and revoke current device session | ❌ |  |
 | `POST /auth/logout-all` | Revoke all device sessions for current user | ❌ |  |
 | `GET /auth/sessions` | List active device sessions | ❌ |  |
@@ -55,7 +55,7 @@ Spec: `openapi.json` · Source: `apps/mobile/src` · **59%** covered or waived (
 | `POST /workspaces/{workspaceId}/invitations/{id}/resend` | Resend invitation email (OWNER, ADMIN) | ✅ | apps\mobile\src\features\workspace\screens\TeamMembersScreen.tsx |
 | `GET /invitations/validate/{token}` | Publicly validate invitation token without authentication | ✅ | apps\mobile\src\screens\InviteAcceptScreen.tsx |
 | `POST /invitations/accept` | Accept workspace invitation token | ✅ | apps\mobile\src\screens\InviteAcceptScreen.tsx |
-| `POST /members/accept-invite` | Accept workspace invitation token (backward compatible alias) | ⚪ waived | backward-compatible alias of POST /invitations/accept |
+| `POST /members/accept-invite` | Accept workspace invitation token (backward compatible alias) | ❌ |  |
 | `PATCH /workspaces/{workspaceId}/members/{id}` | Update member role (OWNER only) | ❌ |  |
 | `DELETE /workspaces/{workspaceId}/members/{id}` | Remove member from workspace (OWNER, ADMIN) | ✅ | apps\mobile\src\features\workspace\screens\TeamMembersScreen.tsx |
 
@@ -78,9 +78,9 @@ Spec: `openapi.json` · Source: `apps/mobile/src` · **59%** covered or waived (
 | `POST /projects/{projectId}/tasks` | Create a new task in a project (idempotent) | ✅ | apps\mobile\src\features\tasks\api\mutations.ts |
 | `GET /workspaces/{workspaceId}/tasks` | List all tasks in a workspace | ❌ |  |
 | `GET /workspaces/{workspaceId}/tasks/my-day` | List My Day tasks for current user in workspace | ❌ |  |
-| `GET /tasks/my-day` | List My Day tasks by query param workspaceId | ⚪ waived | query-param alias for scoped GET /workspaces/{workspaceId}/tasks/my-day |
+| `GET /tasks/my-day` | List My Day tasks by query param workspaceId | ❌ |  |
 | `GET /workspaces/{workspaceId}/tasks/inbox` | List Inbox unassigned tasks in workspace | ❌ |  |
-| `GET /tasks/inbox` | List Inbox tasks by query param workspaceId | ⚪ waived | query-param alias for scoped GET /workspaces/{workspaceId}/tasks/inbox |
+| `GET /tasks/inbox` | List Inbox tasks by query param workspaceId | ❌ |  |
 | `GET /tasks/{id}` | Get full task details | ✅ | apps\mobile\src\features\tasks\api\queries.ts<br>apps\mobile\src\features\tasks\components\SolutionPromptSection.tsx |
 | `PATCH /tasks/{id}` | Update task properties | ✅ | apps\mobile\src\features\tasks\api\mutations.ts |
 | `DELETE /tasks/{id}` | Delete task | ✅ | apps\mobile\src\features\bugs\api\mutations.ts<br>apps\mobile\src\features\tasks\api\mutations.ts |
@@ -111,17 +111,17 @@ Spec: `openapi.json` · Source: `apps/mobile/src` · **59%** covered or waived (
 |---|---|---|---|
 | `GET /projects/{projectId}/stickies` | List stickies in project (supports ?pinned=true) | ✅ | apps\mobile\src\features\stickies\api\queries.ts |
 | `POST /projects/{projectId}/stickies` | Create a sticky in project | ✅ | apps\mobile\src\features\stickies\api\mutations.ts |
-| `GET /stickies/{id}` | Get sticky by ID | ✅ | apps\mobile\src\features\stickies\api\mutations.ts |
+| `GET /stickies/{id}` | Get sticky by ID | ❌ |  |
 | `PATCH /stickies/{id}` | Update sticky body, color, or pinned status | ✅ | apps\mobile\src\features\stickies\api\mutations.ts |
 | `DELETE /stickies/{id}` | Delete sticky (keeps converted task intact) | ❌ |  |
 | `POST /stickies/{id}/reorder` | Reorder sticky with fractional indexing | ❌ |  |
-| `POST /stickies/{id}/convert` | Convert sticky to task (atomic, links both ways) | ❌ |  |
+| `POST /stickies/{id}/convert` | Convert sticky to task (atomic, links both ways) | ✅ | apps\mobile\src\features\stickies\api\mutations.ts |
 
 ## Uploads & Attachments
 | Operation | Summary | UI | Where |
 |---|---|---|---|
-| `POST /uploads/init` | Initiate 3-step resumable upload (returns presigned PUT URL valid 15m) | ❌ |  |
-| `PUT /uploads/raw/{key}` | Direct PUT endpoint for local dev driver | ⚪ waived | internal binary streaming upload endpoint used by S3/local upload adapter |
+| `POST /uploads/init` | Initiate 3-step resumable upload (returns presigned PUT URL valid 15m) | ✅ | apps\mobile\src\screens\CaptureModal.tsx |
+| `PUT /uploads/raw/{key}` | Direct PUT endpoint for local dev driver | ❌ |  |
 | `POST /uploads/{id}/complete` | Complete upload: sniff magic bytes, verify existence, write row, queue thumbnail | ✅ | apps\mobile\src\screens\CaptureModal.tsx |
 | `GET /attachments/{id}` | Get attachment details and short-lived signed URLs | ❌ |  |
 | `DELETE /attachments/{id}` | Delete attachment and queue background storage deletion | ❌ |  |
@@ -140,7 +140,7 @@ Spec: `openapi.json` · Source: `apps/mobile/src` · **59%** covered or waived (
 | Operation | Summary | UI | Where |
 |---|---|---|---|
 | `GET /notifications` | NotificationsController_getNotifications | ✅ | apps\mobile\src\navigation\RootNavigator.tsx |
-| `POST /notifications/device` | NotificationsController_registerDevice | ⚪ waived | mobile push device registration only, not applicable to web SPA |
+| `POST /notifications/device` | NotificationsController_registerDevice | ❌ |  |
 | `PATCH /notifications/{id}/read` | NotificationsController_markRead | ❌ |  |
 
 ## Context and AI

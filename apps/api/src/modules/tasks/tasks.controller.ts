@@ -64,7 +64,16 @@ export class TasksController {
         projectId,
         dueHasTime: false,
         labelIds: Array.isArray(dto.labelIds) ? dto.labelIds : [],
-      },
+        severity: dto.severity || 'MAJOR',
+        steps: dto.steps || [],
+        expected: dto.expected || null,
+        actual: dto.actual || null,
+        frequency: dto.frequency || 'often',
+        deviceModel: dto.deviceModel || dto.telemetry?.deviceModel,
+        osVersion: dto.osVersion || dto.telemetry?.osVersion,
+        appVersion: dto.appVersion || dto.telemetry?.appVersion,
+        telemetry: dto.telemetry || {},
+      } as any,
       idempotencyKey,
     );
   }
@@ -131,7 +140,7 @@ export class TasksController {
     @Param('projectId') projectId: string,
     @Query(new ZodValidationPipe(TaskListQuerySchema)) query: TaskListQueryDto,
   ) {
-    return this.tasksService.findAll({ projectId }, query);
+    return this.tasksService.findAll({ projectId }, { ...query, type: query.type || 'TASK' });
   }
 
   @Get('workspaces/:workspaceId/tasks')
@@ -142,7 +151,7 @@ export class TasksController {
     @Param('workspaceId') workspaceId: string,
     @Query(new ZodValidationPipe(TaskListQuerySchema)) query: TaskListQueryDto,
   ) {
-    return this.tasksService.findAll({ workspaceId }, query);
+    return this.tasksService.findAll({ workspaceId }, { ...query, type: query.type || 'TASK' });
   }
 
   @Get('workspaces/:workspaceId/tasks/my-day')

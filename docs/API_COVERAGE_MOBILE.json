@@ -7,8 +7,7 @@
     "opId": "HealthController_getHealth",
     "key": "GET /health",
     "covered": false,
-    "files": [],
-    "waived": "infra probe, no UI"
+    "files": []
   },
   {
     "method": "get",
@@ -18,8 +17,7 @@
     "opId": "HealthController_getReadiness",
     "key": "GET /health/ready",
     "covered": false,
-    "files": [],
-    "waived": "infra readiness probe, no UI"
+    "files": []
   },
   {
     "method": "get",
@@ -65,8 +63,7 @@
     "opId": "AuthController_refresh",
     "key": "POST /auth/refresh",
     "covered": false,
-    "files": [],
-    "waived": "silent refresh handled by auth token rotation layer"
+    "files": []
   },
   {
     "method": "post",
@@ -354,8 +351,7 @@
     "opId": "MembersController_acceptInvite",
     "key": "POST /members/accept-invite",
     "covered": false,
-    "files": [],
-    "waived": "backward-compatible alias of POST /invitations/accept"
+    "files": []
   },
   {
     "method": "patch",
@@ -519,8 +515,7 @@
     "opId": "TasksController_findMyDayQuery",
     "key": "GET /tasks/my-day",
     "covered": false,
-    "files": [],
-    "waived": "query-param alias for scoped GET /workspaces/{workspaceId}/tasks/my-day"
+    "files": []
   },
   {
     "method": "get",
@@ -540,8 +535,7 @@
     "opId": "TasksController_findInboxQuery",
     "key": "GET /tasks/inbox",
     "covered": false,
-    "files": [],
-    "waived": "query-param alias for scoped GET /workspaces/{workspaceId}/tasks/inbox"
+    "files": []
   },
   {
     "method": "get",
@@ -750,10 +744,8 @@
     "summary": "Get sticky by ID",
     "opId": "StickiesController_findOne",
     "key": "GET /stickies/{id}",
-    "covered": true,
-    "files": [
-      "apps\\mobile\\src\\features\\stickies\\api\\mutations.ts"
-    ]
+    "covered": false,
+    "files": []
   },
   {
     "method": "patch",
@@ -794,8 +786,10 @@
     "summary": "Convert sticky to task (atomic, links both ways)",
     "opId": "StickiesController_convert",
     "key": "POST /stickies/{id}/convert",
-    "covered": false,
-    "files": []
+    "covered": true,
+    "files": [
+      "apps\\mobile\\src\\features\\stickies\\api\\mutations.ts"
+    ]
   },
   {
     "method": "post",
@@ -804,8 +798,10 @@
     "summary": "Initiate 3-step resumable upload (returns presigned PUT URL valid 15m)",
     "opId": "AttachmentsController_initUpload",
     "key": "POST /uploads/init",
-    "covered": false,
-    "files": []
+    "covered": true,
+    "files": [
+      "apps\\mobile\\src\\screens\\CaptureModal.tsx"
+    ]
   },
   {
     "method": "put",
@@ -815,8 +811,7 @@
     "opId": "AttachmentsController_directPut",
     "key": "PUT /uploads/raw/{key}",
     "covered": false,
-    "files": [],
-    "waived": "internal binary streaming upload endpoint used by S3/local upload adapter"
+    "files": []
   },
   {
     "method": "post",
@@ -932,8 +927,7 @@
     "opId": "NotificationsController_registerDevice",
     "key": "POST /notifications/device",
     "covered": false,
-    "files": [],
-    "waived": "mobile push device registration only, not applicable to web SPA"
+    "files": []
   },
   {
     "method": "patch",

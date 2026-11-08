@@ -81,14 +81,9 @@ tap(300, 230);
 capture('07_Tasks_Project_Switcher_Sheet.png');
 key(4); // back
 
-// 8. Task Create Sheet (tap FAB or + button ~950, 2050 or in tasks)
-// In tasks, check if there's a create button or navigate to detail
-// 9. Task Detail Screen
-openUri('doit://tasks');
-sleep(1000);
-// tap first task in list ~500, 480
-tap(500, 480);
-sleep(1000);
+// 8. Task Detail Screen
+openUri('doit://task/GEN-1');
+sleep(1500);
 capture('08_Task_Detail_Screen.png');
 // scroll down task detail to see telemetry/solution prompt
 swipe(500, 1500, 500, 500, 400);
@@ -138,21 +133,28 @@ openUri('doit://team');
 capture('19_Team_Members_Screen.png');
 
 // 20. Quick Capture Modal - Task Mode
-openUri('doit://capture');
+openUri('doit://capture/task');
+sleep(1200);
 capture('20_Quick_Capture_Task_Mode.png');
+key(4);
 
-// 21. Quick Capture Modal - Bug Mode (tap Bug tab ~380, 250)
-tap(380, 250);
+// 21. Quick Capture Modal - Bug Mode
+openUri('doit://capture/bug');
+sleep(1200);
 capture('21_Quick_Capture_Bug_Mode.png');
+key(4);
 
-// 22. Quick Capture Modal - Voice Mode (tap Voice tab ~640, 250)
-tap(640, 250);
+// 22. Quick Capture Modal - Voice Mode
+openUri('doit://capture/voice');
+sleep(1200);
 capture('22_Quick_Capture_Voice_Mode.png');
+key(4);
 
-// 23. Quick Capture Modal - Sticky Mode (tap Sticky tab ~900, 250)
-tap(900, 250);
+// 23. Quick Capture Modal - Sticky Mode
+openUri('doit://capture/sticky');
+sleep(1200);
 capture('23_Quick_Capture_Sticky_Mode.png');
-key(4); // close capture modal
+key(4);
 
 // 24. Settings Main Screen
 openUri('doit://settings');
