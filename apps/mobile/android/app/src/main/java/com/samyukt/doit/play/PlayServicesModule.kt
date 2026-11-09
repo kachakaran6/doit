@@ -50,7 +50,7 @@ class PlayServicesModule(private val reactContext: ReactApplicationContext) :
 
     override fun getName(): String = NAME
 
-    override fun onInstallStateUpdate(state: InstallState) {
+    override fun onStateUpdate(state: InstallState) {
         val params = Arguments.createMap().apply {
             putInt("installStatus", state.installStatus())
             putInt("installErrorCode", state.installErrorCode())
@@ -285,3 +285,4 @@ class PlayServicesModule(private val reactContext: ReactApplicationContext) :
 
     override fun onNewIntent(intent: Intent?) {}
 }
+
