@@ -4,6 +4,7 @@ import {
   StyleSheet,
   ActivityIndicator,
   Alert,
+  Image,
 } from 'react-native';
 import { useRoute, useNavigation, RouteProp } from '@react-navigation/native';
 import { useTheme } from '../theme/useTheme';
@@ -167,6 +168,11 @@ export const InviteAcceptScreen: React.FC = () => {
 
   return (
     <View style={[styles.container, styles.center, { backgroundColor: colors.bg, padding: 24 }]}>
+      <Image
+        source={require('../../assets/icon.png')}
+        style={{ width: 56, height: 56, borderRadius: radius.lg, marginBottom: 20 }}
+        resizeMode="contain"
+      />
       <View style={[styles.brandCard, { backgroundColor: colors.surface1, borderRadius: radius.xl }]}>
         <View style={styles.brandIcon}>
           <Users size={32} color={colors.accent} />

@@ -6,8 +6,9 @@ const monorepoRoot = path.resolve(projectRoot, '../..');
 
 const config = getDefaultConfig(projectRoot);
 
-// 1. Only watch shared packages and root node_modules
+// 1. Watch projectRoot, shared packages, and root node_modules
 config.watchFolders = [
+  projectRoot,
   path.resolve(monorepoRoot, 'packages'),
   path.resolve(monorepoRoot, 'node_modules'),
 ];

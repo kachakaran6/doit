@@ -95,18 +95,16 @@ export const LoginScreen: React.FC = () => {
             style={[
               styles.logoTile,
               {
-                backgroundColor: colors.surface,
-                borderColor: colors.border,
-                borderRadius: radius.md,
                 marginBottom: spacing.md,
+                borderRadius: radius.xl,
                 overflow: 'hidden',
-                ...elevation.e1,
+                ...elevation.e2,
               },
             ]}
           >
             <Image
-              source={require('../../../../assets/brand/icon-512.png')}
-              style={{ width: 50, height: 50, borderRadius: radius.md - 1 }}
+              source={require('../../../../assets/icon.png')}
+              style={{ width: 64, height: 64, borderRadius: radius.xl }}
               resizeMode="contain"
             />
           </View>
@@ -424,11 +422,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   logoTile: {
-    width: 52,
-    height: 52,
+    width: 64,
+    height: 64,
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 1,
   },
   card: {
     width: '100%',
