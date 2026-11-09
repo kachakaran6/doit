@@ -16,7 +16,6 @@ import {
   Folder,
   Plus,
   ChevronsLeft,
-  ChevronsRight,
 } from 'lucide-react';
 
 export function Sidebar({
@@ -70,14 +69,15 @@ export function Sidebar({
             <button
               type="button"
               onClick={toggle}
-              className="p-1.5 rounded-lg text-[var(--muted-foreground)] hover:text-[var(--foreground)] hover:bg-[var(--sidebar-accent)] transition-colors cursor-pointer group relative"
+              className="p-1 rounded-xl hover:bg-[var(--sidebar-accent)] transition-all cursor-pointer flex items-center justify-center"
               title="Expand sidebar (Ctrl+B)"
               aria-label="Expand sidebar"
             >
-              <ChevronsRight className="w-4 h-4" />
-              <div className="absolute left-full ml-3 px-2 py-1 rounded-md bg-[var(--foreground)] text-[var(--background)] text-[12px] font-medium shadow-lg whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity z-50">
-                Expand sidebar (Ctrl+B)
-              </div>
+              <img
+                src="/app-icon-rounded.svg"
+                alt="DoIt"
+                className="w-8 h-8 rounded-lg shadow-2xs hover:scale-105 active:scale-95 transition-transform"
+              />
             </button>
           ) : (
             <>
@@ -90,14 +90,11 @@ export function Sidebar({
                 <button
                   type="button"
                   onClick={toggle}
-                  className="p-1.5 rounded-lg text-[var(--muted-foreground)] hover:text-[var(--foreground)] hover:bg-[var(--sidebar-accent)] transition-colors cursor-pointer group relative"
+                  className="p-1.5 rounded-lg text-[var(--muted-foreground)] hover:text-[var(--foreground)] hover:bg-[var(--sidebar-accent)] transition-colors cursor-pointer"
                   title="Collapse sidebar (Ctrl+B)"
                   aria-label="Collapse sidebar"
                 >
                   <ChevronsLeft className="w-4 h-4" />
-                  <div className="absolute left-full ml-3 px-2 py-1 rounded-md bg-[var(--foreground)] text-[var(--background)] text-[12px] font-medium shadow-lg whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity z-50">
-                    Collapse (Ctrl+B)
-                  </div>
                 </button>
               )}
             </>
@@ -118,10 +115,11 @@ export function Sidebar({
               to={to}
               end={to === '/'}
               onClick={handleNavClick}
+              title={isCollapsed ? label : undefined}
               className={({ isActive }) =>
                 `w-full flex items-center ${
                   isCollapsed ? 'justify-center py-2' : 'gap-2.5 px-2.5 py-1.5'
-                } rounded-lg text-[13px] font-medium transition-colors group relative ${
+                } rounded-lg text-[13px] font-medium transition-colors ${
                   isActive
                     ? 'bg-[var(--sidebar-accent)] text-[var(--foreground)] font-semibold'
                     : 'text-[var(--muted-foreground)] hover:text-[var(--foreground)] hover:bg-[var(--sidebar-accent)]'
@@ -130,12 +128,6 @@ export function Sidebar({
             >
               <Icon className="w-4 h-4 shrink-0" />
               {!isCollapsed && <span>{label}</span>}
-
-              {isCollapsed && (
-                <div className="absolute left-full ml-3 px-2.5 py-1 rounded-md bg-[var(--foreground)] text-[var(--background)] text-[12px] font-medium shadow-lg whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity z-50">
-                  {label}
-                </div>
-              )}
             </NavLink>
           ))}
         </div>
@@ -168,9 +160,10 @@ export function Sidebar({
                   setActiveProject(p);
                   handleNavClick();
                 }}
+                title={isCollapsed ? `${p.name} (${p.key})` : undefined}
                 className={`w-full flex items-center ${
                   isCollapsed ? 'justify-center py-2' : 'gap-2.5 px-2.5 py-1.5'
-                } rounded-lg text-[13px] transition-colors text-left cursor-pointer group relative ${
+                } rounded-lg text-[13px] transition-colors text-left cursor-pointer ${
                   isSelected
                     ? 'bg-[var(--sidebar-accent)] text-[var(--foreground)] font-semibold'
                     : 'text-[var(--muted-foreground)] hover:text-[var(--foreground)] hover:bg-[var(--sidebar-accent)]'
@@ -182,12 +175,6 @@ export function Sidebar({
                     <span className="truncate flex-1">{p.name}</span>
                     <span className="text-[10px] text-[var(--muted-foreground)] font-mono">{p.key}</span>
                   </>
-                )}
-
-                {isCollapsed && (
-                  <div className="absolute left-full ml-3 px-2.5 py-1 rounded-md bg-[var(--foreground)] text-[var(--background)] text-[12px] font-medium shadow-lg whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity z-50">
-                    {p.name} ({p.key})
-                  </div>
                 )}
               </button>
             );

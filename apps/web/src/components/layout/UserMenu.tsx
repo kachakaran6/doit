@@ -45,9 +45,10 @@ export function UserMenu({ collapsed = false }: { collapsed?: boolean }) {
       <button
         type="button"
         onClick={() => setOpen(!open)}
+        title={collapsed ? displayName : undefined}
         className={`w-full flex items-center ${
           collapsed ? 'justify-center' : 'justify-between'
-        } p-2 rounded-xl hover:bg-[var(--sidebar-accent)] transition-colors text-left cursor-pointer group relative`}
+        } p-2 rounded-xl hover:bg-[var(--sidebar-accent)] transition-colors text-left cursor-pointer group`}
         aria-label="User account menu"
       >
         <div className={`flex items-center ${collapsed ? 'justify-center' : 'gap-2.5 min-w-0 flex-1'}`}>
@@ -69,13 +70,6 @@ export function UserMenu({ collapsed = false }: { collapsed?: boolean }) {
               open ? 'rotate-180' : ''
             }`}
           />
-        )}
-
-        {/* Tooltip for collapsed mode */}
-        {collapsed && (
-          <div className="absolute left-full ml-3 px-2.5 py-1 rounded-md bg-[var(--foreground)] text-[var(--background)] text-[12px] font-medium shadow-lg whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity z-50">
-            {displayName}
-          </div>
         )}
       </button>
 
