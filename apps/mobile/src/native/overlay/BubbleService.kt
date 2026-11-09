@@ -72,6 +72,10 @@ class BubbleService : Service(), SensorEventListener {
     // Overlay Views
     private var bubbleContainer: FrameLayout? = null
     private var bubbleParams: WindowManager.LayoutParams? = null
+    private var bubbleActionContainer: LinearLayout? = null
+    private var bubbleActionParams: WindowManager.LayoutParams? = null
+    private val longPressHandler = Handler(Looper.getMainLooper())
+    private var isActionMenuShowing: Boolean = false
 
     private var promptContainer: LinearLayout? = null
     private var promptParams: WindowManager.LayoutParams? = null
@@ -148,6 +152,7 @@ class BubbleService : Service(), SensorEventListener {
             instance?.let { s ->
                 Handler(Looper.getMainLooper()).post {
                     s.bubbleContainer?.visibility = View.GONE
+                    s.bubbleActionContainer?.visibility = View.GONE
                     s.promptContainer?.visibility = View.GONE
                     s.modalContainer?.visibility = View.GONE
                 }
@@ -285,7 +290,7 @@ class BubbleService : Service(), SensorEventListener {
     // ==========================================
 
     private fun createBubbleView() {
-        val wm = windowManager ?: return
+        if (windowManager == null) return
 
         val bubbleSizePx = dpToPx(44f)
         bubbleParams = WindowManager.LayoutParams(
@@ -329,7 +334,7 @@ class BubbleService : Service(), SensorEventListener {
             )
         )
 
-        // Drag & Touch Handling
+        // Drag, Tap & Long-Press Handling
         bubbleContainer?.setOnTouchListener(object : View.OnTouchListener {
             private var initialX = 0
             private var initialY = 0
@@ -337,6 +342,14 @@ class BubbleService : Service(), SensorEventListener {
             private var initialTouchY = 0f
             private var touchDownTime = 0L
             private var isDragging = false
+            private var isLongPressHandled = false
+            private val longPressRunnable = Runnable {
+                if (!isDragging && bubbleContainer?.visibility == View.VISIBLE) {
+                    isLongPressHandled = true
+                    triggerHaptic(60)
+                    showBubbleActionMenu()
+                }
+            }
 
             override fun onTouch(v: View, event: MotionEvent): Boolean {
                 val currentParams = bubbleParams ?: return false
@@ -349,6 +362,9 @@ class BubbleService : Service(), SensorEventListener {
                         initialTouchY = event.rawY
                         touchDownTime = System.currentTimeMillis()
                         isDragging = false
+                        isLongPressHandled = false
+                        longPressHandler.removeCallbacks(longPressRunnable)
+                        longPressHandler.postDelayed(longPressRunnable, 450L)
                         return true
                     }
                     MotionEvent.ACTION_MOVE -> {
@@ -357,6 +373,8 @@ class BubbleService : Service(), SensorEventListener {
 
                         if (!isDragging && (Math.abs(dx) > dpToPx(6f) || Math.abs(dy) > dpToPx(6f))) {
                             isDragging = true
+                            longPressHandler.removeCallbacks(longPressRunnable)
+                            dismissBubbleActionMenu(immediate = false)
                         }
 
                         if (isDragging) {
@@ -368,7 +386,13 @@ class BubbleService : Service(), SensorEventListener {
                         }
                         return true
                     }
-                    MotionEvent.ACTION_UP -> {
+                    MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+                        longPressHandler.removeCallbacks(longPressRunnable)
+                        if (isLongPressHandled) {
+                            isLongPressHandled = false
+                            return true
+                        }
+
                         val duration = System.currentTimeMillis() - touchDownTime
                         val movedDist = Math.hypot(
                             (event.rawX - initialTouchX).toDouble(),
@@ -376,9 +400,16 @@ class BubbleService : Service(), SensorEventListener {
                         )
 
                         if (!isDragging && duration < 350 && movedDist < dpToPx(10f)) {
-                            triggerHaptic(40)
-                            onBubbleTapped()
+                            if (isActionMenuShowing) {
+                                dismissBubbleActionMenu(immediate = false)
+                            } else {
+                                triggerHaptic(40)
+                                onBubbleTapped()
+                            }
                         } else {
+                            if (isActionMenuShowing) {
+                                dismissBubbleActionMenu(immediate = false)
+                            }
                             snapBubbleToEdge()
                         }
                         return true
@@ -419,6 +450,143 @@ class BubbleService : Service(), SensorEventListener {
 
     private fun onBubbleTapped() {
         showCompactModal("TASK")
+    }
+
+    private fun showBubbleActionMenu() {
+        dismissBubbleActionMenu(immediate = true)
+        val wm = windowManager ?: return
+        val currentBubbleParams = bubbleParams ?: return
+
+        val displayMetrics = resources.displayMetrics
+        val screenWidth = displayMetrics.widthPixels
+        val bubbleSize = dpToPx(44f)
+        val actionHeight = dpToPx(44f)
+        val actionWidth = dpToPx(136f)
+        val gap = dpToPx(8f)
+
+        val isLeft = (currentBubbleParams.x + (bubbleSize / 2)) < (screenWidth / 2)
+        val targetX = if (isLeft) {
+            currentBubbleParams.x + bubbleSize + gap
+        } else {
+            currentBubbleParams.x - actionWidth - gap
+        }
+        val targetY = currentBubbleParams.y
+
+        bubbleActionParams = WindowManager.LayoutParams(
+            actionWidth,
+            actionHeight,
+            getOverlayLayoutType(),
+            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
+                WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
+            PixelFormat.TRANSLUCENT
+        ).apply {
+            gravity = Gravity.TOP or Gravity.START
+            x = targetX.coerceIn(dpToPx(8f), screenWidth - actionWidth - dpToPx(8f))
+            y = targetY
+        }
+
+        bubbleActionContainer = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER
+            val bg = GradientDrawable().apply {
+                shape = GradientDrawable.RECTANGLE
+                cornerRadius = dpToPx(22f).toFloat()
+                setColor(Color.parseColor("#181A20"))
+                setStroke(dpToPx(1.2f), Color.parseColor("#353945"))
+            }
+            background = bg
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                elevation = dpToPx(10f).toFloat()
+            }
+            isClickable = true
+            isFocusable = false
+
+            // Close / Hide Icon
+            val closeIconView = ImageView(context).apply {
+                setImageResource(R.drawable.ic_lucide_x)
+                setColorFilter(Color.parseColor("#EF4444"))
+                val iconSize = dpToPx(16f)
+                val lp = LinearLayout.LayoutParams(iconSize, iconSize).apply {
+                    marginEnd = dpToPx(6f)
+                }
+                layoutParams = lp
+            }
+            addView(closeIconView)
+
+            // Label
+            val labelView = TextView(context).apply {
+                text = "Hide Bubble"
+                setTextColor(Color.WHITE)
+                setTextSize(TypedValue.COMPLEX_UNIT_SP, 12f)
+                setTypeface(typeface, Typeface.BOLD)
+            }
+            addView(labelView)
+
+            setOnClickListener {
+                triggerHaptic(50)
+                dismissBubbleActionMenu(immediate = true)
+                hideBubbleAndStopService()
+            }
+        }
+
+        try {
+            bubbleActionContainer?.alpha = 0f
+            bubbleActionContainer?.scaleX = 0.8f
+            bubbleActionContainer?.scaleY = 0.8f
+            wm.addView(bubbleActionContainer, bubbleActionParams)
+            isActionMenuShowing = true
+
+            bubbleActionContainer?.animate()
+                ?.alpha(1f)
+                ?.scaleX(1f)
+                ?.scaleY(1f)
+                ?.setDuration(180)
+                ?.start()
+        } catch (e: Exception) {
+            android.util.Log.e("BubbleService", "Error showing bubble action menu: ${e.message}")
+        }
+    }
+
+    private fun dismissBubbleActionMenu(immediate: Boolean = false) {
+        if (bubbleActionContainer == null) {
+            isActionMenuShowing = false
+            return
+        }
+        val viewToDismiss = bubbleActionContainer
+        bubbleActionContainer = null
+        isActionMenuShowing = false
+
+        if (immediate) {
+            try {
+                windowManager?.removeView(viewToDismiss)
+            } catch (_: Exception) {}
+        } else {
+            try {
+                viewToDismiss?.animate()
+                    ?.alpha(0f)
+                    ?.scaleX(0.8f)
+                    ?.scaleY(0.8f)
+                    ?.setDuration(120)
+                    ?.withEndAction {
+                        try {
+                            windowManager?.removeView(viewToDismiss)
+                        } catch (_: Exception) {}
+                    }
+                    ?.start()
+            } catch (_: Exception) {
+                try {
+                    windowManager?.removeView(viewToDismiss)
+                } catch (_: Exception) {}
+            }
+        }
+    }
+
+    private fun hideBubbleAndStopService() {
+        try {
+            prefs?.edit()?.putBoolean("bubble_enabled", false)?.apply()
+            Toast.makeText(applicationContext, "Quick capture bubble hidden. Turn back on in Settings.", Toast.LENGTH_SHORT).show()
+        } catch (_: Exception) {}
+        stopSelf()
     }
 
     // ==========================================
@@ -1860,6 +2028,8 @@ class BubbleService : Service(), SensorEventListener {
         super.onDestroy()
         isRunning = false
         instance = null
+        longPressHandler.removeCallbacksAndMessages(null)
+        dismissBubbleActionMenu(immediate = true)
         try {
             sensorManager?.unregisterListener(this)
         } catch (_: Exception) {}

@@ -1,5 +1,5 @@
-import React, { useEffect, useRef } from 'react';
-import { Linking, BackHandler, ToastAndroid, Platform } from 'react-native';
+import React, { useEffect } from 'react';
+import { Linking, BackHandler, Platform } from 'react-native';
 import { DefaultTheme, DarkTheme, NavigationContainer, LinkingOptions, getStateFromPath } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { RootStackParamList } from './types';
@@ -27,13 +27,14 @@ import { FoundationGallery } from '../core/dev/FoundationGallery';
 import { NavBarScrollProvider } from './nav-bar-scroll.context';
 import { useAuthStore } from '../features/auth/store';
 import { useWorkspaceStore } from '../features/workspace/store';
-import { useSheetStore } from '../core/sheets/sheet.store';
 import { useVersionPolicy } from '../features/system/useVersionPolicy';
 import { ForceUpdateScreen } from '../features/system/ForceUpdateScreen';
 
 import { navigationRef } from './navigationRef';
 import { extractInviteToken } from './invite-link';
 import { useTheme } from '../theme/useTheme';
+import { useBackNavigationStore } from './back-navigation.store';
+import { ExitConfirmDialog } from '../components/navigation/ExitConfirmDialog';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
@@ -130,56 +131,13 @@ export const RootNavigator: React.FC = () => {
     return () => playUpdateService.destroy();
   }, []);
 
-  // Universal Android Back & Gesture Interceptor
-  // Prevents abrupt app closure on swipe back or hardware back navigation
+  // Centralized Production Android Back & Gesture Controller
+  // Handles overlays, sheets, nested screens, tabs, and exit confirmation
   useEffect(() => {
     if (Platform.OS !== 'android') return;
 
-    let lastBackPressTime = 0;
-
     const onHardwareBack = () => {
-      // 1. If any global modal sheet is open, close it first
-      const {
-        isAccountMenuOpen,
-        isWorkspaceSheetOpen,
-        isProjectSheetOpen,
-        closeAccountMenu,
-        closeWorkspaceSheet,
-        closeProjectSheet,
-      } = useSheetStore.getState();
-
-      if (isAccountMenuOpen || isWorkspaceSheetOpen || isProjectSheetOpen) {
-        closeAccountMenu();
-        closeWorkspaceSheet();
-        closeProjectSheet();
-        return true;
-      }
-
-      if (!navigationRef.isReady()) return false;
-
-      // 2. If the stack can go back (Settings, QuickCapturePrefs, TaskDetail, BugDetail, etc.)
-      if (navigationRef.canGoBack()) {
-        navigationRef.goBack();
-        return true;
-      }
-
-      // 3. If on a secondary tab (Tasks, Bugs, Search), navigate back to Home tab
-      const currentRoute = navigationRef.getCurrentRoute();
-      const routeName = currentRoute?.name as string | undefined;
-      if (routeName && routeName !== 'Home' && routeName !== 'Auth') {
-        navigationRef.navigate('MainTabs', { screen: 'Home' } as any);
-        return true;
-      }
-
-      // 4. On root Home screen, prevent accidental exit with double-back confirmation
-      const now = Date.now();
-      if (now - lastBackPressTime < 2000) {
-        return false; // Exit app
-      }
-
-      lastBackPressTime = now;
-      ToastAndroid.show('Press back again to exit', ToastAndroid.SHORT);
-      return true;
+      return useBackNavigationStore.getState().handleAndroidBack();
     };
 
     const sub = BackHandler.addEventListener('hardwareBackPress', onHardwareBack);
@@ -205,7 +163,7 @@ export const RootNavigator: React.FC = () => {
             headerShown: false,
             animation: 'slide_from_right',
             gestureEnabled: true,
-            fullScreenGestureEnabled: true,
+            fullScreenGestureEnabled: Platform.OS === 'ios',
             contentStyle: { backgroundColor: colors.canvas },
           }}
         >
@@ -241,6 +199,7 @@ export const RootNavigator: React.FC = () => {
           <Stack.Screen name="InviteAccept" component={InviteAcceptScreen} />
         </Stack.Navigator>
       </NavigationContainer>
+      <ExitConfirmDialog />
     </NavBarScrollProvider>
   );
 };

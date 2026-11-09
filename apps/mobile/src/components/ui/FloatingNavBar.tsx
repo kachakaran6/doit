@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Pressable,
@@ -13,6 +13,7 @@ import { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import { useTheme } from '../../theme/useTheme';
 import { useNavBarScroll } from '../../navigation/nav-bar-scroll.context';
 import { useBottomInsets } from '../../layout/useBottomInsets';
+import { useBackNavigationStore } from '../../navigation/back-navigation.store';
 import { Text } from './Text';
 import {
   Home as HomeIcon,
@@ -22,6 +23,7 @@ import {
   Plus as PlusIcon,
   FileText as StickyIcon,
   Mic as VoiceIcon,
+  X as CloseIcon,
   LucideIcon,
 } from 'lucide-react-native';
 
@@ -63,6 +65,14 @@ export const FloatingNavBar: React.FC<FloatingNavBarProps> = ({
   const { navbarBottom, navbarHeight } = useBottomInsets();
   const { translateY } = useNavBarScroll();
   const [quickMenuVisible, setQuickMenuVisible] = useState(false);
+
+  useEffect(() => {
+    if (!quickMenuVisible) return;
+    return useBackNavigationStore.getState().registerBackSubscriber('floating-nav-quick-menu', () => {
+      setQuickMenuVisible(false);
+      return true;
+    }, 50);
+  }, [quickMenuVisible]);
 
   const currentRouteName = state.routes[state.index]?.name;
 
@@ -249,7 +259,7 @@ export const FloatingNavBar: React.FC<FloatingNavBarProps> = ({
                 </Pressable>
 
                 <Pressable
-                  style={[styles.quickMenuItem, { borderBottomWidth: 0 }]}
+                  style={styles.quickMenuItem}
                   onPress={() => openQuickMode('voice')}
                 >
                   <View style={[styles.quickMenuIcon, { backgroundColor: 'rgba(168, 85, 247, 0.12)' }]}>
@@ -257,6 +267,22 @@ export const FloatingNavBar: React.FC<FloatingNavBarProps> = ({
                   </View>
                   <Text variant="bodySmall" style={styles.quickMenuText}>
                     Voice Note
+                  </Text>
+                </Pressable>
+
+                <View style={{ height: 1, backgroundColor: colors.border, marginVertical: 4, opacity: 0.6 }} />
+
+                <Pressable
+                  style={[styles.quickMenuItem, { borderBottomWidth: 0 }]}
+                  onPress={() => setQuickMenuVisible(false)}
+                  accessibilityRole="button"
+                  accessibilityLabel="Close options"
+                >
+                  <View style={[styles.quickMenuIcon, { backgroundColor: 'rgba(148, 163, 184, 0.15)' }]}>
+                    <CloseIcon size={16} color={colors.textTertiary || '#94A3B8'} strokeWidth={2} />
+                  </View>
+                  <Text variant="bodySmall" style={[styles.quickMenuText, { color: colors.textSecondary }]}>
+                    Close
                   </Text>
                 </Pressable>
               </View>
