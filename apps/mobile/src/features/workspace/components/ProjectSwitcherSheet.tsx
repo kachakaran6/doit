@@ -45,8 +45,6 @@ export const ProjectSwitcherSheet: React.FC<ProjectSwitcherSheetProps> = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  if (!isSheetVisible) return null;
-
   const handleSelect = (project: any) => {
     setActiveProject(project);
     onClose();
@@ -111,6 +109,7 @@ export const ProjectSwitcherSheet: React.FC<ProjectSwitcherSheetProps> = ({
         <KeyboardAvoidingView
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}
           style={styles.keyboardContainer}
+          pointerEvents="box-none"
         >
           <View
             style={[
@@ -313,10 +312,12 @@ const styles = StyleSheet.create({
     ...StyleSheet.absoluteFillObject,
   },
   keyboardContainer: {
+    width: '100%',
     flex: 1,
     justifyContent: 'flex-end',
   },
   sheet: {
+    width: '100%',
     shadowColor: '#000000',
     shadowOffset: { width: 0, height: -6 },
     shadowOpacity: 0.25,

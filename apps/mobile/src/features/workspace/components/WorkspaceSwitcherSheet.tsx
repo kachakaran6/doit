@@ -40,8 +40,6 @@ export const WorkspaceSwitcherSheet: React.FC<WorkspaceSwitcherSheetProps> = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  if (!visible) return null;
-
   const handleSelect = (ws: any) => {
     setActiveWorkspace(ws);
     onClose();
@@ -129,6 +127,7 @@ export const WorkspaceSwitcherSheet: React.FC<WorkspaceSwitcherSheetProps> = ({
         <KeyboardAvoidingView
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}
           style={styles.keyboardContainer}
+          pointerEvents="box-none"
         >
           <View
             style={[
@@ -210,7 +209,8 @@ export const WorkspaceSwitcherSheet: React.FC<WorkspaceSwitcherSheetProps> = ({
                 <>
                   {/* List of workspaces */}
                   <View style={{ gap: spacing.xs }}>
-                    {workspaces.map((ws) => {
+                    {(workspaces || []).map((ws) => {
+                      if (!ws) return null;
                       const isSelected = ws.id === activeWorkspace?.id;
                       const initial = (ws.name || 'W').charAt(0).toUpperCase();
 
@@ -387,10 +387,12 @@ const styles = StyleSheet.create({
     ...StyleSheet.absoluteFillObject,
   },
   keyboardContainer: {
+    width: '100%',
     flex: 1,
     justifyContent: 'flex-end',
   },
   sheet: {
+    width: '100%',
     shadowColor: '#000000',
     shadowOffset: { width: 0, height: -6 },
     shadowOpacity: 0.25,

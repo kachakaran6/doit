@@ -212,11 +212,22 @@ export class TasksController {
     return this.tasksService.update(id, user.sub, dto);
   }
 
-  @Post('tasks/:id/status')
   @Patch('tasks/:id/status')
   @UseGuards(WorkspaceMemberGuard)
   @ApiBearerAuth('bearer-auth')
-  @ApiOperation({ summary: 'Update task status through validated state machine' })
+  @ApiOperation({ summary: 'Update task status through validated state machine (PATCH)' })
+  async updateStatusPatch(
+    @CurrentUser() user: AuthUserPayload,
+    @Param('id') id: string,
+    @Body(new ZodValidationPipe(UpdateStatusSchema)) dto: UpdateStatusDto,
+  ) {
+    return this.tasksService.updateStatus(id, user.sub, dto);
+  }
+
+  @Post('tasks/:id/status')
+  @UseGuards(WorkspaceMemberGuard)
+  @ApiBearerAuth('bearer-auth')
+  @ApiOperation({ summary: 'Update task status through validated state machine (POST)' })
   async updateStatus(
     @CurrentUser() user: AuthUserPayload,
     @Param('id') id: string,
@@ -282,8 +293,7 @@ export class TasksController {
     return this.tasksService.addChecklistItem(id, dto);
   }
 
-  @Patch('checklist/:itemId')
-  @Patch('tasks/checklist/:itemId')
+  @Patch(['checklist/:itemId', 'tasks/checklist/:itemId'])
   @ApiBearerAuth('bearer-auth')
   @ApiOperation({ summary: 'Update a checklist item text or completion status' })
   async updateChecklistItem(
@@ -293,8 +303,7 @@ export class TasksController {
     return this.tasksService.updateChecklistItem(itemId, dto);
   }
 
-  @Delete('checklist/:itemId')
-  @Delete('tasks/checklist/:itemId')
+  @Delete(['checklist/:itemId', 'tasks/checklist/:itemId'])
   @ApiBearerAuth('bearer-auth')
   @ApiOperation({ summary: 'Delete a checklist item' })
   async deleteChecklistItem(@Param('itemId') itemId: string) {

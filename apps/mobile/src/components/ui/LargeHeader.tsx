@@ -134,51 +134,55 @@ export const LargeHeader: React.FC<LargeHeaderProps> = ({
     return { opacity };
   });
 
+  const hasTopBar = Boolean(leftSlot || onBack || trailingContent || scrollY);
+
   return (
     <View style={[styles.container, style]} testID={testID}>
       {/* Top compact navigation row (44pt) */}
-      <View style={styles.topBar}>
-        <View style={styles.leftSlot}>
-          {leftSlot ? (
-            leftSlot
-          ) : onBack ? (
-            <Pressable
-              onPress={onBack}
-              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+      {hasTopBar && (
+        <View style={styles.topBar}>
+          <View style={styles.leftSlot}>
+            {leftSlot ? (
+              leftSlot
+            ) : onBack ? (
+              <Pressable
+                onPress={onBack}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                style={[
+                  styles.backButton,
+                  {
+                    backgroundColor: colors.surface2,
+                    borderRadius: radius.sm,
+                  },
+                ]}
+                accessibilityRole="button"
+                accessibilityLabel={backAccessibilityLabel}
+              >
+                <ChevronLeft size={20} color={colors.textPrimary} />
+              </Pressable>
+            ) : null}
+          </View>
+
+          {/* Center: compact inline title */}
+          <Animated.View style={[styles.inlineCenter, inlineTitleAnimStyle]}>
+            <RNText
+              numberOfLines={1}
+              ellipsizeMode="tail"
               style={[
-                styles.backButton,
-                {
-                  backgroundColor: colors.surface2,
-                  borderRadius: radius.sm,
-                },
+                styles.inlineTitle,
+                { color: colors.textPrimary },
               ]}
-              accessibilityRole="button"
-              accessibilityLabel={backAccessibilityLabel}
             >
-              <ChevronLeft size={20} color={colors.textPrimary} />
-            </Pressable>
-          ) : null}
-        </View>
+              {title}
+            </RNText>
+          </Animated.View>
 
-        {/* Center: compact inline title */}
-        <Animated.View style={[styles.inlineCenter, inlineTitleAnimStyle]}>
-          <RNText
-            numberOfLines={1}
-            ellipsizeMode="tail"
-            style={[
-              styles.inlineTitle,
-              { color: colors.textPrimary },
-            ]}
-          >
-            {title}
-          </RNText>
-        </Animated.View>
-
-        {/* Right action slot */}
-        <View style={styles.rightSlot}>
-          {trailingContent}
+          {/* Right action slot */}
+          <View style={styles.rightSlot}>
+            {trailingContent}
+          </View>
         </View>
-      </View>
+      )}
 
       {/* Collapsing hairline divider under top bar */}
       <Animated.View

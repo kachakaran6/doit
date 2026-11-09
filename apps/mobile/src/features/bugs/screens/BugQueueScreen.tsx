@@ -119,13 +119,27 @@ export const BugQueueScreen: React.FC = () => {
       refreshing={isRefetching}
       onRefresh={refetch}
       includeBottomNavPadding
+      style={{ paddingTop: spacing.xs }}
     >
       {/* Header with Project Switcher Dropdown */}
       <View style={{ marginBottom: spacing.sm }}>
-        <LargeHeader
-          title="Bugs"
-          badge={filteredBugs.length}
-        />
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+          <Text variant="h1">Bugs</Text>
+          {filteredBugs.length > 0 && (
+            <View
+              style={{
+                backgroundColor: colors.surface2,
+                borderRadius: radius.pill,
+                paddingHorizontal: 8,
+                paddingVertical: 2,
+              }}
+            >
+              <Text variant="caption" style={{ fontWeight: '700', color: colors.textSecondary }}>
+                {filteredBugs.length}
+              </Text>
+            </View>
+          )}
+        </View>
         <Pressable
           onPress={() => setProjectSheetOpen(true)}
           style={({ pressed }) => [

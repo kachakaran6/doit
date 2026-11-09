@@ -50,8 +50,6 @@ export const AccountMenuSheet: React.FC<AccountMenuSheetProps> = ({
   const logout = useAuthStore((s) => s.logout);
   const activeWorkspace = useWorkspaceStore((s) => s.activeWorkspace);
 
-  if (!visible) return null;
-
   const role = activeWorkspace?.role ? activeWorkspace.role.toLowerCase() : 'owner';
 
   const handleLogout = () => {
@@ -211,7 +209,9 @@ export const AccountMenuSheet: React.FC<AccountMenuSheetProps> = ({
                 style={styles.menuRow}
                 onPress={() => {
                   onClose();
-                  if (onOpenWorkspaceSwitcher) onOpenWorkspaceSwitcher();
+                  setTimeout(() => {
+                    if (onOpenWorkspaceSwitcher) onOpenWorkspaceSwitcher();
+                  }, 250);
                 }}
                 activeOpacity={0.7}
               >
@@ -236,7 +236,9 @@ export const AccountMenuSheet: React.FC<AccountMenuSheetProps> = ({
                 style={styles.menuRow}
                 onPress={() => {
                   onClose();
-                  if (onOpenProjectSwitcher) onOpenProjectSwitcher();
+                  setTimeout(() => {
+                    if (onOpenProjectSwitcher) onOpenProjectSwitcher();
+                  }, 250);
                 }}
                 activeOpacity={0.7}
               >
@@ -306,6 +308,7 @@ const styles = StyleSheet.create({
     ...StyleSheet.absoluteFillObject,
   },
   sheet: {
+    width: '100%',
     shadowColor: '#000000',
     shadowOffset: { width: 0, height: -6 },
     shadowOpacity: 0.25,
