@@ -437,12 +437,12 @@ export const SettingsScreen: React.FC = () => {
                   <TouchableOpacity
                     onPress={() => {
                       Alert.alert(
-                        'Enable 1-Tap Screenshot',
-                        'In Settings > "Downloaded apps", tap "DoIt - One-Tap Screenshot" and turn the toggle ON.\n\n(Tip for Xiaomi/HyperOS: If you see "Restricted setting", go to App Info > tap ⋮ menu > tap "Allow restricted settings" first).',
+                        'Accessibility Service Disclosure',
+                        'DoIt uses the Android AccessibilityService API to capture screenshots when you tap the floating overlay bubble or trigger shake-to-report.\n\n• Purpose: Enables one-tap screenshot capture to attach visual context to your bug reports without interrupting your workflow.\n• Data Privacy: DoIt does NOT collect keystrokes, passwords, personal messages, or sensitive screen content. Captured screenshots are processed locally and only attached to reports you explicitly create.\n• Control: This permission is completely optional. You can disable it at any time in system settings.',
                         [
-                          { text: 'Cancel', style: 'cancel' },
+                          { text: 'Deny', style: 'cancel' },
                           {
-                            text: 'Open Settings',
+                            text: 'Agree & Enable',
                             onPress: () => overlayService.openAccessibilitySettings(),
                           },
                         ]
