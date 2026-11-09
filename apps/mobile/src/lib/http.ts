@@ -23,7 +23,7 @@ function getDefaultBaseUrl(): string {
 
   // In local development, use EXPO_PUBLIC_API_URL or local backend fallback
   const envUrl = process.env.EXPO_PUBLIC_API_URL;
-  if (envUrl && !envUrl.includes('example.com') && !envUrl.includes('staging-api')) {
+  if (envUrl && !envUrl.includes('example.com') && !envUrl.includes('staging-api') && !envUrl.includes('192.168.')) {
     return envUrl;
   }
   const hostUri = Constants.expoConfig?.hostUri;
@@ -31,7 +31,7 @@ function getDefaultBaseUrl(): string {
     const host = hostUri.split(':')[0];
     return `http://${host}:3000/api/v1`;
   }
-  return 'http://192.168.1.67:3000/api/v1';
+  return PRODUCTION_API_URL;
 }
 
 export class ApiError extends Error {
@@ -69,12 +69,12 @@ class HttpClient {
   }
 
   private async loadPersistedBaseUrl() {
+    if (!__DEV__) {
+      // Strictly enforce the live production API URL for all release builds
+      this.baseUrl = PRODUCTION_API_URL;
+      return;
+    }
     try {
-      if (!__DEV__) {
-        // Enforce the production live API URL for all release builds
-        this.baseUrl = PRODUCTION_API_URL;
-        return;
-      }
       if (Platform.OS === 'web') {
         const saved = localStorage.getItem(API_URL_KEY);
         if (saved && !saved.includes('example.com') && !saved.includes('staging-api')) {
@@ -92,6 +92,11 @@ class HttpClient {
   }
 
   setBaseUrl(url: string) {
+    if (!__DEV__) {
+      // In release builds, never allow switching away from production API
+      this.baseUrl = PRODUCTION_API_URL;
+      return;
+    }
     this.baseUrl = url.replace(/\/$/, '');
     try {
       if (Platform.OS === 'web') {

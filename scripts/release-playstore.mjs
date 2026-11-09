@@ -90,6 +90,8 @@ async function main() {
     console.log(`📦 Found existing signed bundle: ${finalAabPath}`);
   } else {
     console.log(`🔨 Building signed release bundle with Gradle...`);
+    process.env.EXPO_PUBLIC_API_URL = 'https://doit.samyukt.pro/api/v1';
+    process.env.EXPO_PUBLIC_ENV = 'production';
     const androidDir = path.join(rootDir, 'apps/mobile/android');
     run(`cmd /c gradlew bundleRelease`, androidDir);
 
