@@ -107,30 +107,20 @@ export const WorkspaceSwitcherSheet: React.FC<WorkspaceSwitcherSheetProps> = ({
   if (!visible) return null;
 
   return (
-    <Modal
-      transparent
-      visible={visible}
-      animationType="fade"
-      onRequestClose={() => {
-        resetMode();
-        onClose();
-      }}
-      statusBarTranslucent
-    >
-      <View style={styles.overlayRoot}>
-        <TouchableOpacity
-          style={[styles.backdrop, { backgroundColor: colors.overlay || 'rgba(0,0,0,0.65)' }]}
-          activeOpacity={1}
-          onPress={() => {
-            resetMode();
-            onClose();
-          }}
-        />
-        <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-          style={styles.keyboardContainer}
-          pointerEvents="box-none"
-        >
+    <View style={styles.overlayRoot}>
+      <TouchableOpacity
+        style={[styles.backdrop, { backgroundColor: colors.overlay || 'rgba(0,0,0,0.65)' }]}
+        activeOpacity={1}
+        onPress={() => {
+          resetMode();
+          onClose();
+        }}
+      />
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        style={styles.keyboardContainer}
+        pointerEvents="box-none"
+      >
           <View
             style={[
               styles.sheet,
@@ -378,13 +368,18 @@ export const WorkspaceSwitcherSheet: React.FC<WorkspaceSwitcherSheetProps> = ({
           </View>
         </KeyboardAvoidingView>
       </View>
-    </Modal>
   );
 };
 
 const styles = StyleSheet.create({
   overlayRoot: {
-    flex: 1,
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: 99999,
+    elevation: 9999,
     justifyContent: 'flex-end',
   },
   backdrop: {

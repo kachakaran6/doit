@@ -25,12 +25,12 @@ import {
 } from '../../../components/ui';
 import { BoardColumn } from '../components/BoardColumn';
 import { TaskCreateSheet } from '../components/TaskCreateSheet';
-import { ProjectSwitcherSheet } from '../../workspace/components/ProjectSwitcherSheet';
 import { useTasksQuery } from '../api/queries';
 import { useUpdateTaskStatusMutation, useDeleteTaskMutation } from '../api/mutations';
 import { useTaskFilters } from '../hooks/useTaskFilters';
 import { useTaskStore } from '../store';
 import { useWorkspaceStore } from '../../workspace';
+import { useSheetStore } from '../../../core/sheets/sheet.store';
 import { RootStackParamList } from '../../../navigation/types';
 import { TaskStatus, TaskViewModel as TaskModel } from '../types';
 import {
@@ -57,10 +57,9 @@ export const TaskListScreen: React.FC = () => {
   const { colors, spacing, radius } = useTheme();
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { viewMode, setViewMode, isCreateSheetOpen, setCreateSheetOpen } = useTaskStore();
+  const { openProjectSheet } = useSheetStore();
   const activeProject = useWorkspaceStore((s) => s.activeProject);
   const projectId = activeProject?.id || 'default';
-
-  const [isProjectSheetOpen, setProjectSheetOpen] = useState(false);
 
   const { data: tasks, isLoading, error, refetch, isRefetching } = useTasksQuery(projectId);
   const { activeTab, setActiveTab, filteredTasks } = useTaskFilters(tasks || []);
@@ -185,7 +184,7 @@ export const TaskListScreen: React.FC = () => {
           <Text variant="h1">Tasks</Text>
           <TouchableOpacity
             style={styles.projectDropdown}
-            onPress={() => setProjectSheetOpen(true)}
+            onPress={() => openProjectSheet()}
             activeOpacity={0.7}
           >
             <Text variant="caption" color="secondary" style={{ fontWeight: '600' }}>
@@ -373,11 +372,6 @@ export const TaskListScreen: React.FC = () => {
       )}
 
       {/* Sheets */}
-      <ProjectSwitcherSheet
-        visible={isProjectSheetOpen}
-        onClose={() => setProjectSheetOpen(false)}
-      />
-
       <TaskCreateSheet
         isOpen={isCreateSheetOpen}
         onClose={() => setCreateSheetOpen(false)}

@@ -22,7 +22,7 @@ import { BugRow } from '../../../components/patterns';
 import { useBugsQuery } from '../api/queries';
 import { useDeleteBugMutation } from '../api/mutations';
 import { useWorkspaceStore } from '../../workspace';
-import { ProjectSwitcherSheet } from '../../workspace/components/ProjectSwitcherSheet';
+import { useSheetStore } from '../../../core/sheets/sheet.store';
 import { RootStackParamList } from '../../../navigation/types';
 import { accents } from '@doit/tokens';
 import { ChevronDown, Bug as BugIcon, Sparkles, Plus, Smartphone, ShieldCheck } from 'lucide-react-native';
@@ -31,7 +31,7 @@ export const BugQueueScreen: React.FC = () => {
   const { colors, spacing, radius } = useTheme();
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const [selectedSeverity, setSelectedSeverity] = useState<string>('ALL');
-  const [isProjectSheetOpen, setProjectSheetOpen] = useState(false);
+  const { openProjectSheet } = useSheetStore();
 
   const activeProject = useWorkspaceStore((s) => s.activeProject);
   const projectId = activeProject?.id || 'default';
@@ -141,7 +141,7 @@ export const BugQueueScreen: React.FC = () => {
           )}
         </View>
         <Pressable
-          onPress={() => setProjectSheetOpen(true)}
+          onPress={() => openProjectSheet()}
           style={({ pressed }) => [
             styles.projectDropdown,
             {
@@ -300,12 +300,6 @@ export const BugQueueScreen: React.FC = () => {
           </View>
         </View>
       )}
-
-      {/* Project Switcher Sheet */}
-      <ProjectSwitcherSheet
-        isOpen={isProjectSheetOpen}
-        onClose={() => setProjectSheetOpen(false)}
-      />
     </Screen>
   );
 };

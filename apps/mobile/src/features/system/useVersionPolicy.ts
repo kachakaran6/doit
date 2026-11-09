@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { http } from '../../lib/http';
 
-export const CURRENT_APP_VERSION = '0.3.3';
+export const CURRENT_APP_VERSION = '0.3.4';
 
 export function isVersionLower(current: string, required: string): boolean {
   const c = current.split('.').map((p) => parseInt(p, 10) || 0);

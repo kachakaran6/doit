@@ -11,6 +11,7 @@ import {
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useTheme } from '../../../theme/useTheme';
+import { useBottomInsets } from '../../../layout/useBottomInsets';
 import {
   Text,
   Screen,
@@ -30,9 +31,7 @@ import { useBugsQuery } from '../../bugs/api/queries';
 import { useUpdateTaskStatusMutation } from '../../tasks/api/mutations';
 import { useAuthStore } from '../../auth/store';
 import { useWorkspaceStore, useWorkspacesQuery, useProjectsQuery } from '../../workspace';
-import { WorkspaceSwitcherSheet } from '../../workspace/components/WorkspaceSwitcherSheet';
-import { ProjectSwitcherSheet } from '../../workspace/components/ProjectSwitcherSheet';
-import { AccountMenuSheet } from '../../settings/components/AccountMenuSheet';
+import { useSheetStore } from '../../../core/sheets/sheet.store';
 import { RootStackParamList } from '../../../navigation/types';
 import { TaskStatus } from '../../tasks/types';
 import {
@@ -64,12 +63,11 @@ import {
  */
 export const HomeScreen: React.FC = () => {
   const { colors, spacing, radius, resolvedTheme } = useTheme();
+  const { scrollPaddingBottom } = useBottomInsets();
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const user = useAuthStore((s) => s.user);
 
-  const [isWorkspaceSheetOpen, setWorkspaceSheetOpen] = useState(false);
-  const [isProjectSheetOpen, setProjectSheetOpen] = useState(false);
-  const [isAccountMenuOpen, setAccountMenuOpen] = useState(false);
+  const { openWorkspaceSheet, openAccountMenu } = useSheetStore();
   const [firstRunDismissed, setFirstRunDismissed] = useState(false);
 
   useWorkspacesQuery();
@@ -149,7 +147,7 @@ export const HomeScreen: React.FC = () => {
   }
 
   return (
-    <Screen scrollable={false} gutter={false} style={{ flex: 1, paddingTop: spacing.xs }}>
+    <Screen scrollable={false} gutter={false} includeBottomNavPadding={false} style={{ flex: 1, paddingTop: spacing.xs }}>
       {/* 1. Top Header: Workspace on Left; Bell + Avatar on Right */}
       <View style={[styles.headerContainer, { paddingHorizontal: spacing.screenMargin, marginBottom: spacing.xs }]}>
         <View style={styles.topBar}>
@@ -168,7 +166,10 @@ export const HomeScreen: React.FC = () => {
             ]}
             hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
             activeOpacity={0.7}
-            onPress={() => setWorkspaceSheetOpen(true)}
+            onPress={() => {
+              console.log('[HomeScreen] Workspace selector pressed');
+              openWorkspaceSheet();
+            }}
             accessibilityRole="button"
             accessibilityLabel="Switch workspace"
           >
@@ -217,7 +218,10 @@ export const HomeScreen: React.FC = () => {
 
             {/* Avatar Button */}
             <TouchableOpacity
-              onPress={() => setAccountMenuOpen(true)}
+              onPress={() => {
+                console.log('[HomeScreen] Avatar button pressed');
+                openAccountMenu();
+              }}
               hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
               style={styles.avatarButton}
               activeOpacity={0.7}
@@ -236,8 +240,16 @@ export const HomeScreen: React.FC = () => {
       </View>
 
       <ScrollView
-        contentContainerStyle={[styles.scrollContent, { paddingHorizontal: spacing.screenMargin }]}
+        style={styles.scrollView}
+        contentContainerStyle={[
+          styles.scrollContent,
+          {
+            paddingHorizontal: spacing.screenMargin,
+            paddingBottom: scrollPaddingBottom,
+          },
+        ]}
         showsVerticalScrollIndicator={false}
+        overScrollMode="never"
         refreshControl={
           <RefreshControl
             refreshing={refetchingTasks}
@@ -639,32 +651,16 @@ export const HomeScreen: React.FC = () => {
           </Card>
         )}
       </ScrollView>
-
-      {/* Sheets */}
-      <WorkspaceSwitcherSheet
-        visible={isWorkspaceSheetOpen}
-        onClose={() => setWorkspaceSheetOpen(false)}
-      />
-
-      <ProjectSwitcherSheet
-        visible={isProjectSheetOpen}
-        onClose={() => setProjectSheetOpen(false)}
-      />
-
-      <AccountMenuSheet
-        visible={isAccountMenuOpen}
-        onClose={() => setAccountMenuOpen(false)}
-        onNavigateSettings={() => navigation.navigate('Settings')}
-        onOpenWorkspaceSwitcher={() => setWorkspaceSheetOpen(true)}
-        onOpenProjectSwitcher={() => setProjectSheetOpen(true)}
-      />
     </Screen>
   );
 };
 
 const styles = StyleSheet.create({
+  scrollView: {
+    flex: 1,
+  },
   scrollContent: {
-    paddingBottom: 110,
+    paddingTop: 4,
   },
   headerContainer: {
     paddingTop: 4,

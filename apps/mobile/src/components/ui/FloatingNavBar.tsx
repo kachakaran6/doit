@@ -104,7 +104,6 @@ export const FloatingNavBar: React.FC<FloatingNavBarProps> = ({
           styles.wrapper,
           {
             bottom: navbarBottom,
-            height: navbarHeight,
             transform: [{ translateY }],
           },
         ]}
@@ -117,8 +116,9 @@ export const FloatingNavBar: React.FC<FloatingNavBarProps> = ({
               styles.pillContainer,
               {
                 backgroundColor: isDark
-                  ? 'rgba(18, 20, 26, 0.88)'
-                  : 'rgba(255, 255, 255, 0.92)',
+                  ? 'rgba(20, 20, 24, 0.94)'
+                  : 'rgba(255, 255, 255, 0.96)',
+                borderColor: isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.08)',
                 borderRadius: radius.pill,
                 height: 56,
               },
@@ -183,7 +183,6 @@ export const FloatingNavBar: React.FC<FloatingNavBarProps> = ({
               {
                 backgroundColor: colors.accent,
                 borderRadius: radius.pill,
-                shadowColor: colors.accent,
               },
             ]}
           >
@@ -290,11 +289,12 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 6,
     paddingVertical: 5,
+    borderWidth: 1,
     shadowColor: '#000000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.45,
-    shadowRadius: 28,
-    elevation: 10,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.35,
+    shadowRadius: 16,
+    elevation: 6,
   },
   tabItem: {
     flex: 1,
@@ -318,10 +318,11 @@ const styles = StyleSheet.create({
     height: 56,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.38,
-    shadowRadius: 16,
-    elevation: 10,
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.28,
+    shadowRadius: 12,
+    elevation: 6,
   },
   modalOverlay: {
     flex: 1,

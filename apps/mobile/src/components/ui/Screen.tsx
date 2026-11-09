@@ -146,7 +146,7 @@ export const Screen: React.FC<ScreenProps> = ({
             styles.staticContent,
             {
               paddingHorizontal: horizontalPadding,
-              paddingBottom: includeBottomNavPadding ? bottomClearance : 0,
+              paddingBottom: 0,
             },
             contentContainerStyle,
           ]}

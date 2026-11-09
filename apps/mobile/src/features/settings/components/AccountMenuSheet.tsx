@@ -10,8 +10,7 @@ import {
   Linking,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useNavigation } from '@react-navigation/native';
-import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { navigationRef } from '../../../navigation/navigationRef';
 import { RootStackParamList } from '../../../navigation/types';
 import { useTheme } from '../../../theme/useTheme';
 import { Text, Avatar } from '../../../components/ui';
@@ -51,7 +50,11 @@ export const AccountMenuSheet: React.FC<AccountMenuSheetProps> = ({
 }) => {
   const { colors, spacing, radius } = useTheme();
   const insets = useSafeAreaInsets();
-  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const navigate = (screen: keyof RootStackParamList, params?: any) => {
+    if (navigationRef.isReady()) {
+      (navigationRef.navigate as any)(screen, params);
+    }
+  };
   const user = useAuthStore((s) => s.user);
   const logout = useAuthStore((s) => s.logout);
   const activeWorkspace = useWorkspaceStore((s) => s.activeWorkspace);
@@ -79,31 +82,24 @@ export const AccountMenuSheet: React.FC<AccountMenuSheetProps> = ({
   if (!visible) return null;
 
   return (
-    <Modal
-      transparent
-      visible={visible}
-      animationType="fade"
-      onRequestClose={onClose}
-      statusBarTranslucent
-    >
-      <View style={styles.overlayRoot}>
-        <TouchableOpacity
-          style={[styles.backdrop, { backgroundColor: colors.overlay || 'rgba(0,0,0,0.65)' }]}
-          activeOpacity={1}
-          onPress={onClose}
-        />
-        <View
-          style={[
-            styles.sheet,
-            {
-              backgroundColor: colors.surface1 || colors.surface,
-              borderTopLeftRadius: 24,
-              borderTopRightRadius: 24,
-              maxHeight: Dimensions.get('window').height * 0.88,
-              minHeight: 280,
-            },
-          ]}
-        >
+    <View style={styles.overlayRoot}>
+      <TouchableOpacity
+        style={[styles.backdrop, { backgroundColor: colors.overlay || 'rgba(0,0,0,0.65)' }]}
+        activeOpacity={1}
+        onPress={onClose}
+      />
+      <View
+        style={[
+          styles.sheet,
+          {
+            backgroundColor: colors.surface1 || colors.surface,
+            borderTopLeftRadius: 24,
+            borderTopRightRadius: 24,
+            maxHeight: Dimensions.get('window').height * 0.88,
+            minHeight: 280,
+          },
+        ]}
+      >
           <ScrollView
             style={styles.scrollFlex}
             showsVerticalScrollIndicator={false}
@@ -198,7 +194,7 @@ export const AccountMenuSheet: React.FC<AccountMenuSheetProps> = ({
                   if (onNavigateSettings) {
                     onNavigateSettings();
                   } else {
-                    navigation.navigate('Settings');
+                    navigate('Settings');
                   }
                 }}
                 activeOpacity={0.7}
@@ -268,7 +264,7 @@ export const AccountMenuSheet: React.FC<AccountMenuSheetProps> = ({
                 style={styles.menuRow}
                 onPress={() => {
                   onClose();
-                  navigation.navigate('Notifications');
+                  navigate('Notifications');
                 }}
                 activeOpacity={0.7}
               >
@@ -289,7 +285,7 @@ export const AccountMenuSheet: React.FC<AccountMenuSheetProps> = ({
                 onPress={() => {
                   onClose();
                   setTimeout(() => {
-                    navigation.navigate('OurApps');
+                    navigate('OurApps');
                   }, 200);
                 }}
                 activeOpacity={0.7}
@@ -397,13 +393,18 @@ export const AccountMenuSheet: React.FC<AccountMenuSheetProps> = ({
           </ScrollView>
         </View>
       </View>
-    </Modal>
   );
 };
 
 const styles = StyleSheet.create({
   overlayRoot: {
-    flex: 1,
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: 99999,
+    elevation: 9999,
     justifyContent: 'flex-end',
   },
   backdrop: {
