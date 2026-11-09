@@ -308,7 +308,7 @@ let ContextAiService = ContextAiService_1 = class ContextAiService {
                     Authorization: `Bearer ${secret}`,
                     ...(provEnum === 'OPENROUTER'
                         ? {
-                            'HTTP-Referer': 'https://doit.kachakaran.tech',
+                            'HTTP-Referer': process.env.APP_URL || 'https://doit.web.samyukt.pro',
                             'X-Title': 'DoIt AI Workspace',
                         }
                         : {}),
@@ -524,7 +524,7 @@ let ContextAiService = ContextAiService_1 = class ContextAiService {
             'Content-Type': 'application/json',
             ...(isOpenRouter
                 ? {
-                    'HTTP-Referer': 'https://doit.kachakaran.tech',
+                    'HTTP-Referer': process.env.APP_URL || 'https://doit.web.samyukt.pro',
                     'X-Title': 'DoIt AI Solution Assistant',
                 }
                 : {}),

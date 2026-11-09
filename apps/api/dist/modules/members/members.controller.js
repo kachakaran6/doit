@@ -32,17 +32,17 @@ let MembersController = class MembersController {
     async getInvitations(workspaceId) {
         return this.membersService.getInvitations(workspaceId);
     }
-    async invite(workspaceId, user, dto) {
-        return this.membersService.inviteMember(workspaceId, user.sub, dto);
+    async invite(workspaceId, user, dto, origin, referer) {
+        return this.membersService.inviteMember(workspaceId, user.sub, dto, origin || referer);
     }
-    async createInvitation(workspaceId, user, dto) {
-        return this.membersService.inviteMember(workspaceId, user.sub, dto);
+    async createInvitation(workspaceId, user, dto, origin, referer) {
+        return this.membersService.inviteMember(workspaceId, user.sub, dto, origin || referer);
     }
     async revokeInvitation(workspaceId, invitationId) {
         return this.membersService.revokeInvitation(workspaceId, invitationId);
     }
-    async resendInvitation(workspaceId, invitationId, user) {
-        return this.membersService.resendInvitation(workspaceId, invitationId, user.sub);
+    async resendInvitation(workspaceId, invitationId, user, origin, referer) {
+        return this.membersService.resendInvitation(workspaceId, invitationId, user.sub, origin || referer);
     }
     async validateToken(token) {
         return this.membersService.validateToken(token);
@@ -91,8 +91,10 @@ __decorate([
     __param(0, (0, common_1.Param)('workspaceId')),
     __param(1, (0, current_user_decorator_1.CurrentUser)()),
     __param(2, (0, common_1.Body)(new zod_validation_pipe_1.ZodValidationPipe(members_dto_1.InviteMemberSchema))),
+    __param(3, (0, common_1.Headers)('origin')),
+    __param(4, (0, common_1.Headers)('referer')),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String, Object, Object]),
+    __metadata("design:paramtypes", [String, Object, Object, String, String]),
     __metadata("design:returntype", Promise)
 ], MembersController.prototype, "invite", null);
 __decorate([
@@ -104,8 +106,10 @@ __decorate([
     __param(0, (0, common_1.Param)('workspaceId')),
     __param(1, (0, current_user_decorator_1.CurrentUser)()),
     __param(2, (0, common_1.Body)(new zod_validation_pipe_1.ZodValidationPipe(members_dto_1.InviteMemberSchema))),
+    __param(3, (0, common_1.Headers)('origin')),
+    __param(4, (0, common_1.Headers)('referer')),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String, Object, Object]),
+    __metadata("design:paramtypes", [String, Object, Object, String, String]),
     __metadata("design:returntype", Promise)
 ], MembersController.prototype, "createInvitation", null);
 __decorate([
@@ -129,8 +133,10 @@ __decorate([
     __param(0, (0, common_1.Param)('workspaceId')),
     __param(1, (0, common_1.Param)('id')),
     __param(2, (0, current_user_decorator_1.CurrentUser)()),
+    __param(3, (0, common_1.Headers)('origin')),
+    __param(4, (0, common_1.Headers)('referer')),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String, String, Object]),
+    __metadata("design:paramtypes", [String, String, Object, String, String]),
     __metadata("design:returntype", Promise)
 ], MembersController.prototype, "resendInvitation", null);
 __decorate([

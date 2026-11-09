@@ -15,6 +15,7 @@ import { Modal } from '@/components/ui/modal';
 import { Avatar } from '@/components/ui/avatar';
 import { ProjectContextPanel } from '@/components/tasks/ProjectContextPanel';
 import { SolutionPromptPanel } from '@/components/tasks/SolutionPromptPanel';
+import { FloatingCreateButton } from '@/components/layout/FloatingCreateButton';
 import {
   LayoutList,
   Columns3,
@@ -312,20 +313,20 @@ export function TasksPage() {
       </div>
 
       {/* Filter Bar */}
-      <div className="flex flex-wrap items-center gap-2.5">
-        <div className="relative flex-1 min-w-[200px] max-w-sm">
-          <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-[var(--muted-foreground)]" />
+      <div className="flex flex-wrap items-center gap-2 pt-0.5">
+        <div className="relative w-64 max-w-xs">
+          <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-[var(--muted-foreground)] pointer-events-none" />
           <input
             type="text"
             placeholder="Filter tasks by title or ID…"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-8.5 pr-3 py-1.5 rounded-lg border border-[var(--input)] bg-[var(--card)] text-[13px] text-[var(--foreground)] placeholder:text-[var(--muted-foreground)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]"
+            className="w-full h-8 pl-8.5 pr-7 rounded-lg border border-[var(--border)] bg-[var(--card)] text-[12px] text-[var(--foreground)] placeholder:text-[var(--muted-foreground)] focus:outline-none focus:ring-1 focus:ring-[var(--primary)] transition-colors"
           />
           {searchQuery && (
             <button
               onClick={() => setSearchQuery('')}
-              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[var(--muted-foreground)] hover:text-[var(--foreground)] cursor-pointer"
+              className="absolute right-2 top-1/2 -translate-y-1/2 text-[var(--muted-foreground)] hover:text-[var(--foreground)] cursor-pointer"
             >
               <X className="w-3.5 h-3.5" />
             </button>
@@ -336,7 +337,8 @@ export function TasksPage() {
         <ShadcnSelect
           value={statusFilter}
           onChange={setStatusFilter}
-          className="h-8 text-[12px] min-w-[130px]"
+          className="h-8 text-[12px] w-auto min-w-[130px]"
+          wrapperClassName="w-auto shrink-0"
           options={[
             { value: 'ALL', label: 'All statuses' },
             { value: 'TODO', label: 'To do' },
@@ -349,7 +351,8 @@ export function TasksPage() {
         <ShadcnSelect
           value={priorityFilter}
           onChange={setPriorityFilter}
-          className="h-8 text-[12px] min-w-[140px]"
+          className="h-8 text-[12px] w-auto min-w-[135px]"
+          wrapperClassName="w-auto shrink-0"
           options={[
             { value: 'ALL', label: 'All priorities' },
             { value: 'URGENT', label: 'Urgent' },
@@ -366,7 +369,7 @@ export function TasksPage() {
               setStatusFilter('ALL');
               setPriorityFilter('ALL');
             }}
-            className="text-[12px] font-medium text-[var(--primary-text)] hover:underline cursor-pointer"
+            className="text-[12px] font-medium text-[var(--primary-text)] hover:underline cursor-pointer px-1.5 py-1"
           >
             Clear filters
           </button>
@@ -959,6 +962,9 @@ export function TasksPage() {
           />
         )}
       </Modal>
+
+      {/* Floating Action Button */}
+      <FloatingCreateButton type="task" label="New task" />
     </PageContainer>
   );
 }

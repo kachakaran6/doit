@@ -19,6 +19,7 @@ export interface SelectProps {
   onValueChange?: (value: string) => void;
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
+  className?: string;
   children: React.ReactNode;
 }
 
@@ -28,6 +29,7 @@ export function Select({
   onValueChange,
   open: controlledOpen,
   onOpenChange,
+  className,
   children,
 }: SelectProps) {
   const [uncontrolledValue, setUncontrolledValue] = React.useState(defaultValue || '');
@@ -71,7 +73,7 @@ export function Select({
         displayLabels,
       }}
     >
-      <div className="relative inline-block w-full">{children}</div>
+      <div className={cn('relative inline-block', className ?? 'w-full')}>{children}</div>
     </SelectContext.Provider>
   );
 }
@@ -115,23 +117,24 @@ SelectTrigger.displayName = 'SelectTrigger';
 export interface SelectValueProps {
   placeholder?: string;
   className?: string;
+  children?: React.ReactNode;
 }
 
-export function SelectValue({ placeholder, className }: SelectValueProps) {
+export function SelectValue({ placeholder, className, children }: SelectValueProps) {
   const ctx = React.useContext(SelectContext);
   if (!ctx) throw new Error('SelectValue must be used within Select');
 
-  const selectedLabel = ctx.value ? ctx.displayLabels.current.get(ctx.value) : null;
+  const selectedLabel = children ?? (ctx.value ? ctx.displayLabels.current.get(ctx.value) : null);
 
   return (
     <span
       className={cn(
         'truncate block',
-        !ctx.value && 'text-[var(--muted-foreground)]',
+        !ctx.value && !children && 'text-[var(--muted-foreground)]',
         className
       )}
     >
-      {selectedLabel || ctx.value || placeholder || 'Select an option…'}
+      {selectedLabel ?? ctx.value ?? placeholder ?? 'Select an option…'}
     </span>
   );
 }
@@ -285,6 +288,7 @@ export interface ShadcnSelectProps {
   options: ShadcnSelectOption[];
   placeholder?: string;
   className?: string;
+  wrapperClassName?: string;
   disabled?: boolean;
 }
 
@@ -294,12 +298,22 @@ export function ShadcnSelect({
   options,
   placeholder,
   className,
+  wrapperClassName,
   disabled,
 }: ShadcnSelectProps) {
+  const currentOption = options.find((opt) => opt.value === value);
+  const displayLabel = currentOption ? currentOption.label : undefined;
+
+  // Auto-detect if width constraint is intended (e.g. min-w-, w-auto, w-[...])
+  // so the wrapper doesn't force a full-width line break in flex layouts.
+  const hasWidthConstraint = className && /(min-w-|w-auto|max-w-|w-\[)/.test(className);
+  const isExplicitFull = className?.includes('w-full');
+  const computedWrapper = wrapperClassName ?? (isExplicitFull ? 'w-full' : hasWidthConstraint ? 'w-auto' : 'w-full');
+
   return (
-    <Select value={value} onValueChange={onChange}>
+    <Select value={value} onValueChange={onChange} className={computedWrapper}>
       <SelectTrigger className={className} disabled={disabled}>
-        <SelectValue placeholder={placeholder} />
+        <SelectValue placeholder={placeholder}>{displayLabel}</SelectValue>
       </SelectTrigger>
       <SelectContent>
         {options.map((opt) => (

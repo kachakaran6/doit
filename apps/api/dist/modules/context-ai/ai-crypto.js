@@ -9,13 +9,22 @@ const node_crypto_1 = require("node:crypto");
 const KEY_VERSION = 1;
 function assertAiKeyConfigured() {
     const dedicated = process.env.AI_CREDENTIALS_KEY?.trim();
-    if (!dedicated || dedicated.length < 16) {
-        throw new Error('AI_CREDENTIALS_KEY is not configured');
+    if (dedicated && dedicated.length >= 16) {
+        return;
     }
+    const fallback = process.env.JWT_SECRET?.trim();
+    if (fallback && fallback.length >= 16) {
+        return;
+    }
+    throw new Error('AI_CREDENTIALS_KEY is not configured');
 }
 function material() {
     assertAiKeyConfigured();
-    return `ai-v1:${process.env.AI_CREDENTIALS_KEY.trim()}`;
+    const dedicated = process.env.AI_CREDENTIALS_KEY?.trim();
+    if (dedicated && dedicated.length >= 16) {
+        return `ai-v1:${dedicated}`;
+    }
+    return `ai-fallback:${process.env.JWT_SECRET.trim()}`;
 }
 function aiKeyVersion() {
     assertAiKeyConfigured();

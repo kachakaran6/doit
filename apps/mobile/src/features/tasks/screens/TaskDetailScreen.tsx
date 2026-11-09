@@ -9,7 +9,8 @@ import {
   Chip,
   Skeleton,
   EmptyState,
-  ScreenHeader,
+  CompactHeader,
+  PriorityDot,
 } from '../../../components/ui';
 import { AttachmentGallery } from '../../../components/patterns';
 import { useTaskDetailQuery } from '../api/queries';
@@ -29,11 +30,11 @@ import {
   Calendar,
   Trash2,
   ChevronDown,
-  Workflow,
   Edit3,
   Circle,
   AlertCircle,
   CheckCircle2,
+  FileText,
 } from 'lucide-react-native';
 import { SolutionPromptSection } from '../components/SolutionPromptSection';
 import { TaskStatusPickerSheet } from '../components/TaskStatusPickerSheet';
@@ -53,14 +54,15 @@ const STATUS_DISPLAY_CONFIG: Record<
 };
 
 export const TaskDetailScreen: React.FC = () => {
-  const { colors, spacing, radius, elevation } = useTheme();
+  const { colors, spacing, radius } = useTheme();
   const navigation = useNavigation();
   const route = useRoute<DetailRouteProp>();
   const { id } = route.params;
 
+  const activeProject = useWorkspaceStore((s) => s.activeProject);
   const activeWorkspace = useWorkspaceStore((s) => s.activeWorkspace);
 
-  const { data: task, isLoading, error, refetch } = useTaskDetailQuery(id);
+  const { data: task, isLoading, error } = useTaskDetailQuery(id);
   const updateStatus = useUpdateTaskStatusMutation(task?.projectId || 'default');
   const deleteTask = useDeleteTaskMutation(task?.projectId || 'default');
   const setLabels = useSetTaskLabelsMutation(task?.projectId || 'default');
@@ -94,8 +96,8 @@ export const TaskDetailScreen: React.FC = () => {
   if (isLoading) {
     return (
       <SafeAreaView edges={['top']} style={[styles.container, { backgroundColor: colors.bg, padding: spacing.lg }]}>
-        <Skeleton width="30%" height={24} style={{ marginBottom: spacing.md }} />
-        <Skeleton width="90%" height={32} style={{ marginBottom: spacing.md }} />
+        <Skeleton width="30%" height={20} style={{ marginBottom: spacing.md }} />
+        <Skeleton width="90%" height={28} style={{ marginBottom: spacing.lg }} />
         <Skeleton width="100%" height={120} style={{ borderRadius: radius.md }} />
       </SafeAreaView>
     );
@@ -152,166 +154,140 @@ export const TaskDetailScreen: React.FC = () => {
 
   return (
     <SafeAreaView edges={['top', 'bottom']} style={[styles.container, { backgroundColor: colors.bg }]}>
+      {/* 1. Compact Contextual Top Bar */}
+      <CompactHeader
+        title={task.humanId}
+        subtitle={activeProject?.name || 'General'}
+        onBack={() => navigation.goBack()}
+        rightAction={
+          <View style={styles.headerActions}>
+            {/* Interactive Status Pill */}
+            <TouchableOpacity
+              activeOpacity={0.7}
+              onPress={() => setStatusPickerOpen(true)}
+              style={[
+                styles.statusTrigger,
+                {
+                  backgroundColor: isDone ? colors.success + '20' : colors.surface2,
+                  borderColor: isDone ? colors.success : colors.border,
+                  borderRadius: radius.pill,
+                },
+              ]}
+              accessibilityRole="button"
+              accessibilityLabel={`Change status, current is ${statusMeta.label}`}
+            >
+              <StatusIcon size={12} color={isDone ? colors.success : statusColor} />
+              <Text
+                variant="caption"
+                style={[
+                  styles.statusText,
+                  { color: isDone ? colors.success : colors.textPrimary },
+                ]}
+              >
+                {statusMeta.label}
+              </Text>
+              <ChevronDown size={11} color={colors.textSecondary} />
+            </TouchableOpacity>
+
+            {/* Trash Button */}
+            <TouchableOpacity
+              activeOpacity={0.7}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              onPress={handleConfirmDelete}
+              style={[
+                styles.trashBtn,
+                {
+                  backgroundColor: colors.surface2,
+                  borderColor: colors.border,
+                  borderRadius: radius.sm,
+                },
+              ]}
+              accessibilityRole="button"
+              accessibilityLabel="Move task to trash"
+            >
+              <Trash2 size={15} color={colors.danger} />
+            </TouchableOpacity>
+          </View>
+        }
+      />
+
       <ScrollView
         contentContainerStyle={[
           styles.scrollContent,
           {
             paddingHorizontal: spacing.lg,
-            paddingTop: spacing.xs,
-            paddingBottom: 64,
+            paddingTop: spacing.md,
+            paddingBottom: 40,
           },
         ]}
         showsVerticalScrollIndicator={false}
       >
-        <ScreenHeader
-          title={task.humanId}
-          onBack={() => navigation.goBack()}
-          rightAction={
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-              {/* Interactive Status Badge Header Trigger */}
-              <TouchableOpacity
-                activeOpacity={0.7}
-                onPress={() => setStatusPickerOpen(true)}
-                style={[
-                  styles.statusBadge,
-                  {
-                    backgroundColor: isDone ? colors.success + '20' : colors.surfaceRaised,
-                    borderColor: isDone ? colors.success : colors.border,
-                    borderRadius: radius.pill,
-                  },
-                ]}
-                accessibilityRole="button"
-                accessibilityLabel={`Change status, current is ${statusMeta.label}`}
-              >
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
-                  <StatusIcon size={12} color={isDone ? colors.success : statusColor} strokeWidth={2.4} />
-                  <Text
-                    variant="caption"
-                    style={{
-                      color: isDone ? colors.success : colors.textPrimary,
-                      fontWeight: '600',
-                    }}
-                  >
-                    {statusMeta.label}
-                  </Text>
-                  <ChevronDown size={11} color={colors.textSecondary} />
-                </View>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                activeOpacity={0.7}
-                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                onPress={handleConfirmDelete}
-                style={{
-                  padding: 6,
-                  borderRadius: radius.sm,
-                  backgroundColor: colors.surfaceRaised,
-                  borderWidth: StyleSheet.hairlineWidth,
-                  borderColor: colors.border,
-                }}
-                accessibilityRole="button"
-                accessibilityLabel="Move task to trash"
-              >
-                <Trash2 size={16} color={colors.danger} />
-              </TouchableOpacity>
-            </View>
-          }
-        />
-
-        {/* Task Title */}
+        {/* 2. Task Title (Primary content) */}
         <Text
           variant="h1"
           style={[
             styles.titleText,
-            isDone ? { textDecorationLine: 'line-through', opacity: 0.6 } : undefined,
+            { color: colors.textPrimary },
+            isDone ? { textDecorationLine: 'line-through', opacity: 0.55 } : undefined,
           ]}
         >
           {task.title}
         </Text>
 
-        {/* Properties Card */}
+        {/* 3. Inline Properties Panel (Flat, quiet, no heavy cards) */}
         <View
           style={[
-            styles.propsCard,
+            styles.propertiesPanel,
             {
-              backgroundColor: colors.surface,
+              backgroundColor: colors.surface1,
               borderColor: colors.border,
               borderRadius: radius.md,
-              marginTop: spacing.lg,
-              padding: spacing.md,
-              ...elevation.e1,
+              marginTop: spacing.md,
             },
           ]}
         >
-          {/* Workflow Status Row */}
+          {/* Priority Row */}
           <View style={styles.propRow}>
             <View style={styles.propLabelGroup}>
-              <Workflow size={14} color={colors.textTertiary} />
-              <Text variant="caption" color="secondary" style={{ marginLeft: 6 }}>
-                Status
-              </Text>
-            </View>
-            <TouchableOpacity
-              style={[
-                styles.statusSelectorBtn,
-                {
-                  backgroundColor: colors.surface2 || colors.surfaceRaised,
-                  borderRadius: radius.sm,
-                  borderColor: colors.hairline,
-                  borderWidth: 1,
-                  paddingHorizontal: spacing.sm + 2,
-                  paddingVertical: 5,
-                },
-              ]}
-              onPress={() => setStatusPickerOpen(true)}
-              activeOpacity={0.7}
-              accessibilityRole="button"
-              accessibilityLabel="Select workflow status"
-            >
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                <StatusIcon size={13} color={statusColor} strokeWidth={2.4} />
-                <Text variant="bodySmall" style={{ fontWeight: '600', color: colors.textPrimary }}>
-                  {statusMeta.label}
-                </Text>
-                <ChevronDown size={13} color={colors.textSecondary} />
-              </View>
-            </TouchableOpacity>
-          </View>
-
-          {/* Priority */}
-          <View style={[styles.propRow, { marginTop: spacing.sm, paddingTop: spacing.sm, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.border }]}>
-            <View style={styles.propLabelGroup}>
-              <Flag size={14} color={colors.textTertiary} />
-              <Text variant="caption" color="secondary" style={{ marginLeft: 6 }}>
+              <Flag size={12} color={colors.textTertiary} />
+              <Text variant="caption" color="secondary" style={styles.propLabelText}>
                 Priority
               </Text>
             </View>
-            <Text
-              variant="label"
-              color={task.priority === 'URGENT' || task.priority === 'HIGH' ? 'danger' : 'primary'}
-            >
-              {task.priority || 'MEDIUM'}
-            </Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+              {task.priority && <PriorityDot level={task.priority} />}
+              <Text
+                variant="caption"
+                style={{
+                  fontWeight: '600',
+                  color: task.priority === 'URGENT' || task.priority === 'HIGH' ? colors.danger : colors.textPrimary,
+                }}
+              >
+                {task.priority || 'MEDIUM'}
+              </Text>
+            </View>
           </View>
 
-          {/* Due Date */}
-          {task.dueDate && (
-            <View style={[styles.propRow, { marginTop: spacing.sm, paddingTop: spacing.sm, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.border }]}>
+          {/* Due Date Row (if present) */}
+          {task.dueDate ? (
+            <View style={[styles.propRow, { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.hairline }]}>
               <View style={styles.propLabelGroup}>
-                <Calendar size={14} color={colors.textTertiary} />
-                <Text variant="caption" color="secondary" style={{ marginLeft: 6 }}>
+                <Calendar size={12} color={colors.textTertiary} />
+                <Text variant="caption" color="secondary" style={styles.propLabelText}>
                   Due Date
                 </Text>
               </View>
-              <Text variant="label">{task.dueDate}</Text>
+              <Text variant="caption" style={{ fontWeight: '600', color: colors.textPrimary }}>
+                {task.dueDate}
+              </Text>
             </View>
-          )}
+          ) : null}
 
-          {/* Labels Row with Editor */}
-          <View style={[styles.propRow, { marginTop: spacing.sm, paddingTop: spacing.sm, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.border }]}>
+          {/* Labels Row */}
+          <View style={[styles.propRow, { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.hairline }]}>
             <View style={styles.propLabelGroup}>
-              <Tag size={14} color={colors.textTertiary} />
-              <Text variant="caption" color="secondary" style={{ marginLeft: 6 }}>
+              <Tag size={12} color={colors.textTertiary} />
+              <Text variant="caption" color="secondary" style={styles.propLabelText}>
                 Labels
               </Text>
             </View>
@@ -328,61 +304,71 @@ export const TaskDetailScreen: React.FC = () => {
                     <Chip key={lbl.id} label={lbl.name} />
                   ))
                 ) : (
-                  <Text variant="caption" color="secondary">
-                    No labels
+                  <Text variant="caption" color="secondary" style={{ fontSize: 12 }}>
+                    Add labels
                   </Text>
                 )}
                 <View
                   style={[
                     styles.editIconBadge,
                     {
-                      backgroundColor: colors.surface2 || colors.surfaceRaised,
+                      backgroundColor: colors.surface2,
                       borderRadius: radius.xs,
-                      padding: 4,
+                      padding: 3,
                       marginLeft: 2,
                     },
                   ]}
                 >
-                  <Edit3 size={11} color={colors.accentText} />
+                  <Edit3 size={10} color={colors.accentText} />
                 </View>
               </View>
             </TouchableOpacity>
           </View>
         </View>
 
-        {/* Description Box */}
-        {task.description ? (
-          <View
+        {/* 4. Description Box */}
+        <View
+          style={[
+            styles.sectionCard,
+            {
+              backgroundColor: colors.surface1,
+              borderColor: colors.border,
+              borderRadius: radius.md,
+              padding: spacing.md,
+              marginTop: spacing.md,
+            },
+          ]}
+        >
+          <View style={styles.cardHeaderRow}>
+            <FileText size={12} color={colors.textTertiary} />
+            <Text variant="caption" color="secondary" style={styles.cardHeaderTitle}>
+              DESCRIPTION
+            </Text>
+          </View>
+          <Text
+            variant="body"
+            color={task.description ? 'primary' : 'secondary'}
             style={[
-              styles.descBox,
-              {
-                backgroundColor: colors.surface,
-                borderColor: colors.border,
-                borderRadius: radius.md,
-                padding: spacing.lg,
-                marginTop: spacing.md,
-                ...elevation.e1,
-              },
+              styles.descriptionText,
+              !task.description ? { fontStyle: 'italic' } : undefined,
             ]}
           >
-            <Text variant="caption" color="tertiary" style={{ textTransform: 'uppercase', marginBottom: spacing.xs, fontWeight: '600' }}>
-              Description
-            </Text>
-            <Text variant="body" style={{ lineHeight: 22 }}>
-              {task.description}
-            </Text>
+            {task.description || 'No description provided.'}
+          </Text>
+        </View>
+
+        {/* 5. Attachments Gallery */}
+        {task.attachments && task.attachments.length > 0 ? (
+          <View style={{ marginTop: spacing.md }}>
+            <AttachmentGallery title="Attachments" attachments={task.attachments} />
           </View>
         ) : null}
 
-        {/* Attachments Section */}
-        {task.attachments && task.attachments.length > 0 ? (
-          <AttachmentGallery title="Attachments" attachments={task.attachments} />
-        ) : null}
-
+        {/* 6. Solution Prompt (Compact & Collapsible) */}
         <SolutionPromptSection taskId={task.id} attachments={task.attachments} />
 
-        {/* Status & Trash Action Buttons */}
-        <View style={{ marginTop: spacing.xl, gap: spacing.md }}>
+        {/* 7. Primary Action Button */}
+        <View style={{ marginTop: spacing.xl, marginBottom: spacing.lg }}>
           <Button
             title={isDone ? 'Mark as Incomplete' : 'Mark as Done'}
             variant={isDone ? 'secondary' : 'primary'}
@@ -390,37 +376,29 @@ export const TaskDetailScreen: React.FC = () => {
             loading={updateStatus.isPending}
             onPress={handleToggleDone}
           />
-          <Button
-            title="Move to Trash"
-            variant="danger"
-            icon={<Trash2 size={16} color="#FFF" />}
-            loading={deleteTask.isPending}
-            onPress={handleConfirmDelete}
-          />
         </View>
       </ScrollView>
 
-      {/* Workflow Status Picker Sheet */}
+      {/* Sheets */}
       <TaskStatusPickerSheet
         visible={statusPickerOpen}
-        currentStatus={task.status}
-        isLoading={updateStatus.isPending}
-        onSelectStatus={handleSelectStatus}
         onClose={() => setStatusPickerOpen(false)}
+        currentStatus={task.status}
+        onSelectStatus={handleSelectStatus}
       />
 
-      {/* Task Labels Picker Sheet */}
       <TaskLabelPickerSheet
         visible={labelPickerOpen}
+        onClose={() => setLabelPickerOpen(false)}
         assignedLabels={task.labels || []}
         workspaceId={activeWorkspace?.id || ''}
-        isLoading={setLabels.isPending}
         onSaveLabels={handleSaveLabels}
-        onClose={() => setLabelPickerOpen(false)}
-        onOpenLabelManager={() => setLabelManagerOpen(true)}
+        onOpenLabelManager={() => {
+          setLabelPickerOpen(false);
+          setLabelManagerOpen(true);
+        }}
       />
 
-      {/* Workspace Label Manager Sheet */}
       <LabelManagerSheet
         visible={labelManagerOpen}
         onClose={() => setLabelManagerOpen(false)}
@@ -436,42 +414,77 @@ const styles = StyleSheet.create({
   scrollContent: {
     flexGrow: 1,
   },
-  statusBadge: {
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderWidth: 1,
-  },
-  statusSelectorBtn: {
+  headerActions: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: 8,
+  },
+  statusTrigger: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 9,
+    paddingVertical: 5,
+    borderWidth: 1,
+    gap: 5,
+  },
+  statusText: {
+    fontSize: 11,
+    fontWeight: '600',
+  },
+  trashBtn: {
+    padding: 6,
+    borderWidth: 1,
   },
   titleText: {
+    fontSize: 20,
     fontWeight: '700',
-    lineHeight: 32,
+    lineHeight: 26,
+    letterSpacing: -0.3,
   },
-  propsCard: {
+  propertiesPanel: {
     borderWidth: 1,
+    overflow: 'hidden',
   },
   propRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    paddingHorizontal: 12,
+    paddingVertical: 10,
   },
   propLabelGroup: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: 6,
+  },
+  propLabelText: {
+    fontSize: 12,
   },
   labelTouchContainer: {
     flex: 1,
     flexDirection: 'row',
     justifyContent: 'flex-end',
-    alignItems: 'center',
   },
   editIconBadge: {
     alignItems: 'center',
     justifyContent: 'center',
   },
-  descBox: {
+  sectionCard: {
     borderWidth: 1,
+  },
+  cardHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 6,
+  },
+  cardHeaderTitle: {
+    fontSize: 10,
+    fontWeight: '700',
+    letterSpacing: 0.5,
+    marginLeft: 6,
+  },
+  descriptionText: {
+    fontSize: 13,
+    lineHeight: 20,
   },
 });

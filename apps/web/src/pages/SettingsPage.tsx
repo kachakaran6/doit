@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuthStore } from '@/lib/auth-store';
 import { useWorkspaceStore } from '@/lib/workspace-store';
-import { useThemeStore, ThemeMode, AccentColor } from '@/lib/theme-store';
+import { useThemeStore, AccentColor } from '@/lib/theme-store';
 import { api } from '@/lib/api';
 import { SmtpConfig } from '@/lib/types';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
@@ -23,7 +23,6 @@ import {
   SlidersHorizontal,
   Sun,
   Moon,
-  Laptop,
   Check,
   Smartphone,
   Globe,
@@ -293,66 +292,62 @@ export function SettingsPage() {
       {/* Tab 1: Appearance */}
       {activeTab === 'appearance' && (
         <div className="space-y-6">
-          {/* Theme Mode Preview Cards */}
+          {/* Theme Mode Toggle Switch */}
           <Card variant="bordered">
-            <CardHeader>
-              <CardTitle>Interface theme</CardTitle>
-              <CardDescription>Select between dark, light, or system automated mode</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
-                {[
-                  {
-                    id: 'dark',
-                    label: 'Dark mode',
-                    desc: 'Restrained graphite surfaces with subtle depth',
-                    icon: Moon,
-                    bgClass: 'bg-[#0B0B0E] border-[#25252C]',
-                  },
-                  {
-                    id: 'light',
-                    label: 'Light mode',
-                    desc: 'Clean paper surfaces with high contrast text',
-                    icon: Sun,
-                    bgClass: 'bg-[#F4F4F7] border-[#E8E8EE]',
-                  },
-                  {
-                    id: 'system',
-                    label: 'System auto',
-                    desc: 'Synchronizes with operating system schedule',
-                    icon: Laptop,
-                    bgClass: 'bg-[var(--surface-raised)] border-[var(--border)]',
-                  },
-                ].map((item) => {
-                  const isSelected = mode === item.id;
-                  const Icon = item.icon;
-                  return (
-                    <div
-                      key={item.id}
-                      onClick={() => setMode(item.id as ThemeMode)}
-                      className={`p-4 rounded-xl border-2 transition-all cursor-pointer ${
-                        isSelected
-                          ? 'border-[var(--primary)] bg-[var(--primary-soft)]'
-                          : 'border-[var(--border)] hover:border-[var(--border-strong)] bg-[var(--card)]'
-                      }`}
-                    >
-                      <div className="flex items-center justify-between mb-3">
-                        <div className="w-8 h-8 rounded-lg bg-[var(--muted)] flex items-center justify-center text-[var(--foreground)]">
-                          <Icon className="w-4 h-4" />
-                        </div>
-                        {isSelected && <Check className="w-4 h-4 text-[var(--primary)]" />}
-                      </div>
-                      <div className="text-[13px] font-semibold text-[var(--foreground)]">
-                        {item.label}
-                      </div>
-                      <div className="text-[11px] text-[var(--muted-foreground)] mt-1">
-                        {item.desc}
-                      </div>
-                    </div>
-                  );
-                })}
+            <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div>
+                <CardTitle>Interface theme</CardTitle>
+                <CardDescription>
+                  Switch between light and dark mode appearance
+                </CardDescription>
               </div>
-            </CardContent>
+
+              {/* Normal Light / Dark Mode Toggle Switch */}
+              <div className="flex items-center gap-3 bg-[var(--muted)]/50 p-1.5 px-3 rounded-xl border border-[var(--border)] w-fit">
+                <button
+                  type="button"
+                  onClick={() => setMode('light')}
+                  className={`flex items-center gap-1.5 text-[13px] font-medium transition-colors cursor-pointer ${
+                    mode !== 'dark'
+                      ? 'text-[var(--foreground)] font-semibold'
+                      : 'text-[var(--muted-foreground)] hover:text-[var(--foreground)]'
+                  }`}
+                >
+                  <Sun className={`w-4 h-4 ${mode !== 'dark' ? 'text-amber-500' : ''}`} />
+                  <span>Light</span>
+                </button>
+
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={mode === 'dark'}
+                  onClick={() => setMode(mode === 'dark' ? 'light' : 'dark')}
+                  className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                    mode === 'dark' ? 'bg-[var(--primary)]' : 'bg-[var(--border-strong)]'
+                  }`}
+                  aria-label="Toggle dark mode"
+                >
+                  <span
+                    className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-sm ring-0 transition duration-200 ease-in-out ${
+                      mode === 'dark' ? 'translate-x-5' : 'translate-x-0'
+                    }`}
+                  />
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setMode('dark')}
+                  className={`flex items-center gap-1.5 text-[13px] font-medium transition-colors cursor-pointer ${
+                    mode === 'dark'
+                      ? 'text-[var(--foreground)] font-semibold'
+                      : 'text-[var(--muted-foreground)] hover:text-[var(--foreground)]'
+                  }`}
+                >
+                  <Moon className={`w-4 h-4 ${mode === 'dark' ? 'text-blue-400' : ''}`} />
+                  <span>Dark</span>
+                </button>
+              </div>
+            </CardHeader>
           </Card>
 
           {/* Accent Color Swatches */}

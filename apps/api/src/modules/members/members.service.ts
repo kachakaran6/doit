@@ -18,8 +18,16 @@ export class MembersService {
     private readonly emailService: EmailService,
   ) {}
 
-  private getAppBaseUrl(): string {
-    return process.env.APP_URL || 'https://doit.kachakaran.tech';
+  private getAppBaseUrl(clientOrigin?: string): string {
+    if (clientOrigin) {
+      try {
+        const parsed = new URL(clientOrigin);
+        return `${parsed.protocol}//${parsed.host}`;
+      } catch {
+        // ignore invalid URL
+      }
+    }
+    return process.env.APP_URL || 'https://doit.web.samyukt.pro';
   }
 
   async getMembers(workspaceId: string) {
@@ -82,6 +90,7 @@ export class MembersService {
     workspaceId: string,
     invitedById: string,
     dto: InviteMemberDto,
+    clientOrigin?: string,
   ) {
     const email = dto.email ? dto.email.trim().toLowerCase() : null;
 
@@ -159,7 +168,7 @@ export class MembersService {
       },
     });
 
-    const inviteUrl = `${this.getAppBaseUrl()}/invite/${rawToken}`;
+    const inviteUrl = `${this.getAppBaseUrl(clientOrigin)}/invite/${rawToken}`;
     let emailSent = false;
     let emailError: string | undefined;
 
@@ -227,6 +236,7 @@ export class MembersService {
     workspaceId: string,
     invitationId: string,
     actorId: string,
+    clientOrigin?: string,
   ) {
     const invitation = await this.prisma.workspaceInvitation.findFirst({
       where: { id: invitationId, workspaceId },
@@ -272,7 +282,7 @@ export class MembersService {
       where: { id: actorId },
     });
 
-    const inviteUrl = `${this.getAppBaseUrl()}/invite/${rawToken}`;
+    const inviteUrl = `${this.getAppBaseUrl(clientOrigin)}/invite/${rawToken}`;
     const emailResult = await this.emailService.sendInvitationEmail(
       invitation.email,
       {

@@ -3,14 +3,14 @@ import { Outlet } from 'react-router-dom';
 import { Sidebar } from './Sidebar';
 import { TopBar } from './TopBar';
 import { CommandPalette } from './CommandPalette';
-import { CreateModal, CreateType } from './CreateModal';
+import { CreateModal } from './CreateModal';
 import { useSidebarStore } from '@/lib/sidebar-store';
+import { useCreateStore } from '@/lib/create-store';
 
 export function AppLayout() {
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
-  const [createModalOpen, setCreateModalOpen] = useState(false);
-  const [createType, setCreateType] = useState<CreateType>('task');
+  const { open: createModalOpen, type: createType, openCreate, closeCreate } = useCreateStore();
   const toggleSidebar = useSidebarStore((s) => s.toggle);
 
   // Global ⌘K / Ctrl+K, ⌘B / Ctrl+B, and 'c' shortcut handler
@@ -30,25 +30,19 @@ export function AppLayout() {
         toggleSidebar();
       } else if (e.key === 'c' && !e.metaKey && !e.ctrlKey) {
         e.preventDefault();
-        setCreateType('task');
-        setCreateModalOpen(true);
+        openCreate('task');
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [toggleSidebar]);
-
-  const handleOpenCreate = (type: CreateType) => {
-    setCreateType(type);
-    setCreateModalOpen(true);
-  };
+  }, [toggleSidebar, openCreate]);
 
   return (
     <div className="flex h-screen w-screen overflow-hidden bg-[var(--background)]">
       {/* Desktop Sidebar */}
       <div className="hidden lg:block shrink-0 h-full">
-        <Sidebar onOpenSearch={() => setSearchOpen(true)} />
+        <Sidebar />
       </div>
 
       {/* Mobile Drawer Sidebar */}
@@ -62,7 +56,6 @@ export function AppLayout() {
             <Sidebar
               mobile
               onCloseMobile={() => setMobileSidebarOpen(false)}
-              onOpenSearch={() => setSearchOpen(true)}
             />
           </div>
         </div>
@@ -72,7 +65,7 @@ export function AppLayout() {
       <div className="flex-1 flex flex-col min-w-0 h-full overflow-hidden">
         <TopBar
           onOpenSearch={() => setSearchOpen(true)}
-          onOpenCreate={handleOpenCreate}
+          onOpenCreate={(type) => openCreate(type)}
           onToggleMobileSidebar={() => setMobileSidebarOpen(true)}
         />
 
@@ -85,12 +78,12 @@ export function AppLayout() {
       <CommandPalette
         open={searchOpen}
         onClose={() => setSearchOpen(false)}
-        onOpenCreate={handleOpenCreate}
+        onOpenCreate={(type) => openCreate(type)}
       />
 
       <CreateModal
         open={createModalOpen}
-        onClose={() => setCreateModalOpen(false)}
+        onClose={closeCreate}
         initialType={createType}
       />
     </div>

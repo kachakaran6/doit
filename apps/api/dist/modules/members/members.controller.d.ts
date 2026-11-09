@@ -6,16 +6,16 @@ export declare class MembersController {
     constructor(membersService: MembersService);
     getMembers(workspaceId: string): Promise<({
         user: {
-            email: string;
             id: string;
+            email: string;
             name: string;
             avatarUrl: string | null;
         };
     } & {
-        role: import(".prisma/client").$Enums.Role;
         id: string;
         workspaceId: string;
         userId: string;
+        role: import(".prisma/client").$Enums.Role;
         invitedEmail: string | null;
         inviteToken: string | null;
         inviteExpiresAt: Date | null;
@@ -35,12 +35,12 @@ export declare class MembersController {
         revokedAt: Date | null;
         createdAt: Date;
         invitedBy: {
-            email: string;
             id: string;
+            email: string;
             name: string;
         };
     }[]>;
-    invite(workspaceId: string, user: AuthUserPayload, dto: InviteMemberDto): Promise<{
+    invite(workspaceId: string, user: AuthUserPayload, dto: InviteMemberDto, origin?: string, referer?: string): Promise<{
         id: string;
         workspaceId: string;
         email: string | null;
@@ -54,7 +54,7 @@ export declare class MembersController {
         emailSent: boolean;
         emailError: string | undefined;
     }>;
-    createInvitation(workspaceId: string, user: AuthUserPayload, dto: InviteMemberDto): Promise<{
+    createInvitation(workspaceId: string, user: AuthUserPayload, dto: InviteMemberDto, origin?: string, referer?: string): Promise<{
         id: string;
         workspaceId: string;
         email: string | null;
@@ -75,7 +75,7 @@ export declare class MembersController {
         success: boolean;
         message?: undefined;
     }>;
-    resendInvitation(workspaceId: string, invitationId: string, user: AuthUserPayload): Promise<{
+    resendInvitation(workspaceId: string, invitationId: string, user: AuthUserPayload, origin?: string, referer?: string): Promise<{
         success: boolean;
         emailSent: boolean;
         emailError: string | undefined;
@@ -136,10 +136,10 @@ export declare class MembersController {
         role: import(".prisma/client").$Enums.Role;
     }>;
     updateRole(workspaceId: string, memberId: string, dto: UpdateMemberRoleDto): Promise<{
-        role: import(".prisma/client").$Enums.Role;
         id: string;
         workspaceId: string;
         userId: string;
+        role: import(".prisma/client").$Enums.Role;
         invitedEmail: string | null;
         inviteToken: string | null;
         inviteExpiresAt: Date | null;

@@ -7,6 +7,7 @@ import {
   Body,
   Param,
   UseGuards,
+  Headers,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { MembersService } from './members.service';
@@ -55,8 +56,10 @@ export class MembersController {
     @Param('workspaceId') workspaceId: string,
     @CurrentUser() user: AuthUserPayload,
     @Body(new ZodValidationPipe(InviteMemberSchema)) dto: InviteMemberDto,
+    @Headers('origin') origin?: string,
+    @Headers('referer') referer?: string,
   ) {
-    return this.membersService.inviteMember(workspaceId, user.sub, dto);
+    return this.membersService.inviteMember(workspaceId, user.sub, dto, origin || referer);
   }
 
   @Post('workspaces/:workspaceId/invitations')
@@ -68,8 +71,10 @@ export class MembersController {
     @Param('workspaceId') workspaceId: string,
     @CurrentUser() user: AuthUserPayload,
     @Body(new ZodValidationPipe(InviteMemberSchema)) dto: InviteMemberDto,
+    @Headers('origin') origin?: string,
+    @Headers('referer') referer?: string,
   ) {
-    return this.membersService.inviteMember(workspaceId, user.sub, dto);
+    return this.membersService.inviteMember(workspaceId, user.sub, dto, origin || referer);
   }
 
   @Delete('workspaces/:workspaceId/invitations/:id')
@@ -93,8 +98,10 @@ export class MembersController {
     @Param('workspaceId') workspaceId: string,
     @Param('id') invitationId: string,
     @CurrentUser() user: AuthUserPayload,
+    @Headers('origin') origin?: string,
+    @Headers('referer') referer?: string,
   ) {
-    return this.membersService.resendInvitation(workspaceId, invitationId, user.sub);
+    return this.membersService.resendInvitation(workspaceId, invitationId, user.sub, origin || referer);
   }
 
   /**

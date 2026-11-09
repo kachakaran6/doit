@@ -12,7 +12,6 @@ import {
   StickyNote,
   Users,
   FolderKanban,
-  Search,
   Inbox,
   Folder,
   Plus,
@@ -23,11 +22,9 @@ import {
 export function Sidebar({
   mobile = false,
   onCloseMobile,
-  onOpenSearch,
 }: {
   mobile?: boolean;
   onCloseMobile?: () => void;
-  onOpenSearch?: () => void;
 }) {
   const { projects, activeProject, setActiveProject } = useWorkspaceStore();
   const [projectOpen, setProjectOpen] = useState(false);
@@ -114,34 +111,6 @@ export function Sidebar({
               Workspace
             </div>
           )}
-
-          {/* Quick Search in-place action */}
-          <button
-            type="button"
-            onClick={() => {
-              onOpenSearch?.();
-              handleNavClick();
-            }}
-            className={`w-full flex items-center ${
-              isCollapsed ? 'justify-center py-2' : 'justify-between px-2.5 py-1.5'
-            } rounded-lg text-[13px] font-medium text-[var(--muted-foreground)] hover:text-[var(--foreground)] hover:bg-[var(--sidebar-accent)] transition-colors cursor-pointer group relative`}
-          >
-            <div className="flex items-center gap-2.5">
-              <Search className="w-4 h-4 shrink-0 text-[var(--muted-foreground)] group-hover:text-[var(--foreground)]" />
-              {!isCollapsed && <span>Search</span>}
-            </div>
-            {!isCollapsed && (
-              <kbd className="hidden sm:inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-mono font-medium text-[var(--muted-foreground)] bg-[var(--muted)]/60 border border-[var(--border)]">
-                ⌘K
-              </kbd>
-            )}
-
-            {isCollapsed && (
-              <div className="absolute left-full ml-3 px-2.5 py-1 rounded-md bg-[var(--foreground)] text-[var(--background)] text-[12px] font-medium shadow-lg whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity z-50">
-                Search (⌘K)
-              </div>
-            )}
-          </button>
 
           {navItems.map(({ to, label, icon: Icon }) => (
             <NavLink

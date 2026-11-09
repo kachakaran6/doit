@@ -240,7 +240,8 @@ export function CommandPalette({
               setQuery(e.target.value);
               setSelectedIndex(0);
             }}
-            className="w-full bg-transparent px-3 py-3.5 text-[14px] text-[var(--foreground)] placeholder:text-[var(--muted-foreground)] focus:outline-none"
+            className="w-full bg-transparent px-3 py-3.5 text-[14px] text-[var(--foreground)] placeholder:text-[var(--muted-foreground)] outline-none border-none focus:outline-none focus:border-none focus:ring-0 focus-visible:outline-none focus-visible:border-none focus-visible:ring-0 shadow-none ring-0"
+            style={{ outline: 'none', border: 'none', boxShadow: 'none' }}
           />
           {loading && (
             <div className="w-3.5 h-3.5 border-2 border-[var(--primary)] border-t-transparent rounded-full animate-spin shrink-0" />

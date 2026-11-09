@@ -28,6 +28,7 @@ export * from './SettingsItem';
 export * from './ScreenContainer';
 export * from './Screen';
 export * from './ScreenHeader';
+export * from './CompactHeader';
 export * from './LargeHeader';
 export * from './SectionHeader';
 export * from './ProgressRing';

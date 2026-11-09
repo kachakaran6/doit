@@ -64,22 +64,81 @@ export function useUpdateBugStatusMutation(projectId: string = 'default') {
     },
     onMutate: async ({ id, status }) => {
       await queryClient.cancelQueries({ queryKey: bugKeys.lists() });
+      await queryClient.cancelQueries({ queryKey: bugKeys.detail(id) });
       const previous = queryClient.getQueryData<BugViewModel[]>(bugKeys.list({ projectId })) || [];
+      const previousDetail = queryClient.getQueryData<BugViewModel>(bugKeys.detail(id));
 
       queryClient.setQueryData<BugViewModel[]>(
         bugKeys.list({ projectId }),
         previous.map((b) => (b.id === id ? { ...b, status } : b))
       );
 
-      return { previous };
+      if (previousDetail) {
+        queryClient.setQueryData<BugViewModel>(bugKeys.detail(id), {
+          ...previousDetail,
+          status,
+        });
+      }
+
+      return { previous, previousDetail };
     },
-    onError: (_err, _vars, context) => {
+    onError: (_err, vars, context) => {
       if (context?.previous) {
         queryClient.setQueryData(bugKeys.list({ projectId }), context.previous);
       }
+      if (context?.previousDetail) {
+        queryClient.setQueryData(bugKeys.detail(vars.id), context.previousDetail);
+      }
     },
-    onSettled: () => {
+    onSettled: (_data, _err, vars) => {
       queryClient.invalidateQueries({ queryKey: bugKeys.lists() });
+      if (vars?.id) {
+        queryClient.invalidateQueries({ queryKey: bugKeys.detail(vars.id) });
+      }
+    },
+  });
+}
+
+export function useUpdateBugMutation(projectId: string = 'default') {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ id, ...dto }: { id: string } & Partial<BugViewModel> & Record<string, any>) => {
+      return http.patch<BugViewModel>(`/bugs/${id}`, dto);
+    },
+    onMutate: async ({ id, ...dto }) => {
+      await queryClient.cancelQueries({ queryKey: bugKeys.lists() });
+      await queryClient.cancelQueries({ queryKey: bugKeys.detail(id) });
+      const previous = queryClient.getQueryData<BugViewModel[]>(bugKeys.list({ projectId })) || [];
+      const previousDetail = queryClient.getQueryData<BugViewModel>(bugKeys.detail(id));
+
+      queryClient.setQueryData<BugViewModel[]>(
+        bugKeys.list({ projectId }),
+        previous.map((b) => (b.id === id ? { ...b, ...dto } : b))
+      );
+
+      if (previousDetail) {
+        queryClient.setQueryData<BugViewModel>(bugKeys.detail(id), {
+          ...previousDetail,
+          ...dto,
+        });
+      }
+
+      return { previous, previousDetail };
+    },
+    onError: (_err, vars, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(bugKeys.list({ projectId }), context.previous);
+      }
+      if (context?.previousDetail) {
+        queryClient.setQueryData(bugKeys.detail(vars.id), context.previousDetail);
+      }
+    },
+    onSettled: (_data, _err, vars) => {
+      queryClient.invalidateQueries({ queryKey: bugKeys.lists() });
+      if (vars?.id) {
+        queryClient.invalidateQueries({ queryKey: bugKeys.detail(vars.id) });
+      }
     },
   });
 }

@@ -177,20 +177,39 @@ export const TaskListScreen: React.FC = () => {
   }
 
   return (
-    <Screen style={{ paddingTop: spacing.xs }}>
+    <Screen style={{ paddingTop: spacing.xs }} includeBottomNavPadding>
       {/* 1. Header with Project Switcher Dropdown */}
       <View style={styles.headerRow}>
         <View style={{ flex: 1 }}>
-          <Text variant="h1">Tasks</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+            <Text variant="h1" style={styles.pageTitle}>Tasks</Text>
+            {filteredTasks.length > 0 && (
+              <View style={[styles.countPill, { backgroundColor: colors.surface2 || colors.surface1 }]}>
+                <Text variant="caption" style={{ fontWeight: '700', fontSize: 11, color: colors.textSecondary }}>
+                  {filteredTasks.length}
+                </Text>
+              </View>
+            )}
+          </View>
           <TouchableOpacity
-            style={styles.projectDropdown}
+            style={[
+              styles.projectPill,
+              {
+                backgroundColor: colors.surface2 || colors.surface1,
+                borderColor: colors.hairline,
+                borderRadius: radius.pill,
+              },
+            ]}
             onPress={() => openProjectSheet()}
             activeOpacity={0.7}
+            hitSlop={8}
+            accessibilityRole="button"
+            accessibilityLabel="Switch project"
           >
-            <Text variant="caption" color="secondary" style={{ fontWeight: '600' }}>
+            <Text variant="caption" color="secondary" style={{ fontWeight: '600', fontSize: 11 }}>
               {activeProject ? activeProject.name : 'All Projects'}
             </Text>
-            <ChevronDown size={13} color={colors.textSecondary} style={{ marginLeft: 4 }} />
+            <ChevronDown size={12} color={colors.textSecondary} style={{ marginLeft: 3 }} />
           </TouchableOpacity>
         </View>
 
@@ -199,17 +218,19 @@ export const TaskListScreen: React.FC = () => {
           style={[
             styles.viewToggleBtn,
             {
-              backgroundColor: colors.surface1 || colors.surface,
+              backgroundColor: colors.surface2 || colors.surface1,
               borderRadius: radius.pill,
+              borderColor: colors.hairline,
+              borderWidth: 1,
             },
           ]}
           onPress={() => setViewMode(viewMode === 'list' ? 'board' : 'list')}
           accessibilityLabel={viewMode === 'list' ? 'Switch to Board' : 'Switch to List'}
         >
           {viewMode === 'list' ? (
-            <Columns3 size={18} color={colors.textSecondary} />
+            <Columns3 size={17} color={colors.textSecondary} />
           ) : (
-            <LayoutList size={18} color={colors.textSecondary} />
+            <LayoutList size={17} color={colors.textSecondary} />
           )}
         </TouchableOpacity>
       </View>
@@ -385,7 +406,26 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 12,
+    marginBottom: 10,
+  },
+  pageTitle: {
+    fontSize: 24,
+    fontWeight: '700',
+    letterSpacing: -0.3,
+  },
+  countPill: {
+    paddingHorizontal: 7,
+    paddingVertical: 1,
+    borderRadius: 10,
+  },
+  projectPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    marginTop: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderWidth: 1,
   },
   projectDropdown: {
     flexDirection: 'row',
@@ -393,8 +433,8 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   viewToggleBtn: {
-    width: 40,
-    height: 40,
+    width: 36,
+    height: 36,
     alignItems: 'center',
     justifyContent: 'center',
   },

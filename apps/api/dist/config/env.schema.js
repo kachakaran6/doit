@@ -30,7 +30,7 @@ exports.EnvSchema = zod_1.z
     TRUST_PROXY: zod_1.z.coerce.number().default(1),
     MIN_APP_VERSION: zod_1.z.string().default('0.1.0'),
     REDIS_URL: zod_1.z.string().optional(),
-    APP_URL: zod_1.z.string().default('https://doit.kachakaran.tech'),
+    APP_URL: zod_1.z.string().default('https://doit.web.samyukt.pro'),
     STORAGE_BASE_URL: zod_1.z.string().optional(),
     SMTP_HOST: zod_1.z.string().optional(),
     SMTP_PORT: zod_1.z.coerce.number().optional(),

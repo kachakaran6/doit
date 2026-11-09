@@ -117,7 +117,11 @@ export function TeamPage() {
         expiresInDays: inviteExpiresDays,
       });
 
-      const inviteUrl = (res as any).inviteUrl || `https://doit.kachakaran.tech/invite/${res.tokenHash || res.id}`;
+      const rawToken = (res as any).token || (res as any).tokenHash || (res as any).id;
+      let inviteUrl = (res as any).inviteUrl;
+      if (!inviteUrl || inviteUrl.includes('kachakaran.tech')) {
+        inviteUrl = `${window.location.origin}/invite/${rawToken}`;
+      }
 
       if (isEmail) {
         if ((res as any).emailSent) {

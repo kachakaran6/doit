@@ -5,12 +5,15 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { EmptyState } from '@/components/ui/empty-state';
 import { useToast } from '@/components/ui/toast';
 import { PageContainer } from '@/components/layout/PageContainer';
-import { Pin, Trash2, ArrowRight } from 'lucide-react';
+import { FloatingCreateButton } from '@/components/layout/FloatingCreateButton';
+import { useCreateStore } from '@/lib/create-store';
+import { Pin, Trash2, ArrowRight, Plus } from 'lucide-react';
 
 export function StickiesPage() {
   const { activeProject, projects } = useWorkspaceStore();
   const queryClient = useQueryClient();
   const { success, error } = useToast();
+  const openCreate = useCreateStore((s) => s.openCreate);
 
   const pId = activeProject?.id || projects[0]?.id;
 
@@ -79,6 +82,15 @@ export function StickiesPage() {
         <span className="px-2.5 py-1 rounded-full text-[11px] font-medium bg-[var(--muted)] text-[var(--muted-foreground)] tabular">
           {stickies.length} {stickies.length === 1 ? 'sticky note' : 'sticky notes'}
         </span>
+
+        <button
+          type="button"
+          onClick={() => openCreate('sticky')}
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[var(--card)] hover:bg-[var(--accent)] border border-[var(--border)] text-[12px] font-medium text-[var(--foreground)] transition-colors cursor-pointer shadow-2xs"
+        >
+          <Plus className="w-3.5 h-3.5 text-[var(--muted-foreground)]" />
+          <span>New sticky</span>
+        </button>
       </div>
 
       {/* Main Grid */}
@@ -92,6 +104,8 @@ export function StickiesPage() {
         <EmptyState
           title="No sticky notes yet"
           description="Capture quick ideas or temporary thoughts. You can convert any sticky note into a real task whenever you're ready."
+          actionLabel="Add sticky note"
+          onAction={() => openCreate('sticky')}
         />
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
@@ -150,6 +164,9 @@ export function StickiesPage() {
           })}
         </div>
       )}
+
+      {/* Floating CTA Button */}
+      <FloatingCreateButton type="sticky" label="New sticky" />
     </PageContainer>
   );
 }

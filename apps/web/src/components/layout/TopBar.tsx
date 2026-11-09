@@ -10,9 +10,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuLabel,
 } from '@/components/ui/dropdown-menu';
-import { Search, Plus, Menu, ChevronDown, CheckSquare, Bug, StickyNote, Bell, FolderKanban, UserPlus, ChevronsLeft, ChevronsRight } from 'lucide-react';
+import { Search, Plus, Menu, ChevronDown, CheckSquare, Bug, StickyNote, Bell, FolderKanban, UserPlus } from 'lucide-react';
 import { CreateType } from './CreateModal';
-import { useSidebarStore } from '@/lib/sidebar-store';
 
 export function TopBar({
   onOpenSearch,
@@ -24,11 +23,10 @@ export function TopBar({
   onToggleMobileSidebar: () => void;
 }) {
   const navigate = useNavigate();
-  const { collapsed, toggle: toggleSidebar } = useSidebarStore();
 
   return (
     <header className="h-14 border-b border-[var(--border)] bg-[var(--background)] px-4 sm:px-6 flex items-center justify-between gap-4 shrink-0 select-none">
-      {/* Left: Mobile Menu button / Desktop Collapse button + Breadcrumbs */}
+      {/* Left: Mobile Menu button (small screens) + Breadcrumbs */}
       <div className="flex items-center gap-2 min-w-0">
         <button
           type="button"
@@ -37,16 +35,6 @@ export function TopBar({
           aria-label="Toggle navigation menu"
         >
           <Menu className="w-5 h-5" />
-        </button>
-
-        <button
-          type="button"
-          onClick={toggleSidebar}
-          className="hidden lg:flex p-1.5 rounded-lg text-[var(--muted-foreground)] hover:text-[var(--foreground)] hover:bg-[var(--accent)] cursor-pointer transition-colors"
-          title={collapsed ? "Expand sidebar (Ctrl+B)" : "Collapse sidebar (Ctrl+B)"}
-          aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-        >
-          {collapsed ? <ChevronsRight className="w-4 h-4" /> : <ChevronsLeft className="w-4 h-4" />}
         </button>
 
         <Breadcrumbs />

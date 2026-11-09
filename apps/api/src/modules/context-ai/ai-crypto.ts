@@ -4,14 +4,23 @@ const KEY_VERSION = 1;
 
 export function assertAiKeyConfigured(): void {
   const dedicated = process.env.AI_CREDENTIALS_KEY?.trim();
-  if (!dedicated || dedicated.length < 16) {
-    throw new Error('AI_CREDENTIALS_KEY is not configured');
+  if (dedicated && dedicated.length >= 16) {
+    return;
   }
+  const fallback = process.env.JWT_SECRET?.trim();
+  if (fallback && fallback.length >= 16) {
+    return;
+  }
+  throw new Error('AI_CREDENTIALS_KEY is not configured');
 }
 
 function material(): string {
   assertAiKeyConfigured();
-  return `ai-v1:${process.env.AI_CREDENTIALS_KEY!.trim()}`;
+  const dedicated = process.env.AI_CREDENTIALS_KEY?.trim();
+  if (dedicated && dedicated.length >= 16) {
+    return `ai-v1:${dedicated}`;
+  }
+  return `ai-fallback:${process.env.JWT_SECRET!.trim()}`;
 }
 
 export function aiKeyVersion(): number {

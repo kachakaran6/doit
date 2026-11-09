@@ -1,8 +1,8 @@
 import React from 'react';
-import { View, StyleSheet, Pressable, Image, Animated } from 'react-native';
+import { View, StyleSheet, Pressable, Image } from 'react-native';
 import { useTheme } from '../../theme/useTheme';
 import { Text } from '../ui';
-import { Bug, Smartphone, Image as ImageIcon } from 'lucide-react-native';
+import { Smartphone, Image as ImageIcon } from 'lucide-react-native';
 
 export interface BugRowProps {
   id: string;
@@ -27,31 +27,11 @@ export const BugRow: React.FC<BugRowProps> = ({
   deviceInfo,
   hasAttachment,
   thumbnailUrl,
-  reporter,
   createdAt,
   onPress,
   onLongPress,
 }) => {
-  const { colors, spacing, radius } = useTheme();
-  const scaleAnim = React.useRef(new Animated.Value(1)).current;
-
-  const handlePressIn = () => {
-    Animated.spring(scaleAnim, {
-      toValue: 0.98,
-      useNativeDriver: true,
-      speed: 50,
-      bounciness: 4,
-    }).start();
-  };
-
-  const handlePressOut = () => {
-    Animated.spring(scaleAnim, {
-      toValue: 1,
-      useNativeDriver: true,
-      speed: 40,
-      bounciness: 4,
-    }).start();
-  };
+  const { colors, radius } = useTheme();
 
   const severityColor =
     severity === 'CRITICAL'
@@ -59,7 +39,7 @@ export const BugRow: React.FC<BugRowProps> = ({
       : severity === 'MAJOR'
       ? colors.warning
       : severity === 'MINOR'
-      ? colors.warning
+      ? '#EAB308'
       : colors.textTertiary;
 
   const severityBg =
@@ -68,14 +48,11 @@ export const BugRow: React.FC<BugRowProps> = ({
       : severity === 'MAJOR'
       ? colors.warning + '18'
       : severity === 'MINOR'
-      ? colors.warning + '18'
+      ? '#EAB30818'
       : colors.surface2;
 
   const isResolved = status === 'RESOLVED' || status === 'VERIFIED';
-  const statusColor = isResolved ? colors.success : colors.accentText;
-  const statusBg = isResolved ? colors.success + '18' : colors.surface2;
 
-  // Format relative time if given
   const formattedTime = React.useMemo(() => {
     if (!createdAt) return '';
     try {
@@ -92,176 +69,183 @@ export const BugRow: React.FC<BugRowProps> = ({
     }
   }, [createdAt]);
 
+  const statusLabel =
+    status === 'IN_PROGRESS'
+      ? 'In Progress'
+      : status === 'RESOLVED'
+      ? 'Resolved'
+      : status === 'VERIFIED'
+      ? 'Verified'
+      : 'Triaged';
+
   return (
-    <Animated.View style={{ transform: [{ scale: scaleAnim }], marginVertical: 4 }}>
-      <Pressable
-        onPress={onPress}
-        onLongPress={onLongPress}
-        onPressIn={handlePressIn}
-        onPressOut={handlePressOut}
-        style={[
-          styles.container,
-          {
-            backgroundColor: colors.surface1,
-            borderRadius: radius.lg,
-            padding: spacing.md,
-          },
-        ]}
-        accessibilityRole="button"
-        accessibilityLabel={`${humanId} ${title}`}
-      >
-        {/* Left: 48px rounded 10 screenshot thumbnail or tonal icon */}
+    <Pressable
+      onPress={onPress}
+      onLongPress={onLongPress}
+      style={({ pressed }) => [
+        styles.container,
+        {
+          backgroundColor: pressed ? colors.surface2 : colors.surface1,
+          borderColor: colors.border,
+          borderRadius: radius.md,
+        },
+      ]}
+      accessibilityRole="button"
+      accessibilityLabel={`${humanId}: ${title}. Severity: ${severity}. Status: ${status}`}
+    >
+      {/* Left indicator / thumbnail */}
+      {thumbnailUrl ? (
+        <Image
+          source={{ uri: thumbnailUrl }}
+          style={[styles.thumbnail, { borderRadius: radius.xs }]}
+          resizeMode="cover"
+        />
+      ) : (
         <View
           style={[
-            styles.thumbnailBox,
+            styles.dotBox,
             {
-              backgroundColor: colors.surface2,
-              borderRadius: 10,
+              backgroundColor: severityBg,
+              borderRadius: radius.xs,
             },
           ]}
         >
-          {thumbnailUrl ? (
-            <Image
-              source={{ uri: thumbnailUrl }}
-              style={styles.thumbnailImage}
-              resizeMode="cover"
-            />
-          ) : hasAttachment ? (
-            <ImageIcon size={20} color={colors.accentText} />
-          ) : (
-            <Bug size={20} color={severityColor} />
-          )}
+          <View style={[styles.dot, { backgroundColor: severityColor }]} />
         </View>
+      )}
 
-        {/* Center: Info */}
-        <View style={styles.contentCol}>
-          {/* Top meta row */}
-          <View style={styles.topMetaRow}>
-            <Text variant="caption" color="secondary" style={styles.humanId}>
-              {humanId}
-            </Text>
-            {formattedTime ? (
-              <Text variant="caption" color="tertiary" style={styles.dotSeparator}>
-                • {formattedTime}
-              </Text>
-            ) : null}
-            {reporter ? (
-              <Text variant="caption" color="tertiary" style={styles.dotSeparator}>
-                • {reporter}
-              </Text>
-            ) : null}
-          </View>
-
-          {/* Title */}
-          <Text variant="bodyStrong" numberOfLines={2} style={styles.titleText}>
-            {title}
+      {/* Main content */}
+      <View style={styles.centerCol}>
+        {/* Top metadata line */}
+        <View style={styles.topMeta}>
+          <Text variant="caption" style={[styles.humanId, { color: colors.textSecondary }]}>
+            {humanId}
           </Text>
-
-          {/* Bottom badge row: severity + device */}
-          <View style={styles.bottomMetaRow}>
-            <View style={[styles.severityBadge, { backgroundColor: severityBg }]}>
-              <View style={[styles.severityDot, { backgroundColor: severityColor }]} />
-              <Text variant="caption" style={{ color: severityColor, fontWeight: '600', fontSize: 11 }}>
-                {severity}
+          {formattedTime ? (
+            <Text variant="caption" color="tertiary" style={styles.metaSub}>
+              • {formattedTime}
+            </Text>
+          ) : null}
+          {deviceInfo ? (
+            <View style={styles.deviceRow}>
+              <Smartphone size={10} color={colors.textTertiary} />
+              <Text variant="caption" color="tertiary" numberOfLines={1} style={styles.deviceText}>
+                {deviceInfo}
               </Text>
             </View>
-
-            {deviceInfo ? (
-              <View style={[styles.deviceBadge, { backgroundColor: colors.surface2 }]}>
-                <Smartphone size={11} color={colors.textTertiary} />
-                <Text
-                  variant="caption"
-                  color="tertiary"
-                  numberOfLines={1}
-                  style={{ marginLeft: 3, fontSize: 11, maxWidth: 120 }}
-                >
-                  {deviceInfo}
-                </Text>
-              </View>
-            ) : null}
-          </View>
+          ) : null}
         </View>
 
-        {/* Right: State badge */}
-        <View style={[styles.statusBadge, { backgroundColor: statusBg }]}>
-          <Text variant="caption" style={{ color: statusColor, fontWeight: '600', fontSize: 11 }}>
-            {status === 'IN_PROGRESS' ? 'In Progress' : status === 'RESOLVED' ? 'Resolved' : status === 'VERIFIED' ? 'Verified' : 'Triaged'}
+        {/* Title */}
+        <Text
+          variant="body"
+          numberOfLines={2}
+          style={[
+            styles.title,
+            { color: colors.textPrimary },
+            isResolved ? { opacity: 0.55, textDecorationLine: 'line-through' } : undefined,
+          ]}
+        >
+          {title}
+        </Text>
+      </View>
+
+      {/* Right: compact severity & status */}
+      <View style={styles.rightCol}>
+        <View
+          style={[
+            styles.badge,
+            {
+              backgroundColor: isResolved ? colors.success + '18' : colors.surface2,
+            },
+          ]}
+        >
+          <Text
+            variant="caption"
+            style={{
+              fontSize: 10,
+              fontWeight: '600',
+              color: isResolved ? colors.success : colors.textSecondary,
+            }}
+          >
+            {statusLabel}
           </Text>
         </View>
-      </Pressable>
-    </Animated.View>
+
+        {hasAttachment && !thumbnailUrl ? (
+          <ImageIcon size={12} color={colors.textTertiary} style={{ marginTop: 4 }} />
+        ) : null}
+      </View>
+    </Pressable>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
-    borderWidth: 0,
     flexDirection: 'row',
     alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderWidth: 1,
+    marginBottom: 6,
   },
-  thumbnailBox: {
-    width: 48,
-    height: 48,
-    borderRadius: 10,
-    overflow: 'hidden',
+  thumbnail: {
+    width: 36,
+    height: 36,
+    marginRight: 10,
+  },
+  dotBox: {
+    width: 28,
+    height: 28,
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 12,
+    marginRight: 10,
   },
-  thumbnailImage: {
-    width: 48,
-    height: 48,
+  dot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
   },
-  contentCol: {
+  centerCol: {
     flex: 1,
+    minWidth: 0,
     marginRight: 8,
   },
-  topMetaRow: {
+  topMeta: {
     flexDirection: 'row',
     alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: 4,
+    marginBottom: 2,
   },
   humanId: {
-    fontWeight: '600',
-    fontSize: 12,
+    fontSize: 11,
+    fontWeight: '700',
   },
-  dotSeparator: {
-    marginLeft: 4,
+  metaSub: {
     fontSize: 11,
   },
-  titleText: {
-    marginVertical: 2,
+  deviceRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 2,
+  },
+  deviceText: {
+    fontSize: 10,
+    maxWidth: 90,
+  },
+  title: {
+    fontSize: 13,
+    fontWeight: '600',
     lineHeight: 18,
   },
-  bottomMetaRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 4,
-    gap: 6,
+  rightCol: {
+    alignItems: 'flex-end',
+    justifyContent: 'center',
   },
-  severityBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
+  badge: {
     paddingHorizontal: 6,
     paddingVertical: 2,
-    borderRadius: 6,
-  },
-  severityDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    marginRight: 4,
-  },
-  deviceBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 6,
-  },
-  statusBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 8,
-    alignSelf: 'center',
+    borderRadius: 4,
   },
 });

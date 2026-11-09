@@ -23,8 +23,16 @@ let MembersService = MembersService_1 = class MembersService {
         this.emailService = emailService;
         this.logger = new common_1.Logger(MembersService_1.name);
     }
-    getAppBaseUrl() {
-        return process.env.APP_URL || 'https://doit.kachakaran.tech';
+    getAppBaseUrl(clientOrigin) {
+        if (clientOrigin) {
+            try {
+                const parsed = new URL(clientOrigin);
+                return `${parsed.protocol}//${parsed.host}`;
+            }
+            catch {
+            }
+        }
+        return process.env.APP_URL || 'https://doit.web.samyukt.pro';
     }
     async getMembers(workspaceId) {
         return this.prisma.membership.findMany({
@@ -78,7 +86,7 @@ let MembersService = MembersService_1 = class MembersService {
             };
         });
     }
-    async inviteMember(workspaceId, invitedById, dto) {
+    async inviteMember(workspaceId, invitedById, dto, clientOrigin) {
         const email = dto.email ? dto.email.trim().toLowerCase() : null;
         const workspace = await this.prisma.workspace.findUnique({
             where: { id: workspaceId },
@@ -130,7 +138,7 @@ let MembersService = MembersService_1 = class MembersService {
                 expiresAt,
             },
         });
-        const inviteUrl = `${this.getAppBaseUrl()}/invite/${rawToken}`;
+        const inviteUrl = `${this.getAppBaseUrl(clientOrigin)}/invite/${rawToken}`;
         let emailSent = false;
         let emailError;
         if (email) {
@@ -182,7 +190,7 @@ let MembersService = MembersService_1 = class MembersService {
         this.logger.log(`Invitation ${invitationId} revoked for workspace ${workspaceId}`);
         return { success: true };
     }
-    async resendInvitation(workspaceId, invitationId, actorId) {
+    async resendInvitation(workspaceId, invitationId, actorId, clientOrigin) {
         const invitation = await this.prisma.workspaceInvitation.findFirst({
             where: { id: invitationId, workspaceId },
             include: { workspace: true },
@@ -211,7 +219,7 @@ let MembersService = MembersService_1 = class MembersService {
         const inviter = await this.prisma.user.findUnique({
             where: { id: actorId },
         });
-        const inviteUrl = `${this.getAppBaseUrl()}/invite/${rawToken}`;
+        const inviteUrl = `${this.getAppBaseUrl(clientOrigin)}/invite/${rawToken}`;
         const emailResult = await this.emailService.sendInvitationEmail(invitation.email, {
             inviterName: inviter?.name || 'A teammate',
             workspaceName: invitation.workspace.name,

@@ -10,6 +10,7 @@ import { useToast } from '@/components/ui/toast';
 import { PageContainer } from '@/components/layout/PageContainer';
 import { ShadcnSelect } from '@/components/ui/select';
 import { SolutionPromptPanel } from '@/components/tasks/SolutionPromptPanel';
+import { FloatingCreateButton } from '@/components/layout/FloatingCreateButton';
 import {
   Search,
   Image as ImageIcon,
@@ -138,25 +139,26 @@ export function BugsPage() {
   return (
     <PageContainer width="data" className="space-y-6 select-none">
       {/* Filter Bar */}
-      <div className="flex flex-wrap items-center gap-2.5">
+      <div className="flex flex-wrap items-center gap-2 pt-0.5">
         <span className="px-2.5 py-1 rounded-full text-[11px] font-medium bg-[var(--muted)] text-[var(--muted-foreground)] tabular">
           {filteredBugs.length} {filteredBugs.length === 1 ? 'bug' : 'bugs'}
         </span>
-        <div className="relative flex-1 min-w-[200px] max-w-sm">
-          <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-[var(--muted-foreground)]" />
+        <div className="relative w-64 max-w-xs">
+          <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-[var(--muted-foreground)] pointer-events-none" />
           <input
             type="text"
             placeholder="Search bugs by title or ID…"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-8.5 pr-3 py-1.5 rounded-lg border border-[var(--input)] bg-[var(--card)] text-[13px] text-[var(--foreground)] placeholder:text-[var(--muted-foreground)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]"
+            className="w-full h-8 pl-8.5 pr-7 rounded-lg border border-[var(--border)] bg-[var(--card)] text-[12px] text-[var(--foreground)] placeholder:text-[var(--muted-foreground)] focus:outline-none focus:ring-1 focus:ring-[var(--primary)] transition-colors"
           />
         </div>
 
         <ShadcnSelect
           value={severityFilter}
           onChange={setSeverityFilter}
-          className="h-8 text-[12px] min-w-[130px]"
+          className="h-8 text-[12px] w-auto min-w-[130px]"
+          wrapperClassName="w-auto shrink-0"
           options={[
             { value: 'ALL', label: 'All severities' },
             { value: 'CRITICAL', label: 'Critical' },
@@ -169,7 +171,8 @@ export function BugsPage() {
         <ShadcnSelect
           value={statusFilter}
           onChange={setStatusFilter}
-          className="h-8 text-[12px] min-w-[140px]"
+          className="h-8 text-[12px] w-auto min-w-[140px]"
+          wrapperClassName="w-auto shrink-0"
           options={[
             { value: 'ALL', label: 'All statuses' },
             { value: 'TODO', label: 'To do / Triaged' },
@@ -177,6 +180,19 @@ export function BugsPage() {
             { value: 'DONE', label: 'Resolved' },
           ]}
         />
+
+        {(searchQuery || severityFilter !== 'ALL' || statusFilter !== 'ALL') && (
+          <button
+            onClick={() => {
+              setSearchQuery('');
+              setSeverityFilter('ALL');
+              setStatusFilter('ALL');
+            }}
+            className="text-[12px] font-medium text-[var(--primary-text)] hover:underline cursor-pointer px-1.5 py-1"
+          >
+            Clear filters
+          </button>
+        )}
       </div>
 
       {/* Main Split Layout: Triage Table (Left) + Detail Inspector (Right) */}
@@ -470,6 +486,9 @@ export function BugsPage() {
           </div>
         </div>
       )}
+
+      {/* Floating Action Button */}
+      <FloatingCreateButton type="bug" label="Report bug" />
     </PageContainer>
   );
 }

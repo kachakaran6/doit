@@ -16,7 +16,6 @@ import {
   Chip,
   Skeleton,
   EmptyState,
-  LargeHeader,
 } from '../../../components/ui';
 import { BugRow } from '../../../components/patterns';
 import { useBugsQuery } from '../api/queries';
@@ -25,12 +24,20 @@ import { useWorkspaceStore } from '../../workspace';
 import { useSheetStore } from '../../../core/sheets/sheet.store';
 import { RootStackParamList } from '../../../navigation/types';
 import { accents } from '@doit/tokens';
-import { ChevronDown, Bug as BugIcon, Sparkles, Plus, Smartphone, ShieldCheck } from 'lucide-react-native';
+import {
+  ChevronDown,
+  Plus,
+  Smartphone,
+  ShieldCheck,
+  Sparkles,
+  ChevronUp,
+} from 'lucide-react-native';
 
 export const BugQueueScreen: React.FC = () => {
   const { colors, spacing, radius } = useTheme();
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const [selectedSeverity, setSelectedSeverity] = useState<string>('ALL');
+  const [telemetryExpanded, setTelemetryExpanded] = useState(false);
   const { openProjectSheet } = useSheetStore();
 
   const activeProject = useWorkspaceStore((s) => s.activeProject);
@@ -81,11 +88,11 @@ export const BugQueueScreen: React.FC = () => {
     return (
       <Screen scrollable={false}>
         <View style={{ paddingTop: spacing.md }}>
-          <Skeleton width="40%" height={32} style={{ marginBottom: spacing.md }} />
-          <Skeleton width="100%" height={40} style={{ marginBottom: spacing.lg, borderRadius: radius.pill }} />
-          <Skeleton width="100%" height={72} style={{ marginBottom: spacing.sm, borderRadius: radius.lg }} />
-          <Skeleton width="100%" height={72} style={{ marginBottom: spacing.sm, borderRadius: radius.lg }} />
-          <Skeleton width="100%" height={72} style={{ borderRadius: radius.lg }} />
+          <Skeleton width="40%" height={26} style={{ marginBottom: spacing.md }} />
+          <Skeleton width="100%" height={36} style={{ marginBottom: spacing.md, borderRadius: radius.pill }} />
+          <Skeleton width="100%" height={60} style={{ marginBottom: spacing.xs, borderRadius: radius.md }} />
+          <Skeleton width="100%" height={60} style={{ marginBottom: spacing.xs, borderRadius: radius.md }} />
+          <Skeleton width="100%" height={60} style={{ borderRadius: radius.md }} />
         </View>
       </Screen>
     );
@@ -121,52 +128,72 @@ export const BugQueueScreen: React.FC = () => {
       includeBottomNavPadding
       style={{ paddingTop: spacing.xs }}
     >
-      {/* Header with Project Switcher Dropdown */}
-      <View style={{ marginBottom: spacing.sm }}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-          <Text variant="h1">Bugs</Text>
-          {filteredBugs.length > 0 && (
-            <View
-              style={{
+      {/* 1. Compact Header with Project Switcher & Report Action */}
+      <View style={styles.headerContainer}>
+        <View style={styles.headerLeft}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+            <Text variant="h1" style={styles.pageTitle}>
+              Bugs
+            </Text>
+            {filteredBugs.length > 0 && (
+              <View style={[styles.countPill, { backgroundColor: colors.surface2 }]}>
+                <Text variant="caption" style={{ fontWeight: '700', fontSize: 11, color: colors.textSecondary }}>
+                  {filteredBugs.length}
+                </Text>
+              </View>
+            )}
+          </View>
+
+          {/* Project Switcher Pill */}
+          <Pressable
+            onPress={() => openProjectSheet()}
+            style={({ pressed }) => [
+              styles.projectPill,
+              {
                 backgroundColor: colors.surface2,
+                borderColor: colors.hairline,
                 borderRadius: radius.pill,
-                paddingHorizontal: 8,
-                paddingVertical: 2,
-              }}
-            >
-              <Text variant="caption" style={{ fontWeight: '700', color: colors.textSecondary }}>
-                {filteredBugs.length}
-              </Text>
-            </View>
-          )}
+                opacity: pressed ? 0.75 : 1,
+              },
+            ]}
+            hitSlop={8}
+            accessibilityRole="button"
+            accessibilityLabel="Switch project"
+          >
+            <Text variant="caption" color="secondary" style={{ fontWeight: '600', fontSize: 11 }}>
+              {activeProject ? activeProject.name : 'All Projects'}
+            </Text>
+            <ChevronDown size={12} color={colors.textSecondary} style={{ marginLeft: 3 }} />
+          </Pressable>
         </View>
-        <Pressable
-          onPress={() => openProjectSheet()}
-          style={({ pressed }) => [
-            styles.projectDropdown,
+
+        {/* Quick Report Bug Header Button */}
+        <TouchableOpacity
+          activeOpacity={0.7}
+          onPress={() => navigation.navigate('CaptureModal', { initialMode: 'bug' })}
+          style={[
+            styles.reportBtn,
             {
-              backgroundColor: colors.surface2,
+              backgroundColor: colors.accent,
               borderRadius: radius.pill,
-              opacity: pressed ? 0.75 : 1,
             },
           ]}
-          hitSlop={8}
           accessibilityRole="button"
-          accessibilityLabel="Switch project"
+          accessibilityLabel="Report bug"
         >
-          <Text variant="caption" color="secondary" style={{ fontWeight: '600' }}>
-            {activeProject ? activeProject.name : 'All Projects'}
+          <Plus size={14} color={colors.accentOnPrimary} style={{ marginRight: 4 }} />
+          <Text variant="caption" style={{ color: colors.accentOnPrimary, fontWeight: '700', fontSize: 12 }}>
+            Report
           </Text>
-          <ChevronDown size={14} color={colors.textSecondary} style={{ marginLeft: 4 }} />
-        </Pressable>
+        </TouchableOpacity>
       </View>
 
-      {/* Tonal Severity Filter Chips */}
+      {/* 2. Compact Severity Filter Row */}
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
         style={{ flexGrow: 0 }}
-        contentContainerStyle={[styles.filtersRow, { gap: spacing.xs, marginBottom: spacing.md }]}
+        contentContainerStyle={[styles.filtersRow, { gap: 6, marginBottom: 12 }]}
       >
         {severityChips.map((chip) => {
           const isSelected = selectedSeverity === chip.key;
@@ -195,152 +222,187 @@ export const BugQueueScreen: React.FC = () => {
         })}
       </ScrollView>
 
-      {/* Bugs List or Empty State */}
+      {/* 3. Bugs List */}
       {filteredBugs.length === 0 ? (
-        <View style={{ marginTop: spacing['2xl'] }}>
+        <View style={{ marginTop: spacing.xl, marginBottom: spacing.xl }}>
           <EmptyState
             illustration="no-bugs"
             title="No bugs reported"
-            body="Shake your phone or tap the bubble to report one"
-            actionTitle="Report a Bug"
+            body="Shake your phone or tap the floating bubble from any app to capture."
+            actionTitle="Report Bug"
             onAction={() => navigation.navigate('CaptureModal', { initialMode: 'bug' })}
           />
         </View>
       ) : (
-        <View style={{ gap: spacing.md }}>
-          <View style={styles.bugsList}>
-            {filteredBugs.map((item) => {
-              const firstImg = item.attachments?.find((a) => a.kind === 'IMAGE' || a.url?.match(/\.(png|jpg|jpeg|webp)$/i));
-              const thumbUrl = firstImg?.thumbUrl || firstImg?.url || null;
+        <View style={styles.bugsList}>
+          {filteredBugs.map((item) => {
+            const firstImg = item.attachments?.find((a) => a.kind === 'IMAGE' || a.url?.match(/\.(png|jpg|jpeg|webp)$/i));
+            const thumbUrl = firstImg?.thumbUrl || firstImg?.url || null;
 
-              return (
-                <BugRow
-                  key={item.id}
-                  id={item.id}
-                  humanId={item.humanId}
-                  title={item.title}
-                  severity={item.severity}
-                  status={item.status}
-                  deviceInfo={item.telemetry?.deviceModel}
-                  hasAttachment={item.hasAttachment || Boolean(firstImg)}
-                  thumbnailUrl={thumbUrl}
-                  createdAt={item.createdAt}
-                  onPress={() => navigation.navigate('BugDetail', { id: item.id })}
-                  onLongPress={() => handleConfirmDelete(item)}
-                />
-              );
-            })}
+            return (
+              <BugRow
+                key={item.id}
+                id={item.id}
+                humanId={item.humanId}
+                title={item.title}
+                severity={item.severity}
+                status={item.status}
+                deviceInfo={item.telemetry?.deviceModel}
+                hasAttachment={item.hasAttachment || Boolean(firstImg)}
+                thumbnailUrl={thumbUrl}
+                createdAt={item.createdAt}
+                onPress={() => navigation.navigate('BugDetail', { id: item.id })}
+                onLongPress={() => handleConfirmDelete(item)}
+              />
+            );
+          })}
+        </View>
+      )}
+
+      {/* 4. Compact Collapsible Telemetry Hint (Doesn't dominate the screen) */}
+      <View
+        style={[
+          styles.telemetryCard,
+          {
+            backgroundColor: colors.surface1,
+            borderColor: colors.border,
+            borderRadius: radius.md,
+            marginTop: spacing.md,
+          },
+        ]}
+      >
+        <TouchableOpacity
+          activeOpacity={0.7}
+          onPress={() => setTelemetryExpanded(!telemetryExpanded)}
+          style={styles.telemetryHeader}
+        >
+          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            <Sparkles size={13} color={colors.accent} />
+            <Text variant="caption" style={{ fontWeight: '700', fontSize: 11, marginLeft: 6, letterSpacing: 0.4 }}>
+              INSTANT BUG TELEMETRY
+            </Text>
           </View>
 
-          {/* Quick Capture & Telemetry Insights Card */}
-          <View
-            style={[
-              styles.infoCard,
-              {
-                backgroundColor: colors.surface1,
-                borderRadius: radius.lg,
-                padding: spacing.lg,
-                marginTop: spacing.sm,
-              },
-            ]}
-          >
-            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: spacing.xs }}>
-              <View style={[styles.infoIconWrap, { backgroundColor: colors.surface2 }]}>
-                <Sparkles size={16} color={colors.accent} />
-              </View>
-              <Text variant="bodyStrong" style={{ marginLeft: 10 }}>
-                Instant Bug Telemetry
-              </Text>
-            </View>
-            <Text variant="body" color="secondary" style={{ fontSize: 13, lineHeight: 20 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+            <Text variant="caption" color="secondary" style={{ fontSize: 11 }}>
+              Shake active
+            </Text>
+            {telemetryExpanded ? (
+              <ChevronUp size={14} color={colors.textSecondary} />
+            ) : (
+              <ChevronDown size={14} color={colors.textSecondary} />
+            )}
+          </View>
+        </TouchableOpacity>
+
+        {telemetryExpanded && (
+          <View style={[styles.telemetryBody, { borderTopColor: colors.hairline }]}>
+            <Text variant="caption" color="secondary" style={{ fontSize: 12, lineHeight: 18 }}>
               Shake your device anywhere in the app to capture the active screen, device memory, battery level, and logs automatically.
             </Text>
 
-            <View style={{ flexDirection: 'row', gap: spacing.sm, marginTop: spacing.md }}>
-              <TouchableOpacity
-                onPress={() => navigation.navigate('CaptureModal', { initialMode: 'bug' })}
-                style={[
-                  styles.cardActionBtn,
-                  {
-                    backgroundColor: colors.accent,
-                    borderRadius: radius.pill,
-                  },
-                ]}
-              >
-                <Plus size={14} color="#FFF" style={{ marginRight: 6 }} />
-                <Text variant="caption" style={{ color: '#FFF', fontWeight: '700' }}>
-                  Report Bug
-                </Text>
-              </TouchableOpacity>
-
+            <View style={{ flexDirection: 'row', gap: 8, marginTop: 10 }}>
               <TouchableOpacity
                 onPress={() => navigation.navigate('Settings')}
                 style={[
-                  styles.cardActionBtn,
+                  styles.telemetryBtn,
                   {
                     backgroundColor: colors.surface2,
+                    borderColor: colors.border,
                     borderRadius: radius.pill,
                   },
                 ]}
               >
-                <Smartphone size={14} color={colors.textSecondary} style={{ marginRight: 6 }} />
-                <Text variant="caption" color="secondary" style={{ fontWeight: '600' }}>
+                <Smartphone size={12} color={colors.textSecondary} style={{ marginRight: 4 }} />
+                <Text variant="caption" style={{ fontWeight: '600', fontSize: 11, color: colors.textPrimary }}>
                   Shake Settings
                 </Text>
               </TouchableOpacity>
             </View>
           </View>
+        )}
+      </View>
 
-          {/* Queue Status Summary */}
-          <View style={styles.summaryBar}>
-            <ShieldCheck size={14} color={colors.success} style={{ marginRight: 6 }} />
-            <Text variant="caption" color="tertiary" style={{ fontSize: 12 }}>
-              {counts.ALL} total bugs monitored · {counts.CRITICAL} critical · {counts.MAJOR} major
-            </Text>
-          </View>
-        </View>
-      )}
+      {/* 5. Quiet Queue Summary Bar */}
+      <View style={styles.summaryBar}>
+        <ShieldCheck size={13} color={colors.success} style={{ marginRight: 5 }} />
+        <Text variant="caption" color="tertiary" style={{ fontSize: 11 }}>
+          {counts.ALL} total bugs · {counts.CRITICAL} critical · {counts.MAJOR} major
+        </Text>
+      </View>
     </Screen>
   );
 };
 
 const styles = StyleSheet.create({
-  projectDropdown: {
+  headerContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    alignSelf: 'flex-start',
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    marginTop: -4,
+    justifyContent: 'space-between',
     marginBottom: 8,
   },
-  filtersRow: {
-    paddingVertical: 4,
-  },
-  bugsList: {
-    gap: 4,
-  },
-  infoCard: {
-    borderWidth: 0,
-  },
-  infoIconWrap: {
-    width: 28,
-    height: 28,
-    borderRadius: 7,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  cardActionBtn: {
+  headerLeft: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 14,
-    paddingVertical: 8,
+    gap: 8,
+    flexWrap: 'wrap',
+  },
+  pageTitle: {
+    fontSize: 22,
+    fontWeight: '700',
+    letterSpacing: -0.3,
+  },
+  countPill: {
+    paddingHorizontal: 7,
+    paddingVertical: 1,
+    borderRadius: 10,
+  },
+  projectPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderWidth: 1,
+  },
+  reportBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+  },
+  filtersRow: {
+    paddingVertical: 2,
+  },
+  bugsList: {
+    marginTop: 2,
+  },
+  telemetryCard: {
+    borderWidth: 1,
+    overflow: 'hidden',
+  },
+  telemetryHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+  },
+  telemetryBody: {
+    borderTopWidth: StyleSheet.hairlineWidth,
+    padding: 12,
+  },
+  telemetryBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderWidth: 1,
   },
   summaryBar: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 8,
-    marginBottom: 24,
+    marginTop: 16,
+    marginBottom: 20,
   },
 });

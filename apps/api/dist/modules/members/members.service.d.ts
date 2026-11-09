@@ -9,16 +9,16 @@ export declare class MembersService {
     private getAppBaseUrl;
     getMembers(workspaceId: string): Promise<({
         user: {
-            email: string;
             id: string;
+            email: string;
             name: string;
             avatarUrl: string | null;
         };
     } & {
-        role: import(".prisma/client").$Enums.Role;
         id: string;
         workspaceId: string;
         userId: string;
+        role: import(".prisma/client").$Enums.Role;
         invitedEmail: string | null;
         inviteToken: string | null;
         inviteExpiresAt: Date | null;
@@ -38,12 +38,12 @@ export declare class MembersService {
         revokedAt: Date | null;
         createdAt: Date;
         invitedBy: {
-            email: string;
             id: string;
+            email: string;
             name: string;
         };
     }[]>;
-    inviteMember(workspaceId: string, invitedById: string, dto: InviteMemberDto): Promise<{
+    inviteMember(workspaceId: string, invitedById: string, dto: InviteMemberDto, clientOrigin?: string): Promise<{
         id: string;
         workspaceId: string;
         email: string | null;
@@ -64,7 +64,7 @@ export declare class MembersService {
         success: boolean;
         message?: undefined;
     }>;
-    resendInvitation(workspaceId: string, invitationId: string, actorId: string): Promise<{
+    resendInvitation(workspaceId: string, invitationId: string, actorId: string, clientOrigin?: string): Promise<{
         success: boolean;
         emailSent: boolean;
         emailError: string | undefined;
@@ -116,10 +116,10 @@ export declare class MembersService {
         role: import(".prisma/client").$Enums.Role;
     }>;
     updateRole(workspaceId: string, memberId: string, dto: UpdateMemberRoleDto): Promise<{
-        role: import(".prisma/client").$Enums.Role;
         id: string;
         workspaceId: string;
         userId: string;
+        role: import(".prisma/client").$Enums.Role;
         invitedEmail: string | null;
         inviteToken: string | null;
         inviteExpiresAt: Date | null;
