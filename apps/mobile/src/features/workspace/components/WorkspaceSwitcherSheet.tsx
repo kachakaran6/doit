@@ -104,6 +104,8 @@ export const WorkspaceSwitcherSheet: React.FC<WorkspaceSwitcherSheetProps> = ({
     setInviteCode('');
   };
 
+  if (!visible) return null;
+
   return (
     <Modal
       transparent
@@ -137,10 +139,12 @@ export const WorkspaceSwitcherSheet: React.FC<WorkspaceSwitcherSheetProps> = ({
                 borderTopLeftRadius: 24,
                 borderTopRightRadius: 24,
                 maxHeight: Dimensions.get('window').height * 0.88,
+                minHeight: 280,
               },
             ]}
           >
             <ScrollView
+              style={styles.scrollFlex}
               showsVerticalScrollIndicator={false}
               bounces={false}
               keyboardShouldPersistTaps="handled"
@@ -398,7 +402,11 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.25,
     shadowRadius: 20,
     elevation: 1000,
-    maxHeight: '85%',
+    zIndex: 1000,
+    overflow: 'hidden',
+  },
+  scrollFlex: {
+    flexGrow: 0,
   },
   handleContainer: {
     alignItems: 'center',

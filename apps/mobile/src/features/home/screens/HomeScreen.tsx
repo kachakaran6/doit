@@ -166,21 +166,23 @@ export const HomeScreen: React.FC = () => {
                 borderWidth: 1,
               },
             ]}
-            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
             activeOpacity={0.7}
             onPress={() => setWorkspaceSheetOpen(true)}
             accessibilityRole="button"
             accessibilityLabel="Switch workspace"
           >
-            <WorkspaceTile
-              name={activeWorkspace?.name || 'DoIt'}
-              id={activeWorkspace?.id || 'default'}
-              size={26}
-            />
-            <Text variant="bodyStrong" numberOfLines={1} style={styles.workspaceName}>
-              {activeWorkspace?.name || 'Workspace'}
-            </Text>
-            <ChevronDown size={14} color={colors.textSecondary} style={{ marginLeft: 2 }} />
+            <View pointerEvents="none" style={styles.workspaceSelectorInner}>
+              <WorkspaceTile
+                name={activeWorkspace?.name || 'DoIt'}
+                id={activeWorkspace?.id || 'default'}
+                size={26}
+              />
+              <Text variant="bodyStrong" numberOfLines={1} style={styles.workspaceName}>
+                {activeWorkspace?.name || 'Workspace'}
+              </Text>
+              <ChevronDown size={14} color={colors.textSecondary} style={{ marginLeft: 2 }} />
+            </View>
           </TouchableOpacity>
 
           <View style={styles.topRightActions}>
@@ -222,10 +224,12 @@ export const HomeScreen: React.FC = () => {
               accessibilityRole="button"
               accessibilityLabel="Open user account menu"
             >
-              <Avatar
-                name={user?.fullName || user?.email || 'User'}
-                size={36}
-              />
+              <View pointerEvents="none">
+                <Avatar
+                  name={user?.fullName || user?.email || 'User'}
+                  size={36}
+                />
+              </View>
             </TouchableOpacity>
           </View>
         </View>
@@ -664,12 +668,23 @@ const styles = StyleSheet.create({
   },
   headerContainer: {
     paddingTop: 4,
+    zIndex: 100,
+    elevation: 10,
+    position: 'relative',
   },
   topBar: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     marginBottom: 4,
+    zIndex: 100,
+    elevation: 10,
+    position: 'relative',
+  },
+  workspaceSelectorInner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexShrink: 1,
   },
   topRightActions: {
     flexDirection: 'row',

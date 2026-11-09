@@ -86,10 +86,12 @@ export const TaskLabelPickerSheet: React.FC<TaskLabelPickerSheetProps> = ({
               borderTopLeftRadius: 24,
               borderTopRightRadius: 24,
               maxHeight: Dimensions.get('window').height * 0.85,
+              minHeight: 240,
             },
           ]}
         >
           <ScrollView
+            style={{ flexGrow: 0 }}
             showsVerticalScrollIndicator={false}
             bounces={false}
             contentContainerStyle={{
