@@ -16,7 +16,6 @@ config.resolver.blockList = [
   /.*[/\\]screenshots[/\\].*/,
   /.*[/\\]release-builds[/\\].*/,
   /.*[/\\]\.git[/\\].*/,
-  /.*[/\\]dist[/\\].*/,
 ];
 
 // 2. Let Metro know where to resolve packages and in what order
