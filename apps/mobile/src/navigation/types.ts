@@ -22,6 +22,7 @@ export type RootStackParamList = {
   PendingSync: undefined;
   Notifications: undefined;
   Trash: undefined;
+  OurApps: undefined;
   DevGallery?: undefined;
   FoundationGallery?: undefined;
 };

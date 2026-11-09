@@ -11,6 +11,8 @@ import {
   AuthScreen,
   InviteAcceptScreen,
 } from '../screens';
+import { OurAppsScreen } from '../screens/OurAppsScreen';
+import { playUpdateService } from '../services/playStore/playUpdateService';
 import { StickyBoardScreen } from '../features/stickies';
 import { SettingsScreen } from '../features/settings';
 import { AiProviderScreen } from '../features/settings/screens/AiProviderScreen';
@@ -122,6 +124,11 @@ export const RootNavigator: React.FC = () => {
     }
   }, [isAuthenticated]);
 
+  useEffect(() => {
+    playUpdateService.init();
+    return () => playUpdateService.destroy();
+  }, []);
+
   if (versionPolicy.checked && versionPolicy.needsUpdate) {
     return (
       <ForceUpdateScreen
@@ -171,6 +178,7 @@ export const RootNavigator: React.FC = () => {
               <Stack.Screen name="FoundationGallery" component={FoundationGallery} />
             </>
           )}
+          <Stack.Screen name="OurApps" component={OurAppsScreen} />
           <Stack.Screen name="InviteAccept" component={InviteAcceptScreen} />
         </Stack.Navigator>
       </NavigationContainer>

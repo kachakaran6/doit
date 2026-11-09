@@ -3,6 +3,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { taskKeys } from './keys';
 import { http } from '../../../lib/http';
 import { TaskViewModel, TaskStatus } from '../types';
+import { playReviewService } from '../../../services/playStore/playReviewService';
 
 export function useCreateTaskMutation(projectId: string = 'default') {
   const queryClient = useQueryClient();
@@ -65,6 +66,7 @@ export function useCreateTaskMutation(projectId: string = 'default') {
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: taskKeys.lists() });
+      playReviewService.recordEngagement().catch(() => {});
     },
   });
 }
@@ -160,6 +162,7 @@ export function useDeleteTaskMutation(projectId: string = 'default') {
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: taskKeys.lists() });
+      playReviewService.recordEngagement().catch(() => {});
     },
   });
 }

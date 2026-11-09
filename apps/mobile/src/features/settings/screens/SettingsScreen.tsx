@@ -8,9 +8,13 @@ import {
   TouchableOpacity,
   Pressable,
   AppState,
+  Linking,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { useTheme } from '../../../theme/useTheme';
+import { PlayServices } from '../../../native/play';
+import { playUpdateService } from '../../../services/playStore/playUpdateService';
+import { playReviewService } from '../../../services/playStore/playReviewService';
 import {
   Text,
   Button,
@@ -52,6 +56,9 @@ import {
   FileText,
   Code,
   Users,
+  Star,
+  Share2,
+  DownloadCloud,
 } from 'lucide-react-native';
 import { http } from '../../../lib/http';
 import { QuickCaptureGuideSheet } from '../components/QuickCaptureGuideSheet';
@@ -103,6 +110,18 @@ export const SettingsScreen: React.FC = () => {
   // Developer easter egg
   const [aboutTapCount, setAboutTapCount] = useState(0);
   const [devModeUnlocked, setDevModeUnlocked] = useState(false);
+  const [packageMetadata, setPackageMetadata] = useState<{ versionName: string; versionCode: number }>({
+    versionName: '0.2.6',
+    versionCode: 26,
+  });
+
+  useEffect(() => {
+    PlayServices.getPackageMetadata().then((meta) => {
+      if (meta && meta.versionName) {
+        setPackageMetadata({ versionName: meta.versionName, versionCode: meta.versionCode });
+      }
+    }).catch(() => {});
+  }, []);
 
   const checkPermissions = async () => {
     try {
@@ -591,25 +610,230 @@ export const SettingsScreen: React.FC = () => {
           </View>
         </View>
 
-        {/* 6. About Section (Tap 7x for developer tools) */}
+        {/* 6. Samyukt Ecosystem & Play Store Actions */}
+        <View>
+          <View style={styles.sectionHeaderRow}>
+            <Text variant="caption" color="secondary" style={styles.sectionHeader}>
+              SAMYUKT ECOSYSTEM
+            </Text>
+            <View
+              style={{
+                backgroundColor: 'rgba(58, 102, 242, 0.15)',
+                paddingHorizontal: 8,
+                paddingVertical: 2,
+                borderRadius: radius.pill,
+              }}
+            >
+              <Text variant="caption" style={{ color: colors.accent, fontWeight: '700', fontSize: 10 }}>
+                PRECISION STANDARDS
+              </Text>
+            </View>
+          </View>
+          <View
+            style={[
+              styles.groupedCard,
+              {
+                backgroundColor: colors.surface1,
+                borderRadius: radius.lg,
+                borderWidth: 1,
+                borderColor: colors.hairline,
+                overflow: 'hidden',
+              },
+            ]}
+          >
+            {/* Our Apps Catalog */}
+            <TouchableOpacity
+              onPress={() => (navigation as any).navigate('OurApps')}
+              style={styles.settingRow}
+              activeOpacity={0.7}
+            >
+              <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
+                <View
+                  style={{
+                    width: 32,
+                    height: 32,
+                    borderRadius: radius.sm,
+                    backgroundColor: 'rgba(58, 102, 242, 0.15)',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    marginRight: 12,
+                  }}
+                >
+                  <Sparkles size={16} color={colors.accent} />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                    <Text variant="bodyStrong">Our Apps</Text>
+                    <View
+                      style={{
+                        backgroundColor: 'rgba(58, 102, 242, 0.15)',
+                        paddingHorizontal: 6,
+                        paddingVertical: 1,
+                        borderRadius: radius.pill,
+                      }}
+                    >
+                      <Text variant="caption" style={{ color: colors.accent, fontSize: 10, fontWeight: '700' }}>
+                        Registry
+                      </Text>
+                    </View>
+                  </View>
+                  <Text variant="caption" color="secondary">
+                    Explore precision apps built by Samyukt
+                  </Text>
+                </View>
+              </View>
+              <ChevronRight size={16} color={colors.textSecondary} />
+            </TouchableOpacity>
+
+            <View style={{ height: 1, backgroundColor: colors.hairline }} />
+
+            {/* Check for Updates */}
+            <TouchableOpacity
+              onPress={() => playUpdateService.checkForUpdatesSafely(true)}
+              style={styles.settingRow}
+              activeOpacity={0.7}
+            >
+              <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
+                <View
+                  style={{
+                    width: 32,
+                    height: 32,
+                    borderRadius: radius.sm,
+                    backgroundColor: 'rgba(14, 133, 80, 0.15)',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    marginRight: 12,
+                  }}
+                >
+                  <DownloadCloud size={16} color="#0E8550" />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text variant="bodyStrong">Check for Updates</Text>
+                  <Text variant="caption" color="secondary">
+                    Native Google Play in-app updates
+                  </Text>
+                </View>
+              </View>
+              <ChevronRight size={16} color={colors.textSecondary} />
+            </TouchableOpacity>
+
+            <View style={{ height: 1, backgroundColor: colors.hairline }} />
+
+            {/* Rate on Google Play */}
+            <TouchableOpacity
+              onPress={() => playReviewService.rateNow()}
+              style={styles.settingRow}
+              activeOpacity={0.7}
+            >
+              <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
+                <View
+                  style={{
+                    width: 32,
+                    height: 32,
+                    borderRadius: radius.sm,
+                    backgroundColor: 'rgba(234, 179, 8, 0.15)',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    marginRight: 12,
+                  }}
+                >
+                  <Star size={16} color="#EAB308" />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text variant="bodyStrong">Rate on Google Play</Text>
+                  <Text variant="caption" color="secondary">
+                    Leave a review on our official Play Store page
+                  </Text>
+                </View>
+              </View>
+              <ChevronRight size={16} color={colors.textSecondary} />
+            </TouchableOpacity>
+
+            <View style={{ height: 1, backgroundColor: colors.hairline }} />
+
+            {/* Share Application */}
+            <TouchableOpacity
+              onPress={() => PlayServices.shareApplication()}
+              style={styles.settingRow}
+              activeOpacity={0.7}
+            >
+              <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
+                <View
+                  style={{
+                    width: 32,
+                    height: 32,
+                    borderRadius: radius.sm,
+                    backgroundColor: colors.surface2,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    marginRight: 12,
+                  }}
+                >
+                  <Share2 size={16} color={colors.textPrimary} />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text variant="bodyStrong">Share DoIt</Text>
+                  <Text variant="caption" color="secondary">
+                    Share with colleagues and engineering teams
+                  </Text>
+                </View>
+              </View>
+              <ChevronRight size={16} color={colors.textSecondary} />
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        {/* 7. About Section (Tap 7x for developer tools) */}
         <View>
           <Text variant="caption" color="secondary" style={styles.sectionHeader}>
             About
           </Text>
           <Pressable
             onPress={handleAboutTap}
-            style={[styles.groupedCard, { backgroundColor: colors.surface1, borderRadius: radius.lg, padding: spacing.md }]}
+            style={[
+              styles.groupedCard,
+              {
+                backgroundColor: colors.surface1,
+                borderRadius: radius.lg,
+                borderWidth: 1,
+                borderColor: colors.hairline,
+                padding: spacing.md,
+              },
+            ]}
           >
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
               <View>
                 <Text variant="bodyStrong">DoIt Mobile</Text>
-                <Text variant="caption" color="secondary">Version 0.2.4 (Build 24)</Text>
+                <Text variant="caption" color="secondary">
+                  Version {packageMetadata.versionName} (Build {packageMetadata.versionCode})
+                </Text>
               </View>
-              <Text variant="caption" color="tertiary" style={{ fontSize: 11 }}>
-                by Samyukt
-              </Text>
+              <View
+                style={{
+                  backgroundColor: 'rgba(58, 102, 242, 0.1)',
+                  paddingHorizontal: 8,
+                  paddingVertical: 3,
+                  borderRadius: radius.pill,
+                }}
+              >
+                <Text variant="caption" style={{ color: colors.accent, fontWeight: '700', fontSize: 11 }}>
+                  Samyukt Standard
+                </Text>
+              </View>
             </View>
           </Pressable>
+
+          {/* Standardized Samyukt Attribution Footer */}
+          <TouchableOpacity
+            onPress={() => Linking.openURL('https://samyukt.pro')}
+            style={{ alignItems: 'center', paddingVertical: 14, flexDirection: 'row', justifyContent: 'center' }}
+            activeOpacity={0.7}
+          >
+            <Text variant="caption" color="secondary" style={{ textAlign: 'center' }}>
+              Made with care by <Text style={{ color: colors.accent, fontWeight: '700' }}>Samyukt</Text>
+            </Text>
+            <ChevronRight size={13} color={colors.accent} style={{ marginLeft: 2 }} />
+          </TouchableOpacity>
         </View>
 
         {/* 7. Dedicated Log Out Card */}

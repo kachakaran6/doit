@@ -7,6 +7,7 @@ import {
   Modal,
   ScrollView,
   Dimensions,
+  Linking,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -16,6 +17,8 @@ import { useTheme } from '../../../theme/useTheme';
 import { Text, Avatar } from '../../../components/ui';
 import { useAuthStore } from '../../auth/store';
 import { useWorkspaceStore } from '../../workspace';
+import { PlayServices } from '../../../native/play';
+import { playReviewService } from '../../../services/playStore/playReviewService';
 import {
   X,
   Settings as SettingsIcon,
@@ -25,6 +28,9 @@ import {
   FolderKanban,
   Bell,
   User,
+  Sparkles,
+  Star,
+  Share2,
 } from 'lucide-react-native';
 
 interface AccountMenuSheetProps {
@@ -270,6 +276,85 @@ export const AccountMenuSheet: React.FC<AccountMenuSheetProps> = ({
                 </View>
                 <ChevronRight size={16} color={colors.textTertiary || colors.textMuted} />
               </TouchableOpacity>
+
+              <View style={[styles.divider, { backgroundColor: colors.hairline || colors.border }]} />
+
+              {/* Our Apps Catalog Row */}
+              <TouchableOpacity
+                style={styles.menuRow}
+                onPress={() => {
+                  onClose();
+                  setTimeout(() => {
+                    navigation.navigate('OurApps');
+                  }, 200);
+                }}
+                activeOpacity={0.7}
+              >
+                <View style={styles.menuLeft}>
+                  <View style={[styles.menuIconBox, { backgroundColor: 'rgba(58, 102, 242, 0.15)' }]}>
+                    <Sparkles size={16} color={colors.accent} />
+                  </View>
+                  <View style={{ flexShrink: 1 }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                      <Text variant="bodyStrong">Our Apps</Text>
+                      <View
+                        style={{
+                          backgroundColor: 'rgba(58, 102, 242, 0.15)',
+                          paddingHorizontal: 6,
+                          paddingVertical: 1,
+                          borderRadius: radius.pill,
+                        }}
+                      >
+                        <Text variant="caption" style={{ color: colors.accent, fontSize: 10, fontWeight: '700' }}>
+                          Samyukt
+                        </Text>
+                      </View>
+                    </View>
+                    <Text variant="caption" color="secondary" numberOfLines={1}>
+                      Discover ecosystem applications
+                    </Text>
+                  </View>
+                </View>
+                <ChevronRight size={16} color={colors.textTertiary || colors.textMuted} />
+              </TouchableOpacity>
+
+              <View style={[styles.divider, { backgroundColor: colors.hairline || colors.border }]} />
+
+              {/* Rate App Row */}
+              <TouchableOpacity
+                style={styles.menuRow}
+                onPress={() => {
+                  playReviewService.rateNow();
+                }}
+                activeOpacity={0.7}
+              >
+                <View style={styles.menuLeft}>
+                  <View style={[styles.menuIconBox, { backgroundColor: 'rgba(234, 179, 8, 0.15)' }]}>
+                    <Star size={16} color="#EAB308" />
+                  </View>
+                  <Text variant="bodyStrong">Rate on Google Play</Text>
+                </View>
+                <ChevronRight size={16} color={colors.textTertiary || colors.textMuted} />
+              </TouchableOpacity>
+
+              <View style={[styles.divider, { backgroundColor: colors.hairline || colors.border }]} />
+
+              {/* Share App Row */}
+              <TouchableOpacity
+                style={styles.menuRow}
+                onPress={() => {
+                  PlayServices.shareApplication();
+                }}
+                activeOpacity={0.7}
+              >
+                <View style={styles.menuLeft}>
+                  <View style={[styles.menuIconBox, { backgroundColor: colors.surface3 || colors.surface }]}>
+                    <Share2 size={16} color={colors.textPrimary} />
+                  </View>
+                  <Text variant="bodyStrong">Share DoIt</Text>
+                </View>
+                <ChevronRight size={16} color={colors.textTertiary || colors.textMuted} />
+              </TouchableOpacity>
             </View>
 
             {/* Destructive Sign Out Button */}
@@ -282,6 +367,7 @@ export const AccountMenuSheet: React.FC<AccountMenuSheetProps> = ({
                   borderColor: 'rgba(239, 68, 68, 0.25)',
                   borderWidth: 1,
                   padding: spacing.md,
+                  marginBottom: spacing.md,
                 },
               ]}
               onPress={handleLogout}
@@ -291,6 +377,18 @@ export const AccountMenuSheet: React.FC<AccountMenuSheetProps> = ({
               <Text variant="bodyStrong" style={{ color: colors.danger, marginLeft: spacing.xs }}>
                 Sign Out
               </Text>
+            </TouchableOpacity>
+
+            {/* Standardized Samyukt Footer */}
+            <TouchableOpacity
+              onPress={() => Linking.openURL('https://samyukt.pro')}
+              style={{ alignItems: 'center', paddingVertical: 10, flexDirection: 'row', justifyContent: 'center' }}
+              activeOpacity={0.7}
+            >
+              <Text variant="caption" color="secondary" style={{ textAlign: 'center' }}>
+                Made with care by <Text style={{ color: colors.accent, fontWeight: '700' }}>Samyukt</Text>
+              </Text>
+              <ChevronRight size={13} color={colors.accent} style={{ marginLeft: 2 }} />
             </TouchableOpacity>
           </ScrollView>
         </View>

@@ -24,6 +24,7 @@ class MainApplication : Application(), ReactApplication {
           override fun getPackages(): List<ReactPackage> {
             val packages = PackageList(this).packages.toMutableList()
             packages.add(com.samyukt.doit.overlay.OverlayPackage())
+            packages.add(com.samyukt.doit.play.PlayServicesPackage())
             // Packages that cannot be autolinked yet can be added manually here, for example:
             // packages.add(new MyReactNativePackage());
             return packages
