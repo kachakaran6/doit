@@ -1,8 +1,15 @@
-import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Breadcrumbs } from './Breadcrumbs';
 import { WorkspaceSwitcher } from './WorkspaceSwitcher';
 import { Button } from '@/components/ui/button';
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuLabel,
+} from '@/components/ui/dropdown-menu';
 import { Search, Plus, Menu, ChevronDown, CheckSquare, Bug, StickyNote, Bell, FolderKanban, UserPlus } from 'lucide-react';
 import { CreateType } from './CreateModal';
 
@@ -16,7 +23,6 @@ export function TopBar({
   onToggleMobileSidebar: () => void;
 }) {
   const navigate = useNavigate();
-  const [dropdownOpen, setDropdownOpen] = useState(false);
 
   return (
     <header className="h-14 border-b border-[var(--border)] bg-[var(--background)] px-4 sm:px-6 flex items-center justify-between gap-4 shrink-0 select-none">
@@ -60,7 +66,7 @@ export function TopBar({
           <Bell className="w-4 h-4" />
         </Link>
 
-        {/* Global Create Split Button */}
+        {/* Global Create Split Button with Shadcn DropdownMenu */}
         <div className="relative inline-flex rounded-lg shadow-xs">
           <Button
             size="sm"
@@ -71,78 +77,41 @@ export function TopBar({
             <span>New task</span>
           </Button>
 
-          <Button
-            size="sm"
-            onClick={() => setDropdownOpen(!dropdownOpen)}
-            className="rounded-l-none px-2"
-            aria-label="More create options"
-          >
-            <ChevronDown className="w-3.5 h-3.5" />
-          </Button>
-
-          {dropdownOpen && (
-            <div
-              className="absolute top-full right-0 mt-1.5 w-48 rounded-xl bg-[var(--popover)] text-[var(--popover-foreground)] shadow-xl border border-[var(--border)] p-1 z-50 animate-in fade-in zoom-in-95 duration-100"
-              onMouseLeave={() => setDropdownOpen(false)}
-            >
-              <button
-                type="button"
-                onClick={() => {
-                  setDropdownOpen(false);
-                  onOpenCreate('task');
-                }}
-                className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-[13px] text-[var(--foreground)] hover:bg-[var(--accent)] transition-colors cursor-pointer text-left"
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                size="sm"
+                className="rounded-l-none px-2"
+                aria-label="More create options"
               >
+                <ChevronDown className="w-3.5 h-3.5" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-48">
+              <DropdownMenuLabel>Create new</DropdownMenuLabel>
+              <DropdownMenuItem onClick={() => onOpenCreate('task')}>
                 <CheckSquare className="w-3.5 h-3.5 text-[var(--primary-text)]" />
                 <span>Create task</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setDropdownOpen(false);
-                  onOpenCreate('bug');
-                }}
-                className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-[13px] text-[var(--foreground)] hover:bg-[var(--accent)] transition-colors cursor-pointer text-left"
-              >
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => onOpenCreate('bug')}>
                 <Bug className="w-3.5 h-3.5 text-[var(--danger-text)]" />
                 <span>Report bug</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setDropdownOpen(false);
-                  onOpenCreate('sticky');
-                }}
-                className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-[13px] text-[var(--foreground)] hover:bg-[var(--accent)] transition-colors cursor-pointer text-left"
-              >
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => onOpenCreate('sticky')}>
                 <StickyNote className="w-3.5 h-3.5 text-[var(--warning-text)]" />
                 <span>New sticky note</span>
-              </button>
-              <div className="my-1 border-t border-[var(--border)]" />
-              <button
-                type="button"
-                onClick={() => {
-                  setDropdownOpen(false);
-                  navigate('/projects');
-                }}
-                className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-[13px] text-[var(--foreground)] hover:bg-[var(--accent)] transition-colors cursor-pointer text-left"
-              >
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => navigate('/projects')}>
                 <FolderKanban className="w-3.5 h-3.5 text-[var(--primary-text)]" />
                 <span>New project</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setDropdownOpen(false);
-                  navigate('/team');
-                }}
-                className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-[13px] text-[var(--foreground)] hover:bg-[var(--accent)] transition-colors cursor-pointer text-left"
-              >
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => navigate('/team')}>
                 <UserPlus className="w-3.5 h-3.5 text-[var(--success-text)]" />
                 <span>Invite people</span>
-              </button>
-            </div>
-          )}
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
 
         {/* Separator & Workspace Switcher in the top right corner */}

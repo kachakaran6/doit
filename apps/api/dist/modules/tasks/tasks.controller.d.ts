@@ -11,11 +11,11 @@ export declare class TasksController {
     listBugsByProject(projectId: string, query: TaskListQueryDto): Promise<import("../../common/pagination/cursor-page").CursorPageResult<import("./tasks.mapper").TaskListItemMapped>>;
     findOneBug(id: string): Promise<{
         checklist: {
+            id: string;
+            taskId: string;
+            order: import("@prisma/client/runtime/library").Decimal;
             text: string;
             done: boolean;
-            id: string;
-            order: import("@prisma/client/runtime/library").Decimal;
-            taskId: string;
         }[];
         attachments: ({
             url: string;
@@ -51,13 +51,13 @@ export declare class TasksController {
             thumbKey: string | null;
         })[];
         bug: {
-            expected: string | null;
             id: string;
+            expected: string | null;
             taskId: string;
+            steps: import("@prisma/client/runtime/library").JsonValue;
             sessionId: string | null;
             reporterId: string | null;
             severity: import(".prisma/client").$Enums.Severity;
-            steps: import("@prisma/client/runtime/library").JsonValue;
             actual: string | null;
             frequency: string | null;
             deviceModel: string | null;
@@ -74,13 +74,13 @@ export declare class TasksController {
                 name: string;
             };
         } & {
-            workspaceId: string;
             id: string;
+            workspaceId: string;
             createdAt: Date;
             taskId: string | null;
-            actorId: string;
             action: string;
             meta: import("@prisma/client/runtime/library").JsonValue;
+            actorId: string;
         })[];
         id: string;
         humanId: string;
@@ -127,11 +127,11 @@ export declare class TasksController {
     findInboxQuery(workspaceId: string): Promise<import("./tasks.mapper").TaskListItemMapped[]>;
     findOne(id: string): Promise<{
         checklist: {
+            id: string;
+            taskId: string;
+            order: import("@prisma/client/runtime/library").Decimal;
             text: string;
             done: boolean;
-            id: string;
-            order: import("@prisma/client/runtime/library").Decimal;
-            taskId: string;
         }[];
         attachments: ({
             url: string;
@@ -167,13 +167,13 @@ export declare class TasksController {
             thumbKey: string | null;
         })[];
         bug: {
-            expected: string | null;
             id: string;
+            expected: string | null;
             taskId: string;
+            steps: import("@prisma/client/runtime/library").JsonValue;
             sessionId: string | null;
             reporterId: string | null;
             severity: import(".prisma/client").$Enums.Severity;
-            steps: import("@prisma/client/runtime/library").JsonValue;
             actual: string | null;
             frequency: string | null;
             deviceModel: string | null;
@@ -190,13 +190,13 @@ export declare class TasksController {
                 name: string;
             };
         } & {
-            workspaceId: string;
             id: string;
+            workspaceId: string;
             createdAt: Date;
             taskId: string | null;
-            actorId: string;
             action: string;
             meta: import("@prisma/client/runtime/library").JsonValue;
+            actorId: string;
         })[];
         id: string;
         humanId: string;
@@ -243,18 +243,18 @@ export declare class TasksController {
         success: boolean;
     }>;
     addChecklistItem(id: string, dto: CreateChecklistItemDto): Promise<{
+        id: string;
+        taskId: string;
+        order: import("@prisma/client/runtime/library").Decimal;
         text: string;
         done: boolean;
-        id: string;
-        order: import("@prisma/client/runtime/library").Decimal;
-        taskId: string;
     }>;
     updateChecklistItem(itemId: string, dto: UpdateChecklistItemDto): Promise<{
+        id: string;
+        taskId: string;
+        order: import("@prisma/client/runtime/library").Decimal;
         text: string;
         done: boolean;
-        id: string;
-        order: import("@prisma/client/runtime/library").Decimal;
-        taskId: string;
     }>;
     deleteChecklistItem(itemId: string): Promise<{
         success: boolean;
@@ -267,14 +267,14 @@ export declare class TasksController {
             avatarUrl: string | null;
         };
     } & {
-        body: string;
-        voiceNoteId: string | null;
         id: string;
         createdAt: Date;
         updatedAt: Date;
         deletedAt: Date | null;
         taskId: string;
         authorId: string;
+        body: string;
+        voiceNoteId: string | null;
     })[]>;
     addComment(user: AuthUserPayload, id: string, dto: CreateCommentDto): Promise<{
         author: {
@@ -284,14 +284,14 @@ export declare class TasksController {
             avatarUrl: string | null;
         };
     } & {
-        body: string;
-        voiceNoteId: string | null;
         id: string;
         createdAt: Date;
         updatedAt: Date;
         deletedAt: Date | null;
         taskId: string;
         authorId: string;
+        body: string;
+        voiceNoteId: string | null;
     }>;
     deleteComment(user: AuthUserPayload, commentId: string): Promise<{
         success: boolean;

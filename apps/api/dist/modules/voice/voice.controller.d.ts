@@ -16,9 +16,9 @@ export declare class VoiceController {
         retryable: boolean;
         id: string;
         createdAt: Date;
-        text: string | null;
         storageKey: string;
         durationMs: number;
+        text: string | null;
         authorId: string;
         language: string;
         state: import(".prisma/client").$Enums.VoiceState;
@@ -30,9 +30,9 @@ export declare class VoiceController {
         retryable: boolean;
         id: string;
         createdAt: Date;
-        text: string | null;
         storageKey: string;
         durationMs: number;
+        text: string | null;
         authorId: string;
         language: string;
         state: import(".prisma/client").$Enums.VoiceState;
@@ -42,9 +42,9 @@ export declare class VoiceController {
     updateText(id: string, dto: UpdateVoiceTextDto): Promise<{
         id: string;
         createdAt: Date;
-        text: string | null;
         storageKey: string;
         durationMs: number;
+        text: string | null;
         authorId: string;
         language: string;
         state: import(".prisma/client").$Enums.VoiceState;
@@ -55,9 +55,9 @@ export declare class VoiceController {
         retryable: boolean;
         id: string;
         createdAt: Date;
-        text: string | null;
         storageKey: string;
         durationMs: number;
+        text: string | null;
         authorId: string;
         language: string;
         state: import(".prisma/client").$Enums.VoiceState;

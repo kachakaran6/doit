@@ -8,6 +8,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { EmptyState } from '@/components/ui/empty-state';
 import { useToast } from '@/components/ui/toast';
 import { PageContainer } from '@/components/layout/PageContainer';
+import { ShadcnSelect } from '@/components/ui/select';
 import { SolutionPromptPanel } from '@/components/tasks/SolutionPromptPanel';
 import {
   Search,
@@ -152,28 +153,30 @@ export function BugsPage() {
           />
         </div>
 
-        <select
+        <ShadcnSelect
           value={severityFilter}
-          onChange={(e) => setSeverityFilter(e.target.value)}
-          className="h-8 rounded-lg border border-[var(--input)] bg-[var(--card)] px-2.5 text-[12px] font-medium text-[var(--foreground)] focus:outline-none"
-        >
-          <option value="ALL">All severities</option>
-          <option value="CRITICAL">Critical</option>
-          <option value="MAJOR">Major</option>
-          <option value="MINOR">Minor</option>
-          <option value="TRIVIAL">Trivial</option>
-        </select>
+          onChange={setSeverityFilter}
+          className="h-8 text-[12px] min-w-[130px]"
+          options={[
+            { value: 'ALL', label: 'All severities' },
+            { value: 'CRITICAL', label: 'Critical' },
+            { value: 'MAJOR', label: 'Major' },
+            { value: 'MINOR', label: 'Minor' },
+            { value: 'TRIVIAL', label: 'Trivial' },
+          ]}
+        />
 
-        <select
+        <ShadcnSelect
           value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value)}
-          className="h-8 rounded-lg border border-[var(--input)] bg-[var(--card)] px-2.5 text-[12px] font-medium text-[var(--foreground)] focus:outline-none"
-        >
-          <option value="ALL">All statuses</option>
-          <option value="TODO">To do / Triaged</option>
-          <option value="IN_PROGRESS">In progress</option>
-          <option value="DONE">Resolved</option>
-        </select>
+          onChange={setStatusFilter}
+          className="h-8 text-[12px] min-w-[140px]"
+          options={[
+            { value: 'ALL', label: 'All statuses' },
+            { value: 'TODO', label: 'To do / Triaged' },
+            { value: 'IN_PROGRESS', label: 'In progress' },
+            { value: 'DONE', label: 'Resolved' },
+          ]}
+        />
       </div>
 
       {/* Main Split Layout: Triage Table (Left) + Detail Inspector (Right) */}

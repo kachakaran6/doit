@@ -5,6 +5,7 @@ import { api } from '@/lib/api';
 import { Modal } from '@/components/ui/modal';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import { ShadcnSelect } from '@/components/ui/select';
 import { useToast } from '@/components/ui/toast';
 import { useQueryClient } from '@tanstack/react-query';
 import { CheckSquare, Bug, StickyNote } from 'lucide-react';
@@ -194,17 +195,14 @@ export function CreateModal({
             <label className="block text-[13px] font-medium text-[var(--foreground)]">
               Project
             </label>
-            <select
-              value={pId}
-              onChange={(e) => setSelectedProjectId(e.target.value)}
-              className="flex h-9 w-full rounded-lg border border-[var(--input)] bg-[var(--card)] px-3 py-1.5 text-[13px] text-[var(--foreground)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]"
-            >
-              {projects.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.name} ({p.key})
-                </option>
-              ))}
-            </select>
+            <ShadcnSelect
+              value={pId || ''}
+              onChange={setSelectedProjectId}
+              options={projects.map((p) => ({
+                value: p.id,
+                label: `${p.name} (${p.key})`,
+              }))}
+            />
           </div>
         )}
 
@@ -246,17 +244,17 @@ export function CreateModal({
             <label className="block text-[13px] font-medium text-[var(--foreground)]">
               Priority
             </label>
-            <select
+            <ShadcnSelect
               value={priority}
-              onChange={(e) => setPriority(e.target.value)}
-              className="flex h-9 w-full rounded-lg border border-[var(--input)] bg-[var(--card)] px-3 py-1.5 text-[13px] text-[var(--foreground)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]"
-            >
-              <option value="URGENT">Urgent</option>
-              <option value="HIGH">High</option>
-              <option value="MEDIUM">Medium</option>
-              <option value="LOW">Low</option>
-              <option value="NONE">No priority</option>
-            </select>
+              onChange={setPriority}
+              options={[
+                { value: 'URGENT', label: 'Urgent' },
+                { value: 'HIGH', label: 'High' },
+                { value: 'MEDIUM', label: 'Medium' },
+                { value: 'LOW', label: 'Low' },
+                { value: 'NONE', label: 'No priority' },
+              ]}
+            />
           </div>
         )}
 
@@ -266,16 +264,16 @@ export function CreateModal({
             <label className="block text-[13px] font-medium text-[var(--foreground)]">
               Severity
             </label>
-            <select
+            <ShadcnSelect
               value={severity}
-              onChange={(e) => setSeverity(e.target.value)}
-              className="flex h-9 w-full rounded-lg border border-[var(--input)] bg-[var(--card)] px-3 py-1.5 text-[13px] text-[var(--foreground)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]"
-            >
-              <option value="CRITICAL">Critical</option>
-              <option value="MAJOR">Major</option>
-              <option value="MINOR">Minor</option>
-              <option value="TRIVIAL">Trivial</option>
-            </select>
+              onChange={setSeverity}
+              options={[
+                { value: 'CRITICAL', label: 'Critical' },
+                { value: 'MAJOR', label: 'Major' },
+                { value: 'MINOR', label: 'Minor' },
+                { value: 'TRIVIAL', label: 'Trivial' },
+              ]}
+            />
           </div>
         )}
 

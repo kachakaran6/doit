@@ -20,7 +20,6 @@ const jwt_auth_guard_1 = require("../../common/guards/jwt-auth.guard");
 const zod_validation_pipe_1 = require("../../common/pipes/zod-validation.pipe");
 const current_user_decorator_1 = require("../../common/decorators/current-user.decorator");
 const context_ai_service_1 = require("./context-ai.service");
-const prompt_builder_1 = require("./prompt-builder");
 const ContextSchema = zod_1.z.object({
     markdown: zod_1.z.string(),
     version: zod_1.z.number().int().nonnegative().optional(),
@@ -36,7 +35,7 @@ const PrefsSchema = zod_1.z.object({
 });
 const CredentialSchema = zod_1.z.object({
     apiKey: zod_1.z.string().min(8).optional(),
-    model: zod_1.z.enum(prompt_builder_1.ALLOWED_MODELS),
+    model: zod_1.z.string().min(1, 'Model is required'),
     enabled: zod_1.z.boolean().optional(),
 });
 const GenerateSchema = zod_1.z.object({

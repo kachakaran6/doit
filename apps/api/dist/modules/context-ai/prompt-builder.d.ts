@@ -1,11 +1,13 @@
-export declare const ALLOWED_MODELS: readonly ["gpt-4o-mini", "gpt-4o", "gpt-4.1-mini", "gpt-4.1"];
+export declare const OPENAI_MODELS: readonly ["gpt-4o-mini", "gpt-4o", "gpt-4.1-mini", "gpt-4.1"];
+export declare const OPENROUTER_MODELS: readonly ["anthropic/claude-3.5-sonnet", "anthropic/claude-3.5-haiku", "deepseek/deepseek-chat", "deepseek/deepseek-r1", "google/gemini-2.0-flash-exp:free", "google/gemini-pro-1.5", "meta-llama/llama-3.3-70b-instruct", "openai/gpt-4o", "openai/gpt-4o-mini", "qwen/qwen-2.5-coder-32b-instruct"];
+export declare const ALLOWED_MODELS: readonly ["gpt-4o-mini", "gpt-4o", "gpt-4.1-mini", "gpt-4.1", "anthropic/claude-3.5-sonnet", "anthropic/claude-3.5-haiku", "deepseek/deepseek-chat", "deepseek/deepseek-r1", "google/gemini-2.0-flash-exp:free", "google/gemini-pro-1.5", "meta-llama/llama-3.3-70b-instruct", "openai/gpt-4o", "openai/gpt-4o-mini", "qwen/qwen-2.5-coder-32b-instruct"];
 export type AllowedModel = (typeof ALLOWED_MODELS)[number];
 export declare const VISION_MODELS: Set<string>;
 export declare const MAX_CONTEXT_CHARS = 32000;
 export declare const MAX_PROMPT_CHARS = 80000;
 export declare const CONTEXT_STARTER = "# Project overview\nWhat this project does and who uses it.\n\n## Goals\n- ...\n\n## Tech stack\n- Mobile:\n- Backend:\n- Web:\n- Database:\n\n## Architecture\nImportant modules, flows and boundaries.\n\n## Conventions\nCoding style, naming, patterns and rules.\n\n## Important paths\n- ...\n\n## Constraints\nCompatibility, performance, security and product constraints.\n\n## Definition of done\nWhat a completed task should include.\n";
 export declare function sanitizeMarkdown(input: string): string;
-export declare function isAllowedModel(model: string): model is AllowedModel;
+export declare function isAllowedModel(model: string, provider?: string): boolean;
 export interface PromptFacts {
     workspaceName?: string;
     projectName?: string;

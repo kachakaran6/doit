@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.CONTEXT_STARTER = exports.MAX_PROMPT_CHARS = exports.MAX_CONTEXT_CHARS = exports.VISION_MODELS = exports.ALLOWED_MODELS = void 0;
+exports.CONTEXT_STARTER = exports.MAX_PROMPT_CHARS = exports.MAX_CONTEXT_CHARS = exports.VISION_MODELS = exports.ALLOWED_MODELS = exports.OPENROUTER_MODELS = exports.OPENAI_MODELS = void 0;
 exports.sanitizeMarkdown = sanitizeMarkdown;
 exports.isAllowedModel = isAllowedModel;
 exports.hashSnapshot = hashSnapshot;
@@ -9,8 +9,40 @@ exports.assertPromptSafe = assertPromptSafe;
 exports.assembleTemplatePrompt = assembleTemplatePrompt;
 exports.buildProviderMessages = buildProviderMessages;
 const node_crypto_1 = require("node:crypto");
-exports.ALLOWED_MODELS = ['gpt-4o-mini', 'gpt-4o', 'gpt-4.1-mini', 'gpt-4.1'];
-exports.VISION_MODELS = new Set(['gpt-4o-mini', 'gpt-4o', 'gpt-4.1-mini', 'gpt-4.1']);
+exports.OPENAI_MODELS = [
+    'gpt-4o-mini',
+    'gpt-4o',
+    'gpt-4.1-mini',
+    'gpt-4.1',
+];
+exports.OPENROUTER_MODELS = [
+    'anthropic/claude-3.5-sonnet',
+    'anthropic/claude-3.5-haiku',
+    'deepseek/deepseek-chat',
+    'deepseek/deepseek-r1',
+    'google/gemini-2.0-flash-exp:free',
+    'google/gemini-pro-1.5',
+    'meta-llama/llama-3.3-70b-instruct',
+    'openai/gpt-4o',
+    'openai/gpt-4o-mini',
+    'qwen/qwen-2.5-coder-32b-instruct',
+];
+exports.ALLOWED_MODELS = [
+    ...exports.OPENAI_MODELS,
+    ...exports.OPENROUTER_MODELS,
+];
+exports.VISION_MODELS = new Set([
+    'gpt-4o-mini',
+    'gpt-4o',
+    'gpt-4.1-mini',
+    'gpt-4.1',
+    'anthropic/claude-3.5-sonnet',
+    'anthropic/claude-3.5-haiku',
+    'google/gemini-2.0-flash-exp:free',
+    'google/gemini-pro-1.5',
+    'openai/gpt-4o',
+    'openai/gpt-4o-mini',
+]);
 exports.MAX_CONTEXT_CHARS = 32_000;
 exports.MAX_PROMPT_CHARS = 80_000;
 exports.CONTEXT_STARTER = `# Project overview
@@ -46,7 +78,10 @@ function sanitizeMarkdown(input) {
         .replace(/<style[\s\S]*?>[\s\S]*?<\/style>/gi, '')
         .replace(/<\/?[a-z][^>]*>/gi, '');
 }
-function isAllowedModel(model) {
+function isAllowedModel(model, provider) {
+    if (provider === 'OPENROUTER' || model.includes('/')) {
+        return Boolean(model && model.trim().length > 0);
+    }
     return exports.ALLOWED_MODELS.includes(model);
 }
 function hashSnapshot(facts) {

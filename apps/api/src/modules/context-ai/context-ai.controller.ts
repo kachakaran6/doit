@@ -24,7 +24,7 @@ const PrefsSchema = z.object({
 
 const CredentialSchema = z.object({
   apiKey: z.string().min(8).optional(),
-  model: z.enum(ALLOWED_MODELS),
+  model: z.string().min(1, 'Model is required'),
   enabled: z.boolean().optional(),
 });
 

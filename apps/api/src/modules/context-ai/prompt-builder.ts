@@ -1,9 +1,44 @@
 import { createHash } from 'node:crypto';
 
-export const ALLOWED_MODELS = ['gpt-4o-mini', 'gpt-4o', 'gpt-4.1-mini', 'gpt-4.1'] as const;
+export const OPENAI_MODELS = [
+  'gpt-4o-mini',
+  'gpt-4o',
+  'gpt-4.1-mini',
+  'gpt-4.1',
+] as const;
+
+export const OPENROUTER_MODELS = [
+  'anthropic/claude-3.5-sonnet',
+  'anthropic/claude-3.5-haiku',
+  'deepseek/deepseek-chat',
+  'deepseek/deepseek-r1',
+  'google/gemini-2.0-flash-exp:free',
+  'google/gemini-pro-1.5',
+  'meta-llama/llama-3.3-70b-instruct',
+  'openai/gpt-4o',
+  'openai/gpt-4o-mini',
+  'qwen/qwen-2.5-coder-32b-instruct',
+] as const;
+
+export const ALLOWED_MODELS = [
+  ...OPENAI_MODELS,
+  ...OPENROUTER_MODELS,
+] as const;
+
 export type AllowedModel = (typeof ALLOWED_MODELS)[number];
 
-export const VISION_MODELS = new Set<string>(['gpt-4o-mini', 'gpt-4o', 'gpt-4.1-mini', 'gpt-4.1']);
+export const VISION_MODELS = new Set<string>([
+  'gpt-4o-mini',
+  'gpt-4o',
+  'gpt-4.1-mini',
+  'gpt-4.1',
+  'anthropic/claude-3.5-sonnet',
+  'anthropic/claude-3.5-haiku',
+  'google/gemini-2.0-flash-exp:free',
+  'google/gemini-pro-1.5',
+  'openai/gpt-4o',
+  'openai/gpt-4o-mini',
+]);
 
 export const MAX_CONTEXT_CHARS = 32_000;
 export const MAX_PROMPT_CHARS = 80_000;
@@ -43,7 +78,10 @@ export function sanitizeMarkdown(input: string): string {
     .replace(/<\/?[a-z][^>]*>/gi, '');
 }
 
-export function isAllowedModel(model: string): model is AllowedModel {
+export function isAllowedModel(model: string, provider?: string): boolean {
+  if (provider === 'OPENROUTER' || model.includes('/')) {
+    return Boolean(model && model.trim().length > 0);
+  }
   return (ALLOWED_MODELS as readonly string[]).includes(model);
 }
 

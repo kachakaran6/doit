@@ -584,13 +584,15 @@ export const api = {
 
   ai: {
     list: () => apiRequest<any>('/me/ai-providers'),
-    save: (model: string, apiKey?: string, enabled = true) =>
-      apiRequest<any>('/me/ai-providers/openai', {
+    save: (model: string, apiKey?: string, enabled = true, provider = 'openrouter') =>
+      apiRequest<any>(`/me/ai-providers/${provider}`, {
         method: 'PUT',
         body: JSON.stringify({ model, enabled, ...(apiKey ? { apiKey } : {}) }),
       }),
-    test: () => apiRequest<any>('/me/ai-providers/openai/test', { method: 'POST', body: '{}' }),
-    remove: () => apiRequest<any>('/me/ai-providers/openai', { method: 'DELETE' }),
+    test: (provider = 'openrouter') =>
+      apiRequest<any>(`/me/ai-providers/${provider}/test`, { method: 'POST', body: '{}' }),
+    remove: (provider = 'openrouter') =>
+      apiRequest<any>(`/me/ai-providers/${provider}`, { method: 'DELETE' }),
     prompts: (taskId: string) => apiRequest<any>(`/tasks/${taskId}/solution-prompts`),
     generate: (taskId: string, body: Record<string, unknown>) =>
       apiRequest<any>(`/tasks/${taskId}/solution-prompts/generate`, {

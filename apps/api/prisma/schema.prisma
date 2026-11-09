@@ -413,6 +413,7 @@ model WorkspaceInvitation {
 
 enum AiProviderName {
   OPENAI
+  OPENROUTER
 }
 
 enum AiCredentialStatus {

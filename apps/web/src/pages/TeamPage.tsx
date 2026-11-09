@@ -12,6 +12,7 @@ import { Avatar } from '@/components/ui/avatar';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/components/ui/toast';
 import { PageContainer } from '@/components/layout/PageContainer';
+import { ShadcnSelect } from '@/components/ui/select';
 import {
   UserPlus,
   Mail,
@@ -203,21 +204,22 @@ export function TeamPage() {
                   <div className="flex items-center gap-3 shrink-0">
                     {/* Role changer for non-owners */}
                     {member.role !== 'OWNER' ? (
-                      <select
+                      <ShadcnSelect
                         value={member.role}
-                        onChange={(e) =>
+                        onChange={(newRole) =>
                           updateRoleMutation.mutate({
                             memberId: member.id,
-                            role: e.target.value,
+                            role: newRole,
                           })
                         }
-                        className="rounded-lg bg-[var(--muted)] border border-[var(--border)] px-2 py-1 text-[12px] font-medium text-[var(--foreground)] focus:outline-none"
-                      >
-                        <option value="ADMIN">Admin</option>
-                        <option value="MEMBER">Member</option>
-                        <option value="TESTER">Tester</option>
-                        <option value="VIEWER">Viewer</option>
-                      </select>
+                        className="h-8 text-[12px] min-w-[110px]"
+                        options={[
+                          { value: 'ADMIN', label: 'Admin' },
+                          { value: 'MEMBER', label: 'Member' },
+                          { value: 'TESTER', label: 'Tester' },
+                          { value: 'VIEWER', label: 'Viewer' },
+                        ]}
+                      />
                     ) : (
                       <RoleBadge role="OWNER" />
                     )}
@@ -370,31 +372,31 @@ export function TeamPage() {
                 <label className="block text-[13px] font-medium text-[var(--foreground)]">
                   Role
                 </label>
-                <select
+                <ShadcnSelect
                   value={inviteRole}
-                  onChange={(e) => setInviteRole(e.target.value as any)}
-                  className="flex h-9 w-full rounded-lg border border-[var(--input)] bg-[var(--card)] px-3 py-1.5 text-[13px] text-[var(--foreground)] focus:outline-none"
-                >
-                  <option value="ADMIN">Admin</option>
-                  <option value="MEMBER">Member</option>
-                  <option value="TESTER">Tester</option>
-                  <option value="VIEWER">Viewer</option>
-                </select>
+                  onChange={(val) => setInviteRole(val as any)}
+                  options={[
+                    { value: 'ADMIN', label: 'Admin' },
+                    { value: 'MEMBER', label: 'Member' },
+                    { value: 'TESTER', label: 'Tester' },
+                    { value: 'VIEWER', label: 'Viewer' },
+                  ]}
+                />
               </div>
 
               <div className="space-y-1">
                 <label className="block text-[13px] font-medium text-[var(--foreground)]">
                   Expires in
                 </label>
-                <select
-                  value={inviteExpiresDays}
-                  onChange={(e) => setInviteExpiresDays(Number(e.target.value))}
-                  className="flex h-9 w-full rounded-lg border border-[var(--input)] bg-[var(--card)] px-3 py-1.5 text-[13px] text-[var(--foreground)] focus:outline-none"
-                >
-                  <option value={1}>1 day</option>
-                  <option value={7}>7 days</option>
-                  <option value={30}>30 days</option>
-                </select>
+                <ShadcnSelect
+                  value={String(inviteExpiresDays)}
+                  onChange={(val) => setInviteExpiresDays(Number(val))}
+                  options={[
+                    { value: '1', label: '1 day' },
+                    { value: '7', label: '7 days' },
+                    { value: '30', label: '30 days' },
+                  ]}
+                />
               </div>
             </div>
 

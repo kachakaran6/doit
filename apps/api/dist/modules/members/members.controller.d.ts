@@ -13,12 +13,12 @@ export declare class MembersController {
         };
     } & {
         id: string;
-        createdAt: Date;
         workspaceId: string;
+        createdAt: Date;
         userId: string;
         role: import(".prisma/client").$Enums.Role;
-        invitedEmail: string | null;
         inviteToken: string | null;
+        invitedEmail: string | null;
         inviteExpiresAt: Date | null;
         acceptedAt: Date | null;
     })[]>;
@@ -137,12 +137,12 @@ export declare class MembersController {
     }>;
     updateRole(workspaceId: string, memberId: string, dto: UpdateMemberRoleDto): Promise<{
         id: string;
-        createdAt: Date;
         workspaceId: string;
+        createdAt: Date;
         userId: string;
         role: import(".prisma/client").$Enums.Role;
-        invitedEmail: string | null;
         inviteToken: string | null;
+        invitedEmail: string | null;
         inviteExpiresAt: Date | null;
         acceptedAt: Date | null;
     }>;

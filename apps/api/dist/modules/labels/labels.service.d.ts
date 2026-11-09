@@ -6,8 +6,8 @@ export declare class LabelsService {
     constructor(prisma: PrismaService);
     create(workspaceId: string, dto: CreateLabelDto): Promise<{
         id: string;
-        name: string;
         workspaceId: string;
+        name: string;
         color: import(".prisma/client").$Enums.AccentName;
     }>;
     findAll(workspaceId: string): Promise<({
@@ -16,8 +16,8 @@ export declare class LabelsService {
         };
     } & {
         id: string;
-        name: string;
         workspaceId: string;
+        name: string;
         color: import(".prisma/client").$Enums.AccentName;
     })[]>;
     findOne(id: string): Promise<{
@@ -26,14 +26,14 @@ export declare class LabelsService {
         };
     } & {
         id: string;
-        name: string;
         workspaceId: string;
+        name: string;
         color: import(".prisma/client").$Enums.AccentName;
     }>;
     update(id: string, dto: UpdateLabelDto): Promise<{
         id: string;
-        name: string;
         workspaceId: string;
+        name: string;
         color: import(".prisma/client").$Enums.AccentName;
     }>;
     delete(id: string): Promise<{

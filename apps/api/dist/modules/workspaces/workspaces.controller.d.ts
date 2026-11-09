@@ -6,60 +6,60 @@ export declare class WorkspacesController {
     constructor(workspacesService: WorkspacesService);
     create(user: AuthUserPayload, dto: CreateWorkspaceDto): Promise<{
         role: string;
-        _count: {
-            memberships: number;
-            projects: number;
-        };
         memberships: {
             id: string;
-            createdAt: Date;
             workspaceId: string;
+            createdAt: Date;
             userId: string;
             role: import(".prisma/client").$Enums.Role;
-            invitedEmail: string | null;
             inviteToken: string | null;
+            invitedEmail: string | null;
             inviteExpiresAt: Date | null;
             acceptedAt: Date | null;
         }[];
         projects: {
             id: string;
-            createdAt: Date;
-            updatedAt: Date;
-            name: string;
-            description: string | null;
             workspaceId: string;
+            name: string;
             key: string;
+            description: string | null;
             color: import(".prisma/client").$Enums.AccentName;
             archivedAt: Date | null;
+            createdAt: Date;
+            updatedAt: Date;
         }[];
+        _count: {
+            memberships: number;
+            projects: number;
+        };
         id: string;
+        name: string;
         createdAt: Date;
         updatedAt: Date;
-        name: string;
         slug: string;
         ownerId: string;
     }>;
     findAll(user: AuthUserPayload): Promise<{
         role: string;
+        projects: {
+            id: string;
+            workspaceId: string;
+            name: string;
+            key: string;
+            description: string | null;
+            color: import(".prisma/client").$Enums.AccentName;
+            archivedAt: Date | null;
+            createdAt: Date;
+            updatedAt: Date;
+        }[];
         _count: {
             memberships: number;
             projects: number;
         };
-        projects: {
-            id: string;
-            createdAt: Date;
-            updatedAt: Date;
-            name: string;
-            description: string | null;
-            workspaceId: string;
-            key: string;
-            color: import(".prisma/client").$Enums.AccentName;
-            archivedAt: Date | null;
-        }[];
         id: string;
+        name: string;
         createdAt: Date;
         updatedAt: Date;
-        name: string;
         slug: string;
         ownerId: string;
     }[]>;
@@ -73,39 +73,39 @@ export declare class WorkspacesController {
             };
         } & {
             id: string;
-            createdAt: Date;
             workspaceId: string;
+            createdAt: Date;
             userId: string;
             role: import(".prisma/client").$Enums.Role;
-            invitedEmail: string | null;
             inviteToken: string | null;
+            invitedEmail: string | null;
             inviteExpiresAt: Date | null;
             acceptedAt: Date | null;
         })[];
         projects: {
             id: string;
-            createdAt: Date;
-            updatedAt: Date;
-            name: string;
-            description: string | null;
             workspaceId: string;
+            name: string;
             key: string;
+            description: string | null;
             color: import(".prisma/client").$Enums.AccentName;
             archivedAt: Date | null;
+            createdAt: Date;
+            updatedAt: Date;
         }[];
     } & {
         id: string;
+        name: string;
         createdAt: Date;
         updatedAt: Date;
-        name: string;
         slug: string;
         ownerId: string;
     }>;
     update(id: string, dto: UpdateWorkspaceDto): Promise<{
         id: string;
+        name: string;
         createdAt: Date;
         updatedAt: Date;
-        name: string;
         slug: string;
         ownerId: string;
     }>;

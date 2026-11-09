@@ -66,9 +66,11 @@ export declare class ContextAiService {
             lastTestedAt: Date | null;
             status: string;
             updatedAt: Date;
-            allowedModels: readonly ["gpt-4o-mini", "gpt-4o", "gpt-4.1-mini", "gpt-4.1"];
+            allowedModels: readonly ["gpt-4o-mini", "gpt-4o", "gpt-4.1-mini", "gpt-4.1"] | readonly ["anthropic/claude-3.5-sonnet", "anthropic/claude-3.5-haiku", "deepseek/deepseek-chat", "deepseek/deepseek-r1", "google/gemini-2.0-flash-exp:free", "google/gemini-pro-1.5", "meta-llama/llama-3.3-70b-instruct", "openai/gpt-4o", "openai/gpt-4o-mini", "qwen/qwen-2.5-coder-32b-instruct"];
         }[];
-        allowedModels: readonly ["gpt-4o-mini", "gpt-4o", "gpt-4.1-mini", "gpt-4.1"];
+        allowedModels: readonly ["gpt-4o-mini", "gpt-4o", "gpt-4.1-mini", "gpt-4.1", "anthropic/claude-3.5-sonnet", "anthropic/claude-3.5-haiku", "deepseek/deepseek-chat", "deepseek/deepseek-r1", "google/gemini-2.0-flash-exp:free", "google/gemini-pro-1.5", "meta-llama/llama-3.3-70b-instruct", "openai/gpt-4o", "openai/gpt-4o-mini", "qwen/qwen-2.5-coder-32b-instruct"];
+        openAiModels: readonly ["gpt-4o-mini", "gpt-4o", "gpt-4.1-mini", "gpt-4.1"];
+        openRouterModels: readonly ["anthropic/claude-3.5-sonnet", "anthropic/claude-3.5-haiku", "deepseek/deepseek-chat", "deepseek/deepseek-r1", "google/gemini-2.0-flash-exp:free", "google/gemini-pro-1.5", "meta-llama/llama-3.3-70b-instruct", "openai/gpt-4o", "openai/gpt-4o-mini", "qwen/qwen-2.5-coder-32b-instruct"];
         notice: string;
     }>;
     saveCredential(userId: string, provider: string, body: {
@@ -83,7 +85,7 @@ export declare class ContextAiService {
         lastTestedAt: Date | null;
         status: string;
         updatedAt: Date;
-        allowedModels: readonly ["gpt-4o-mini", "gpt-4o", "gpt-4.1-mini", "gpt-4.1"];
+        allowedModels: readonly ["gpt-4o-mini", "gpt-4o", "gpt-4.1-mini", "gpt-4.1"] | readonly ["anthropic/claude-3.5-sonnet", "anthropic/claude-3.5-haiku", "deepseek/deepseek-chat", "deepseek/deepseek-r1", "google/gemini-2.0-flash-exp:free", "google/gemini-pro-1.5", "meta-llama/llama-3.3-70b-instruct", "openai/gpt-4o", "openai/gpt-4o-mini", "qwen/qwen-2.5-coder-32b-instruct"];
     }>;
     deleteCredential(userId: string, provider: string): Promise<{
         deleted: boolean;

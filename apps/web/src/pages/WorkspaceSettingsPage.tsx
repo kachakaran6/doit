@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/components/ui/toast';
 import { PageContainer } from '@/components/layout/PageContainer';
+import { ShadcnSelect } from '@/components/ui/select';
 
 const COLORS = ['INDIGO', 'TEAL', 'AMBER', 'ROSE', 'VIOLET'];
 
@@ -78,9 +79,13 @@ export function WorkspaceSettingsPage() {
             }}
           >
             <Input label="Name" value={labelName} onChange={(e) => setLabelName(e.target.value)} required />
-            <select value={labelColor} onChange={(e) => setLabelColor(e.target.value)} className="h-9 rounded-lg border border-[var(--input)] bg-[var(--card)] px-2 text-[13px]">
-              {COLORS.map((color) => <option key={color} value={color}>{color}</option>)}
-            </select>
+            <div className="w-[120px]">
+              <ShadcnSelect
+                value={labelColor}
+                onChange={setLabelColor}
+                options={COLORS.map((c) => ({ value: c, label: c }))}
+              />
+            </div>
             <Button size="sm" type="submit">Add label</Button>
           </form>
           <ul className="space-y-2">

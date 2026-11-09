@@ -12,7 +12,7 @@ export interface PageContainerProps extends React.HTMLAttributes<HTMLDivElement>
 const WIDTH_CLASSES: Record<PageContainerWidth, string> = {
   data: 'max-w-[1280px]',
   form: 'max-w-[720px]',
-  settings: 'max-w-7xl',
+  settings: 'max-w-[1500px]',
   detail: 'max-w-[880px]',
   wide: 'max-w-none',
 };

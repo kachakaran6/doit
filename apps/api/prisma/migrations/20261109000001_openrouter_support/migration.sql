@@ -1,0 +1,2 @@
+-- Add OPENROUTER to AiProviderName enum
+ALTER TYPE "AiProviderName" ADD VALUE IF NOT EXISTS 'OPENROUTER';

@@ -5,14 +5,14 @@ export declare class ProjectsService {
     constructor(prisma: PrismaService);
     create(workspaceId: string, dto: CreateProjectDto): Promise<{
         id: string;
-        createdAt: Date;
-        updatedAt: Date;
-        name: string;
-        description: string | null;
         workspaceId: string;
+        name: string;
         key: string;
+        description: string | null;
         color: import(".prisma/client").$Enums.AccentName;
         archivedAt: Date | null;
+        createdAt: Date;
+        updatedAt: Date;
     }>;
     findAll(workspaceId: string): Promise<({
         _count: {
@@ -21,46 +21,46 @@ export declare class ProjectsService {
         };
     } & {
         id: string;
-        createdAt: Date;
-        updatedAt: Date;
-        name: string;
-        description: string | null;
         workspaceId: string;
+        name: string;
         key: string;
+        description: string | null;
         color: import(".prisma/client").$Enums.AccentName;
         archivedAt: Date | null;
+        createdAt: Date;
+        updatedAt: Date;
     })[]>;
     findOne(projectId: string): Promise<{
-        _count: {
-            tasks: number;
-            stickies: number;
-        };
         workspace: {
             id: string;
             name: string;
             slug: string;
         };
+        _count: {
+            tasks: number;
+            stickies: number;
+        };
     } & {
         id: string;
-        createdAt: Date;
-        updatedAt: Date;
-        name: string;
-        description: string | null;
         workspaceId: string;
+        name: string;
         key: string;
+        description: string | null;
         color: import(".prisma/client").$Enums.AccentName;
         archivedAt: Date | null;
+        createdAt: Date;
+        updatedAt: Date;
     }>;
     update(projectId: string, dto: UpdateProjectDto): Promise<{
         id: string;
-        createdAt: Date;
-        updatedAt: Date;
-        name: string;
-        description: string | null;
         workspaceId: string;
+        name: string;
         key: string;
+        description: string | null;
         color: import(".prisma/client").$Enums.AccentName;
         archivedAt: Date | null;
+        createdAt: Date;
+        updatedAt: Date;
     }>;
     delete(projectId: string): Promise<{
         success: boolean;

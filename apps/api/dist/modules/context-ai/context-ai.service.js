@@ -32,14 +32,14 @@ function hit(bucket, userId, limit, windowMs) {
 }
 function publicCredential(row) {
     return {
-        provider: row.provider,
+        provider: row.provider.toLowerCase(),
         model: row.model,
         keyHint: row.keyHint,
         enabled: row.enabled,
         lastTestedAt: row.lastTestedAt,
         status: row.status,
         updatedAt: row.updatedAt,
-        allowedModels: prompt_builder_1.ALLOWED_MODELS,
+        allowedModels: row.provider === 'OPENROUTER' ? prompt_builder_1.OPENROUTER_MODELS : prompt_builder_1.OPENAI_MODELS,
     };
 }
 let ContextAiService = ContextAiService_1 = class ContextAiService {
@@ -211,18 +211,22 @@ let ContextAiService = ContextAiService_1 = class ContextAiService {
         return {
             credentials: rows.map(publicCredential),
             allowedModels: prompt_builder_1.ALLOWED_MODELS,
-            notice: 'Provider usage may incur charges. Project context, task text, and selected attachments are sent to the provider only when you generate a prompt. Keys stay on the server and are not returned after saving.',
+            openAiModels: prompt_builder_1.OPENAI_MODELS,
+            openRouterModels: prompt_builder_1.OPENROUTER_MODELS,
+            notice: 'Provider usage may incur charges. Project context, task text, and selected attachments are sent to OpenRouter or OpenAI only when you generate a prompt. Keys stay encrypted on the server and are not returned after saving.',
         };
     }
     async saveCredential(userId, provider, body) {
-        if (provider !== 'openai') {
-            throw new app_error_1.AppError(error_code_enum_1.ErrorCode.VALIDATION_FAILED, 'Only the OpenAI provider is supported.', 400);
+        const provKey = provider.toUpperCase();
+        if (provKey !== 'OPENAI' && provKey !== 'OPENROUTER') {
+            throw new app_error_1.AppError(error_code_enum_1.ErrorCode.VALIDATION_FAILED, 'Supported providers: openrouter, openai.', 400);
         }
-        if (!(0, prompt_builder_1.isAllowedModel)(body.model)) {
+        const provEnum = provKey;
+        if (!(0, prompt_builder_1.isAllowedModel)(body.model, provEnum)) {
             throw new app_error_1.AppError(error_code_enum_1.ErrorCode.VALIDATION_FAILED, 'That model is not supported.', 400);
         }
         const existing = await this.prisma.aiProviderCredential.findUnique({
-            where: { ownerUserId_provider: { ownerUserId: userId, provider: 'OPENAI' } },
+            where: { ownerUserId_provider: { ownerUserId: userId, provider: provEnum } },
         });
         let encrypted = existing?.encryptedSecret;
         let hint = existing?.keyHint;
@@ -240,10 +244,10 @@ let ContextAiService = ContextAiService_1 = class ContextAiService {
             throw new app_error_1.AppError(error_code_enum_1.ErrorCode.VALIDATION_FAILED, 'An API key is required the first time you save a provider.', 400);
         }
         const saved = await this.prisma.aiProviderCredential.upsert({
-            where: { ownerUserId_provider: { ownerUserId: userId, provider: 'OPENAI' } },
+            where: { ownerUserId_provider: { ownerUserId: userId, provider: provEnum } },
             create: {
                 ownerUserId: userId,
-                provider: 'OPENAI',
+                provider: provEnum,
                 model: body.model,
                 encryptedSecret: encrypted,
                 encryptionKeyVersion: (0, ai_crypto_1.aiKeyVersion)(),
@@ -263,21 +267,25 @@ let ContextAiService = ContextAiService_1 = class ContextAiService {
         return publicCredential(saved);
     }
     async deleteCredential(userId, provider) {
-        if (provider !== 'openai') {
+        const provKey = provider.toUpperCase();
+        if (provKey !== 'OPENAI' && provKey !== 'OPENROUTER') {
             throw new app_error_1.AppError(error_code_enum_1.ErrorCode.NOT_FOUND, 'Provider not found.', 404);
         }
+        const provEnum = provKey;
         await this.prisma.aiProviderCredential.deleteMany({
-            where: { ownerUserId: userId, provider: 'OPENAI' },
+            where: { ownerUserId: userId, provider: provEnum },
         });
         return { deleted: true };
     }
     async testCredential(userId, provider) {
         hit(testHits, userId, 5, 10 * 60 * 1000);
-        if (provider !== 'openai') {
+        const provKey = provider.toUpperCase();
+        if (provKey !== 'OPENAI' && provKey !== 'OPENROUTER') {
             throw new app_error_1.AppError(error_code_enum_1.ErrorCode.NOT_FOUND, 'Provider not found.', 404);
         }
+        const provEnum = provKey;
         const row = await this.prisma.aiProviderCredential.findUnique({
-            where: { ownerUserId_provider: { ownerUserId: userId, provider: 'OPENAI' } },
+            where: { ownerUserId_provider: { ownerUserId: userId, provider: provEnum } },
         });
         if (!row || !row.enabled) {
             throw new app_error_1.AppError(error_code_enum_1.ErrorCode.VALIDATION_FAILED, 'Save an enabled provider key before testing.', 400);
@@ -290,10 +298,21 @@ let ContextAiService = ContextAiService_1 = class ContextAiService {
             throw new app_error_1.AppError(error_code_enum_1.ErrorCode.VALIDATION_FAILED, 'Stored key could not be decrypted. Save it again.', 400);
         }
         const controller = new AbortController();
-        const timer = setTimeout(() => controller.abort(), 12_000);
+        const timer = setTimeout(() => controller.abort(), 15_000);
         try {
-            const res = await fetch('https://api.openai.com/v1/models', {
-                headers: { Authorization: `Bearer ${secret}` },
+            const url = provEnum === 'OPENROUTER'
+                ? 'https://openrouter.ai/api/v1/auth/key'
+                : 'https://api.openai.com/v1/models';
+            const res = await fetch(url, {
+                headers: {
+                    Authorization: `Bearer ${secret}`,
+                    ...(provEnum === 'OPENROUTER'
+                        ? {
+                            'HTTP-Referer': 'https://doit.kachakaran.tech',
+                            'X-Title': 'DoIt AI Workspace',
+                        }
+                        : {}),
+                },
                 signal: controller.signal,
             });
             const ok = res.ok;
@@ -453,16 +472,17 @@ let ContextAiService = ContextAiService_1 = class ContextAiService {
         if (process.env.AI_GENERATION_ENABLED === 'false') {
             throw new app_error_1.AppError(error_code_enum_1.ErrorCode.UNPROCESSABLE, 'AI generation is disabled on the server. Assembling a prompt from the task still works.', 422);
         }
-        const credential = await this.prisma.aiProviderCredential.findUnique({
-            where: { ownerUserId_provider: { ownerUserId: userId, provider: 'OPENAI' } },
+        const credentials = await this.prisma.aiProviderCredential.findMany({
+            where: { ownerUserId: userId, enabled: true },
         });
-        if (!credential || !credential.enabled) {
-            throw new app_error_1.AppError(error_code_enum_1.ErrorCode.VALIDATION_FAILED, 'No AI provider is configured. Add a personal key in Settings, or assemble a prompt from the task without calling a provider.', 400);
+        if (credentials.length === 0) {
+            throw new app_error_1.AppError(error_code_enum_1.ErrorCode.VALIDATION_FAILED, 'No AI provider is configured. Add an OpenRouter or OpenAI personal key in Settings.', 400);
         }
-        if (!(0, prompt_builder_1.isAllowedModel)(credential.model)) {
+        const credential = credentials.find((c) => c.status === 'VALID') || credentials[0];
+        if (!(0, prompt_builder_1.isAllowedModel)(credential.model, credential.provider)) {
             throw new app_error_1.AppError(error_code_enum_1.ErrorCode.VALIDATION_FAILED, 'The saved model is not supported.', 400);
         }
-        const vision = prompt_builder_1.VISION_MODELS.has(credential.model);
+        const vision = prompt_builder_1.VISION_MODELS.has(credential.model) || credential.model.includes('vision') || credential.model.includes('4o');
         const imageParts = [];
         if (vision) {
             for (const att of attachments) {
@@ -495,15 +515,26 @@ let ContextAiService = ContextAiService_1 = class ContextAiService {
                 })),
             ]
             : messages.user;
+        const isOpenRouter = credential.provider === 'OPENROUTER';
+        const endpoint = isOpenRouter
+            ? 'https://openrouter.ai/api/v1/chat/completions'
+            : 'https://api.openai.com/v1/chat/completions';
+        const reqHeaders = {
+            Authorization: `Bearer ${secret}`,
+            'Content-Type': 'application/json',
+            ...(isOpenRouter
+                ? {
+                    'HTTP-Referer': 'https://doit.kachakaran.tech',
+                    'X-Title': 'DoIt AI Solution Assistant',
+                }
+                : {}),
+        };
         const controller = new AbortController();
         const timer = setTimeout(() => controller.abort(), 45_000);
         try {
-            const res = await fetch('https://api.openai.com/v1/chat/completions', {
+            const res = await fetch(endpoint, {
                 method: 'POST',
-                headers: {
-                    Authorization: `Bearer ${secret}`,
-                    'Content-Type': 'application/json',
-                },
+                headers: reqHeaders,
                 body: JSON.stringify({
                     model: credential.model,
                     temperature: 0.2,
@@ -541,7 +572,7 @@ let ContextAiService = ContextAiService_1 = class ContextAiService {
                     createdByUserId: userId,
                     promptMarkdown,
                     generationStatus: 'GENERATED',
-                    provider: 'openai',
+                    provider: credential.provider.toLowerCase(),
                     model: credential.model,
                     sourceSnapshotHash: (0, prompt_builder_1.hashSnapshot)(facts),
                     sourceContextVersion: task.project.context?.version ?? null,

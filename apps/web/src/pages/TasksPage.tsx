@@ -10,6 +10,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { EmptyState } from '@/components/ui/empty-state';
 import { useToast } from '@/components/ui/toast';
 import { PageContainer } from '@/components/layout/PageContainer';
+import { ShadcnSelect } from '@/components/ui/select';
 import { Modal } from '@/components/ui/modal';
 import { Avatar } from '@/components/ui/avatar';
 import { ProjectContextPanel } from '@/components/tasks/ProjectContextPanel';
@@ -119,20 +120,18 @@ export function TasksPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div className="flex items-center gap-2">
           {projects.length > 1 ? (
-            <select
-              value={pId}
-              onChange={(e) => {
-                const found = projects.find((p) => p.id === e.target.value);
+            <ShadcnSelect
+              value={pId || ''}
+              onChange={(newPid) => {
+                const found = projects.find((p) => p.id === newPid);
                 if (found) setActiveProject(found);
               }}
-              className="h-8 px-2.5 rounded-lg border border-[var(--border)] bg-[var(--card)] text-[12px] font-medium text-[var(--foreground)] cursor-pointer focus:outline-none"
-            >
-              {projects.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.name} ({p.key})
-                </option>
-              ))}
-            </select>
+              className="h-8 text-[12px] min-w-[150px]"
+              options={projects.map((p) => ({
+                value: p.id,
+                label: `${p.name} (${p.key})`,
+              }))}
+            />
           ) : null}
 
           <span className="px-2.5 py-1 rounded-full text-[11px] font-medium bg-[var(--muted)] text-[var(--muted-foreground)] tabular">
@@ -219,29 +218,31 @@ export function TasksPage() {
         </div>
 
         {/* Status Filter */}
-        <select
+        <ShadcnSelect
           value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value)}
-          className="h-8 rounded-lg border border-[var(--input)] bg-[var(--card)] px-2.5 text-[12px] font-medium text-[var(--foreground)] focus:outline-none"
-        >
-          <option value="ALL">All statuses</option>
-          <option value="TODO">To do</option>
-          <option value="IN_PROGRESS">In progress</option>
-          <option value="DONE">Done</option>
-        </select>
+          onChange={setStatusFilter}
+          className="h-8 text-[12px] min-w-[130px]"
+          options={[
+            { value: 'ALL', label: 'All statuses' },
+            { value: 'TODO', label: 'To do' },
+            { value: 'IN_PROGRESS', label: 'In progress' },
+            { value: 'DONE', label: 'Done' },
+          ]}
+        />
 
         {/* Priority Filter */}
-        <select
+        <ShadcnSelect
           value={priorityFilter}
-          onChange={(e) => setPriorityFilter(e.target.value)}
-          className="h-8 rounded-lg border border-[var(--input)] bg-[var(--card)] px-2.5 text-[12px] font-medium text-[var(--foreground)] focus:outline-none"
-        >
-          <option value="ALL">All priorities</option>
-          <option value="URGENT">Urgent</option>
-          <option value="HIGH">High</option>
-          <option value="MEDIUM">Medium</option>
-          <option value="LOW">Low</option>
-        </select>
+          onChange={setPriorityFilter}
+          className="h-8 text-[12px] min-w-[140px]"
+          options={[
+            { value: 'ALL', label: 'All priorities' },
+            { value: 'URGENT', label: 'Urgent' },
+            { value: 'HIGH', label: 'High' },
+            { value: 'MEDIUM', label: 'Medium' },
+            { value: 'LOW', label: 'Low' },
+          ]}
+        />
 
         {(searchQuery || statusFilter !== 'ALL' || priorityFilter !== 'ALL') && (
           <button
@@ -572,20 +573,21 @@ export function TasksPage() {
             <div className="space-y-3 p-3.5 rounded-xl bg-[var(--surface-raised)] border border-[var(--border)] text-[13px]">
               <div className="flex items-center justify-between">
                 <span className="text-[var(--muted-foreground)]">Status</span>
-                <select
+                <ShadcnSelect
                   value={selectedTask.status}
-                  onChange={(e) =>
+                  onChange={(newStatus) =>
                     updateStatusMutation.mutate({
                       taskId: selectedTask.id,
-                      newStatus: e.target.value,
+                      newStatus,
                     })
                   }
-                  className="rounded-md bg-[var(--card)] px-2 py-1 text-[12px] border border-[var(--border)] font-medium text-[var(--foreground)]"
-                >
-                  <option value="TODO">To do</option>
-                  <option value="IN_PROGRESS">In progress</option>
-                  <option value="DONE">Done</option>
-                </select>
+                  className="h-8 text-[12px] min-w-[120px]"
+                  options={[
+                    { value: 'TODO', label: 'To do' },
+                    { value: 'IN_PROGRESS', label: 'In progress' },
+                    { value: 'DONE', label: 'Done' },
+                  ]}
+                />
               </div>
 
               <div className="flex items-center justify-between">
@@ -595,10 +597,10 @@ export function TasksPage() {
 
               <div className="flex items-center justify-between gap-3">
                 <span className="text-[var(--muted-foreground)]">Assignee</span>
-                <select
-                  value={selectedTask.assigneeId || ''}
-                  onChange={async (e) => {
-                    const assigneeId = e.target.value || null;
+                <ShadcnSelect
+                  value={selectedTask.assigneeId || 'unassigned'}
+                  onChange={async (newVal) => {
+                    const assigneeId = newVal === 'unassigned' ? null : newVal;
                     try {
                       await api.tasks.assign(selectedTask.id, assigneeId);
                       setSelectedTask({ ...selectedTask, assigneeId });
@@ -607,13 +609,15 @@ export function TasksPage() {
                       error('Could not assign', err.message);
                     }
                   }}
-                  className="rounded-md bg-[var(--card)] px-2 py-1 text-[12px] border border-[var(--border)]"
-                >
-                  <option value="">Unassigned</option>
-                  {members.map((member) => (
-                    <option key={member.userId} value={member.userId}>{member.user?.name || member.user?.email}</option>
-                  ))}
-                </select>
+                  className="h-8 text-[12px] min-w-[150px]"
+                  options={[
+                    { value: 'unassigned', label: 'Unassigned' },
+                    ...members.map((member) => ({
+                      value: member.userId,
+                      label: member.user?.name || member.user?.email || 'Member',
+                    })),
+                  ]}
+                />
               </div>
               <div className="space-y-1">
                 <span className="text-[var(--muted-foreground)]">Labels</span>
