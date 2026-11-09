@@ -158,6 +158,7 @@ platform :android do
       aab: aab_path,
       json_key: key_file,
       package_name: "com.samyukt.doit",
+      release_status: "draft",
       skip_upload_metadata: true,
       skip_upload_images: true,
       skip_upload_screenshots: true
@@ -231,3 +232,4 @@ platform :android do
   end
 
 end
+

@@ -115,12 +115,13 @@ async function main() {
 
   if (foundKey) {
     console.log(`🔑 Using Google Play API Key: ${foundKey}`);
-    console.log(`🚀 Uploading to Play Store track '${trackArg}' via Fastlane...`);
+    console.log(`🚀 Uploading to Play Store track '${trackArg}' via Google Play API...`);
     try {
-      run(`fastlane android ${trackArg} build_number:${targetCode}`, path.join(rootDir, 'apps/mobile/android'));
+      const playTrack = trackArg === 'closed' ? 'alpha' : trackArg;
+      run(`ruby scripts/publish-to-playstore.rb ${playTrack} "${finalAabPath}" "${versionName}" "${targetCode}"`);
       console.log(`🎉 Automated upload to Google Play track '${trackArg}' succeeded!`);
     } catch (err) {
-      console.warn(`⚠️ Fastlane upload encountered an issue:`, err.message);
+      console.warn(`⚠️ Google Play upload encountered an issue:`, err.message);
     }
   } else {
     console.log(`\nℹ️ Note: No Google Play Service Account JSON key found.`);
@@ -178,3 +179,4 @@ main().catch((err) => {
   console.error(err);
   process.exit(1);
 });
+
