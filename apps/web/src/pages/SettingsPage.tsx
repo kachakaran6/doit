@@ -228,8 +228,8 @@ export function SettingsPage() {
           })}
         </nav>
 
-        {/* Right Content Area (max 720px) */}
-        <div className="flex-1 w-full max-w-[720px] space-y-6">
+        {/* Right Content Area */}
+        <div className="flex-1 w-full max-w-4xl lg:max-w-5xl space-y-6">
 
       {/* Tab 1: Appearance */}
       {activeTab === 'appearance' && (
