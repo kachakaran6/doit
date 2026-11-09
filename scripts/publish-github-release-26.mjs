@@ -40,7 +40,12 @@ const RELEASE_BODY = `## DoIt v0.2.6 — Release Build 26
    - Implemented a universal guard in \`LargeHeader\` so no screen renders an empty 44pt header container when trailing/back slots are absent.
 
 4. **Metro Bundler File-Watcher Optimization on Windows**:
-   - Narrowed Metro watch folders to \`packages\` and \`node_modules\`, preventing file-watcher timeouts across the monorepo on Windows machines and enabling instant hot reloads during local testing.
+   - Narrowed Metro watch folders to \`projectRoot\`, \`packages\`, and \`node_modules\`, preventing file-watcher timeouts across the monorepo on Windows machines and enabling instant hot reloads during local testing.
+
+5. **Official DoIt Gradient App Logo on Auth & Invite Screens**:
+   - Replaced the old legacy monochromatic icon on the Login / Signup screen (\`LoginScreen.tsx\`) with the official Plane-class gradient squircle app logo.
+   - Added official branding to the Invitation Acceptance screen (\`InviteAcceptScreen.tsx\`).
+   - Synced brand asset files across \`assets/brand/\` and web \`logo512.png\`.
 
 ### Production Deployments:
 - **Web App**: Live at https://doit-web.samyukt.pro
