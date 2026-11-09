@@ -20,9 +20,11 @@ import {
 export function Sidebar({
   mobile = false,
   onCloseMobile,
+  onOpenSearch,
 }: {
   mobile?: boolean;
   onCloseMobile?: () => void;
+  onOpenSearch?: () => void;
 }) {
   const { projects, activeProject, setActiveProject } = useWorkspaceStore();
   const [projectOpen, setProjectOpen] = useState(false);
@@ -39,7 +41,6 @@ export function Sidebar({
     { to: '/stickies', label: 'Stickies', icon: StickyNote },
     { to: '/team', label: 'Team', icon: Users },
     { to: '/projects', label: 'Projects', icon: FolderKanban },
-    { to: '/search', label: 'Search', icon: Search },
     { to: '/notifications', label: 'Inbox', icon: Inbox },
   ];
 
@@ -66,6 +67,25 @@ export function Sidebar({
           <div className="px-2 py-1 text-[11px] font-medium text-[var(--muted-foreground)]">
             Workspace
           </div>
+
+          {/* Quick Search in-place action */}
+          <button
+            type="button"
+            onClick={() => {
+              onOpenSearch?.();
+              handleNavClick();
+            }}
+            className="w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg text-[13px] font-medium text-[var(--muted-foreground)] hover:text-[var(--foreground)] hover:bg-[var(--sidebar-accent)] transition-colors cursor-pointer group"
+          >
+            <div className="flex items-center gap-2.5">
+              <Search className="w-4 h-4 shrink-0 text-[var(--muted-foreground)] group-hover:text-[var(--foreground)]" />
+              <span>Search</span>
+            </div>
+            <kbd className="hidden sm:inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-mono font-medium text-[var(--muted-foreground)] bg-[var(--muted)]/60 border border-[var(--border)]">
+              ⌘K
+            </kbd>
+          </button>
+
           {navItems.map(({ to, label, icon: Icon }) => (
             <NavLink
               key={to}

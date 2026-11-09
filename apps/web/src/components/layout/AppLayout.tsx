@@ -43,7 +43,7 @@ export function AppLayout() {
     <div className="flex h-screen w-screen overflow-hidden bg-[var(--background)]">
       {/* Desktop Sidebar */}
       <div className="hidden lg:block shrink-0 h-full">
-        <Sidebar />
+        <Sidebar onOpenSearch={() => setSearchOpen(true)} />
       </div>
 
       {/* Mobile Drawer Sidebar */}
@@ -54,7 +54,11 @@ export function AppLayout() {
             onClick={() => setMobileSidebarOpen(false)}
           />
           <div className="relative flex-1 max-w-xs w-full h-full animate-in slide-in-from-left duration-200">
-            <Sidebar mobile onCloseMobile={() => setMobileSidebarOpen(false)} />
+            <Sidebar
+              mobile
+              onCloseMobile={() => setMobileSidebarOpen(false)}
+              onOpenSearch={() => setSearchOpen(true)}
+            />
           </div>
         </div>
       )}

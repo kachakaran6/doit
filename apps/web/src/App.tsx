@@ -15,7 +15,6 @@ import { TeamPage } from './pages/TeamPage';
 import { SettingsPage } from './pages/SettingsPage';
 import { ProjectsPage } from './pages/ProjectsPage';
 import { NotificationsPage } from './pages/NotificationsPage';
-import { SearchPage } from './pages/SearchPage';
 import { WorkspaceSettingsPage } from './pages/WorkspaceSettingsPage';
 import { InviteAcceptPage } from './pages/InviteAcceptPage';
 
@@ -53,7 +52,7 @@ export function App() {
                 <Route path="stickies" element={<StickiesPage />} />
                 <Route path="team" element={<TeamPage />} />
                 <Route path="projects" element={<ProjectsPage />} />
-                <Route path="search" element={<SearchPage />} />
+                <Route path="search" element={<Navigate to="/tasks" replace />} />
                 <Route path="notifications" element={<NotificationsPage />} />
                 <Route path="workspace/settings" element={<WorkspaceSettingsPage />} />
                 <Route path="settings" element={<SettingsPage />} />
