@@ -159,6 +159,7 @@ platform :android do
       json_key: key_file,
       package_name: "com.samyukt.doit",
       release_status: "draft",
+      skip_upload_apk: true,
       skip_upload_metadata: true,
       skip_upload_images: true,
       skip_upload_screenshots: true
