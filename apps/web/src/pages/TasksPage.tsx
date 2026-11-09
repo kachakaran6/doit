@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useWorkspaceStore } from '@/lib/workspace-store';
+import { useCreateStore } from '@/lib/create-store';
 import { api, resolveAttachmentUrl } from '@/lib/api';
 import { Task } from '@/lib/types';
 import { Card } from '@/components/ui/card';
@@ -31,6 +32,10 @@ import {
   Mic,
   Maximize2,
   ExternalLink,
+  Plus,
+  Rows3,
+  ListFilter,
+  GripVertical,
 } from 'lucide-react';
 
 function TaskScreenshotCard({
@@ -104,34 +109,49 @@ function TaskScreenshotCard({
 }
 
 export function TasksPage() {
-  const { activeProject, projects, setActiveProject, labels, activeWorkspace } = useWorkspaceStore();
+  const { activeProject, projects, setActiveProject, activeWorkspace } = useWorkspaceStore();
+  const openCreate = useCreateStore((s) => s.openCreate);
   const queryClient = useQueryClient();
   const { success, error } = useToast();
 
   const [view, setView] = useState<'list' | 'board' | 'table'>('list');
+  const [density, setDensity] = useState<'comfortable' | 'compact'>('comfortable');
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
   const [priorityFilter, setPriorityFilter] = useState<string>('ALL');
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [lightboxImage, setLightboxImage] = useState<string | null>(null);
   const [contextModalOpen, setContextModalOpen] = useState(false);
+  const [quickTitle, setQuickTitle] = useState('');
+
+  // Drag and drop state for Kanban
+  const [draggedTaskId, setDraggedTaskId] = useState<string | null>(null);
+  const [dropTargetCol, setDropTargetCol] = useState<string | null>(null);
 
   const pId = activeProject?.id || projects[0]?.id;
 
-  // 1. Fetch real tasks from backend
+  // Fetch labels
+  const { data: labels = [] } = useQuery({
+    queryKey: ['workspace-labels', activeWorkspace?.id],
+    queryFn: () => (activeWorkspace?.id ? api.workspaces.labels(activeWorkspace.id) : []),
+    enabled: Boolean(activeWorkspace?.id),
+  });
+
+  // Fetch members
   const { data: members = [] } = useQuery({
     queryKey: ['workspace-members', activeWorkspace?.id],
     queryFn: () => (activeWorkspace?.id ? api.workspaces.members(activeWorkspace.id) : []),
     enabled: Boolean(activeWorkspace?.id),
   });
 
+  // Fetch tasks
   const { data: tasks = [], isLoading } = useQuery({
     queryKey: ['tasks', pId],
     queryFn: () => (pId ? api.tasks.list(pId) : []),
     enabled: Boolean(pId),
   });
 
-  // 1.1 Fetch detailed task info when selected (including all attachments & presigned URLs)
+  // Fetch detailed task info when selected
   const { data: taskDetail } = useQuery({
     queryKey: ['task', selectedTask?.id],
     queryFn: () => (selectedTask?.id ? api.tasks.get(selectedTask.id) : null),
@@ -170,12 +190,12 @@ export function TasksPage() {
     );
   }, [activeTask, imageAttachments, audioAttachments]);
 
-  // 2. Status Mutation
+  // Standard Status Mutation
   const updateStatusMutation = useMutation({
     mutationFn: ({ taskId, newStatus }: { taskId: string; newStatus: string }) =>
       api.tasks.updateStatus(taskId, newStatus),
     onSuccess: (updated) => {
-      queryClient.invalidateQueries({ queryKey: ['tasks'] });
+      queryClient.invalidateQueries({ queryKey: ['tasks', pId] });
       queryClient.invalidateQueries({ queryKey: ['task', updated.id] });
       if (selectedTask?.id === updated.id) {
         setSelectedTask(updated);
@@ -187,11 +207,59 @@ export function TasksPage() {
     },
   });
 
-  // 3. Delete Task Mutation
+  // Optimistic Move Mutation for smooth Kanban drag-and-drop
+  const moveTaskMutation = useMutation({
+    mutationFn: ({ taskId, newStatus }: { taskId: string; newStatus: string }) =>
+      api.tasks.updateStatus(taskId, newStatus),
+    onMutate: async ({ taskId, newStatus }) => {
+      await queryClient.cancelQueries({ queryKey: ['tasks', pId] });
+      const previousTasks = queryClient.getQueryData<Task[]>(['tasks', pId]);
+
+      if (previousTasks) {
+        queryClient.setQueryData<Task[]>(['tasks', pId], (old) => {
+          if (!old) return [];
+          return old.map((t) => (t.id === taskId ? { ...t, status: newStatus as any } : t));
+        });
+      }
+
+      return { previousTasks };
+    },
+    onError: (err: any, _vars, context) => {
+      if (context?.previousTasks) {
+        queryClient.setQueryData(['tasks', pId], context.previousTasks);
+      }
+      error('Failed to move task', err?.message || 'Reverted to original column');
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['tasks', pId] });
+      if (selectedTask) {
+        queryClient.invalidateQueries({ queryKey: ['task', selectedTask.id] });
+      }
+    },
+  });
+
+  // Quick Task Creation Mutation
+  const createTaskMutation = useMutation({
+    mutationFn: (title: string) =>
+      api.tasks.create(pId!, {
+        title: title.trim(),
+        priority: 'MEDIUM',
+      }),
+    onSuccess: (newTask) => {
+      queryClient.invalidateQueries({ queryKey: ['tasks', pId] });
+      setQuickTitle('');
+      success('Task created', newTask.title);
+    },
+    onError: (err: any) => {
+      error('Failed to create task', err.message);
+    },
+  });
+
+  // Delete Task Mutation
   const deleteTaskMutation = useMutation({
     mutationFn: (id: string) => api.tasks.delete(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['tasks'] });
+      queryClient.invalidateQueries({ queryKey: ['tasks', pId] });
       setSelectedTask(null);
       success('Task deleted', 'Removed from workspace.');
     },
@@ -230,150 +298,205 @@ export function TasksPage() {
     updateStatusMutation.mutate({ taskId: task.id, newStatus: nextStatus });
   };
 
+  const handleQuickCreate = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!quickTitle.trim() || !pId) return;
+    createTaskMutation.mutate(quickTitle);
+  };
+
   return (
-    <PageContainer width="data" className="space-y-6 select-none relative">
-      {/* Top Controls & View Switcher */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div className="flex items-center gap-2">
-          {projects.length > 1 ? (
-            <ShadcnSelect
-              value={pId || ''}
-              onChange={(newPid) => {
-                const found = projects.find((p) => p.id === newPid);
-                if (found) setActiveProject(found);
-              }}
-              className="h-8 text-[12px] min-w-[150px]"
-              options={projects.map((p) => ({
-                value: p.id,
-                label: `${p.name} (${p.key})`,
-              }))}
-            />
-          ) : null}
+    <PageContainer width="workspace" className="space-y-4 select-none relative">
+      {/* Cohesive Primary Workspace Toolbar */}
+      <div className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-3 shadow-2xs space-y-3">
+        {/* Row 1: Context, View & Primary Action */}
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          {/* Project & Count Badge */}
+          <div className="flex items-center gap-2">
+            {projects.length > 1 ? (
+              <ShadcnSelect
+                value={pId || ''}
+                onChange={(newPid) => {
+                  const found = projects.find((p) => p.id === newPid);
+                  if (found) setActiveProject(found);
+                }}
+                className="h-8 text-[12px] min-w-[160px]"
+                wrapperClassName="w-auto"
+                options={projects.map((p) => ({
+                  value: p.id,
+                  label: `${p.name} (${p.key})`,
+                }))}
+              />
+            ) : (
+              <span className="text-[14px] font-semibold text-[var(--foreground)]">
+                {activeProject?.name || 'Tasks'}
+              </span>
+            )}
 
-          <span className="px-2.5 py-1 rounded-full text-[11px] font-medium bg-[var(--muted)] text-[var(--muted-foreground)] tabular">
-            {filteredTasks.length} {filteredTasks.length === 1 ? 'task' : 'tasks'}
-          </span>
-        </div>
+            <span className="px-2 py-0.5 rounded-full text-[11px] font-medium bg-[var(--muted)] text-[var(--muted-foreground)] tabular">
+              {filteredTasks.length} {filteredTasks.length === 1 ? 'task' : 'tasks'}
+            </span>
 
-        {/* Actions & View Switcher */}
-        <div className="flex items-center gap-2.5 self-start sm:self-auto">
-          {pId && (
+            {pId && (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setContextModalOpen(true)}
+                className="text-[11px] h-7 px-2.5 text-[var(--foreground)] gap-1.5 hidden sm:inline-flex"
+              >
+                <BookOpen className="w-3.5 h-3.5 text-[var(--primary-text)]" />
+                <span>Project context</span>
+              </Button>
+            )}
+          </div>
+
+          {/* Right: Density, View Switcher & + New Task button */}
+          <div className="flex items-center gap-2">
+            {/* Density toggle (for List view) */}
+            {view === 'list' && (
+              <div className="flex rounded-lg bg-[var(--muted)] p-0.5 border border-[var(--border)]" title="Row density">
+                <button
+                  type="button"
+                  onClick={() => setDensity('comfortable')}
+                  className={`p-1 rounded-md text-[11px] transition-all cursor-pointer ${
+                    density === 'comfortable'
+                      ? 'bg-[var(--card)] text-[var(--foreground)] shadow-2xs font-semibold'
+                      : 'text-[var(--muted-foreground)] hover:text-[var(--foreground)]'
+                  }`}
+                  title="Comfortable row density"
+                >
+                  <Rows3 className="w-3.5 h-3.5" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setDensity('compact')}
+                  className={`p-1 rounded-md text-[11px] transition-all cursor-pointer ${
+                    density === 'compact'
+                      ? 'bg-[var(--card)] text-[var(--foreground)] shadow-2xs font-semibold'
+                      : 'text-[var(--muted-foreground)] hover:text-[var(--foreground)]'
+                  }`}
+                  title="Compact row density"
+                >
+                  <ListFilter className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            )}
+
+            {/* View Switcher: List · Board · Table */}
+            <div className="flex rounded-lg bg-[var(--muted)] p-0.5 border border-[var(--border)]">
+              <button
+                type="button"
+                onClick={() => setView('list')}
+                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[12px] font-medium transition-all cursor-pointer ${
+                  view === 'list'
+                    ? 'bg-[var(--card)] text-[var(--foreground)] shadow-2xs'
+                    : 'text-[var(--muted-foreground)] hover:text-[var(--foreground)]'
+                }`}
+              >
+                <LayoutList className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">List</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setView('board')}
+                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[12px] font-medium transition-all cursor-pointer ${
+                  view === 'board'
+                    ? 'bg-[var(--card)] text-[var(--foreground)] shadow-2xs'
+                    : 'text-[var(--muted-foreground)] hover:text-[var(--foreground)]'
+                }`}
+              >
+                <Columns3 className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Board</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setView('table')}
+                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[12px] font-medium transition-all cursor-pointer ${
+                  view === 'table'
+                    ? 'bg-[var(--card)] text-[var(--foreground)] shadow-2xs'
+                    : 'text-[var(--muted-foreground)] hover:text-[var(--foreground)]'
+                }`}
+              >
+                <TableIcon className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Table</span>
+              </button>
+            </div>
+
+            {/* In-page Primary + New Task Button */}
             <Button
               type="button"
-              variant="outline"
+              variant="primary"
               size="sm"
-              onClick={() => setContextModalOpen(true)}
-              className="text-[12px] h-8 text-[var(--foreground)] gap-1.5"
+              onClick={() => openCreate('task')}
+              className="h-8 text-[12px] gap-1 px-3 shadow-2xs font-medium cursor-pointer"
             >
-              <BookOpen className="w-3.5 h-3.5 text-[var(--primary-text)]" />
-              <span>Project context</span>
+              <Plus className="w-3.5 h-3.5" />
+              <span>New task</span>
             </Button>
-          )}
-
-          {/* View Switcher: List · Board · Table */}
-          <div className="flex rounded-lg bg-[var(--muted)] p-0.5 border border-[var(--border)]">
-            <button
-              type="button"
-              onClick={() => setView('list')}
-              className={`flex items-center gap-1.5 px-3 py-1 rounded-md text-[12px] font-medium transition-all cursor-pointer ${
-                view === 'list'
-                  ? 'bg-[var(--card)] text-[var(--foreground)] shadow-xs'
-                  : 'text-[var(--muted-foreground)] hover:text-[var(--foreground)]'
-              }`}
-            >
-              <LayoutList className="w-3.5 h-3.5" />
-              <span>List</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => setView('board')}
-              className={`flex items-center gap-1.5 px-3 py-1 rounded-md text-[12px] font-medium transition-all cursor-pointer ${
-                view === 'board'
-                  ? 'bg-[var(--card)] text-[var(--foreground)] shadow-xs'
-                  : 'text-[var(--muted-foreground)] hover:text-[var(--foreground)]'
-              }`}
-            >
-              <Columns3 className="w-3.5 h-3.5" />
-              <span>Board</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => setView('table')}
-              className={`flex items-center gap-1.5 px-3 py-1 rounded-md text-[12px] font-medium transition-all cursor-pointer ${
-                view === 'table'
-                  ? 'bg-[var(--card)] text-[var(--foreground)] shadow-xs'
-                  : 'text-[var(--muted-foreground)] hover:text-[var(--foreground)]'
-              }`}
-            >
-              <TableIcon className="w-3.5 h-3.5" />
-              <span>Table</span>
-            </button>
           </div>
         </div>
-      </div>
 
-      {/* Filter Bar */}
-      <div className="flex flex-wrap items-center gap-2 pt-0.5">
-        <div className="relative w-64 max-w-xs">
-          <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-[var(--muted-foreground)] pointer-events-none" />
-          <input
-            type="text"
-            placeholder="Filter tasks by title or ID…"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full h-8 pl-8.5 pr-7 rounded-lg border border-[var(--border)] bg-[var(--card)] text-[12px] text-[var(--foreground)] placeholder:text-[var(--muted-foreground)] focus:outline-none focus:ring-1 focus:ring-[var(--primary)] transition-colors"
+        {/* Row 2: Search & Dropdown Filters (Single clean horizontal row) */}
+        <div className="flex flex-wrap items-center gap-2 pt-1 border-t border-[var(--border)]/70">
+          <div className="relative w-full sm:w-64">
+            <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-[var(--muted-foreground)] pointer-events-none" />
+            <input
+              type="text"
+              placeholder="Filter tasks by title or ID…"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full h-8 pl-8.5 pr-7 rounded-lg border border-[var(--border)] bg-[var(--background)] text-[12px] text-[var(--foreground)] placeholder:text-[var(--muted-foreground)] focus:outline-none focus:ring-1 focus:ring-[var(--primary)] transition-colors"
+            />
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery('')}
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-[var(--muted-foreground)] hover:text-[var(--foreground)] cursor-pointer"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            )}
+          </div>
+
+          <ShadcnSelect
+            value={statusFilter}
+            onChange={setStatusFilter}
+            className="h-8 text-[12px] min-w-[130px]"
+            wrapperClassName="w-auto"
+            options={[
+              { value: 'ALL', label: 'All statuses' },
+              { value: 'TODO', label: 'To do' },
+              { value: 'IN_PROGRESS', label: 'In progress' },
+              { value: 'DONE', label: 'Done' },
+            ]}
           />
-          {searchQuery && (
+
+          <ShadcnSelect
+            value={priorityFilter}
+            onChange={setPriorityFilter}
+            className="h-8 text-[12px] min-w-[130px]"
+            wrapperClassName="w-auto"
+            options={[
+              { value: 'ALL', label: 'All priorities' },
+              { value: 'URGENT', label: 'Urgent' },
+              { value: 'HIGH', label: 'High' },
+              { value: 'MEDIUM', label: 'Medium' },
+              { value: 'LOW', label: 'Low' },
+            ]}
+          />
+
+          {(searchQuery || statusFilter !== 'ALL' || priorityFilter !== 'ALL') && (
             <button
-              onClick={() => setSearchQuery('')}
-              className="absolute right-2 top-1/2 -translate-y-1/2 text-[var(--muted-foreground)] hover:text-[var(--foreground)] cursor-pointer"
+              onClick={() => {
+                setSearchQuery('');
+                setStatusFilter('ALL');
+                setPriorityFilter('ALL');
+              }}
+              className="text-[12px] font-medium text-[var(--primary-text)] hover:underline cursor-pointer px-2 py-1"
             >
-              <X className="w-3.5 h-3.5" />
+              Clear filters
             </button>
           )}
         </div>
-
-        {/* Status Filter */}
-        <ShadcnSelect
-          value={statusFilter}
-          onChange={setStatusFilter}
-          className="h-8 text-[12px] w-auto min-w-[130px]"
-          wrapperClassName="w-auto shrink-0"
-          options={[
-            { value: 'ALL', label: 'All statuses' },
-            { value: 'TODO', label: 'To do' },
-            { value: 'IN_PROGRESS', label: 'In progress' },
-            { value: 'DONE', label: 'Done' },
-          ]}
-        />
-
-        {/* Priority Filter */}
-        <ShadcnSelect
-          value={priorityFilter}
-          onChange={setPriorityFilter}
-          className="h-8 text-[12px] w-auto min-w-[135px]"
-          wrapperClassName="w-auto shrink-0"
-          options={[
-            { value: 'ALL', label: 'All priorities' },
-            { value: 'URGENT', label: 'Urgent' },
-            { value: 'HIGH', label: 'High' },
-            { value: 'MEDIUM', label: 'Medium' },
-            { value: 'LOW', label: 'Low' },
-          ]}
-        />
-
-        {(searchQuery || statusFilter !== 'ALL' || priorityFilter !== 'ALL') && (
-          <button
-            onClick={() => {
-              setSearchQuery('');
-              setStatusFilter('ALL');
-              setPriorityFilter('ALL');
-            }}
-            className="text-[12px] font-medium text-[var(--primary-text)] hover:underline cursor-pointer px-1.5 py-1"
-          >
-            Clear filters
-          </button>
-        )}
       </div>
 
       {/* Main View Area */}
@@ -384,18 +507,45 @@ export function TasksPage() {
           <Skeleton className="h-11 w-full rounded-xl" />
           <Skeleton className="h-11 w-full rounded-xl" />
         </div>
-      ) : filteredTasks.length === 0 ? (
+      ) : filteredTasks.length === 0 && !quickTitle ? (
         <EmptyState
           title="No tasks found"
           description={
-            searchQuery || statusFilter !== 'ALL'
+            searchQuery || statusFilter !== 'ALL' || priorityFilter !== 'ALL'
               ? 'No tasks match your active search or filters.'
-              : 'Create your first task using the "+ New task" button above.'
+              : 'Add your first task using the input below or the "+ New task" button.'
           }
+          actionLabel="Create task"
+          onAction={() => openCreate('task')}
         />
       ) : view === 'list' ? (
         /* LIST VIEW */
-        <div className="space-y-6">
+        <div className="space-y-5">
+          {/* Inline Quick Task Creation Input */}
+          <form onSubmit={handleQuickCreate} className="relative">
+            <div className="flex items-center gap-2 px-3.5 py-2 rounded-xl border border-[var(--border)] bg-[var(--card)] shadow-2xs hover:border-[var(--border-strong)] focus-within:border-[var(--primary)] transition-all">
+              <Plus className="w-4 h-4 text-[var(--muted-foreground)] shrink-0" />
+              <input
+                type="text"
+                placeholder="+ Add a quick task to this project… (Press Enter to save)"
+                value={quickTitle}
+                onChange={(e) => setQuickTitle(e.target.value)}
+                className="flex-1 bg-transparent text-[13px] text-[var(--foreground)] placeholder:text-[var(--muted-foreground)] focus:outline-none"
+              />
+              {quickTitle.trim() && (
+                <Button
+                  type="submit"
+                  size="xs"
+                  variant="primary"
+                  disabled={createTaskMutation.isPending}
+                  className="h-6 text-[11px] px-2.5"
+                >
+                  {createTaskMutation.isPending ? 'Saving…' : 'Save'}
+                </Button>
+              )}
+            </div>
+          </form>
+
           {[
             { title: 'In progress', list: inProgressTasks, status: 'IN_PROGRESS' },
             { title: 'To do', list: todoTasks, status: 'TODO' },
@@ -403,7 +553,7 @@ export function TasksPage() {
           ].map((grp) => {
             if (grp.list.length === 0) return null;
             return (
-              <div key={grp.status} className="space-y-2">
+              <div key={grp.status} className="space-y-1.5">
                 <div className="flex items-center gap-2 px-1 text-[12px] font-semibold text-[var(--muted-foreground)]">
                   <span>{grp.title}</span>
                   <span className="tabular text-[11px] font-normal">({grp.list.length})</span>
@@ -414,13 +564,16 @@ export function TasksPage() {
                     <div
                       key={task.id}
                       onClick={() => setSelectedTask(task)}
-                      className="px-4 py-2.5 flex items-center gap-3 hover:bg-[var(--accent)] transition-colors cursor-pointer group text-[13px]"
+                      className={`px-3.5 ${
+                        density === 'compact' ? 'py-1.5' : 'py-2.5'
+                      } flex items-center gap-3 hover:bg-[var(--accent)] transition-colors cursor-pointer group text-[13px]`}
                     >
-                      {/* [checkbox 32] */}
+                      {/* Checkbox */}
                       <button
                         type="button"
                         onClick={(e) => handleToggleDone(e, task)}
-                        className="w-8 shrink-0 flex items-center justify-center text-[var(--muted-foreground)] hover:text-[var(--success-text)] transition-colors cursor-pointer"
+                        className="w-6 shrink-0 flex items-center justify-center text-[var(--muted-foreground)] hover:text-[var(--success-text)] transition-colors cursor-pointer"
+                        title={task.status === 'DONE' ? 'Mark incomplete' : 'Mark done'}
                       >
                         {task.status === 'DONE' ? (
                           <CheckCircle2 className="w-4 h-4 text-[var(--success-text)] fill-[var(--success-text)]/10" />
@@ -429,13 +582,13 @@ export function TasksPage() {
                         )}
                       </button>
 
-                      {/* [id 72] */}
+                      {/* Human ID */}
                       <span className="w-16 font-mono text-[11px] text-[var(--muted-foreground)] shrink-0">
                         {task.humanId}
                       </span>
 
-                      {/* [title minmax(240px, 1fr)] */}
-                      <div className="flex-1 min-w-[200px] max-w-[65ch] flex items-center gap-2 truncate">
+                      {/* Title: flex-1 without max-w-[65ch] so it expands cleanly to full width */}
+                      <div className="flex-1 min-w-[200px] flex items-center gap-2 truncate">
                         <span
                           className={`truncate font-medium ${
                             task.status === 'DONE'
@@ -456,7 +609,7 @@ export function TasksPage() {
                         )}
                       </div>
 
-                      {/* [labels max 180] */}
+                      {/* Labels */}
                       <div className="hidden md:flex items-center gap-1 max-w-[180px] shrink-0 overflow-hidden">
                         {task.labels?.map((item) => {
                           const label = 'label' in item && item.label ? item.label : (item as any);
@@ -477,7 +630,7 @@ export function TasksPage() {
                         })}
                       </div>
 
-                      {/* [assignee 32] */}
+                      {/* Assignee */}
                       <div className="hidden lg:flex w-8 shrink-0 items-center justify-center">
                         {task.assignee ? (
                           <Avatar
@@ -486,23 +639,23 @@ export function TasksPage() {
                             size="xs"
                           />
                         ) : (
-                          <span className="w-5 h-5 rounded-full border border-dashed border-[var(--border)] flex items-center justify-center text-[10px] text-[var(--muted-foreground)] opacity-60">
+                          <span className="w-5 h-5 rounded-full border border-dashed border-[var(--border)] flex items-center justify-center text-[10px] text-[var(--muted-foreground)] opacity-50">
                             -
                           </span>
                         )}
                       </div>
 
-                      {/* [due 96] */}
+                      {/* Due date */}
                       <div className="hidden sm:flex w-24 text-[12px] text-[var(--muted-foreground)] shrink-0 truncate">
                         {task.dueAt ? new Date(task.dueAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) : ''}
                       </div>
 
-                      {/* [priority 108] */}
+                      {/* Priority */}
                       <div className="w-24 shrink-0 flex justify-end">
                         <PriorityBadge priority={task.priority} />
                       </div>
 
-                      {/* [status 132] */}
+                      {/* Status */}
                       <div className="w-28 shrink-0 flex justify-end">
                         <StatusBadge status={task.status} />
                       </div>
@@ -514,104 +667,200 @@ export function TasksPage() {
           })}
         </div>
       ) : view === 'board' ? (
-        /* KANBAN BOARD VIEW */
+        /* KANBAN BOARD VIEW (Smooth HTML5 Drag & Drop with Optimistic Updates & Rollback) */
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-start">
           {[
             { title: 'To do', status: 'TODO', list: todoTasks },
             { title: 'In progress', status: 'IN_PROGRESS', list: inProgressTasks },
             { title: 'Done', status: 'DONE', list: doneTasks },
-          ].map((col) => (
-            <div
-              key={col.status}
-              className="rounded-xl bg-[var(--surface-raised)] border border-[var(--border)] p-3 space-y-3 min-h-[300px]"
-            >
-              <div className="flex items-center justify-between px-1">
-                <div className="flex items-center gap-2">
-                  <span className="text-[13px] font-semibold text-[var(--foreground)]">
-                    {col.title}
-                  </span>
-                  <span className="px-1.5 py-0.2 rounded-full text-[11px] font-medium bg-[var(--muted)] text-[var(--muted-foreground)] tabular">
-                    {col.list.length}
-                  </span>
+          ].map((col) => {
+            const isTarget = dropTargetCol === col.status;
+
+            return (
+              <div
+                key={col.status}
+                onDragOver={(e) => {
+                  e.preventDefault();
+                  e.dataTransfer.dropEffect = 'move';
+                  if (dropTargetCol !== col.status) {
+                    setDropTargetCol(col.status);
+                  }
+                }}
+                onDragLeave={(e) => {
+                  if (e.currentTarget.contains(e.relatedTarget as Node)) return;
+                  if (dropTargetCol === col.status) {
+                    setDropTargetCol(null);
+                  }
+                }}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  setDropTargetCol(null);
+                  const taskId = e.dataTransfer.getData('text/plain') || draggedTaskId;
+                  if (taskId) {
+                    const task = tasks.find((t) => t.id === taskId);
+                    if (task && task.status !== col.status) {
+                      moveTaskMutation.mutate({ taskId, newStatus: col.status });
+                    }
+                  }
+                  setDraggedTaskId(null);
+                }}
+                className={`rounded-xl bg-[var(--surface-raised)] border transition-all duration-150 p-3 space-y-3 min-h-[380px] flex flex-col ${
+                  isTarget
+                    ? 'border-[var(--primary)] bg-[var(--primary)]/5 ring-2 ring-[var(--primary)]/20'
+                    : 'border-[var(--border)]'
+                }`}
+              >
+                {/* Column Header */}
+                <div className="flex items-center justify-between px-1 shrink-0">
+                  <div className="flex items-center gap-2">
+                    <span className="text-[13px] font-semibold text-[var(--foreground)]">
+                      {col.title}
+                    </span>
+                    <span className="px-1.5 py-0.2 rounded-full text-[11px] font-medium bg-[var(--muted)] text-[var(--muted-foreground)] tabular">
+                      {col.list.length}
+                    </span>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => openCreate('task')}
+                    className="p-1 rounded-md text-[var(--muted-foreground)] hover:text-[var(--foreground)] hover:bg-[var(--accent)] transition-colors cursor-pointer"
+                    title={`Add task to ${col.title}`}
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+
+                {/* Cards Container */}
+                <div className="space-y-2.5 flex-1">
+                  {col.list.map((task) => {
+                    const isDragging = draggedTaskId === task.id;
+
+                    return (
+                      <Card
+                        key={task.id}
+                        draggable={true}
+                        onDragStart={(e) => {
+                          e.dataTransfer.setData('text/plain', task.id);
+                          e.dataTransfer.effectAllowed = 'move';
+                          setDraggedTaskId(task.id);
+                        }}
+                        onDragEnd={() => {
+                          setDraggedTaskId(null);
+                          setDropTargetCol(null);
+                        }}
+                        onClick={() => setSelectedTask(task)}
+                        className={`p-3.5 hover:border-[var(--border-strong)] transition-all cursor-grab active:cursor-grabbing shadow-2xs space-y-2 group select-none ${
+                          isDragging ? 'opacity-40 scale-[0.98] border-dashed border-[var(--primary)]' : ''
+                        }`}
+                      >
+                        <div className="flex items-center justify-between text-[11px] text-[var(--muted-foreground)]">
+                          <div className="flex items-center gap-1.5">
+                            <GripVertical className="w-3 h-3 opacity-30 group-hover:opacity-80 transition-opacity" />
+                            <span className="font-mono font-semibold">{task.humanId}</span>
+                          </div>
+                          <div className="flex items-center gap-1.5">
+                            {((task.attachments && task.attachments.length > 0) || ((task as any)._count?.attachments > 0)) && (
+                              <span
+                                title="Has attachments / screenshots"
+                                className="inline-flex items-center gap-0.5 px-1 py-0.2 rounded text-[10px] font-medium bg-[var(--muted)] text-[var(--muted-foreground)]"
+                              >
+                                <ImageIcon className="w-2.5 h-2.5 text-[var(--primary-text)]" />
+                                <span>{task.attachments?.length || (task as any)._count?.attachments}</span>
+                              </span>
+                            )}
+                            <PriorityBadge priority={task.priority} />
+                          </div>
+                        </div>
+
+                        <h4 className="text-[13px] font-medium text-[var(--foreground)] leading-snug">
+                          {task.title}
+                        </h4>
+
+                        {/* Labels row if present */}
+                        {task.labels && task.labels.length > 0 && (
+                          <div className="flex flex-wrap gap-1 pt-0.5">
+                            {task.labels.slice(0, 3).map((item) => {
+                              const label = 'label' in item && item.label ? item.label : (item as any);
+                              if (!label || !label.name) return null;
+                              return (
+                                <span
+                                  key={item.id}
+                                  className="px-1.5 py-0.2 rounded text-[9px] font-medium border"
+                                  style={{
+                                    backgroundColor: `${label.color || '#3b82f6'}15`,
+                                    borderColor: `${label.color || '#3b82f6'}30`,
+                                    color: label.color || '#3b82f6',
+                                  }}
+                                >
+                                  {label.name}
+                                </span>
+                              );
+                            })}
+                          </div>
+                        )}
+
+                        {/* Quick accessible move buttons */}
+                        <div className="pt-2 border-t border-[var(--border)] flex items-center justify-between text-[11px]">
+                          <span className="text-[var(--muted-foreground)] text-[10px]">
+                            {task.status === 'DONE' ? 'Completed' : 'Move:'}
+                          </span>
+                          <div className="flex gap-1" onClick={(e) => e.stopPropagation()}>
+                            {col.status !== 'TODO' && (
+                              <button
+                                type="button"
+                                onClick={() => moveTaskMutation.mutate({ taskId: task.id, newStatus: 'TODO' })}
+                                className="px-1.5 py-0.5 rounded bg-[var(--muted)] hover:bg-[var(--accent)] text-[var(--foreground)] cursor-pointer text-[10px]"
+                              >
+                                To do
+                              </button>
+                            )}
+                            {col.status !== 'IN_PROGRESS' && (
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  moveTaskMutation.mutate({ taskId: task.id, newStatus: 'IN_PROGRESS' })
+                                }
+                                className="px-1.5 py-0.5 rounded bg-[var(--primary-soft)] hover:brightness-95 text-[var(--primary-text)] cursor-pointer text-[10px]"
+                              >
+                                In progress
+                              </button>
+                            )}
+                            {col.status !== 'DONE' && (
+                              <button
+                                type="button"
+                                onClick={() => moveTaskMutation.mutate({ taskId: task.id, newStatus: 'DONE' })}
+                                className="px-1.5 py-0.5 rounded bg-[rgba(14,133,80,0.15)] hover:bg-[rgba(14,133,80,0.25)] text-[var(--success-text)] cursor-pointer text-[10px]"
+                              >
+                                Done
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      </Card>
+                    );
+                  })}
+
+                  {col.list.length === 0 && (
+                    <div
+                      className={`h-32 rounded-xl border-2 border-dashed flex flex-col items-center justify-center text-center p-3 transition-colors ${
+                        isTarget
+                          ? 'border-[var(--primary)] bg-[var(--primary)]/10 text-[var(--primary-text)]'
+                          : 'border-[var(--border)] text-[var(--muted-foreground)]'
+                      }`}
+                    >
+                      <span className="text-[12px] font-medium">
+                        {isTarget ? 'Drop task here' : 'No tasks in this column'}
+                      </span>
+                      <span className="text-[11px] opacity-70 mt-0.5">
+                        Drag cards here or click + above
+                      </span>
+                    </div>
+                  )}
                 </div>
               </div>
-
-              <div className="space-y-2.5">
-                {col.list.map((task) => (
-                  <Card
-                    key={task.id}
-                    onClick={() => setSelectedTask(task)}
-                    className="p-3.5 hover:border-[var(--border-strong)] transition-all cursor-pointer shadow-2xs space-y-2"
-                  >
-                    <div className="flex items-center justify-between text-[11px] text-[var(--muted-foreground)]">
-                      <span className="font-mono font-semibold">{task.humanId}</span>
-                      <div className="flex items-center gap-1.5">
-                        {((task.attachments && task.attachments.length > 0) || ((task as any)._count?.attachments > 0)) && (
-                          <span
-                            title="Has attachments / screenshots"
-                            className="inline-flex items-center gap-0.5 px-1 py-0.2 rounded text-[10px] font-medium bg-[var(--muted)] text-[var(--muted-foreground)]"
-                          >
-                            <ImageIcon className="w-2.5 h-2.5 text-[var(--primary-text)]" />
-                            <span>{task.attachments?.length || (task as any)._count?.attachments}</span>
-                          </span>
-                        )}
-                        <PriorityBadge priority={task.priority} />
-                      </div>
-                    </div>
-
-                    <h4 className="text-[13px] font-medium text-[var(--foreground)] leading-snug">
-                      {task.title}
-                    </h4>
-
-                    {/* Quick move buttons */}
-                    <div className="pt-2 border-t border-[var(--border)] flex items-center justify-between text-[11px]">
-                      <span className="text-[var(--muted-foreground)]">
-                        {task.status === 'DONE' ? 'Done' : 'Move to:'}
-                      </span>
-                      <div className="flex gap-1">
-                        {col.status !== 'TODO' && (
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              updateStatusMutation.mutate({ taskId: task.id, newStatus: 'TODO' });
-                            }}
-                            className="px-1.5 py-0.5 rounded bg-[var(--muted)] hover:bg-[var(--accent)] text-[var(--foreground)] cursor-pointer text-[10px]"
-                          >
-                            To do
-                          </button>
-                        )}
-                        {col.status !== 'IN_PROGRESS' && (
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              updateStatusMutation.mutate({
-                                taskId: task.id,
-                                newStatus: 'IN_PROGRESS',
-                              });
-                            }}
-                            className="px-1.5 py-0.5 rounded bg-[var(--primary-soft)] hover:brightness-95 text-[var(--primary-text)] cursor-pointer text-[10px]"
-                          >
-                            In progress
-                          </button>
-                        )}
-                        {col.status !== 'DONE' && (
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              updateStatusMutation.mutate({ taskId: task.id, newStatus: 'DONE' });
-                            }}
-                            className="px-1.5 py-0.5 rounded bg-[rgba(14,133,80,0.15)] hover:bg-[rgba(14,133,80,0.25)] text-[var(--success-text)] cursor-pointer text-[10px]"
-                          >
-                            Done
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  </Card>
-                ))}
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       ) : (
         /* TABLE VIEW */
@@ -619,7 +868,7 @@ export function TasksPage() {
           <table className="w-full text-left text-[13px]">
             <thead className="bg-[var(--surface-raised)] border-b border-[var(--border)] text-[12px] font-medium text-[var(--muted-foreground)]">
               <tr>
-                <th className="py-2.5 px-4 w-12"></th>
+                <th className="py-2.5 px-4 w-12 text-center">Done</th>
                 <th className="py-2.5 px-4 w-28">ID</th>
                 <th className="py-2.5 px-4">Title</th>
                 <th className="py-2.5 px-4 w-36">Status</th>
@@ -722,6 +971,7 @@ export function TasksPage() {
                     })
                   }
                   className="h-8 text-[12px] min-w-[120px]"
+                  wrapperClassName="w-auto"
                   options={[
                     { value: 'TODO', label: 'To do' },
                     { value: 'IN_PROGRESS', label: 'In progress' },
@@ -750,6 +1000,7 @@ export function TasksPage() {
                     }
                   }}
                   className="h-8 text-[12px] min-w-[150px]"
+                  wrapperClassName="w-auto"
                   options={[
                     { value: 'unassigned', label: 'Unassigned' },
                     ...members.map((member) => ({

@@ -10,6 +10,8 @@ export function Breadcrumbs() {
 
   const getPageTitle = (seg: string) => {
     switch (seg) {
+      case 'work':
+        return 'All Work';
       case 'tasks':
         return 'Tasks';
       case 'bugs':
@@ -35,7 +37,7 @@ export function Breadcrumbs() {
 
   const firstSeg = pathSegments[0];
   const pageTitle = firstSeg ? getPageTitle(firstSeg) : 'Overview';
-  const showProject = Boolean(activeProject && (firstSeg === 'tasks' || firstSeg === 'bugs' || firstSeg === 'stickies'));
+  const showProject = Boolean(activeProject && (firstSeg === 'work' || firstSeg === 'tasks' || firstSeg === 'bugs' || firstSeg === 'stickies'));
 
   return (
     <nav aria-label="Breadcrumb" className="flex items-center gap-1.5 text-[13px] text-[var(--muted-foreground)]">

@@ -1,7 +1,7 @@
 import React from 'react';
 import { cn } from '@/lib/utils';
 
-export type PageContainerWidth = 'data' | 'form' | 'settings' | 'detail' | 'wide';
+export type PageContainerWidth = 'data' | 'form' | 'settings' | 'detail' | 'wide' | 'workspace';
 
 export interface PageContainerProps extends React.HTMLAttributes<HTMLDivElement> {
   width?: PageContainerWidth;
@@ -15,11 +15,12 @@ const WIDTH_CLASSES: Record<PageContainerWidth, string> = {
   settings: 'max-w-[1500px]',
   detail: 'max-w-[880px]',
   wide: 'max-w-none',
+  workspace: 'max-w-[1680px]',
 };
 
 export function PageContainer({
   width = 'data',
-  align = width === 'settings' || width === 'wide' ? 'left' : 'center',
+  align = width === 'settings' || width === 'wide' || width === 'workspace' ? 'left' : 'center',
   className,
   children,
   ...props

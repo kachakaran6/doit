@@ -7,6 +7,7 @@ import { UserMenu } from './UserMenu';
 import { NewProjectDialog } from './NewProjectDialog';
 import {
   LayoutDashboard,
+  Layers,
   CheckSquare,
   Bug,
   StickyNote,
@@ -38,6 +39,7 @@ export function Sidebar({
 
   const navItems = [
     { to: '/', label: 'Overview', icon: LayoutDashboard },
+    { to: '/work', label: 'All Work', icon: Layers },
     { to: '/tasks', label: 'Tasks', icon: CheckSquare },
     { to: '/bugs', label: 'Bug Queue', icon: Bug },
     { to: '/stickies', label: 'Stickies', icon: StickyNote },

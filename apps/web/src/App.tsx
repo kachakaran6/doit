@@ -8,6 +8,7 @@ import { ProtectedRoute } from './components/layout/ProtectedRoute';
 import { AppLayout } from './components/layout/AppLayout';
 import { AuthPage } from './pages/AuthPage';
 import { DashboardPage } from './pages/DashboardPage';
+import { AllWorkPage } from './pages/AllWorkPage';
 import { TasksPage } from './pages/TasksPage';
 import { BugsPage } from './pages/BugsPage';
 import { StickiesPage } from './pages/StickiesPage';
@@ -47,6 +48,7 @@ export function App() {
             <Route element={<ProtectedRoute />}>
               <Route path="/" element={<AppLayout />}>
                 <Route index element={<DashboardPage />} />
+                <Route path="work" element={<AllWorkPage />} />
                 <Route path="tasks" element={<TasksPage />} />
                 <Route path="bugs" element={<BugsPage />} />
                 <Route path="stickies" element={<StickiesPage />} />
