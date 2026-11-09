@@ -4,14 +4,16 @@ import { Sidebar } from './Sidebar';
 import { TopBar } from './TopBar';
 import { CommandPalette } from './CommandPalette';
 import { CreateModal, CreateType } from './CreateModal';
+import { useSidebarStore } from '@/lib/sidebar-store';
 
 export function AppLayout() {
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [createType, setCreateType] = useState<CreateType>('task');
+  const toggleSidebar = useSidebarStore((s) => s.toggle);
 
-  // Global ⌘K / Ctrl+K and 'c' shortcut handler
+  // Global ⌘K / Ctrl+K, ⌘B / Ctrl+B, and 'c' shortcut handler
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       // Don't intercept if inside input/textarea
@@ -23,6 +25,9 @@ export function AppLayout() {
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
         e.preventDefault();
         setSearchOpen((prev) => !prev);
+      } else if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'b') {
+        e.preventDefault();
+        toggleSidebar();
       } else if (e.key === 'c' && !e.metaKey && !e.ctrlKey) {
         e.preventDefault();
         setCreateType('task');
@@ -32,7 +37,7 @@ export function AppLayout() {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, []);
+  }, [toggleSidebar]);
 
   const handleOpenCreate = (type: CreateType) => {
     setCreateType(type);

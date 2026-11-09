@@ -7,7 +7,7 @@ import { Avatar } from '@/components/ui/avatar';
 import { Settings, LogOut, Sun, Moon, Laptop, ChevronUp } from 'lucide-react';
 import { useToast } from '@/components/ui/toast';
 
-export function UserMenu() {
+export function UserMenu({ collapsed = false }: { collapsed?: boolean }) {
   const navigate = useNavigate();
   const { user, logout } = useAuthStore();
   const activeWorkspace = useWorkspaceStore((s) => s.activeWorkspace);
@@ -45,29 +45,42 @@ export function UserMenu() {
       <button
         type="button"
         onClick={() => setOpen(!open)}
-        className="w-full flex items-center justify-between p-2 rounded-xl hover:bg-[var(--sidebar-accent)] transition-colors text-left cursor-pointer group"
+        className={`w-full flex items-center ${
+          collapsed ? 'justify-center' : 'justify-between'
+        } p-2 rounded-xl hover:bg-[var(--sidebar-accent)] transition-colors text-left cursor-pointer group relative`}
         aria-label="User account menu"
       >
-        <div className="flex items-center gap-2.5 min-w-0">
+        <div className={`flex items-center ${collapsed ? 'justify-center' : 'gap-2.5 min-w-0 flex-1'}`}>
           <Avatar name={displayName} email={user?.email} size="sm" />
-          <div className="min-w-0 flex-1">
-            <div className="text-[13px] font-semibold text-[var(--foreground)] truncate leading-tight">
-              {displayName}
+          {!collapsed && (
+            <div className="min-w-0 flex-1">
+              <div className="text-[13px] font-semibold text-[var(--foreground)] truncate leading-tight">
+                {displayName}
+              </div>
+              <div className="text-[11px] text-[var(--muted-foreground)] leading-tight truncate">
+                {user?.email || 'Signed in'}
+              </div>
             </div>
-            <div className="text-[11px] text-[var(--muted-foreground)] leading-tight truncate">
-              {user?.email || 'Signed in'}
-            </div>
-          </div>
+          )}
         </div>
-        <ChevronUp
-          className={`w-4 h-4 text-[var(--muted-foreground)] shrink-0 transition-transform duration-150 group-hover:text-[var(--foreground)] ${
-            open ? 'rotate-180' : ''
-          }`}
-        />
+        {!collapsed && (
+          <ChevronUp
+            className={`w-4 h-4 text-[var(--muted-foreground)] shrink-0 transition-transform duration-150 group-hover:text-[var(--foreground)] ${
+              open ? 'rotate-180' : ''
+            }`}
+          />
+        )}
+
+        {/* Tooltip for collapsed mode */}
+        {collapsed && (
+          <div className="absolute left-full ml-3 px-2.5 py-1 rounded-md bg-[var(--foreground)] text-[var(--background)] text-[12px] font-medium shadow-lg whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity z-50">
+            {displayName}
+          </div>
+        )}
       </button>
 
       {open && (
-        <div className="absolute bottom-full left-0 mb-2 w-60 rounded-xl bg-[var(--popover)] text-[var(--popover-foreground)] shadow-xl border border-[var(--border)] p-1.5 z-50 animate-in fade-in zoom-in-95 duration-100 space-y-1">
+        <div className={`absolute bottom-full ${collapsed ? 'left-2' : 'left-0'} mb-2 w-60 rounded-xl bg-[var(--popover)] text-[var(--popover-foreground)] shadow-xl border border-[var(--border)] p-1.5 z-50 animate-in fade-in zoom-in-95 duration-100 space-y-1`}>
           {/* User Info Header */}
           <div className="px-2.5 py-2 border-b border-[var(--border)]">
             <div className="text-[13px] font-semibold text-[var(--foreground)] truncate">
