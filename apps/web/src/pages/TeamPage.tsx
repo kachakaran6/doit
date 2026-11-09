@@ -32,7 +32,7 @@ export function TeamPage() {
   const [inviteModalOpen, setInviteModalOpen] = useState(false);
   const [inviteTab, setInviteTab] = useState<'email' | 'link'>('email');
   const [inviteEmail, setInviteEmail] = useState('');
-  const [inviteRole, setInviteRole] = useState<'ADMIN' | 'MEMBER' | 'TESTER' | 'VIEWER'>('MEMBER');
+  const [inviteRole, setInviteRole] = useState<'ADMIN' | 'TESTER' | 'VIEWER'>('TESTER');
   const [inviteExpiresDays, setInviteExpiresDays] = useState(7);
   const [generatedLink, setGeneratedLink] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
@@ -156,6 +156,7 @@ export function TeamPage() {
         <Button size="sm" onClick={() => {
           setGeneratedLink(null);
           setInviteEmail('');
+          setInviteRole('TESTER');
           setInviteModalOpen(true);
         }}>
           <UserPlus className="w-4 h-4 mr-1.5" />
@@ -205,7 +206,7 @@ export function TeamPage() {
                     {/* Role changer for non-owners */}
                     {member.role !== 'OWNER' ? (
                       <ShadcnSelect
-                        value={member.role}
+                        value={member.role === 'MEMBER' ? 'TESTER' : member.role}
                         onChange={(newRole) =>
                           updateRoleMutation.mutate({
                             memberId: member.id,
@@ -215,7 +216,6 @@ export function TeamPage() {
                         className="h-8 text-[12px] min-w-[110px]"
                         options={[
                           { value: 'ADMIN', label: 'Admin' },
-                          { value: 'MEMBER', label: 'Member' },
                           { value: 'TESTER', label: 'Tester' },
                           { value: 'VIEWER', label: 'Viewer' },
                         ]}
@@ -377,7 +377,6 @@ export function TeamPage() {
                   onChange={(val) => setInviteRole(val as any)}
                   options={[
                     { value: 'ADMIN', label: 'Admin' },
-                    { value: 'MEMBER', label: 'Member' },
                     { value: 'TESTER', label: 'Tester' },
                     { value: 'VIEWER', label: 'Viewer' },
                   ]}

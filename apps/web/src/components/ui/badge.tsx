@@ -146,11 +146,11 @@ export function SeverityBadge({ severity, className }: { severity?: string | nul
  * Role Badge (OWNER, ADMIN, MEMBER, TESTER, VIEWER)
  */
 export function RoleBadge({ role, className }: { role?: string | null; className?: string }) {
-  const r = (role || 'MEMBER').toUpperCase();
+  const raw = (role || 'TESTER').toUpperCase();
+  const r = raw === 'MEMBER' ? 'TESTER' : raw;
   const tones: Record<string, BadgeProps['variant']> = {
     OWNER: 'accent',
     ADMIN: 'violet',
-    MEMBER: 'neutral',
     TESTER: 'warning',
     VIEWER: 'neutral',
   };

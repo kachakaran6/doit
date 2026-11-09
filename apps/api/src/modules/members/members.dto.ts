@@ -1,6 +1,13 @@
 import { z } from 'zod';
 
-export const RoleEnum = z.enum(['ADMIN', 'TESTER', 'VIEWER']);
+export const RoleEnum = z.preprocess((v) => {
+  if (typeof v === 'string') {
+    const upper = v.toUpperCase();
+    if (upper === 'MEMBER') return 'TESTER';
+    return upper;
+  }
+  return v;
+}, z.enum(['ADMIN', 'TESTER', 'VIEWER']));
 
 export const InviteMemberSchema = z.object({
   email: z.string().email().optional().nullable(),
