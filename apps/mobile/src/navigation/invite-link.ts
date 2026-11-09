@@ -4,6 +4,19 @@
  */
 const PLACEHOLDERS = new Set(['undefined', 'null', 'invite', '']);
 const consumedTokens = new Set<string>();
+let pendingInviteToken: string | null = null;
+
+export function setPendingInviteToken(token: string | null | undefined): void {
+  pendingInviteToken = token ? token.trim() : null;
+}
+
+export function getPendingInviteToken(): string | null {
+  return pendingInviteToken;
+}
+
+export function clearPendingInviteToken(): void {
+  pendingInviteToken = null;
+}
 
 export function markInviteTokenConsumed(token: string | null | undefined): void {
   if (!token) return;

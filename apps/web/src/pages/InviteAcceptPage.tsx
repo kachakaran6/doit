@@ -1,6 +1,12 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { AlertTriangle, ArrowRight, Building } from 'lucide-react';
+import {
+  AlertTriangle,
+  ArrowRight,
+  Building,
+  Smartphone,
+  Download,
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
@@ -8,6 +14,9 @@ import { RoleBadge } from '@/components/ui/badge';
 import { api, getAuthToken, setTokens } from '@/lib/api';
 import { useThemeStore } from '@/lib/theme-store';
 import { useAuthStore } from '@/lib/auth-store';
+
+const PLAY_STORE_URL = 'https://play.google.com/store/apps/details?id=com.samyukt.doit';
+const APP_PACKAGE = 'com.samyukt.doit';
 
 export function InviteAcceptPage() {
   const { token } = useParams<{ token: string }>();
@@ -30,6 +39,21 @@ export function InviteAcceptPage() {
   const [accepting, setAccepting] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
+  // Mobile detection & preference
+  const isMobile =
+    typeof navigator !== 'undefined' &&
+    /Android|iPhone|iPad|iPod|webOS|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+  const isAndroid = typeof navigator !== 'undefined' && /Android/i.test(navigator.userAgent);
+
+  const [preferWeb, setPreferWeb] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const p = new URLSearchParams(window.location.search);
+      return p.get('web') === '1' || !isMobile;
+    }
+    return true;
+  });
+  const [attemptedAutoOpen, setAttemptedAutoOpen] = useState(false);
+
   // Unauthenticated auth form state
   const [authTab, setAuthTab] = useState<'register' | 'login'>('register');
   const [email, setEmail] = useState('');
@@ -39,11 +63,38 @@ export function InviteAcceptPage() {
 
   const isDarkMode =
     mode === 'dark' ||
-    (mode === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+    (mode === 'system' && typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+
+  const appDeepLink = `doit://invite/${token || ''}`;
+  const androidIntentUrl = `intent://invite/${token || ''}#Intent;scheme=doit;package=${APP_PACKAGE};S.browser_fallback_url=${encodeURIComponent(
+    PLAY_STORE_URL
+  )};end;`;
+
+  const handleOpenInApp = () => {
+    if (!token) return;
+    if (isAndroid) {
+      // Chrome Intent URI opens DoIt app if installed, or falls back to Google Play Store
+      window.location.href = androidIntentUrl;
+    } else {
+      // iOS or standard custom scheme
+      window.location.href = appDeepLink;
+    }
+  };
 
   useEffect(() => {
     checkTokenAndAuth();
   }, [token]);
+
+  // Automatic app launch attempt on mobile when token is validated
+  useEffect(() => {
+    if (isMobile && valid && token && !preferWeb && !attemptedAutoOpen) {
+      setAttemptedAutoOpen(true);
+      const timer = setTimeout(() => {
+        handleOpenInApp();
+      }, 700);
+      return () => clearTimeout(timer);
+    }
+  }, [isMobile, valid, token, preferWeb, attemptedAutoOpen]);
 
   const checkTokenAndAuth = async () => {
     if (!token) {
@@ -168,7 +219,62 @@ export function InviteAcceptPage() {
               Go to sign in
             </Button>
           </Card>
+        ) : isMobile && !preferWeb ? (
+          /* Mobile App Direct Launch Experience */
+          <Card variant="bordered" className="p-6 text-center space-y-5 shadow-lg">
+            <div className="flex flex-col items-center">
+              <img
+                src="/app-icon-rounded.svg"
+                alt="DoIt"
+                className="w-16 h-16 rounded-2xl shadow-md mb-3"
+              />
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[var(--primary-soft)] text-[var(--primary-text)] text-[12px] font-semibold mb-2">
+                <Building className="w-3.5 h-3.5" />
+                <span>Workspace Invitation</span>
+              </div>
+              <h2 className="text-[20px] font-bold text-[var(--foreground)] tracking-tight">
+                Join {inviteData?.workspace?.name || 'DoIt Workspace'}
+              </h2>
+              <p className="text-[13px] text-[var(--muted-foreground)] mt-1">
+                <span className="font-semibold text-[var(--foreground)]">{inviteData?.invitedBy || 'A teammate'}</span> invited you as a{' '}
+                <RoleBadge role={inviteData?.role || 'MEMBER'} className="inline-flex ml-0.5" />
+              </p>
+            </div>
+
+            <div className="space-y-3 pt-2">
+              <Button
+                size="lg"
+                variant="primary"
+                onClick={handleOpenInApp}
+                className="w-full gap-2 text-[15px] font-semibold shadow-md py-3 cursor-pointer"
+              >
+                <Smartphone className="w-5 h-5" />
+                <span>Open in DoIt App</span>
+              </Button>
+
+              <a
+                href={PLAY_STORE_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center justify-center gap-2 w-full py-2.5 px-4 rounded-xl border border-[var(--border)] bg-[var(--card)] hover:bg-[var(--accent)] text-[13px] font-semibold text-[var(--foreground)] transition-colors cursor-pointer shadow-2xs"
+              >
+                <Download className="w-4 h-4 text-[var(--primary-text)]" />
+                <span>Download on Google Play</span>
+              </a>
+
+              <div className="pt-2 border-t border-[var(--border)]/60">
+                <button
+                  type="button"
+                  onClick={() => setPreferWeb(true)}
+                  className="text-[12px] text-[var(--muted-foreground)] hover:text-[var(--foreground)] underline underline-offset-4 cursor-pointer"
+                >
+                  Or continue in browser (Web)
+                </button>
+              </div>
+            </div>
+          </Card>
         ) : (
+          /* Web Acceptance / Onboarding Form */
           <Card variant="bordered" className="p-6 space-y-5">
             <div className="text-center space-y-1">
               <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[var(--primary-soft)] text-[var(--primary-text)] text-[12px] font-semibold mb-2">
@@ -181,6 +287,21 @@ export function InviteAcceptPage() {
               <p className="text-[13px] text-[var(--muted-foreground)]">
                 You've been invited as a <RoleBadge role={inviteData?.role || 'MEMBER'} className="inline-flex ml-1" />
               </p>
+            </div>
+
+            {/* Mobile App Banner on Web View */}
+            <div className="p-3 rounded-xl bg-[var(--muted)]/50 border border-[var(--border)] flex items-center justify-between gap-3 text-[12px]">
+              <div className="flex items-center gap-2 min-w-0">
+                <Smartphone className="w-4 h-4 text-[var(--primary-text)] shrink-0" />
+                <span className="truncate text-[var(--foreground)] font-medium">Using your phone?</span>
+              </div>
+              <button
+                type="button"
+                onClick={handleOpenInApp}
+                className="text-[var(--primary-text)] hover:underline font-semibold shrink-0 cursor-pointer"
+              >
+                Open mobile app →
+              </button>
             </div>
 
             {errorMsg && (

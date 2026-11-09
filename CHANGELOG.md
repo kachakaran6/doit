@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.3.6] - 2026-11-10 — Seamless Mobile Invite Deep Linking & One-Screen Onboarding
+
+### Added
+- **Smart App Launch on Web Invitation Page (`/invite/:token`)**:
+  - Automatic mobile detection with direct Android Intent launch (`intent://invite/...`).
+  - Automatically launches the installed DoIt mobile app directly into the workspace invitation screen.
+  - Automatic fallback to Google Play Store if the application is not installed on the user's phone.
+  - Dedicated "Open in DoIt App", "Download on Google Play", and "Continue in browser" CTA buttons.
+- **Mobile One-Screen Invitation Onboarding**:
+  - Unauthenticated users can now create an account or sign in directly within `InviteAcceptScreen` without navigating away.
+  - Immediate invitation acceptance upon authentication with instant entry into the invited workspace.
+  - Pending invite token queue in `LoginScreen` for automatic workspace acceptance after standard authentication.
+
+### Changed
+- Bumped mobile version to `0.3.6` (versionCode `38`).
+
+---
+
 ## [0.3.5] - 2026-11-10 — Web Workspace UI Upgrade, Kanban DnD & All Work Hub
 
 ### Added

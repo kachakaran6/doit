@@ -6,6 +6,12 @@ import { useTheme } from '../../../theme/useTheme';
 import { useLoginMutation, useRegisterMutation } from '../api/mutations';
 import { CheckCircle2, ShieldCheck, Server, RefreshCw } from 'lucide-react-native';
 import { http } from '../../../lib/http';
+import {
+  getPendingInviteToken,
+  markInviteTokenConsumed,
+  clearPendingInviteToken,
+} from '../../../navigation/invite-link';
+import { useWorkspaceStore } from '../../workspace/store';
 
 export const LoginScreen: React.FC = () => {
   const { colors, spacing, radius, elevation } = useTheme();
@@ -62,6 +68,19 @@ export const LoginScreen: React.FC = () => {
           email: email.trim(),
           password,
         });
+      }
+
+      // Automatically accept pending invite token if one was queued
+      const pendingToken = getPendingInviteToken();
+      if (pendingToken) {
+        try {
+          await http.post('/invitations/accept', { token: pendingToken });
+          markInviteTokenConsumed(pendingToken);
+          clearPendingInviteToken();
+          await useWorkspaceStore.getState().fetchAndInitializeWorkspaces();
+        } catch {
+          // If already accepted or invalid, ignore
+        }
       }
     } catch (err: any) {
       setErrorMessage(err.message || 'Authentication failed. Please check your credentials.');
