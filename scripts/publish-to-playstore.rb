@@ -7,6 +7,9 @@ version_name = ARGV[2] || '0.2.9'
 build_number = ARGV[3] || '29'
 
 service = Google::Apis::AndroidpublisherV3::AndroidPublisherService.new
+service.client_options.open_timeout_sec = 600
+service.client_options.read_timeout_sec = 600
+service.client_options.send_timeout_sec = 600
 key_file = 'K:/Doit/apps/mobile/android/fastlane/api-key.json'
 auth = Google::Auth::ServiceAccountCredentials.make_creds(
   json_key_io: File.open(key_file),
