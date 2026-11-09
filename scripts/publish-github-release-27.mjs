@@ -19,6 +19,8 @@ const RELEASE_NAME = 'DoIt v0.2.7 — Build 27 (Play Store Readiness: Native In-
 const APK_SOURCE = 'K:/Doit/apps/mobile/android/app/build/outputs/apk/release/app-release.apk';
 const APK_TARGET = 'K:/Doit/release-builds/DoIt-v0.2.7-build27.apk';
 const SHA_TARGET = 'K:/Doit/release-builds/DoIt-v0.2.7-build27.apk.sha256';
+const AAB_SOURCE = 'K:/Doit/apps/mobile/android/app/build/outputs/bundle/release/app-release.aab';
+const AAB_TARGET = 'K:/Doit/release-builds/DoIt-v0.2.7-build27.aab';
 
 const RELEASE_BODY = `## DoIt v0.2.7 — Release Build 27 (Samyukt Android Ecosystem & Play Store Ready)
 
@@ -75,12 +77,22 @@ async function main() {
   fs.writeFileSync(SHA_TARGET, `${hash}  DoIt-v0.2.7-build27.apk\n`, 'utf-8');
   console.log('SHA256:', hash);
 
+  const releaseAssets = [`"${APK_TARGET}"`, `"${SHA_TARGET}"`];
+  if (fs.existsSync(AAB_SOURCE)) {
+    console.log('Copying AAB bundle...');
+    fs.copyFileSync(AAB_SOURCE, AAB_TARGET);
+    releaseAssets.push(`"${AAB_TARGET}"`);
+  } else if (fs.existsSync(AAB_TARGET)) {
+    releaseAssets.push(`"${AAB_TARGET}"`);
+  }
+
   console.log('4. Creating GitHub Release via gh CLI...');
   const tempNotesFile = 'K:/Doit/release-notes-27.md';
   fs.writeFileSync(tempNotesFile, RELEASE_BODY, 'utf-8');
 
   try {
-    const cmd = `gh release create "${TAG}" "${APK_TARGET}" "${SHA_TARGET}" --title "${RELEASE_NAME}" --notes-file "${tempNotesFile}" --target main --latest`;
+    const assetsStr = releaseAssets.join(' ');
+    const cmd = `gh release create "${TAG}" ${assetsStr} --title "${RELEASE_NAME}" --notes-file "${tempNotesFile}" --target main --latest`;
     console.log('Executing:', cmd);
     const out = execSync(cmd, { stdio: 'pipe' }).toString();
     console.log('Release created successfully:\n', out);
@@ -98,3 +110,4 @@ main().catch((e) => {
   console.error(e);
   process.exit(1);
 });
+

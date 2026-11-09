@@ -66,7 +66,7 @@ export function useCreateTaskMutation(projectId: string = 'default') {
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: taskKeys.lists() });
-      playReviewService.recordEngagement().catch(() => {});
+      playReviewService.recordEngagement().catch(() => { });
     },
   });
 }
@@ -162,7 +162,7 @@ export function useDeleteTaskMutation(projectId: string = 'default') {
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: taskKeys.lists() });
-      playReviewService.recordEngagement().catch(() => {});
+      playReviewService.recordEngagement().catch(() => { });
     },
   });
 }
