@@ -6,7 +6,7 @@
   "scripts": {
     "build": "turbo run build && node scripts/sync-packages.mjs",
     "dev": "turbo run dev",
-    "lint": "eslint \"**/*.ts\" \"**/*.tsx\" --ignore-pattern \"docs/**\" --ignore-pattern \"doit-*/**\" --ignore-pattern \"apps/mobile/android/**\" --ignore-pattern \"apps/mobile/ios/**\"",
+    "lint": "eslint \"**/*.ts\" \"**/*.tsx\" --ignore-pattern \"docs/**\" --ignore-pattern \"apps/mobile/android/**\" --ignore-pattern \"apps/mobile/ios/**\"",
     "typecheck": "turbo run typecheck",
     "test": "turbo run test",
     "format": "prettier --write \"**/*.{ts,tsx,js,json,md}\"",

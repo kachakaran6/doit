@@ -1,5 +1,0 @@
-[
-  { "op": "GET /health", "reason": "infra probe, no UI" },
-  { "op": "POST /auth/refresh", "reason": "silent refresh handled by the auth layer" },
-  { "op": "POST /auth/ws-ticket", "reason": "realtime client only" }
-]

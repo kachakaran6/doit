@@ -1,7 +1,10 @@
 # Ignore other apps and documentation in EAS build tarball
 apps/web/
 docs/
-assests/
+assets/
+playstore-assets/
+infrastructure/
+release-builds/
 *.apk
 *.aab
 dist/

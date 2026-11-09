@@ -7,6 +7,46 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.3.5] - 2026-11-10 — Web Workspace UI Upgrade, Kanban DnD & All Work Hub
+
+### Added
+- **Unified All Work Hub (`/work`)**:
+  - Combined stream of tasks and bug reports across the workspace or filtered by project.
+  - Multi-criteria filtering by type, status, priority, severity, and project.
+  - Responsive dual-view modes: Structured Table view and scannable List view.
+  - Interactive item detail drawer with AI solution prompt generation.
+- **HTML5 Drag-and-Drop Kanban Board**:
+  - Smooth native drag-and-drop on the Tasks board (`TODO`, `IN_PROGRESS`, `DONE`).
+  - Optimistic updates in React Query cache with automatic rollback on network failure.
+  - Animated drop targets with dashed column placeholders.
+- **Purposeful Stickies Canvas**:
+  - Inline Quick Compose Sticky Card with immediate note taking, color picking, and `Ctrl+Enter` save.
+  - Pinned filter and text search in toolbar.
+- **Accessibility & Compliance**:
+  - Google Play Store prominent disclosure dialog for Android Accessibility Service screen capture.
+  - Verification walkthrough video archived in `playstore-assets/accessibility_disclosure.mp4`.
+
+### Changed
+- Replaced cluttered multi-row filters on Tasks page with a clean horizontal workspace toolbar.
+- Added row density toggle (Comfortable vs Compact) for high-density task lists.
+- Master-detail proportions on Bug Queue: 42% queue list and 58% inspector with compact screenshot lightbox.
+- Removed global header `+ New task` button in favor of contextual in-page and floating action buttons.
+
+---
+
+## [0.2.3] - 2026-11-08 — Deep Link Lifecycle & UI Redesign Alignment
+
+### Fixed
+- **Native Intent Lifecycle & Deep Link Routing**:
+  - Resolved "Invitation Unavailable / Error" screen on cold start and task resume.
+  - Handled intent clearing in `MainActivity.kt` across `onCreate`, `onNewIntent`, and `onPause`.
+  - Added token consumption tracking preventing re-triggering of handled invitation tokens.
+- **UI Design System Alignment**:
+  - Centralized design token usage across mobile light and dark themes.
+  - Fixed web workspace switcher layout shift and removed duplicate page headings.
+
+---
+
 ## [0.1.0+3] - 2026-11-02 — Native Floating Bubble & Accelerometer Shake Architecture Fix
 
 ### Fixed & Implemented

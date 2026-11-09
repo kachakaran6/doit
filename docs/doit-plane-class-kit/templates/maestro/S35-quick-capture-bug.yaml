@@ -1,7 +1,0 @@
-appId: com.samyukt.doit
----
-- launchApp
-- tapOn: "New"                        # the + button (use an id/accessibility label in the app: "create-button")
-- tapOn: "Bug"
-- assertVisible: "Severity"           # only the Bug form shows this -> proves the mode really switched
-- takeScreenshot: S35-quick-capture-bug

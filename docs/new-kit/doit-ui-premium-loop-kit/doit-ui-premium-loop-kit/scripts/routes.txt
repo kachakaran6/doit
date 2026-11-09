@@ -1,8 +1,0 @@
-# name|deep link  (adjust to the app's real routes; set light/dark via adb: `adb shell cmd uimode night yes|no`)
-home|doit://home
-tasks|doit://tasks
-bugs|doit://bugs
-search|doit://search
-new-task|doit://new?type=task
-settings|doit://settings
-account|doit://account

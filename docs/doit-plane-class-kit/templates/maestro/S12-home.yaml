@@ -1,8 +1,0 @@
-# One flow per screen. Pattern: deterministic navigation -> assertVisible (unique text) -> screenshot.
-appId: com.samyukt.doit
----
-- launchApp:
-    clearState: false
-- assertVisible: "Today"            # text unique to Home
-- assertVisible: "Your work"
-- takeScreenshot: S12-home
