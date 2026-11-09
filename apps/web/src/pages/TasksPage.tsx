@@ -26,7 +26,81 @@ import {
   Paperclip,
   Trash2,
   BookOpen,
+  Image as ImageIcon,
+  Mic,
+  Maximize2,
+  ExternalLink,
 } from 'lucide-react';
+
+function TaskScreenshotCard({
+  attachment,
+  onExpand,
+}: {
+  attachment: any;
+  onExpand: (url: string) => void;
+}) {
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
+
+  const rawUrl = attachment.url || attachment.thumbUrl;
+  const resolvedUrl = rawUrl ? resolveAttachmentUrl(rawUrl) : null;
+
+  if (!resolvedUrl) return null;
+
+  return (
+    <div
+      onClick={() => !error && onExpand(resolvedUrl)}
+      className={`relative rounded-xl overflow-hidden border border-[var(--border)] bg-black/60 aspect-video flex items-center justify-center transition-all ${
+        !error ? 'cursor-pointer hover:border-[var(--primary)] group' : ''
+      }`}
+    >
+      {loading && !error && (
+        <div className="absolute inset-0 flex items-center justify-center bg-[var(--surface-raised)]/80 z-10">
+          <Skeleton className="w-full h-full" />
+        </div>
+      )}
+
+      {error ? (
+        <div className="flex flex-col items-center justify-center gap-2 p-4 text-center">
+          <ImageIcon className="w-8 h-8 opacity-40 text-[var(--muted-foreground)]" />
+          <span className="text-[12px] text-[var(--muted-foreground)]">
+            Unable to preview screenshot in this frame
+          </span>
+          <a
+            href={resolvedUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1 text-[11px] text-[var(--primary-text)] hover:underline"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <span>Open directly</span>
+            <ExternalLink className="w-3 h-3" />
+          </a>
+        </div>
+      ) : (
+        <img
+          src={resolvedUrl}
+          alt={attachment.name || 'Task Screenshot'}
+          onLoad={() => setLoading(false)}
+          onError={() => {
+            setLoading(false);
+            setError(true);
+          }}
+          className={`w-full h-full object-contain transition-opacity duration-200 ${
+            loading ? 'opacity-0' : 'opacity-100'
+          }`}
+        />
+      )}
+
+      {!loading && !error && (
+        <div className="absolute bottom-2 right-2 px-2 py-0.5 rounded-md bg-black/70 backdrop-blur-sm text-[10px] text-white flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+          <Maximize2 className="w-2.5 h-2.5" />
+          <span>Click to expand</span>
+        </div>
+      )}
+    </div>
+  );
+}
 
 export function TasksPage() {
   const { activeProject, projects, setActiveProject, labels, activeWorkspace } = useWorkspaceStore();
@@ -38,6 +112,7 @@ export function TasksPage() {
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
   const [priorityFilter, setPriorityFilter] = useState<string>('ALL');
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
+  const [lightboxImage, setLightboxImage] = useState<string | null>(null);
   const [contextModalOpen, setContextModalOpen] = useState(false);
 
   const pId = activeProject?.id || projects[0]?.id;
@@ -55,12 +130,52 @@ export function TasksPage() {
     enabled: Boolean(pId),
   });
 
+  // 1.1 Fetch detailed task info when selected (including all attachments & presigned URLs)
+  const { data: taskDetail } = useQuery({
+    queryKey: ['task', selectedTask?.id],
+    queryFn: () => (selectedTask?.id ? api.tasks.get(selectedTask.id) : null),
+    enabled: Boolean(selectedTask?.id),
+  });
+
+  const activeTask = taskDetail || selectedTask;
+
+  const imageAttachments = useMemo(() => {
+    if (!activeTask?.attachments) return [];
+    return activeTask.attachments.filter(
+      (a: any) =>
+        a.kind === 'IMAGE' ||
+        a.mimeType?.startsWith('image/') ||
+        a.url?.match(/\.(png|jpg|jpeg|webp|gif|svg)$/i) ||
+        a.thumbUrl?.match(/\.(png|jpg|jpeg|webp|gif|svg)$/i)
+    );
+  }, [activeTask]);
+
+  const audioAttachments = useMemo(() => {
+    if (!activeTask?.attachments) return [];
+    return activeTask.attachments.filter(
+      (a: any) =>
+        a.kind === 'AUDIO' ||
+        a.mimeType?.startsWith('audio/') ||
+        a.url?.match(/\.(mp3|wav|m4a|aac|ogg|webm)$/i)
+    );
+  }, [activeTask]);
+
+  const otherAttachments = useMemo(() => {
+    if (!activeTask?.attachments) return [];
+    return activeTask.attachments.filter(
+      (a: any) =>
+        !imageAttachments.some((img: any) => img.id === a.id) &&
+        !audioAttachments.some((aud: any) => aud.id === a.id)
+    );
+  }, [activeTask, imageAttachments, audioAttachments]);
+
   // 2. Status Mutation
   const updateStatusMutation = useMutation({
     mutationFn: ({ taskId, newStatus }: { taskId: string; newStatus: string }) =>
       api.tasks.updateStatus(taskId, newStatus),
     onSuccess: (updated) => {
       queryClient.invalidateQueries({ queryKey: ['tasks'] });
+      queryClient.invalidateQueries({ queryKey: ['task', updated.id] });
       if (selectedTask?.id === updated.id) {
         setSelectedTask(updated);
       }
@@ -317,15 +432,26 @@ export function TasksPage() {
                       </span>
 
                       {/* [title minmax(240px, 1fr)] */}
-                      <span
-                        className={`flex-1 min-w-[200px] max-w-[65ch] truncate font-medium ${
-                          task.status === 'DONE'
-                            ? 'line-through text-[var(--muted-foreground)]'
-                            : 'text-[var(--foreground)]'
-                        }`}
-                      >
-                        {task.title}
-                      </span>
+                      <div className="flex-1 min-w-[200px] max-w-[65ch] flex items-center gap-2 truncate">
+                        <span
+                          className={`truncate font-medium ${
+                            task.status === 'DONE'
+                              ? 'line-through text-[var(--muted-foreground)]'
+                              : 'text-[var(--foreground)]'
+                          }`}
+                        >
+                          {task.title}
+                        </span>
+                        {((task.attachments && task.attachments.length > 0) || ((task as any)._count?.attachments > 0)) && (
+                          <span
+                            title="Has attachments / screenshots"
+                            className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium bg-[var(--muted)] text-[var(--muted-foreground)] shrink-0"
+                          >
+                            <ImageIcon className="w-3 h-3 text-[var(--primary-text)]" />
+                            <span>{task.attachments?.length || (task as any)._count?.attachments}</span>
+                          </span>
+                        )}
+                      </div>
 
                       {/* [labels max 180] */}
                       <div className="hidden md:flex items-center gap-1 max-w-[180px] shrink-0 overflow-hidden">
@@ -416,7 +542,18 @@ export function TasksPage() {
                   >
                     <div className="flex items-center justify-between text-[11px] text-[var(--muted-foreground)]">
                       <span className="font-mono font-semibold">{task.humanId}</span>
-                      <PriorityBadge priority={task.priority} />
+                      <div className="flex items-center gap-1.5">
+                        {((task.attachments && task.attachments.length > 0) || ((task as any)._count?.attachments > 0)) && (
+                          <span
+                            title="Has attachments / screenshots"
+                            className="inline-flex items-center gap-0.5 px-1 py-0.2 rounded text-[10px] font-medium bg-[var(--muted)] text-[var(--muted-foreground)]"
+                          >
+                            <ImageIcon className="w-2.5 h-2.5 text-[var(--primary-text)]" />
+                            <span>{task.attachments?.length || (task as any)._count?.attachments}</span>
+                          </span>
+                        )}
+                        <PriorityBadge priority={task.priority} />
+                      </div>
                     </div>
 
                     <h4 className="text-[13px] font-medium text-[var(--foreground)] leading-snug">
@@ -530,21 +667,21 @@ export function TasksPage() {
       )}
 
       {/* PEEK PANEL (Slide-over Details) */}
-      {selectedTask && (
-        <div className="fixed inset-y-0 right-0 z-50 w-full max-w-md bg-[var(--card)] shadow-2xl border-l border-[var(--border)] flex flex-col animate-in slide-in-from-right duration-200">
+      {activeTask && (
+        <div className="fixed inset-y-0 right-0 z-50 w-full max-w-md sm:max-w-lg bg-[var(--card)] shadow-2xl border-l border-[var(--border)] flex flex-col animate-in slide-in-from-right duration-200">
           {/* Header */}
           <div className="p-4 border-b border-[var(--border)] flex items-center justify-between">
             <div className="flex items-center gap-2">
               <span className="font-mono text-[12px] font-semibold text-[var(--muted-foreground)]">
-                {selectedTask.humanId}
+                {activeTask.humanId}
               </span>
-              <StatusBadge status={selectedTask.status} />
+              <StatusBadge status={activeTask.status} />
             </div>
             <div className="flex items-center gap-1">
               <Button
                 variant="ghost"
                 size="icon-sm"
-                onClick={() => deleteTaskMutation.mutate(selectedTask.id)}
+                onClick={() => deleteTaskMutation.mutate(activeTask.id)}
                 className="text-[var(--danger-text)] hover:bg-[rgba(201,60,53,0.1)]"
                 title="Delete task"
               >
@@ -565,7 +702,7 @@ export function TasksPage() {
           <div className="p-5 flex-1 overflow-y-auto space-y-6">
             <div>
               <h2 className="text-[17px] font-semibold text-[var(--foreground)] leading-snug">
-                {selectedTask.title}
+                {activeTask.title}
               </h2>
             </div>
 
@@ -574,10 +711,10 @@ export function TasksPage() {
               <div className="flex items-center justify-between">
                 <span className="text-[var(--muted-foreground)]">Status</span>
                 <ShadcnSelect
-                  value={selectedTask.status}
+                  value={activeTask.status}
                   onChange={(newStatus) =>
                     updateStatusMutation.mutate({
-                      taskId: selectedTask.id,
+                      taskId: activeTask.id,
                       newStatus,
                     })
                   }
@@ -592,18 +729,18 @@ export function TasksPage() {
 
               <div className="flex items-center justify-between">
                 <span className="text-[var(--muted-foreground)]">Priority</span>
-                <PriorityBadge priority={selectedTask.priority} />
+                <PriorityBadge priority={activeTask.priority} />
               </div>
 
               <div className="flex items-center justify-between gap-3">
                 <span className="text-[var(--muted-foreground)]">Assignee</span>
                 <ShadcnSelect
-                  value={selectedTask.assigneeId || 'unassigned'}
+                  value={activeTask.assigneeId || 'unassigned'}
                   onChange={async (newVal) => {
                     const assigneeId = newVal === 'unassigned' ? null : newVal;
                     try {
-                      await api.tasks.assign(selectedTask.id, assigneeId);
-                      setSelectedTask({ ...selectedTask, assigneeId });
+                      await api.tasks.assign(activeTask.id, assigneeId);
+                      setSelectedTask((prev) => (prev ? { ...prev, assigneeId } : null));
                       success('Assignee updated', '');
                     } catch (err: any) {
                       error('Could not assign', err.message);
@@ -619,11 +756,12 @@ export function TasksPage() {
                   ]}
                 />
               </div>
+
               <div className="space-y-1">
                 <span className="text-[var(--muted-foreground)]">Labels</span>
                 <div className="flex flex-wrap gap-1">
                   {labels.map((label) => {
-                    const on = selectedTask.labels?.some((entry) => entry.label?.id === label.id || entry.id === label.id);
+                    const on = activeTask.labels?.some((entry) => entry.label?.id === label.id || entry.id === label.id);
                     return (
                       <button
                         key={label.id}
@@ -631,17 +769,23 @@ export function TasksPage() {
                         className={`text-[11px] px-2 py-0.5 rounded-md border ${on ? 'border-[var(--primary)]' : 'border-[var(--border)]'}`}
                         onClick={async () => {
                           const current = new Set(
-                            (selectedTask.labels || []).map((entry) => entry.label?.id || entry.id),
+                            (activeTask.labels || []).map((entry) => entry.label?.id || entry.id),
                           );
                           if (on) current.delete(label.id);
                           else current.add(label.id);
                           const labelIds = [...current];
                           try {
-                            await api.tasks.setLabels(selectedTask.id, labelIds);
-                            setSelectedTask({
-                              ...selectedTask,
-                              labels: labels.filter((item) => labelIds.includes(item.id)).map((item) => ({ id: item.id, label: item })),
-                            });
+                            await api.tasks.setLabels(activeTask.id, labelIds);
+                            setSelectedTask((prev) =>
+                              prev
+                                ? {
+                                    ...prev,
+                                    labels: labels
+                                      .filter((item) => labelIds.includes(item.id))
+                                      .map((item) => ({ id: item.id, label: item })),
+                                  }
+                                : null
+                            );
                           } catch (err: any) {
                             error('Could not update labels', err.message);
                           }
@@ -653,34 +797,88 @@ export function TasksPage() {
                   })}
                 </div>
               </div>
+
               <div className="flex items-center justify-between">
                 <span className="text-[var(--muted-foreground)]">Created</span>
                 <span className="text-[12px] text-[var(--foreground)]">
-                  {new Date(selectedTask.createdAt).toLocaleString()}
+                  {new Date(activeTask.createdAt).toLocaleString()}
                 </span>
               </div>
             </div>
-
-            <SolutionPromptPanel taskId={selectedTask.id} attachments={selectedTask.attachments} />
 
             {/* Description */}
             <div className="space-y-1.5">
               <div className="text-[12px] font-semibold text-[var(--muted-foreground)] uppercase tracking-wide">
                 Description
               </div>
-              <p className="text-[13px] text-[var(--foreground)] leading-relaxed whitespace-pre-wrap">
-                {selectedTask.description || 'No description provided.'}
+              <p className="text-[13px] text-[var(--foreground)] leading-relaxed whitespace-pre-wrap bg-[var(--surface-raised)]/50 p-3 rounded-lg border border-[var(--border)] min-h-[48px]">
+                {activeTask.description || 'No description provided.'}
               </p>
             </div>
 
-            {/* Attachments if any */}
-            {selectedTask.attachments && selectedTask.attachments.length > 0 && (
+            {/* Captured Screenshots & Image Attachments */}
+            {imageAttachments.length > 0 && (
               <div className="space-y-2">
-                <div className="text-[12px] font-semibold text-[var(--muted-foreground)] uppercase tracking-wide">
-                  Attachments ({selectedTask.attachments.length})
+                <div className="flex items-center justify-between text-[11px] font-semibold text-[var(--muted-foreground)] uppercase tracking-wide">
+                  <div className="flex items-center gap-1.5">
+                    <ImageIcon className="w-3.5 h-3.5 text-[var(--primary-text)]" />
+                    <span>Screenshots ({imageAttachments.length})</span>
+                  </div>
+                  {imageAttachments.length === 1 && imageAttachments[0] && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const first = imageAttachments[0];
+                        if (first) {
+                          setLightboxImage(resolveAttachmentUrl(first.url || first.thumbUrl));
+                        }
+                      }}
+                      className="flex items-center gap-1 text-[var(--primary-text)] hover:underline cursor-pointer text-[11px]"
+                    >
+                      <span>Full screen</span>
+                      <Maximize2 className="w-3 h-3" />
+                    </button>
+                  )}
+                </div>
+
+                <div className="space-y-3">
+                  {imageAttachments.map((img: any) => (
+                    <TaskScreenshotCard
+                      key={img.id}
+                      attachment={img}
+                      onExpand={(url) => setLightboxImage(url)}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Audio Voice Notes */}
+            {audioAttachments.length > 0 && (
+              <div className="space-y-2">
+                <div className="text-[11px] font-semibold text-[var(--muted-foreground)] uppercase tracking-wide flex items-center gap-1.5">
+                  <Mic className="w-3.5 h-3.5 text-[var(--primary-text)]" />
+                  <span>Voice Note</span>
+                </div>
+                {audioAttachments.map((audio: any) => (
+                  <div key={audio.id} className="p-3 rounded-xl bg-[var(--surface-raised)] border border-[var(--border)]">
+                    <audio controls className="w-full h-8">
+                      <source src={resolveAttachmentUrl(audio.url)} type={audio.mimeType} />
+                      Your browser does not support audio playback.
+                    </audio>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Other File Attachments */}
+            {otherAttachments.length > 0 && (
+              <div className="space-y-2">
+                <div className="text-[11px] font-semibold text-[var(--muted-foreground)] uppercase tracking-wide">
+                  Files & Documents ({otherAttachments.length})
                 </div>
                 <div className="grid grid-cols-2 gap-2">
-                  {selectedTask.attachments.map((att) => (
+                  {otherAttachments.map((att: any) => (
                     <a
                       key={att.id}
                       href={resolveAttachmentUrl(att.url)}
@@ -689,12 +887,58 @@ export function TasksPage() {
                       className="p-2 rounded-lg border border-[var(--border)] bg-[var(--surface-raised)] hover:bg-[var(--accent)] flex items-center gap-2 text-[12px] text-[var(--foreground)] truncate transition-colors"
                     >
                       <Paperclip className="w-3.5 h-3.5 text-[var(--primary-text)] shrink-0" />
-                      <span className="truncate">{att.kind} attachment</span>
+                      <span className="truncate">{att.name || `${att.kind} attachment`}</span>
                     </a>
                   ))}
                 </div>
               </div>
             )}
+
+            {/* Solution Prompt Panel */}
+            <SolutionPromptPanel taskId={activeTask.id} attachments={activeTask.attachments} />
+          </div>
+        </div>
+      )}
+
+      {/* Lightbox / Fullscreen Image Viewer Modal */}
+      {lightboxImage && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-sm p-4 animate-in fade-in"
+          onClick={() => setLightboxImage(null)}
+        >
+          <div
+            className="relative max-w-5xl w-full flex flex-col items-center"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="w-full flex items-center justify-between py-2 text-white text-[13px] mb-2 font-medium">
+              <span className="truncate">{activeTask?.humanId} — Screenshot</span>
+              <div className="flex items-center gap-3">
+                <a
+                  href={lightboxImage}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-1.5 text-zinc-300 hover:text-white px-2.5 py-1 rounded-md bg-white/10 hover:bg-white/20 transition-colors text-[12px]"
+                >
+                  <span>Open raw</span>
+                  <ExternalLink className="w-3.5 h-3.5" />
+                </a>
+                <button
+                  type="button"
+                  onClick={() => setLightboxImage(null)}
+                  className="p-1 rounded-md bg-white/10 hover:bg-white/20 text-zinc-300 hover:text-white transition-colors cursor-pointer"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+            </div>
+
+            <div className="w-full rounded-xl overflow-hidden border border-white/10 bg-black flex items-center justify-center max-h-[80vh]">
+              <img
+                src={lightboxImage}
+                alt="Full Screenshot"
+                className="max-w-full max-h-[80vh] object-contain select-none"
+              />
+            </div>
           </div>
         </div>
       )}

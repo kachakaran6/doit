@@ -22,8 +22,8 @@ export declare class TasksService {
     findOne(rawTaskId: string): Promise<{
         checklist: {
             id: string;
-            taskId: string;
             order: Prisma.Decimal;
+            taskId: string;
             text: string;
             done: boolean;
         }[];
@@ -64,10 +64,10 @@ export declare class TasksService {
             id: string;
             expected: string | null;
             taskId: string;
-            steps: Prisma.JsonValue;
             sessionId: string | null;
             reporterId: string | null;
             severity: import(".prisma/client").$Enums.Severity;
+            steps: Prisma.JsonValue;
             actual: string | null;
             frequency: string | null;
             deviceModel: string | null;
@@ -85,12 +85,12 @@ export declare class TasksService {
             };
         } & {
             id: string;
-            workspaceId: string;
             createdAt: Date;
+            workspaceId: string;
             taskId: string | null;
+            actorId: string;
             action: string;
             meta: Prisma.JsonValue;
-            actorId: string;
         })[];
         id: string;
         humanId: string;
@@ -137,15 +137,15 @@ export declare class TasksService {
     }>;
     addChecklistItem(taskId: string, dto: CreateChecklistItemDto): Promise<{
         id: string;
-        taskId: string;
         order: Prisma.Decimal;
+        taskId: string;
         text: string;
         done: boolean;
     }>;
     updateChecklistItem(itemId: string, dto: UpdateChecklistItemDto): Promise<{
         id: string;
-        taskId: string;
         order: Prisma.Decimal;
+        taskId: string;
         text: string;
         done: boolean;
     }>;

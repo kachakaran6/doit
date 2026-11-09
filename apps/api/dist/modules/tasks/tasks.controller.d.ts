@@ -12,8 +12,8 @@ export declare class TasksController {
     findOneBug(id: string): Promise<{
         checklist: {
             id: string;
-            taskId: string;
             order: import("@prisma/client/runtime/library").Decimal;
+            taskId: string;
             text: string;
             done: boolean;
         }[];
@@ -54,10 +54,10 @@ export declare class TasksController {
             id: string;
             expected: string | null;
             taskId: string;
-            steps: import("@prisma/client/runtime/library").JsonValue;
             sessionId: string | null;
             reporterId: string | null;
             severity: import(".prisma/client").$Enums.Severity;
+            steps: import("@prisma/client/runtime/library").JsonValue;
             actual: string | null;
             frequency: string | null;
             deviceModel: string | null;
@@ -75,12 +75,12 @@ export declare class TasksController {
             };
         } & {
             id: string;
-            workspaceId: string;
             createdAt: Date;
+            workspaceId: string;
             taskId: string | null;
+            actorId: string;
             action: string;
             meta: import("@prisma/client/runtime/library").JsonValue;
-            actorId: string;
         })[];
         id: string;
         humanId: string;
@@ -128,8 +128,8 @@ export declare class TasksController {
     findOne(id: string): Promise<{
         checklist: {
             id: string;
-            taskId: string;
             order: import("@prisma/client/runtime/library").Decimal;
+            taskId: string;
             text: string;
             done: boolean;
         }[];
@@ -170,10 +170,10 @@ export declare class TasksController {
             id: string;
             expected: string | null;
             taskId: string;
-            steps: import("@prisma/client/runtime/library").JsonValue;
             sessionId: string | null;
             reporterId: string | null;
             severity: import(".prisma/client").$Enums.Severity;
+            steps: import("@prisma/client/runtime/library").JsonValue;
             actual: string | null;
             frequency: string | null;
             deviceModel: string | null;
@@ -191,12 +191,12 @@ export declare class TasksController {
             };
         } & {
             id: string;
-            workspaceId: string;
             createdAt: Date;
+            workspaceId: string;
             taskId: string | null;
+            actorId: string;
             action: string;
             meta: import("@prisma/client/runtime/library").JsonValue;
-            actorId: string;
         })[];
         id: string;
         humanId: string;
@@ -244,15 +244,15 @@ export declare class TasksController {
     }>;
     addChecklistItem(id: string, dto: CreateChecklistItemDto): Promise<{
         id: string;
-        taskId: string;
         order: import("@prisma/client/runtime/library").Decimal;
+        taskId: string;
         text: string;
         done: boolean;
     }>;
     updateChecklistItem(itemId: string, dto: UpdateChecklistItemDto): Promise<{
         id: string;
-        taskId: string;
         order: import("@prisma/client/runtime/library").Decimal;
+        taskId: string;
         text: string;
         done: boolean;
     }>;

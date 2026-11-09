@@ -247,7 +247,7 @@ export class TasksService {
           assignee: { select: { id: true, name: true, avatarUrl: true } },
           labels: { select: { label: { select: { id: true, name: true, color: true } } } },
           checklist: { select: { id: true, done: true } },
-          attachments: query.type === 'BUG' ? true : false,
+          attachments: true,
           bug: true,
           _count: { select: { attachments: true, comments: true } },
         },
