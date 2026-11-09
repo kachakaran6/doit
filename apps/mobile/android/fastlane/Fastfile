@@ -71,7 +71,7 @@ platform :android do
   end
 
   # Helper: Build Release AAB Bundle
-  def build_android_aab(build_num)
+  def build_android_aab(build_num, version_name = "0.3.5")
     UI.message("🔨 Building Release Android App Bundle (AAB) for build ##{build_num}...")
     
     # Run gradle bundleRelease
@@ -87,7 +87,7 @@ platform :android do
     # Copy to release-builds directory
     releases_dir = File.expand_path("../../../release-builds", __dir__)
     FileUtils.mkdir_p(releases_dir)
-    target_aab = File.join(releases_dir, "DoIt-v#{lane_context[SharedValues::RELEASE_VERSION] || '0.2.8'}-build#{build_num}.aab")
+    target_aab = File.join(releases_dir, "DoIt-v#{version_name}-build#{build_num}.aab")
     FileUtils.cp(source_aab, target_aab)
 
     UI.success("📦 Release bundle created at: #{target_aab}")
@@ -171,9 +171,7 @@ platform :android do
   desc "Build signed AAB, upload to Google Play Internal track, and archive in Git"
   lane :internal do |options|
     version_info = get_target_build_number(options)
-    lane_context[SharedValues::RELEASE_VERSION] = version_info[:version_name]
-
-    aab = build_android_aab(version_info[:build_number])
+    aab = build_android_aab(version_info[:build_number], version_info[:version_name])
     deploy_to_play_store(aab, "internal")
     git_version_backup(version_info[:build_number], version_info[:version_name], "internal")
   end
@@ -182,9 +180,7 @@ platform :android do
   desc "Build signed AAB, upload to Google Play Closed track, and archive in Git"
   lane :closed do |options|
     version_info = get_target_build_number(options)
-    lane_context[SharedValues::RELEASE_VERSION] = version_info[:version_name]
-
-    aab = build_android_aab(version_info[:build_number])
+    aab = build_android_aab(version_info[:build_number], version_info[:version_name])
     deploy_to_play_store(aab, "alpha")
     git_version_backup(version_info[:build_number], version_info[:version_name], "closed")
   end
@@ -193,9 +189,7 @@ platform :android do
   desc "Build signed AAB, upload to Google Play Beta track, and archive in Git"
   lane :beta do |options|
     version_info = get_target_build_number(options)
-    lane_context[SharedValues::RELEASE_VERSION] = version_info[:version_name]
-
-    aab = build_android_aab(version_info[:build_number])
+    aab = build_android_aab(version_info[:build_number], version_info[:version_name])
     deploy_to_play_store(aab, "beta")
     git_version_backup(version_info[:build_number], version_info[:version_name], "beta")
   end
@@ -204,9 +198,7 @@ platform :android do
   desc "Build signed AAB, upload to Google Play Production track, and archive in Git"
   lane :production do |options|
     version_info = get_target_build_number(options)
-    lane_context[SharedValues::RELEASE_VERSION] = version_info[:version_name]
-
-    aab = build_android_aab(version_info[:build_number])
+    aab = build_android_aab(version_info[:build_number], version_info[:version_name])
     deploy_to_play_store(aab, "production")
     git_version_backup(version_info[:build_number], version_info[:version_name], "production")
   end
