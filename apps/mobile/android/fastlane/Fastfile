@@ -1,0 +1,233 @@
+# Fastfile for Samyukt DoIt (Android)
+default_platform(:android)
+
+platform :android do
+
+  # Helper: Resolve Google Play JSON Service Account Key
+  def resolve_play_store_key
+    candidates = [
+      ENV["PLAY_STORE_JSON_KEY"],
+      File.expand_path("api-key.json", __dir__),
+      File.expand_path("../api-key.json", __dir__),
+      File.expand_path("../../api-key.json", __dir__),
+      File.expand_path("../../../api-key.json", __dir__),
+      File.expand_path("../../../app.json", __dir__)
+    ].compact
+
+    resolved = candidates.find { |path| File.exist?(path) && !File.zero?(path) }
+    
+    if resolved.nil?
+      UI.important("⚠️  No Google Play service account JSON key found!")
+      UI.message("Looked in:")
+      candidates.each { |c| UI.message("  - #{c}") }
+      UI.message("Set ENV['PLAY_STORE_JSON_KEY'] or place 'api-key.json' in android/fastlane/ or project root.")
+    else
+      UI.success("🔑 Using Google Play service account key: #{resolved}")
+    end
+
+    resolved
+  end
+
+  # Helper: Get Current Version Name & Target Build Number
+  def get_target_build_number(options)
+    build_gradle_path = File.expand_path("../app/build.gradle", __dir__)
+    content = File.read(build_gradle_path)
+
+    current_code = content[/versionCode\s+(\d+)/, 1].to_i
+    version_name = content[/versionName\s+["']([^"']+)["']/, 1] || "0.2.8"
+
+    target_code = if options[:build_number]
+                    options[:build_number].to_i
+                  elsif options[:version_code]
+                    options[:version_code].to_i
+                  elsif options[:bump]
+                    current_code + 1
+                  else
+                    current_code
+                  end
+
+    if target_code != current_code
+      UI.message("⬆️ Bumping versionCode from #{current_code} to #{target_code}...")
+      updated_content = content.sub(/versionCode\s+\d+/, "versionCode #{target_code}")
+      File.write(build_gradle_path, updated_content)
+
+      # Also sync package.json & app.config.ts if present
+      pkg_path = File.expand_path("../../package.json", __dir__)
+      if File.exist?(pkg_path)
+        pkg = File.read(pkg_path)
+        pkg = pkg.sub(/"version":\s*"[^"]+"/, "\"version\": \"#{version_name}\"")
+        File.write(pkg_path, pkg)
+      end
+
+      app_config_path = File.expand_path("../../app.config.ts", __dir__)
+      if File.exist?(app_config_path)
+        cfg = File.read(app_config_path)
+        cfg = cfg.sub(/versionCode:\s*\d+/, "versionCode: #{target_code}")
+        File.write(app_config_path, cfg)
+      end
+    end
+
+    { build_number: target_code, version_name: version_name }
+  end
+
+  # Helper: Build Release AAB Bundle
+  def build_android_aab(build_num)
+    UI.message("🔨 Building Release Android App Bundle (AAB) for build ##{build_num}...")
+    
+    # Run gradle bundleRelease
+    gradle(
+      task: "bundle",
+      build_type: "Release",
+      project_dir: File.expand_path("..", __dir__)
+    )
+
+    source_aab = File.expand_path("../app/build/outputs/bundle/release/app-release.aab", __dir__)
+    UI.user_error!("AAB build failed! Could not find #{source_aab}") unless File.exist?(source_aab)
+
+    # Copy to release-builds directory
+    releases_dir = File.expand_path("../../../release-builds", __dir__)
+    FileUtils.mkdir_p(releases_dir)
+    target_aab = File.join(releases_dir, "DoIt-v#{lane_context[SharedValues::RELEASE_VERSION] || '0.2.8'}-build#{build_num}.aab")
+    FileUtils.cp(source_aab, target_aab)
+
+    UI.success("📦 Release bundle created at: #{target_aab}")
+    target_aab
+  end
+
+  # Helper: Git Automated Release Version Archiving
+  def git_version_backup(build_num, version_name, track_name)
+    UI.message("🚀 Archiving Git release for build ##{build_num} (v#{version_name}) on #{track_name} track...")
+
+    branch_name = Actions.sh("git rev-parse --abbrev-ref HEAD").strip
+    tag_name = "v#{version_name}+#{build_num}"
+    version_branch = "v#{build_num}"
+
+    # 1. Stage modified files
+    Actions.sh("git add -A")
+
+    # 2. Commit release
+    commit_msg = "chore(release): publish build ##{build_num} (#{version_name}+#{build_num}) to #{track_name} [skip ci]"
+    has_changes = Actions.sh("git status --porcelain").strip != ""
+    if has_changes
+      Actions.sh("git commit -m \"#{commit_msg}\"")
+    else
+      UI.message("ℹ️ No uncommitted changes to record in release commit.")
+    end
+
+    # 3. Push active branch
+    begin
+      Actions.sh("git push origin #{branch_name}")
+    rescue => e
+      UI.important("⚠️ Failed to push #{branch_name} to origin: #{e.message}")
+    end
+
+    # 4. Create & push dedicated version branch
+    begin
+      Actions.sh("git branch -f #{version_branch}")
+      Actions.sh("git push origin #{version_branch} --force")
+      UI.success("🌿 Pushed dedicated version branch: #{version_branch}")
+    rescue => e
+      UI.important("⚠️ Failed to push version branch #{version_branch}: #{e.message}")
+    end
+
+    # 5. Create & push annotated Git release tag
+    begin
+      Actions.sh("git tag -fa #{tag_name} -m \"Release #{tag_name} to #{track_name}\"")
+      Actions.sh("git push origin #{tag_name} --force")
+      UI.success("🏷️ Pushed release tag: #{tag_name}")
+    rescue => e
+      UI.important("⚠️ Failed to push release tag #{tag_name}: #{e.message}")
+    end
+
+    UI.success("🎉 Git release archiving complete on branch #{branch_name}!")
+  end
+
+  # Helper: Deploy AAB to Google Play Track
+  def deploy_to_play_store(aab_path, track_name)
+    key_file = resolve_play_store_key
+    if key_file.nil?
+      UI.important("⚠️ Skipping automated upload: Google Play JSON service account key not found.")
+      UI.important("👉 You can manually upload the generated signed bundle: #{aab_path}")
+      UI.important("👉 Or place api-key.json in android/fastlane/ to enable 1-click automatic uploads!")
+      return false
+    end
+
+    UI.message("🚀 Uploading #{aab_path} to Google Play [#{track_name}] track...")
+    upload_to_play_store(
+      track: track_name,
+      aab: aab_path,
+      json_key: key_file,
+      package_name: "com.samyukt.doit",
+      skip_upload_metadata: true,
+      skip_upload_images: true,
+      skip_upload_screenshots: true
+    )
+    UI.success("✨ Successfully uploaded build to #{track_name} track on Google Play!")
+    true
+  end
+
+  # LANE: internal (Internal Testing Track)
+  desc "Build signed AAB, upload to Google Play Internal track, and archive in Git"
+  lane :internal do |options|
+    version_info = get_target_build_number(options)
+    lane_context[SharedValues::RELEASE_VERSION] = version_info[:version_name]
+
+    aab = build_android_aab(version_info[:build_number])
+    deploy_to_play_store(aab, "internal")
+    git_version_backup(version_info[:build_number], version_info[:version_name], "internal")
+  end
+
+  # LANE: closed (Closed Testing / Alpha Track)
+  desc "Build signed AAB, upload to Google Play Closed track, and archive in Git"
+  lane :closed do |options|
+    version_info = get_target_build_number(options)
+    lane_context[SharedValues::RELEASE_VERSION] = version_info[:version_name]
+
+    aab = build_android_aab(version_info[:build_number])
+    deploy_to_play_store(aab, "alpha")
+    git_version_backup(version_info[:build_number], version_info[:version_name], "closed")
+  end
+
+  # LANE: beta (Open Testing / Beta Track)
+  desc "Build signed AAB, upload to Google Play Beta track, and archive in Git"
+  lane :beta do |options|
+    version_info = get_target_build_number(options)
+    lane_context[SharedValues::RELEASE_VERSION] = version_info[:version_name]
+
+    aab = build_android_aab(version_info[:build_number])
+    deploy_to_play_store(aab, "beta")
+    git_version_backup(version_info[:build_number], version_info[:version_name], "beta")
+  end
+
+  # LANE: production (Production Track)
+  desc "Build signed AAB, upload to Google Play Production track, and archive in Git"
+  lane :production do |options|
+    version_info = get_target_build_number(options)
+    lane_context[SharedValues::RELEASE_VERSION] = version_info[:version_name]
+
+    aab = build_android_aab(version_info[:build_number])
+    deploy_to_play_store(aab, "production")
+    git_version_backup(version_info[:build_number], version_info[:version_name], "production")
+  end
+
+  # LANE: promote_to_closed (Promote Internal to Closed)
+  desc "Promote latest release from Internal track to Closed Testing track"
+  lane :promote_to_closed do
+    key_file = resolve_play_store_key
+    UI.user_error!("Cannot promote without Google Play API key!") if key_file.nil?
+
+    upload_to_play_store(
+      track: "internal",
+      track_promote_to: "alpha",
+      json_key: key_file,
+      package_name: "com.samyukt.doit",
+      skip_upload_apk: true,
+      skip_upload_aab: true,
+      skip_upload_metadata: true,
+      skip_upload_images: true,
+      skip_upload_screenshots: true
+    )
+    UI.success("🎉 Promoted latest Internal track build to Closed Testing track!")
+  end
+
+end

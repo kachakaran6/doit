@@ -16,6 +16,10 @@
     "mobile:apk:local": "pnpm --filter @doit/mobile run build:apk:local",
     "mobile:aab": "pnpm --filter @doit/mobile run build:aab",
     "mobile:dev": "pnpm --filter @doit/mobile run start:dev",
+    "release:internal": "node scripts/release-playstore.mjs --track=internal",
+    "release:closed": "node scripts/release-playstore.mjs --track=closed",
+    "release:production": "node scripts/release-playstore.mjs --track=production",
+    "release:bump": "node scripts/release-playstore.mjs --bump --track=internal",
     "smoke": "node scripts/smoke-api.mjs",
     "postinstall": "node scripts/sync-packages.mjs && node scripts/patch-codegen.mjs"
   },

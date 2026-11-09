@@ -14,3 +14,15 @@ local.properties
 
 # Bundle artifacts
 *.jsbundle
+
+# Signing keys & secrets
+key.properties
+*.keystore
+*.jks
+api-key.json
+
+# Fastlane
+fastlane/report.xml
+fastlane/Preview.html
+fastlane/screenshots
+fastlane/test_output
