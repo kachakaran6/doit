@@ -1,28 +1,22 @@
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { Breadcrumbs } from './Breadcrumbs';
 import { WorkspaceSwitcher } from './WorkspaceSwitcher';
-import { Button } from '@/components/ui/button';
-import {
-  DropdownMenu,
-  DropdownMenuTrigger,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuLabel,
-} from '@/components/ui/dropdown-menu';
-import { Search, Plus, Menu, ChevronDown, CheckSquare, Bug, StickyNote, Bell, FolderKanban, UserPlus } from 'lucide-react';
-import { CreateType } from './CreateModal';
+import { useThemeStore } from '@/lib/theme-store';
+import { Search, Bell, Sun, Moon, Menu } from 'lucide-react';
 
 export function TopBar({
   onOpenSearch,
-  onOpenCreate,
   onToggleMobileSidebar,
 }: {
   onOpenSearch: () => void;
-  onOpenCreate: (type: CreateType) => void;
   onToggleMobileSidebar: () => void;
 }) {
-  const navigate = useNavigate();
+  const { mode, setMode } = useThemeStore();
+  const isDarkMode =
+    mode === 'dark' ||
+    (mode === 'system' &&
+      typeof window !== 'undefined' &&
+      window.matchMedia('(prefers-color-scheme: dark)').matches);
 
   return (
     <header className="h-14 border-b border-[var(--border)] bg-[var(--background)] px-4 sm:px-6 flex items-center justify-between gap-4 shrink-0 select-none">
@@ -57,63 +51,26 @@ export function TopBar({
         </button>
       </div>
 
-      {/* Right: Notifications, Create Split Button, and User Profile Menu */}
-      <div className="flex items-center gap-2">
+      {/* Right: Theme Toggle, Notifications, and Workspace Switcher */}
+      <div className="flex items-center gap-1.5 sm:gap-2">
+        <button
+          type="button"
+          onClick={() => setMode(isDarkMode ? 'light' : 'dark')}
+          className="p-2 rounded-lg text-[var(--muted-foreground)] hover:text-[var(--foreground)] hover:bg-[var(--accent)] transition-colors cursor-pointer"
+          title={isDarkMode ? 'Switch to light mode' : 'Switch to dark mode'}
+          aria-label={isDarkMode ? 'Switch to light mode' : 'Switch to dark mode'}
+        >
+          {isDarkMode ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+        </button>
+
         <Link
           to="/notifications"
           aria-label="Notifications"
-          className="p-2 rounded-lg text-[var(--muted-foreground)] hover:text-[var(--foreground)] hover:bg-[var(--accent)]"
+          className="p-2 rounded-lg text-[var(--muted-foreground)] hover:text-[var(--foreground)] hover:bg-[var(--accent)] transition-colors cursor-pointer"
+          title="Notifications"
         >
           <Bell className="w-4 h-4" />
         </Link>
-
-        {/* Global Create Split Button with Shadcn DropdownMenu */}
-        <div className="relative inline-flex rounded-lg shadow-xs">
-          <Button
-            size="sm"
-            onClick={() => onOpenCreate('task')}
-            className="rounded-r-none border-r border-white/20"
-          >
-            <Plus className="w-3.5 h-3.5 mr-1.5" />
-            <span>New task</span>
-          </Button>
-
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button
-                size="sm"
-                className="rounded-l-none px-2"
-                aria-label="More create options"
-              >
-                <ChevronDown className="w-3.5 h-3.5" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-48">
-              <DropdownMenuLabel>Create new</DropdownMenuLabel>
-              <DropdownMenuItem onClick={() => onOpenCreate('task')}>
-                <CheckSquare className="w-3.5 h-3.5 text-[var(--primary-text)]" />
-                <span>Create task</span>
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => onOpenCreate('bug')}>
-                <Bug className="w-3.5 h-3.5 text-[var(--danger-text)]" />
-                <span>Report bug</span>
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => onOpenCreate('sticky')}>
-                <StickyNote className="w-3.5 h-3.5 text-[var(--warning-text)]" />
-                <span>New sticky note</span>
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={() => navigate('/projects')}>
-                <FolderKanban className="w-3.5 h-3.5 text-[var(--primary-text)]" />
-                <span>New project</span>
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => navigate('/team')}>
-                <UserPlus className="w-3.5 h-3.5 text-[var(--success-text)]" />
-                <span>Invite people</span>
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
 
         {/* Separator & Workspace Switcher in the top right corner */}
         <div className="h-5 w-[1px] bg-[var(--border)] mx-1" />

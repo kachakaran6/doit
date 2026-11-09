@@ -2,9 +2,8 @@ import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '@/lib/auth-store';
 import { useWorkspaceStore } from '@/lib/workspace-store';
-import { useThemeStore } from '@/lib/theme-store';
 import { Avatar } from '@/components/ui/avatar';
-import { Settings, LogOut, Sun, Moon, Laptop, ChevronUp } from 'lucide-react';
+import { Settings, LogOut, ChevronUp } from 'lucide-react';
 import { useToast } from '@/components/ui/toast';
 
 export function UserMenu({ collapsed = false }: { collapsed?: boolean }) {
@@ -15,7 +14,6 @@ export function UserMenu({ collapsed = false }: { collapsed?: boolean }) {
   const role =
     user?.memberships?.find((m) => m.workspaceId === activeWorkspace?.id)?.role ||
     activeWorkspace?.role;
-  const { mode, setMode } = useThemeStore();
   const { info } = useToast();
   const [open, setOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -86,53 +84,8 @@ export function UserMenu({ collapsed = false }: { collapsed?: boolean }) {
             </div>
           </div>
 
-          {/* Theme Mode Selector */}
-          <div className="px-2.5 py-1.5">
-            <div className="text-[11px] font-medium text-[var(--muted-foreground)] mb-1.5">
-              Theme
-            </div>
-            <div className="grid grid-cols-3 gap-1 bg-[var(--muted)] p-0.5 rounded-lg">
-              <button
-                type="button"
-                onClick={() => setMode('light')}
-                className={`flex items-center justify-center gap-1 py-1 rounded-md text-[11px] font-medium transition-colors cursor-pointer ${
-                  mode === 'light'
-                    ? 'bg-[var(--card)] text-[var(--foreground)] shadow-xs'
-                    : 'text-[var(--muted-foreground)] hover:text-[var(--foreground)]'
-                }`}
-              >
-                <Sun className="w-3 h-3" />
-                <span>Light</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setMode('dark')}
-                className={`flex items-center justify-center gap-1 py-1 rounded-md text-[11px] font-medium transition-colors cursor-pointer ${
-                  mode === 'dark'
-                    ? 'bg-[var(--card)] text-[var(--foreground)] shadow-xs'
-                    : 'text-[var(--muted-foreground)] hover:text-[var(--foreground)]'
-                }`}
-              >
-                <Moon className="w-3 h-3" />
-                <span>Dark</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setMode('system')}
-                className={`flex items-center justify-center gap-1 py-1 rounded-md text-[11px] font-medium transition-colors cursor-pointer ${
-                  mode === 'system'
-                    ? 'bg-[var(--card)] text-[var(--foreground)] shadow-xs'
-                    : 'text-[var(--muted-foreground)] hover:text-[var(--foreground)]'
-                }`}
-              >
-                <Laptop className="w-3 h-3" />
-                <span>Auto</span>
-              </button>
-            </div>
-          </div>
-
           {/* Links */}
-          <div className="pt-1 border-t border-[var(--border)] space-y-0.5">
+          <div className="pt-1 space-y-0.5">
             <button
               type="button"
               onClick={() => {
@@ -144,11 +97,10 @@ export function UserMenu({ collapsed = false }: { collapsed?: boolean }) {
               <Settings className="w-3.5 h-3.5 text-[var(--muted-foreground)]" />
               <span>Settings</span>
             </button>
-
             <button
               type="button"
               onClick={handleLogout}
-              className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-[13px] text-[var(--danger-text)] hover:bg-[rgba(201,60,53,0.1)] transition-colors cursor-pointer"
+              className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-[13px] text-[var(--danger-text)] hover:bg-[var(--accent)] transition-colors cursor-pointer"
             >
               <LogOut className="w-3.5 h-3.5" />
               <span>Sign out</span>
