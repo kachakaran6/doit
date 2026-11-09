@@ -435,7 +435,19 @@ export const SettingsScreen: React.FC = () => {
                 </View>
                 {!hasAccessibility ? (
                   <TouchableOpacity
-                    onPress={() => overlayService.openAccessibilitySettings()}
+                    onPress={() => {
+                      Alert.alert(
+                        'Enable 1-Tap Screenshot',
+                        'In Settings > "Downloaded apps", tap "DoIt - One-Tap Screenshot" and turn the toggle ON.\n\n(Tip for Xiaomi/HyperOS: If you see "Restricted setting", go to App Info > tap ⋮ menu > tap "Allow restricted settings" first).',
+                        [
+                          { text: 'Cancel', style: 'cancel' },
+                          {
+                            text: 'Open Settings',
+                            onPress: () => overlayService.openAccessibilitySettings(),
+                          },
+                        ]
+                      );
+                    }}
                     style={[styles.smallBtn, { backgroundColor: colors.accent, borderRadius: radius.pill }]}
                   >
                     <Text variant="caption" style={{ color: colors.accentOnPrimary, fontWeight: '700' }}>

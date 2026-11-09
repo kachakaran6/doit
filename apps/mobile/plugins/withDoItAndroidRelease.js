@@ -83,6 +83,41 @@ function withDoItAndroidRelease(config) {
       bubbleService.$['android:foregroundServiceType'] = 'specialUse';
     }
 
+    // Register DoItAccessibilityService for 1-tap silent screenshots
+    const accessibilityServiceName = 'com.samyukt.doit.overlay.DoItAccessibilityService';
+    let accessibilityService = app.service.find((s) => s.$ && s.$['android:name'] === accessibilityServiceName);
+    if (!accessibilityService) {
+      accessibilityService = {
+        $: {
+          'android:name': accessibilityServiceName,
+          'android:permission': 'android.permission.BIND_ACCESSIBILITY_SERVICE',
+          'android:label': '@string/accessibility_service_label',
+          'android:description': '@string/accessibility_service_description',
+          'android:exported': 'true',
+        },
+        'intent-filter': [
+          {
+            action: [
+              {
+                $: {
+                  'android:name': 'android.accessibilityservice.AccessibilityService',
+                },
+              },
+            ],
+          },
+        ],
+        'meta-data': [
+          {
+            $: {
+              'android:name': 'android.accessibilityservice',
+              'android:resource': '@xml/accessibility_service_config',
+            },
+          },
+        ],
+      };
+      app.service.push(accessibilityService);
+    }
+
     return configData;
   });
 
@@ -107,17 +142,14 @@ function withDoItAndroidRelease(config) {
       fs.mkdirSync(targetOverlayDir, { recursive: true });
 
       const sourceOverlayDir = path.join(projectRoot, 'src', 'native', 'overlay');
-      const filesToCopy = [
-        'OverlayPackage.kt',
-        'OverlayServiceModule.kt',
-        'BubbleService.kt',
-      ];
-
-      for (const file of filesToCopy) {
-        const srcPath = path.join(sourceOverlayDir, file);
-        const destPath = path.join(targetOverlayDir, file);
-        if (fs.existsSync(srcPath)) {
-          fs.copyFileSync(srcPath, destPath);
+      if (fs.existsSync(sourceOverlayDir)) {
+        const files = fs.readdirSync(sourceOverlayDir);
+        for (const file of files) {
+          if (file.endsWith('.kt')) {
+            const srcPath = path.join(sourceOverlayDir, file);
+            const destPath = path.join(targetOverlayDir, file);
+            fs.copyFileSync(srcPath, destPath);
+          }
         }
       }
 

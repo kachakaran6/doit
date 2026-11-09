@@ -3,16 +3,18 @@ package com.samyukt.doit.overlay
 import android.accessibilityservice.AccessibilityService
 import android.graphics.Bitmap
 import android.os.Build
+import android.util.Log
 import android.view.Display
 import android.view.accessibility.AccessibilityEvent
 import androidx.annotation.RequiresApi
 import java.io.File
 import java.io.FileOutputStream
-import java.util.concurrent.Executors
 
 class DoItAccessibilityService : AccessibilityService() {
 
     companion object {
+        private const val TAG = "DoItAccessibility"
+
         @Volatile
         var instance: DoItAccessibilityService? = null
             private set
@@ -28,17 +30,15 @@ class DoItAccessibilityService : AccessibilityService() {
         }
     }
 
-    private val executor = Executors.newSingleThreadExecutor()
-
     override fun onServiceConnected() {
         super.onServiceConnected()
         instance = this
-        android.util.Log.d("DoItAccessibility", "DoItAccessibilityService connected successfully")
+        Log.d(TAG, "DoItAccessibilityService connected successfully")
     }
 
     override fun onUnbind(intent: android.content.Intent?): Boolean {
         instance = null
-        android.util.Log.d("DoItAccessibility", "DoItAccessibilityService unbound")
+        Log.d(TAG, "DoItAccessibilityService unbound")
         return super.onUnbind(intent)
     }
 
@@ -48,7 +48,7 @@ class DoItAccessibilityService : AccessibilityService() {
     }
 
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
-        // Not used - service is purely for canTakeScreenshot capability
+        // Purely for canTakeScreenshot capability
     }
 
     override fun onInterrupt() {
@@ -57,9 +57,12 @@ class DoItAccessibilityService : AccessibilityService() {
 
     @RequiresApi(Build.VERSION_CODES.R)
     fun takeSilentScreenshot(cacheDir: File, callback: (File?) -> Unit) {
+        val startTime = System.currentTimeMillis()
+        Log.d(TAG, "Initiating silent screenshot via AccessibilityService")
+
         takeScreenshot(
             Display.DEFAULT_DISPLAY,
-            executor,
+            ScreenCaptureManager.backgroundExecutor,
             object : TakeScreenshotCallback {
                 override fun onSuccess(screenshotResult: ScreenshotResult) {
                     try {
@@ -68,6 +71,7 @@ class DoItAccessibilityService : AccessibilityService() {
                         val rawBitmap = Bitmap.wrapHardwareBuffer(hardwareBuffer, colorSpace)
                         if (rawBitmap == null) {
                             hardwareBuffer.close()
+                            Log.e(TAG, "wrapHardwareBuffer returned null")
                             callback(null)
                             return
                         }
@@ -77,6 +81,7 @@ class DoItAccessibilityService : AccessibilityService() {
                         rawBitmap.recycle()
 
                         if (bitmap == null) {
+                            Log.e(TAG, "Failed to copy hardware buffer to ARGB_8888")
                             callback(null)
                             return
                         }
@@ -100,16 +105,26 @@ class DoItAccessibilityService : AccessibilityService() {
                         }
                         bitmap.recycle()
 
-                        android.util.Log.d("DoItAccessibility", "Silent screenshot captured: ${outFile.absolutePath} (${outFile.length()} bytes)")
+                        ScreenCaptureManager.updateLastAccessibilityTime()
+                        val duration = System.currentTimeMillis() - startTime
+                        Log.d(TAG, "Silent screenshot captured in ${duration}ms: ${outFile.absolutePath} (${outFile.length()} bytes)")
                         callback(outFile)
                     } catch (e: Exception) {
-                        android.util.Log.e("DoItAccessibility", "Error processing silent screenshot: ${e.message}")
+                        Log.e(TAG, "Error processing silent screenshot: ${e.message}", e)
                         callback(null)
                     }
                 }
 
                 override fun onFailure(errorCode: Int) {
-                    android.util.Log.e("DoItAccessibility", "takeScreenshot failed with errorCode: $errorCode")
+                    val reason = when (errorCode) {
+                        1 -> "ERROR_TAKE_SCREENSHOT_INTERNAL_ERROR"
+                        2 -> "ERROR_TAKE_SCREENSHOT_NO_ACCESSIBILITY_ACCESS"
+                        3 -> "ERROR_TAKE_SCREENSHOT_INTERVAL_HAS_NOT_EXPIRED (rate-limited)"
+                        4 -> "ERROR_TAKE_SCREENSHOT_INVALID_DISPLAY"
+                        5 -> "ERROR_TAKE_SCREENSHOT_INVALID_WINDOW"
+                        else -> "UNKNOWN_ERROR_$errorCode"
+                    }
+                    Log.w(TAG, "Accessibility takeScreenshot failed: $reason ($errorCode)")
                     callback(null)
                 }
             }
