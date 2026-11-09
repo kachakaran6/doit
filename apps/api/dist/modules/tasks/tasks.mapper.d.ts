@@ -28,6 +28,8 @@ export interface TaskListItemMapped {
     attachmentCount: number;
     commentCount: number;
     attachments?: any[];
+    severity?: string | null;
+    bug?: any;
     createdAt: Date;
     updatedAt: Date;
 }
@@ -71,5 +73,17 @@ export interface RawTaskModel {
     };
     attachments?: unknown[];
     comments?: unknown[];
+    bug?: {
+        id: string;
+        severity: string;
+        steps?: any;
+        expected?: string | null;
+        actual?: string | null;
+        frequency?: string | null;
+        deviceModel?: string | null;
+        osVersion?: string | null;
+        appVersion?: string | null;
+        autoContext?: any;
+    } | null;
 }
 export declare function mapTaskListItem(task: RawTaskModel, projectKey?: string): TaskListItemMapped;

@@ -30,7 +30,7 @@ let EmailController = class EmailController {
         return this.emailService.saveConfig(dto);
     }
     async testConnection(body) {
-        const parsed = body && Object.keys(body).length > 0 ? email_dto_1.SmtpConfigSchema.partial().parse(body) : undefined;
+        const parsed = body && Object.keys(body).length > 0 ? email_dto_1.PartialSmtpConfigSchema.parse(body) : undefined;
         return this.emailService.testConnection(parsed);
     }
     async sendTest(dto) {

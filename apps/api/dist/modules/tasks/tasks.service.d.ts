@@ -18,13 +18,14 @@ export declare class TasksService {
     }, query: TaskListQueryDto): Promise<import("../../common/pagination/cursor-page").CursorPageResult<import("./tasks.mapper").TaskListItemMapped>>;
     findMyDay(userId: string, workspaceId: string): Promise<import("./tasks.mapper").TaskListItemMapped[]>;
     findInbox(workspaceId: string): Promise<import("./tasks.mapper").TaskListItemMapped[]>;
-    findOne(taskId: string): Promise<{
+    private resolveTaskId;
+    findOne(rawTaskId: string): Promise<{
         checklist: {
+            text: string;
+            done: boolean;
             id: string;
             order: Prisma.Decimal;
             taskId: string;
-            text: string;
-            done: boolean;
         }[];
         attachments: ({
             url: string;
@@ -60,8 +61,8 @@ export declare class TasksService {
             thumbKey: string | null;
         })[];
         bug: {
-            id: string;
             expected: string | null;
+            id: string;
             taskId: string;
             sessionId: string | null;
             reporterId: string | null;
@@ -83,9 +84,9 @@ export declare class TasksService {
                 name: string;
             };
         } & {
+            workspaceId: string;
             id: string;
             createdAt: Date;
-            workspaceId: string;
             taskId: string | null;
             actorId: string;
             action: string;
@@ -119,11 +120,12 @@ export declare class TasksService {
         };
         attachmentCount: number;
         commentCount: number;
+        severity?: string | null;
         createdAt: Date;
         updatedAt: Date;
     }>;
-    update(taskId: string, userId: string, dto: UpdateTaskDto): Promise<import("./tasks.mapper").TaskListItemMapped>;
-    updateStatus(taskId: string, userId: string, dto: UpdateStatusDto): Promise<import("./tasks.mapper").TaskListItemMapped>;
+    update(rawTaskId: string, userId: string, dto: UpdateTaskDto): Promise<import("./tasks.mapper").TaskListItemMapped>;
+    updateStatus(rawTaskId: string, userId: string, dto: UpdateStatusDto): Promise<import("./tasks.mapper").TaskListItemMapped>;
     reorder(taskId: string, dto: ReorderTaskDto): Promise<{
         id: string;
         order: string;
@@ -134,20 +136,60 @@ export declare class TasksService {
         success: boolean;
     }>;
     addChecklistItem(taskId: string, dto: CreateChecklistItemDto): Promise<{
+        text: string;
+        done: boolean;
         id: string;
         order: Prisma.Decimal;
         taskId: string;
-        text: string;
-        done: boolean;
     }>;
     updateChecklistItem(itemId: string, dto: UpdateChecklistItemDto): Promise<{
+        text: string;
+        done: boolean;
         id: string;
         order: Prisma.Decimal;
         taskId: string;
-        text: string;
-        done: boolean;
     }>;
     deleteChecklistItem(itemId: string): Promise<{
+        success: boolean;
+    }>;
+    getComments(taskId: string): Promise<({
+        author: {
+            id: string;
+            name: string;
+            email: string;
+            avatarUrl: string | null;
+        };
+    } & {
+        body: string;
+        voiceNoteId: string | null;
+        id: string;
+        createdAt: Date;
+        updatedAt: Date;
+        deletedAt: Date | null;
+        taskId: string;
+        authorId: string;
+    })[]>;
+    createComment(taskId: string, userId: string, dto: {
+        body: string;
+        voiceNoteId?: string;
+    }): Promise<{
+        author: {
+            id: string;
+            name: string;
+            email: string;
+            avatarUrl: string | null;
+        };
+    } & {
+        body: string;
+        voiceNoteId: string | null;
+        id: string;
+        createdAt: Date;
+        updatedAt: Date;
+        deletedAt: Date | null;
+        taskId: string;
+        authorId: string;
+    }>;
+    deleteComment(commentId: string, userId: string): Promise<{
         success: boolean;
     }>;
 }

@@ -9,6 +9,8 @@ export interface PublicSmtpConfig {
     hasPassword: boolean;
     fromEmail: string | null;
     fromName: string;
+    fromAddress?: string | null;
+    senderName?: string;
     secure: boolean;
     enabled: boolean;
     source: 'database' | 'environment' | 'none';
@@ -31,11 +33,11 @@ export declare class EmailService {
     getPublicConfig(): Promise<PublicSmtpConfig>;
     saveConfig(dto: SmtpConfigDto): Promise<PublicSmtpConfig>;
     private createTransporter;
-    testConnection(customConfig?: SmtpConfigDto): Promise<{
+    testConnection(customConfig?: any): Promise<{
         success: boolean;
         message: string;
     }>;
-    sendTestEmail(to: string, customConfig?: SmtpConfigDto): Promise<{
+    sendTestEmail(to: string, customConfig?: any): Promise<{
         success: boolean;
         message: string;
     }>;

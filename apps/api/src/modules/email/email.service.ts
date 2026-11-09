@@ -17,6 +17,8 @@ export interface PublicSmtpConfig {
   hasPassword: boolean;
   fromEmail: string | null;
   fromName: string;
+  fromAddress?: string | null;
+  senderName?: string;
   secure: boolean;
   enabled: boolean;
   source: 'database' | 'environment' | 'none';
@@ -113,6 +115,8 @@ export class EmailService {
         hasPassword: false,
         fromEmail: null,
         fromName: 'DoIt',
+        fromAddress: null,
+        senderName: 'DoIt',
         secure: false,
         enabled: false,
         source: 'none',
@@ -127,6 +131,8 @@ export class EmailService {
       hasPassword: Boolean(resolved.password),
       fromEmail: resolved.fromEmail,
       fromName: resolved.fromName,
+      fromAddress: resolved.fromEmail,
+      senderName: resolved.fromName,
       secure: resolved.secure,
       enabled: resolved.enabled,
       source: resolved.source,
@@ -215,7 +221,7 @@ export class EmailService {
   /**
    * Tests connection to SMTP server.
    */
-  async testConnection(customConfig?: SmtpConfigDto): Promise<{ success: boolean; message: string }> {
+  async testConnection(customConfig?: any): Promise<{ success: boolean; message: string }> {
     let host: string;
     let port: number;
     let username: string | undefined;
@@ -223,11 +229,11 @@ export class EmailService {
     let secure: boolean;
 
     if (customConfig && customConfig.host) {
-      host = customConfig.host;
-      port = customConfig.port;
-      username = customConfig.username || undefined;
+      host = customConfig.host.trim();
+      port = Number(customConfig.port) || 587;
+      username = customConfig.username?.trim() || undefined;
       password = customConfig.password || undefined;
-      secure = customConfig.secure;
+      secure = customConfig.secure ?? (port === 465);
 
       // If no password provided in test payload, try existing password
       if (!password) {
@@ -261,31 +267,36 @@ export class EmailService {
    */
   async sendTestEmail(
     to: string,
-    customConfig?: SmtpConfigDto,
+    customConfig?: any,
   ): Promise<{ success: boolean; message: string }> {
     let resolved: any;
 
     if (customConfig && customConfig.host) {
+      const fromEmail = (customConfig.fromEmail || customConfig.fromAddress || '').trim();
+      const fromName = (customConfig.fromName || customConfig.senderName || 'DoIt').trim();
       let password = customConfig.password;
       if (!password) {
         const existing = await this.getResolvedSmtpConfig();
         if (existing?.password) password = existing.password;
       }
       resolved = {
-        host: customConfig.host,
-        port: customConfig.port,
-        username: customConfig.username,
+        host: customConfig.host.trim(),
+        port: Number(customConfig.port) || 587,
+        username: customConfig.username?.trim() || undefined,
         password,
-        fromEmail: customConfig.fromEmail,
-        fromName: customConfig.fromName || 'DoIt',
-        secure: customConfig.secure,
+        fromEmail: fromEmail,
+        fromName: fromName || 'DoIt',
+        secure: customConfig.secure ?? (Number(customConfig.port) === 465),
       };
     } else {
       resolved = await this.getResolvedSmtpConfig();
     }
 
-    if (!resolved) {
-      return { success: false, message: 'SMTP is not configured' };
+    if (!resolved || !resolved.host || !resolved.fromEmail) {
+      return {
+        success: false,
+        message: 'SMTP is not configured. Please fill in Host and From email address.',
+      };
     }
 
     try {

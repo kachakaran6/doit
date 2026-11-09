@@ -7,7 +7,13 @@ import {
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { EmailService } from './email.service';
-import { SmtpConfigDto, SmtpConfigSchema, SendTestEmailDto, SendTestEmailSchema } from './email.dto';
+import {
+  SmtpConfigDto,
+  SmtpConfigSchema,
+  PartialSmtpConfigSchema,
+  SendTestEmailDto,
+  SendTestEmailSchema,
+} from './email.dto';
 import { ZodValidationPipe } from '../../common/pipes/zod-validation.pipe';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
@@ -36,7 +42,7 @@ export class EmailController {
   @ApiBearerAuth('bearer-auth')
   @ApiOperation({ summary: 'Test connection to SMTP server' })
   async testConnection(@Body() body: any) {
-    const parsed = body && Object.keys(body).length > 0 ? SmtpConfigSchema.partial().parse(body) : undefined;
+    const parsed = body && Object.keys(body).length > 0 ? PartialSmtpConfigSchema.parse(body) : undefined;
     return this.emailService.testConnection(parsed as any);
   }
 

@@ -37,6 +37,8 @@ function mapTaskListItem(task, projectKey) {
         },
         attachmentCount: task._count?.attachments ?? task.attachments?.length ?? 0,
         commentCount: task._count?.comments ?? task.comments?.length ?? 0,
+        severity: task.bug?.severity || (task.type === 'BUG' ? (task.priority === 'URGENT' ? 'CRITICAL' : 'MAJOR') : null),
+        bug: task.bug || null,
         createdAt: task.createdAt,
         updatedAt: task.updatedAt,
     };

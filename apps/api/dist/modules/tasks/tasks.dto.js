@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.TaskListQuerySchema = exports.UpdateChecklistItemSchema = exports.CreateChecklistItemSchema = exports.SetLabelsSchema = exports.AssignTaskSchema = exports.ReorderTaskSchema = exports.UpdateStatusSchema = exports.UpdateTaskSchema = exports.CreateTaskSchema = void 0;
+exports.CreateCommentSchema = exports.TaskListQuerySchema = exports.UpdateChecklistItemSchema = exports.CreateChecklistItemSchema = exports.SetLabelsSchema = exports.AssignTaskSchema = exports.ReorderTaskSchema = exports.UpdateStatusSchema = exports.UpdateTaskSchema = exports.CreateTaskSchema = void 0;
 const zod_1 = require("zod");
 exports.CreateTaskSchema = zod_1.z.object({
     projectId: zod_1.z.string().optional(),
@@ -17,6 +17,7 @@ exports.CreateTaskSchema = zod_1.z.object({
 exports.UpdateTaskSchema = zod_1.z.object({
     title: zod_1.z.string().min(1).optional(),
     description: zod_1.z.string().optional(),
+    status: zod_1.z.enum(['TODO', 'IN_PROGRESS', 'BLOCKED', 'DONE']).optional(),
     priority: zod_1.z.enum(['LOW', 'MEDIUM', 'HIGH', 'URGENT']).optional(),
     dueAt: zod_1.z.string().datetime().nullable().optional(),
     dueHasTime: zod_1.z.boolean().optional(),
@@ -51,5 +52,9 @@ exports.TaskListQuerySchema = zod_1.z.object({
     q: zod_1.z.string().optional(),
     cursor: zod_1.z.string().optional(),
     limit: zod_1.z.coerce.number().min(1).max(100).default(20),
+});
+exports.CreateCommentSchema = zod_1.z.object({
+    body: zod_1.z.string().min(1).max(10000),
+    voiceNoteId: zod_1.z.string().uuid().optional(),
 });
 //# sourceMappingURL=tasks.dto.js.map

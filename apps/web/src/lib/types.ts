@@ -169,7 +169,10 @@ export interface SmtpConfig {
   secure: boolean;
   username: string;
   password?: string;
-  fromAddress: string;
-  senderName: string;
+  fromEmail: string;
+  fromName: string;
+  fromAddress?: string;
+  senderName?: string;
   configured: boolean;
+  hasPassword?: boolean;
 }

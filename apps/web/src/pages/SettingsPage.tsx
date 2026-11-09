@@ -57,9 +57,12 @@ export function SettingsPage() {
     secure: false,
     username: '',
     password: '',
+    fromEmail: '',
+    fromName: 'DoIt',
     fromAddress: '',
     senderName: 'DoIt',
     configured: false,
+    hasPassword: false,
   });
   const [smtpSaving, setSmtpSaving] = useState(false);
   const [smtpTesting, setSmtpTesting] = useState(false);
@@ -78,17 +81,22 @@ export function SettingsPage() {
     queryKey: ['smtp-config'],
     queryFn: async () => {
       try {
-        const config = await api.smtp.get();
+        const config: any = await api.smtp.get();
         if (config) {
+          const fromEmail = config.fromEmail || config.fromAddress || '';
+          const fromName = config.fromName || config.senderName || 'DoIt';
           setSmtp({
             host: config.host || '',
             port: config.port || 587,
             secure: Boolean(config.secure),
             username: config.username || '',
             password: '',
-            fromAddress: config.fromAddress || '',
-            senderName: config.senderName || 'DoIt',
+            fromEmail,
+            fromName,
+            fromAddress: fromEmail,
+            senderName: fromName,
             configured: Boolean(config.configured),
+            hasPassword: Boolean(config.hasPassword),
           });
         }
         return config;
@@ -139,9 +147,30 @@ export function SettingsPage() {
     e.preventDefault();
     try {
       setSmtpSaving(true);
-      const res = await api.smtp.save(smtp);
-      if (res.success) {
+      const email = (smtp.fromEmail || smtp.fromAddress || '').trim();
+      const name = (smtp.fromName || smtp.senderName || 'DoIt').trim();
+      const payload: any = {
+        host: smtp.host.trim(),
+        port: Number(smtp.port),
+        secure: Boolean(smtp.secure),
+        username: smtp.username?.trim() || null,
+        fromEmail: email,
+        fromName: name,
+        fromAddress: email,
+        senderName: name,
+      };
+      if (smtp.password && smtp.password.trim() !== '') {
+        payload.password = smtp.password.trim();
+      }
+      const res: any = await api.smtp.save(payload);
+      if (res?.success || res?.config || res?.host) {
         success('SMTP saved', 'Email delivery credentials configured.');
+        setSmtp((prev) => ({
+          ...prev,
+          password: '',
+          hasPassword: true,
+          configured: true,
+        }));
       }
     } catch (err: any) {
       error('Failed to save SMTP', err.message);
@@ -153,7 +182,22 @@ export function SettingsPage() {
   const handleTestSmtp = async () => {
     try {
       setSmtpTesting(true);
-      const res = await api.smtp.testConnection(smtp);
+      const email = (smtp.fromEmail || smtp.fromAddress || '').trim();
+      const name = (smtp.fromName || smtp.senderName || 'DoIt').trim();
+      const payload: any = {
+        host: smtp.host.trim(),
+        port: Number(smtp.port),
+        secure: Boolean(smtp.secure),
+        username: smtp.username?.trim() || undefined,
+        fromEmail: email || undefined,
+        fromName: name || undefined,
+        fromAddress: email || undefined,
+        senderName: name || undefined,
+      };
+      if (smtp.password && smtp.password.trim() !== '') {
+        payload.password = smtp.password.trim();
+      }
+      const res = await api.smtp.testConnection(payload);
       if (res.success) {
         success('Connection successful', res.message || 'Connected to SMTP mail server.');
       } else {
@@ -173,7 +217,22 @@ export function SettingsPage() {
     }
     try {
       setTestEmailSending(true);
-      const res = await api.smtp.sendTest(testEmailTo, smtp);
+      const email = (smtp.fromEmail || smtp.fromAddress || '').trim();
+      const name = (smtp.fromName || smtp.senderName || 'DoIt').trim();
+      const payload: any = smtp.host && email ? {
+        host: smtp.host.trim(),
+        port: Number(smtp.port),
+        secure: Boolean(smtp.secure),
+        username: smtp.username?.trim() || undefined,
+        fromEmail: email,
+        fromName: name,
+        fromAddress: email,
+        senderName: name,
+      } : undefined;
+      if (payload && smtp.password && smtp.password.trim() !== '') {
+        payload.password = smtp.password.trim();
+      }
+      const res = await api.smtp.sendTest(testEmailTo, payload);
       if (res.success) {
         success('Test email sent', `Delivered to ${testEmailTo}`);
       } else {
@@ -563,7 +622,7 @@ export function SettingsPage() {
                 <Input
                   label="Password / Secret"
                   type="password"
-                  placeholder="••••••••••••"
+                  placeholder={smtp.hasPassword ? '•••••••••••• (password saved)' : '••••••••••••'}
                   value={smtp.password || ''}
                   onChange={(e) => setSmtp({ ...smtp, password: e.target.value })}
                 />
@@ -574,15 +633,21 @@ export function SettingsPage() {
                   label="From email address"
                   type="email"
                   placeholder="notifications@yourdomain.com"
-                  value={smtp.fromAddress}
-                  onChange={(e) => setSmtp({ ...smtp, fromAddress: e.target.value })}
+                  value={smtp.fromEmail || smtp.fromAddress || ''}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setSmtp({ ...smtp, fromEmail: val, fromAddress: val });
+                  }}
                   required
                 />
                 <Input
                   label="Sender name"
                   placeholder="DoIt Workspace"
-                  value={smtp.senderName}
-                  onChange={(e) => setSmtp({ ...smtp, senderName: e.target.value })}
+                  value={smtp.fromName || smtp.senderName || ''}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setSmtp({ ...smtp, fromName: val, senderName: val });
+                  }}
                   required
                 />
               </div>

@@ -35,6 +35,15 @@ let TasksController = class TasksController {
             projectId,
             dueHasTime: false,
             labelIds: Array.isArray(dto.labelIds) ? dto.labelIds : [],
+            severity: dto.severity || 'MAJOR',
+            steps: dto.steps || [],
+            expected: dto.expected || null,
+            actual: dto.actual || null,
+            frequency: dto.frequency || 'often',
+            deviceModel: dto.deviceModel || dto.telemetry?.deviceModel,
+            osVersion: dto.osVersion || dto.telemetry?.osVersion,
+            appVersion: dto.appVersion || dto.telemetry?.appVersion,
+            telemetry: dto.telemetry || {},
         }, idempotencyKey);
     }
     async listBugsByProject(projectId, query) {
@@ -58,10 +67,10 @@ let TasksController = class TasksController {
         return this.tasksService.create(user.sub, { ...dto, projectId }, idempotencyKey);
     }
     async listByProject(projectId, query) {
-        return this.tasksService.findAll({ projectId }, query);
+        return this.tasksService.findAll({ projectId }, { ...query, type: query.type || 'TASK' });
     }
     async listByWorkspace(workspaceId, query) {
-        return this.tasksService.findAll({ workspaceId }, query);
+        return this.tasksService.findAll({ workspaceId }, { ...query, type: query.type || 'TASK' });
     }
     async findMyDay(user, workspaceId) {
         return this.tasksService.findMyDay(user.sub, workspaceId);
@@ -80,6 +89,9 @@ let TasksController = class TasksController {
     }
     async update(user, id, dto) {
         return this.tasksService.update(id, user.sub, dto);
+    }
+    async updateStatusPatch(user, id, dto) {
+        return this.tasksService.updateStatus(id, user.sub, dto);
     }
     async updateStatus(user, id, dto) {
         return this.tasksService.updateStatus(id, user.sub, dto);
@@ -104,6 +116,15 @@ let TasksController = class TasksController {
     }
     async deleteChecklistItem(itemId) {
         return this.tasksService.deleteChecklistItem(itemId);
+    }
+    async getComments(id) {
+        return this.tasksService.getComments(id);
+    }
+    async addComment(user, id, dto) {
+        return this.tasksService.createComment(id, user.sub, dto);
+    }
+    async deleteComment(user, commentId) {
+        return this.tasksService.deleteComment(commentId, user.sub);
     }
 };
 exports.TasksController = TasksController;
@@ -252,11 +273,22 @@ __decorate([
     __metadata("design:returntype", Promise)
 ], TasksController.prototype, "update", null);
 __decorate([
-    (0, common_1.Post)('tasks/:id/status'),
     (0, common_1.Patch)('tasks/:id/status'),
     (0, common_1.UseGuards)(workspace_member_guard_1.WorkspaceMemberGuard),
     (0, swagger_1.ApiBearerAuth)('bearer-auth'),
-    (0, swagger_1.ApiOperation)({ summary: 'Update task status through validated state machine' }),
+    (0, swagger_1.ApiOperation)({ summary: 'Update task status through validated state machine (PATCH)' }),
+    __param(0, (0, current_user_decorator_1.CurrentUser)()),
+    __param(1, (0, common_1.Param)('id')),
+    __param(2, (0, common_1.Body)(new zod_validation_pipe_1.ZodValidationPipe(tasks_dto_1.UpdateStatusSchema))),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, String, Object]),
+    __metadata("design:returntype", Promise)
+], TasksController.prototype, "updateStatusPatch", null);
+__decorate([
+    (0, common_1.Post)('tasks/:id/status'),
+    (0, common_1.UseGuards)(workspace_member_guard_1.WorkspaceMemberGuard),
+    (0, swagger_1.ApiBearerAuth)('bearer-auth'),
+    (0, swagger_1.ApiOperation)({ summary: 'Update task status through validated state machine (POST)' }),
     __param(0, (0, current_user_decorator_1.CurrentUser)()),
     __param(1, (0, common_1.Param)('id')),
     __param(2, (0, common_1.Body)(new zod_validation_pipe_1.ZodValidationPipe(tasks_dto_1.UpdateStatusSchema))),
@@ -322,8 +354,7 @@ __decorate([
     __metadata("design:returntype", Promise)
 ], TasksController.prototype, "addChecklistItem", null);
 __decorate([
-    (0, common_1.Patch)('checklist/:itemId'),
-    (0, common_1.Patch)('tasks/checklist/:itemId'),
+    (0, common_1.Patch)(['checklist/:itemId', 'tasks/checklist/:itemId']),
     (0, swagger_1.ApiBearerAuth)('bearer-auth'),
     (0, swagger_1.ApiOperation)({ summary: 'Update a checklist item text or completion status' }),
     __param(0, (0, common_1.Param)('itemId')),
@@ -333,8 +364,7 @@ __decorate([
     __metadata("design:returntype", Promise)
 ], TasksController.prototype, "updateChecklistItem", null);
 __decorate([
-    (0, common_1.Delete)('checklist/:itemId'),
-    (0, common_1.Delete)('tasks/checklist/:itemId'),
+    (0, common_1.Delete)(['checklist/:itemId', 'tasks/checklist/:itemId']),
     (0, swagger_1.ApiBearerAuth)('bearer-auth'),
     (0, swagger_1.ApiOperation)({ summary: 'Delete a checklist item' }),
     __param(0, (0, common_1.Param)('itemId')),
@@ -342,6 +372,39 @@ __decorate([
     __metadata("design:paramtypes", [String]),
     __metadata("design:returntype", Promise)
 ], TasksController.prototype, "deleteChecklistItem", null);
+__decorate([
+    (0, common_1.Get)('tasks/:id/comments'),
+    (0, common_1.UseGuards)(workspace_member_guard_1.WorkspaceMemberGuard),
+    (0, swagger_1.ApiBearerAuth)('bearer-auth'),
+    (0, swagger_1.ApiOperation)({ summary: 'Get all comments for a task' }),
+    __param(0, (0, common_1.Param)('id')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", Promise)
+], TasksController.prototype, "getComments", null);
+__decorate([
+    (0, common_1.Post)('tasks/:id/comments'),
+    (0, common_1.UseGuards)(workspace_member_guard_1.WorkspaceMemberGuard),
+    (0, swagger_1.ApiBearerAuth)('bearer-auth'),
+    (0, swagger_1.ApiOperation)({ summary: 'Add a comment to a task' }),
+    __param(0, (0, current_user_decorator_1.CurrentUser)()),
+    __param(1, (0, common_1.Param)('id')),
+    __param(2, (0, common_1.Body)(new zod_validation_pipe_1.ZodValidationPipe(tasks_dto_1.CreateCommentSchema))),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, String, Object]),
+    __metadata("design:returntype", Promise)
+], TasksController.prototype, "addComment", null);
+__decorate([
+    (0, common_1.Delete)('tasks/:id/comments/:commentId'),
+    (0, common_1.UseGuards)(workspace_member_guard_1.WorkspaceMemberGuard),
+    (0, swagger_1.ApiBearerAuth)('bearer-auth'),
+    (0, swagger_1.ApiOperation)({ summary: 'Delete a task comment' }),
+    __param(0, (0, current_user_decorator_1.CurrentUser)()),
+    __param(1, (0, common_1.Param)('commentId')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, String]),
+    __metadata("design:returntype", Promise)
+], TasksController.prototype, "deleteComment", null);
 exports.TasksController = TasksController = __decorate([
     (0, swagger_1.ApiTags)('Tasks'),
     (0, common_1.Controller)(),

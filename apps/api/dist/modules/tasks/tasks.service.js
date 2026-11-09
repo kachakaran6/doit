@@ -124,9 +124,32 @@ let TasksService = TasksService_1 = class TasksService {
                     assignee: { select: { id: true, name: true, avatarUrl: true } },
                     labels: { select: { label: { select: { id: true, name: true, color: true } } } },
                     checklist: { select: { id: true, done: true } },
+                    bug: true,
                     _count: { select: { attachments: true, comments: true } },
                 },
             });
+            if (dto.type === client_1.TaskType.BUG || dto.type === 'BUG' || dto.source === client_1.TaskSource.BUG || dto.source === 'BUG') {
+                const rawSev = dto.severity;
+                const sev = rawSev === 'CRITICAL' || rawSev === 'BLOCKER' || rawSev === 'MAJOR' || rawSev === 'MINOR' || rawSev === 'COSMETIC'
+                    ? rawSev
+                    : (created.priority === client_1.Priority.URGENT ? 'CRITICAL' : 'MAJOR');
+                const bugReport = await tx.bugReport.create({
+                    data: {
+                        taskId: created.id,
+                        reporterId: userId,
+                        severity: sev,
+                        steps: dto.steps || [],
+                        expected: dto.expected || null,
+                        actual: dto.actual || null,
+                        frequency: dto.frequency || 'often',
+                        deviceModel: dto.deviceModel || dto.telemetry?.deviceModel || 'Mobile Device',
+                        osVersion: dto.osVersion || dto.telemetry?.osVersion || 'Android',
+                        appVersion: dto.appVersion || dto.telemetry?.appVersion || '0.2.4',
+                        autoContext: dto.telemetry || {},
+                    },
+                });
+                created.bug = bugReport;
+            }
             await tx.activityLog.create({
                 data: {
                     workspaceId: project.workspaceId,
@@ -204,6 +227,7 @@ let TasksService = TasksService_1 = class TasksService {
                     labels: { select: { label: { select: { id: true, name: true, color: true } } } },
                     checklist: { select: { id: true, done: true } },
                     attachments: query.type === 'BUG' ? true : false,
+                    bug: true,
                     _count: { select: { attachments: true, comments: true } },
                 },
             }),
@@ -269,7 +293,29 @@ let TasksService = TasksService_1 = class TasksService {
         });
         return tasks.map((t) => (0, tasks_mapper_1.mapTaskListItem)(t));
     }
-    async findOne(taskId) {
+    async resolveTaskId(idOrHumanId) {
+        if (!idOrHumanId)
+            return idOrHumanId;
+        const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(idOrHumanId);
+        if (isUuid)
+            return idOrHumanId;
+        const match = idOrHumanId.match(/^([A-Z0-9]+)-(\d+)$/i);
+        if (match) {
+            const projectKey = match[1].toUpperCase();
+            const taskNumber = parseInt(match[2], 10);
+            const task = await this.prisma.task.findFirst({
+                where: {
+                    number: taskNumber,
+                    project: { key: projectKey },
+                },
+                select: { id: true },
+            });
+            return task?.id || idOrHumanId;
+        }
+        return idOrHumanId;
+    }
+    async findOne(rawTaskId) {
+        const taskId = await this.resolveTaskId(rawTaskId);
         const task = await this.prisma.task.findUnique({
             where: { id: taskId },
             include: {
@@ -317,7 +363,8 @@ let TasksService = TasksService_1 = class TasksService {
             activity: task.activity,
         };
     }
-    async update(taskId, userId, dto) {
+    async update(rawTaskId, userId, dto) {
+        const taskId = await this.resolveTaskId(rawTaskId);
         const existing = await this.prisma.task.findUnique({
             where: { id: taskId },
             include: { project: true },
@@ -325,11 +372,21 @@ let TasksService = TasksService_1 = class TasksService {
         if (!existing) {
             throw new app_error_1.AppError(error_code_enum_1.ErrorCode.TASK_NOT_FOUND, 'Task not found.', 404);
         }
+        if (dto.status) {
+            const targetStatus = dto.status;
+            (0, status_machine_1.validateStatusTransition)(existing.status, targetStatus);
+        }
         const updated = await this.prisma.task.update({
             where: { id: taskId },
             data: {
                 ...(dto.title ? { title: dto.title } : {}),
                 ...(dto.description !== undefined ? { description: dto.description } : {}),
+                ...(dto.status
+                    ? {
+                        status: dto.status,
+                        completedAt: dto.status === client_1.TaskStatus.DONE ? new Date() : null,
+                    }
+                    : {}),
                 ...(dto.priority ? { priority: dto.priority } : {}),
                 ...(dto.dueAt !== undefined ? { dueAt: dto.dueAt ? new Date(dto.dueAt) : null } : {}),
                 ...(dto.dueHasTime !== undefined ? { dueHasTime: dto.dueHasTime } : {}),
@@ -354,7 +411,8 @@ let TasksService = TasksService_1 = class TasksService {
         });
         return (0, tasks_mapper_1.mapTaskListItem)(updated);
     }
-    async updateStatus(taskId, userId, dto) {
+    async updateStatus(rawTaskId, userId, dto) {
+        const taskId = await this.resolveTaskId(rawTaskId);
         const task = await this.prisma.task.findUnique({
             where: { id: taskId },
             include: { project: true },
@@ -546,6 +604,69 @@ let TasksService = TasksService_1 = class TasksService {
     async deleteChecklistItem(itemId) {
         await this.prisma.checklistItem.delete({
             where: { id: itemId },
+        });
+        return { success: true };
+    }
+    async getComments(taskId) {
+        const task = await this.prisma.task.findUnique({
+            where: { id: taskId },
+            select: { id: true },
+        });
+        if (!task) {
+            throw new app_error_1.AppError(error_code_enum_1.ErrorCode.TASK_NOT_FOUND, 'Task not found.', 404);
+        }
+        return this.prisma.comment.findMany({
+            where: { taskId, deletedAt: null },
+            orderBy: { createdAt: 'asc' },
+            include: {
+                author: {
+                    select: { id: true, name: true, email: true, avatarUrl: true },
+                },
+            },
+        });
+    }
+    async createComment(taskId, userId, dto) {
+        const task = await this.prisma.task.findUnique({
+            where: { id: taskId },
+            include: { project: true },
+        });
+        if (!task) {
+            throw new app_error_1.AppError(error_code_enum_1.ErrorCode.TASK_NOT_FOUND, 'Task not found.', 404);
+        }
+        const comment = await this.prisma.comment.create({
+            data: {
+                taskId,
+                authorId: userId,
+                body: dto.body,
+                voiceNoteId: dto.voiceNoteId,
+            },
+            include: {
+                author: {
+                    select: { id: true, name: true, email: true, avatarUrl: true },
+                },
+            },
+        });
+        await this.prisma.activityLog.create({
+            data: {
+                workspaceId: task.project.workspaceId,
+                taskId,
+                actorId: userId,
+                action: 'task.comment_added',
+                meta: { commentId: comment.id },
+            },
+        });
+        return comment;
+    }
+    async deleteComment(commentId, userId) {
+        const comment = await this.prisma.comment.findUnique({
+            where: { id: commentId },
+        });
+        if (!comment) {
+            throw new app_error_1.AppError(error_code_enum_1.ErrorCode.NOT_FOUND, 'Comment not found.', 404);
+        }
+        await this.prisma.comment.update({
+            where: { id: commentId },
+            data: { deletedAt: new Date() },
         });
         return { success: true };
     }

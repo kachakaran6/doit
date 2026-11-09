@@ -85,6 +85,8 @@ let EmailService = EmailService_1 = class EmailService {
                 hasPassword: false,
                 fromEmail: null,
                 fromName: 'DoIt',
+                fromAddress: null,
+                senderName: 'DoIt',
                 secure: false,
                 enabled: false,
                 source: 'none',
@@ -98,6 +100,8 @@ let EmailService = EmailService_1 = class EmailService {
             hasPassword: Boolean(resolved.password),
             fromEmail: resolved.fromEmail,
             fromName: resolved.fromName,
+            fromAddress: resolved.fromEmail,
+            senderName: resolved.fromName,
             secure: resolved.secure,
             enabled: resolved.enabled,
             source: resolved.source,
@@ -169,11 +173,11 @@ let EmailService = EmailService_1 = class EmailService {
         let password;
         let secure;
         if (customConfig && customConfig.host) {
-            host = customConfig.host;
-            port = customConfig.port;
-            username = customConfig.username || undefined;
+            host = customConfig.host.trim();
+            port = Number(customConfig.port) || 587;
+            username = customConfig.username?.trim() || undefined;
             password = customConfig.password || undefined;
-            secure = customConfig.secure;
+            secure = customConfig.secure ?? (port === 465);
             if (!password) {
                 const existing = await this.getResolvedSmtpConfig();
                 if (existing?.password)
@@ -204,6 +208,8 @@ let EmailService = EmailService_1 = class EmailService {
     async sendTestEmail(to, customConfig) {
         let resolved;
         if (customConfig && customConfig.host) {
+            const fromEmail = (customConfig.fromEmail || customConfig.fromAddress || '').trim();
+            const fromName = (customConfig.fromName || customConfig.senderName || 'DoIt').trim();
             let password = customConfig.password;
             if (!password) {
                 const existing = await this.getResolvedSmtpConfig();
@@ -211,20 +217,23 @@ let EmailService = EmailService_1 = class EmailService {
                     password = existing.password;
             }
             resolved = {
-                host: customConfig.host,
-                port: customConfig.port,
-                username: customConfig.username,
+                host: customConfig.host.trim(),
+                port: Number(customConfig.port) || 587,
+                username: customConfig.username?.trim() || undefined,
                 password,
-                fromEmail: customConfig.fromEmail,
-                fromName: customConfig.fromName || 'DoIt',
-                secure: customConfig.secure,
+                fromEmail: fromEmail,
+                fromName: fromName || 'DoIt',
+                secure: customConfig.secure ?? (Number(customConfig.port) === 465),
             };
         }
         else {
             resolved = await this.getResolvedSmtpConfig();
         }
-        if (!resolved) {
-            return { success: false, message: 'SMTP is not configured' };
+        if (!resolved || !resolved.host || !resolved.fromEmail) {
+            return {
+                success: false,
+                message: 'SMTP is not configured. Please fill in Host and From email address.',
+            };
         }
         try {
             const transporter = this.createTransporter(resolved);
