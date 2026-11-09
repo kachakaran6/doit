@@ -126,6 +126,15 @@ export function SelectValue({ placeholder, className, children }: SelectValuePro
 
   const selectedLabel = children ?? (ctx.value ? ctx.displayLabels.current.get(ctx.value) : null);
 
+  // If ctx.value is a raw UUID, prevent rendering the ugly UUID string if display label is not found
+  const isUuid =
+    typeof ctx.value === 'string' &&
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(ctx.value);
+
+  const fallback = isUuid
+    ? (placeholder ?? 'Select an option…')
+    : (ctx.value ?? placeholder ?? 'Select an option…');
+
   return (
     <span
       className={cn(
@@ -134,7 +143,7 @@ export function SelectValue({ placeholder, className, children }: SelectValuePro
         className
       )}
     >
-      {selectedLabel ?? ctx.value ?? placeholder ?? 'Select an option…'}
+      {selectedLabel ?? fallback}
     </span>
   );
 }

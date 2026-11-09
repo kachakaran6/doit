@@ -213,7 +213,13 @@ export const SettingsScreen: React.FC = () => {
     <Screen scrollable includeBottomNavPadding={false}>
       <LargeHeader
         title="Settings"
-        onBack={() => navigation.goBack()}
+        onBack={() => {
+          if (navigation.canGoBack()) {
+            navigation.goBack();
+          } else {
+            (navigation as any).navigate('MainTabs', { screen: 'Home' });
+          }
+        }}
       />
 
       <View style={{ gap: spacing.lg, paddingBottom: 64 }}>

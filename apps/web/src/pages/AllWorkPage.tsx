@@ -13,6 +13,7 @@ import { useToast } from '@/components/ui/toast';
 import { Avatar } from '@/components/ui/avatar';
 import { Modal } from '@/components/ui/modal';
 import { SolutionPromptPanel } from '@/components/tasks/SolutionPromptPanel';
+import { FloatingCreateButton } from '@/components/layout/FloatingCreateButton';
 import {
   CheckSquare,
   Bug as BugIcon,
@@ -974,6 +975,8 @@ export function AllWorkPage() {
           </div>
         </Modal>
       )}
+      {/* Floating Action Button */}
+      <FloatingCreateButton type="task" label="New task" />
     </PageContainer>
   );
 }

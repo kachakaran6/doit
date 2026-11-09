@@ -6,6 +6,7 @@ import { api, resolveAttachmentUrl } from '@/lib/api';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { StatusBadge, PriorityBadge, SeverityBadge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
+import { FloatingCreateButton } from '@/components/layout/FloatingCreateButton';
 import {
   CheckCircle2,
   Bug as BugIcon,
@@ -278,6 +279,8 @@ export function DashboardPage() {
 
         </div>
       </div>
+      {/* Floating Action Button */}
+      <FloatingCreateButton type="task" label="New task" />
     </PageContainer>
   );
 }

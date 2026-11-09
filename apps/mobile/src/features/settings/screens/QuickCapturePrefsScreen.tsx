@@ -58,7 +58,16 @@ export const QuickCapturePrefsScreen: React.FC = () => {
 
   return (
     <Screen scrollable includeBottomNavPadding={false}>
-      <LargeHeader title="Quick Capture" onBack={() => navigation.goBack()} />
+      <LargeHeader
+        title="Quick Capture"
+        onBack={() => {
+          if (navigation.canGoBack()) {
+            navigation.goBack();
+          } else {
+            (navigation as any).navigate('Settings');
+          }
+        }}
+      />
       <View style={{ gap: spacing.lg, paddingBottom: 48 }}>
         <Text variant="caption" color="secondary">
           Settings configured here apply to Quick Capture inside {workspace?.name || 'this workspace'}.

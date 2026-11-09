@@ -315,6 +315,7 @@ export function TasksPage() {
             {projects.length > 1 ? (
               <ShadcnSelect
                 value={pId || ''}
+                placeholder={activeProject?.name || projects[0]?.name || 'Select project'}
                 onChange={(newPid) => {
                   const found = projects.find((p) => p.id === newPid);
                   if (found) setActiveProject(found);
@@ -328,7 +329,7 @@ export function TasksPage() {
               />
             ) : (
               <span className="text-[14px] font-semibold text-[var(--foreground)]">
-                {activeProject?.name || 'Tasks'}
+                {activeProject?.name || projects[0]?.name || 'Tasks'}
               </span>
             )}
 

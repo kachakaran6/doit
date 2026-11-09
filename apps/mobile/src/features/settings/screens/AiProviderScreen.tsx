@@ -37,7 +37,16 @@ export const AiProviderScreen: React.FC = () => {
 
   return (
     <Screen scrollable includeBottomNavPadding={false}>
-      <LargeHeader title="AI Provider" onBack={() => navigation.goBack()} />
+      <LargeHeader
+        title="AI Provider"
+        onBack={() => {
+          if (navigation.canGoBack()) {
+            navigation.goBack();
+          } else {
+            (navigation as any).navigate('Settings');
+          }
+        }}
+      />
       <View style={{ gap: spacing.lg, paddingBottom: 48 }}>
         {notice ? (
           <View style={{ padding: spacing.sm, borderRadius: radius.md, backgroundColor: colors.accentSoft }}>
