@@ -5,7 +5,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   name: 'DoIt',
   slug: 'doit',
   scheme: 'doit',
-  version: '0.2.9',
+  version: '0.3.0',
   orientation: 'portrait',
   icon: './assets/icon.png',
   userInterfaceStyle: 'automatic',
@@ -21,7 +21,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   },
   android: {
     package: 'com.samyukt.doit',
-    versionCode: 29,
+    versionCode: 30,
     allowBackup: false,
     adaptiveIcon: {
       foregroundImage: './assets/adaptive-icon-foreground.png',
