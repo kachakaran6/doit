@@ -239,11 +239,14 @@ export function TasksPage() {
 
   // Quick Task Creation Mutation
   const createTaskMutation = useMutation({
-    mutationFn: (title: string) =>
-      api.tasks.create(pId!, {
+    mutationFn: (title: string) => {
+      const targetProject = projects.find((p) => p.id === pId) || activeProject;
+      return api.tasks.create(pId!, {
         title: title.trim(),
         priority: 'MEDIUM',
-      }),
+        assigneeId: targetProject?.defaultAssigneeId || undefined,
+      });
+    },
     onSuccess: (newTask) => {
       queryClient.invalidateQueries({ queryKey: ['tasks', pId] });
       setQuickTitle('');

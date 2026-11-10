@@ -343,6 +343,14 @@ export const api = {
         body: JSON.stringify(data),
       }),
     delete: (id: string) => apiRequest(`/projects/${id}`, { method: 'DELETE' }),
+    members: (projectId: string) =>
+      apiRequest<{
+        projectId: string;
+        projectName: string;
+        defaultAssigneeId: string | null;
+        defaultAssignee: { id: string; name: string; email: string; avatarUrl?: string | null } | null;
+        members: Array<{ id: string; name: string; email: string; avatarUrl?: string | null; role: string }>;
+      }>(`/projects/${projectId}/members`),
   },
 
   tasks: {
@@ -388,6 +396,7 @@ export const api = {
         type?: string;
         dueAt?: string;
         labelIds?: string[];
+        assigneeId?: string;
       }
     ) =>
       apiRequest<Task>(`/projects/${projectId}/tasks`, {
@@ -462,6 +471,7 @@ export const api = {
         description?: string;
         severity?: string;
         labelIds?: string[];
+        assigneeId?: string;
       }
     ) =>
       apiRequest<Bug>(`/projects/${projectId}/bugs`, {

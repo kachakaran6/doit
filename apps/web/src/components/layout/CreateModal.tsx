@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { ShadcnSelect } from '@/components/ui/select';
 import { useToast } from '@/components/ui/toast';
 import { useQueryClient } from '@tanstack/react-query';
-import { CheckSquare, Bug, StickyNote } from 'lucide-react';
+import { CheckSquare, Bug, StickyNote, User, Folder } from 'lucide-react';
 
 export type CreateType = 'task' | 'bug' | 'sticky';
 
@@ -33,8 +33,27 @@ export function CreateModal({
   const [severity, setSeverity] = useState('MAJOR');
   const [isPinned, setIsPinned] = useState(false);
   const [selectedLabelIds, setSelectedLabelIds] = useState<string[]>([]);
+  const [selectedAssigneeId, setSelectedAssigneeId] = useState<string>('');
   const [labelQuery, setLabelQuery] = useState('');
   const [loading, setLoading] = useState(false);
+
+  const pId = selectedProjectId || activeProject?.id || projects[0]?.id;
+
+  const { data: projectMembersData, isLoading: loadingMembers } = useQuery({
+    queryKey: ['project-members', pId],
+    queryFn: () => (pId ? api.projects.members(pId) : null),
+    enabled: open && Boolean(pId) && type !== 'sticky',
+  });
+
+  // Whenever project members data updates or project changes, auto-select default assignee
+  React.useEffect(() => {
+    if (projectMembersData?.defaultAssigneeId) {
+      setSelectedAssigneeId(projectMembersData.defaultAssigneeId);
+    } else {
+      setSelectedAssigneeId('');
+    }
+  }, [pId, projectMembersData?.defaultAssigneeId]);
+
   const { data: labels = [] } = useQuery({
     queryKey: ['labels', activeWorkspace?.id],
     queryFn: () => (activeWorkspace?.id ? api.workspaces.labels(activeWorkspace.id) : []),
@@ -61,8 +80,6 @@ export function CreateModal({
       });
   }, [initialType, activeProject, open, activeWorkspace?.id]);
 
-  const pId = selectedProjectId || activeProject?.id || projects[0]?.id;
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim()) return;
@@ -80,6 +97,7 @@ export function CreateModal({
           description: description.trim() || undefined,
           priority,
           labelIds: selectedLabelIds,
+          assigneeId: selectedAssigneeId || undefined,
         });
         success('Task created', title.trim());
         queryClient.invalidateQueries({ queryKey: ['tasks'] });
@@ -89,6 +107,7 @@ export function CreateModal({
           description: description.trim() || undefined,
           severity,
           labelIds: selectedLabelIds,
+          assigneeId: selectedAssigneeId || undefined,
         });
         success('Bug reported', title.trim());
         queryClient.invalidateQueries({ queryKey: ['bugs'] });
@@ -189,11 +208,57 @@ export function CreateModal({
           </div>
         )}
 
-        {/* Project Selector if multiple */}
-        {projects.length > 0 && (
+        {/* Project & Assignee Selectors */}
+        {type !== 'sticky' ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {/* Project Selection (Mandatory) */}
+            <div className="space-y-1">
+              <label className="flex items-center gap-1.5 text-[13px] font-medium text-[var(--foreground)]">
+                <Folder className="w-3.5 h-3.5 text-[var(--muted-foreground)]" />
+                <span>Project <span className="text-[var(--destructive)]">*</span></span>
+              </label>
+              <ShadcnSelect
+                value={pId || ''}
+                onChange={(val) => {
+                  setSelectedProjectId(val);
+                  setSelectedAssigneeId('');
+                }}
+                options={projects.map((p) => ({
+                  value: p.id,
+                  label: `${p.name} (${p.key})`,
+                }))}
+              />
+            </div>
+
+            {/* Assignee Selection (Mandatory) */}
+            <div className="space-y-1">
+              <label className="flex items-center gap-1.5 text-[13px] font-medium text-[var(--foreground)]">
+                <User className="w-3.5 h-3.5 text-[var(--muted-foreground)]" />
+                <span>Assignee <span className="text-[var(--destructive)]">*</span></span>
+                {projectMembersData?.defaultAssigneeId && selectedAssigneeId === projectMembersData.defaultAssigneeId && (
+                  <span className="text-[10px] font-semibold text-[var(--primary)] bg-[var(--primary-soft)] px-1.5 py-0.5 rounded-full ml-auto">
+                    Default
+                  </span>
+                )}
+              </label>
+              <ShadcnSelect
+                value={selectedAssigneeId || 'unassigned'}
+                onChange={(val) => setSelectedAssigneeId(val === 'unassigned' ? '' : val)}
+                options={[
+                  { value: 'unassigned', label: loadingMembers ? 'Loading assignees...' : 'Select Assignee' },
+                  ...(projectMembersData?.members || []).map((m) => ({
+                    value: m.id,
+                    label: `${m.name}${m.id === projectMembersData?.defaultAssigneeId ? ' (Default)' : ''}`,
+                  })),
+                ]}
+              />
+            </div>
+          </div>
+        ) : projects.length > 0 ? (
           <div className="space-y-1">
-            <label className="block text-[13px] font-medium text-[var(--foreground)]">
-              Project
+            <label className="flex items-center gap-1.5 text-[13px] font-medium text-[var(--foreground)]">
+              <Folder className="w-3.5 h-3.5 text-[var(--muted-foreground)]" />
+              <span>Project</span>
             </label>
             <ShadcnSelect
               value={pId || ''}
@@ -204,7 +269,7 @@ export function CreateModal({
               }))}
             />
           </div>
-        )}
+        ) : null}
 
         {/* Title / Content */}
         <Input
@@ -295,7 +360,12 @@ export function CreateModal({
           <Button type="button" variant="outline" size="sm" onClick={onClose} disabled={loading}>
             Cancel
           </Button>
-          <Button type="submit" size="sm" loading={loading}>
+          <Button
+            type="submit"
+            size="sm"
+            loading={loading}
+            disabled={loading || !title.trim() || !pId}
+          >
             <span>{type === 'task' ? 'Create task' : type === 'bug' ? 'Submit report' : 'Save note'}</span>
           </Button>
         </div>
