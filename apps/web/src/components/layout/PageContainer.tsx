@@ -10,12 +10,12 @@ export interface PageContainerProps extends React.HTMLAttributes<HTMLDivElement>
 }
 
 const WIDTH_CLASSES: Record<PageContainerWidth, string> = {
-  data: 'max-w-none',
-  form: 'max-w-[720px] mx-auto',
-  settings: 'max-w-none',
-  detail: 'max-w-[1000px] mx-auto',
-  wide: 'max-w-none',
-  workspace: 'max-w-none',
+  data: 'max-w-none px-4 sm:px-6 py-5',
+  form: 'max-w-[720px] mx-auto px-4 sm:px-6 py-6',
+  settings: 'max-w-none px-4 sm:px-6 py-6',
+  detail: 'max-w-[1000px] mx-auto px-4 sm:px-6 py-6',
+  wide: 'max-w-none px-4 sm:px-6 py-5',
+  workspace: 'max-w-none p-0 flex flex-col min-h-full flex-1',
 };
 
 export function PageContainer({
@@ -28,8 +28,8 @@ export function PageContainer({
   return (
     <div
       className={cn(
-        'w-full px-4 sm:px-6 py-4',
-        WIDTH_CLASSES[width] || 'max-w-none',
+        'w-full',
+        WIDTH_CLASSES[width] || 'max-w-none px-4 sm:px-6 py-4',
         className
       )}
       {...props}

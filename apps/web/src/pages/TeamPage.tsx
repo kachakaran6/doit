@@ -13,7 +13,6 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/components/ui/toast';
 import { PageContainer } from '@/components/layout/PageContainer';
 import { ShadcnSelect } from '@/components/ui/select';
-import { FloatingCreateButton } from '@/components/layout/FloatingCreateButton';
 import {
   UserPlus,
   Mail,
@@ -461,12 +460,6 @@ export function TeamPage() {
           loading={removeMemberMutation.isPending}
         />
       )}
-      {/* Floating Action Button */}
-      <FloatingCreateButton
-        label="Invite member"
-        icon={<UserPlus className="w-3.5 h-3.5 text-white" />}
-        onClick={() => setInviteModalOpen(true)}
-      />
     </PageContainer>
   );
 }

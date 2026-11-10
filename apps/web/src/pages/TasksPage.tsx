@@ -16,7 +16,6 @@ import { Modal } from '@/components/ui/modal';
 import { Avatar } from '@/components/ui/avatar';
 import { ProjectContextPanel } from '@/components/tasks/ProjectContextPanel';
 import { SolutionPromptPanel } from '@/components/tasks/SolutionPromptPanel';
-import { FloatingCreateButton } from '@/components/layout/FloatingCreateButton';
 import {
   LayoutList,
   Columns3,
@@ -305,9 +304,9 @@ export function TasksPage() {
   };
 
   return (
-    <PageContainer width="workspace" className="space-y-4 select-none relative">
+    <PageContainer width="workspace" className="select-none relative flex flex-col min-h-full">
       {/* Cohesive Primary Workspace Toolbar */}
-      <div className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-3 shadow-2xs space-y-3">
+      <div className="border-b border-[var(--border)] bg-[var(--card)] px-4 sm:px-6 py-3 shrink-0 space-y-3">
         {/* Row 1: Context, View & Primary Action */}
         <div className="flex flex-wrap items-center justify-between gap-3">
           {/* Project & Count Badge */}
@@ -501,7 +500,8 @@ export function TasksPage() {
       </div>
 
       {/* Main View Area */}
-      {isLoading ? (
+      <div className="flex-1 p-4 sm:p-6 space-y-5">
+        {isLoading ? (
         <div className="space-y-3 py-4">
           <Skeleton className="h-11 w-full rounded-xl" />
           <Skeleton className="h-11 w-full rounded-xl" />
@@ -1214,9 +1214,7 @@ export function TasksPage() {
           />
         )}
       </Modal>
-
-      {/* Floating Action Button */}
-      <FloatingCreateButton type="task" label="New task" />
+      </div>
     </PageContainer>
   );
 }

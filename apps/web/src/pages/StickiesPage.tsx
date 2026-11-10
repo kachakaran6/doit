@@ -7,7 +7,6 @@ import { Button } from '@/components/ui/button';
 import { useToast } from '@/components/ui/toast';
 import { PageContainer } from '@/components/layout/PageContainer';
 import { ShadcnSelect } from '@/components/ui/select';
-import { FloatingCreateButton } from '@/components/layout/FloatingCreateButton';
 import { useCreateStore } from '@/lib/create-store';
 import {
   Pin,
@@ -126,9 +125,9 @@ export function StickiesPage() {
   };
 
   return (
-    <PageContainer width="workspace" className="space-y-4 select-none relative">
+    <PageContainer width="workspace" className="select-none relative flex flex-col min-h-full">
       {/* Top Workspace Toolbar */}
-      <div className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-3 shadow-2xs space-y-3">
+      <div className="border-b border-[var(--border)] bg-[var(--card)] px-4 sm:px-6 py-3 shrink-0 space-y-3">
         {/* Row 1: Project & Action */}
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-2">
@@ -219,8 +218,9 @@ export function StickiesPage() {
       </div>
 
       {/* Main Board Grid Area */}
-      {isLoading ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+      <div className="flex-1 p-4 sm:p-6 space-y-4">
+        {isLoading ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
           <Skeleton className="h-48 w-full rounded-2xl" />
           <Skeleton className="h-48 w-full rounded-2xl" />
           <Skeleton className="h-48 w-full rounded-2xl" />
@@ -352,9 +352,7 @@ export function StickiesPage() {
           })}
         </div>
       )}
-
-      {/* Floating Action Button (Opens Create Sticky modal) */}
-      <FloatingCreateButton type="sticky" label="New sticky" />
+      </div>
     </PageContainer>
   );
 }

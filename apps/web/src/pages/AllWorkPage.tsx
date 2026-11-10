@@ -13,7 +13,6 @@ import { useToast } from '@/components/ui/toast';
 import { Avatar } from '@/components/ui/avatar';
 import { Modal } from '@/components/ui/modal';
 import { SolutionPromptPanel } from '@/components/tasks/SolutionPromptPanel';
-import { FloatingCreateButton } from '@/components/layout/FloatingCreateButton';
 import {
   CheckSquare,
   Bug as BugIcon,
@@ -279,65 +278,62 @@ export function AllWorkPage() {
   };
 
   return (
-    <PageContainer width="workspace" className="space-y-5 select-none relative">
-      {/* 1. Header Row */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-1 border-b border-[var(--border)]">
-        <div>
-          <div className="flex items-center gap-2.5">
-            <h1 className="text-[20px] font-bold text-[var(--foreground)] tracking-tight">
+    <PageContainer width="workspace" className="select-none relative flex flex-col min-h-full">
+      {/* 1. Cohesive Header Toolbar */}
+      <div className="border-b border-[var(--border)] bg-[var(--card)] px-4 sm:px-6 py-3 shrink-0 space-y-3">
+        {/* Row 1: Context, View & Primary Action */}
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <h1 className="text-[15px] font-semibold text-[var(--foreground)] tracking-tight">
               All Work
             </h1>
-            <span className="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-[var(--muted)] text-[var(--muted-foreground)] tabular">
+            <span className="px-2 py-0.5 rounded-full text-[11px] font-medium bg-[var(--muted)] text-[var(--muted-foreground)] tabular">
               {filteredItems.length} {filteredItems.length === 1 ? 'item' : 'items'}
             </span>
           </div>
-          <p className="text-[12px] text-[var(--muted-foreground)] mt-0.5">
-            Unified stream of tasks and bug reports across {activeProject ? activeProject.name : 'all workspace projects'}
-          </p>
+
+          {/* Project Selector & Primary Actions */}
+          <div className="flex items-center gap-2">
+            {projects.length > 1 && (
+              <ShadcnSelect
+                value={selectedProjectId}
+                onChange={(val) => setSelectedProjectId(val)}
+                className="h-8 text-[12px] min-w-[150px]"
+                wrapperClassName="w-auto"
+                options={[
+                  { value: 'ALL', label: 'All Projects' },
+                  ...projects.map((p) => ({
+                    value: p.id,
+                    label: `${p.name} (${p.key})`,
+                  })),
+                ]}
+              />
+            )}
+
+            <button
+              type="button"
+              onClick={() => openCreate('task')}
+              className="inline-flex items-center gap-1 px-3 h-8 rounded-lg bg-[var(--primary)] text-[var(--primary-foreground)] text-[12px] font-medium shadow-2xs hover:opacity-90 transition-all cursor-pointer"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              <span>New task</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => openCreate('bug')}
+              className="inline-flex items-center gap-1 px-3 h-8 rounded-lg bg-[var(--card)] text-[var(--foreground)] border border-[var(--border)] hover:bg-[var(--accent)] text-[12px] font-medium transition-all cursor-pointer shadow-2xs"
+            >
+              <BugIcon className="w-3.5 h-3.5 text-[var(--danger-text)]" />
+              <span>Report bug</span>
+            </button>
+          </div>
         </div>
 
-        {/* Project Selector & Primary Actions */}
-        <div className="flex items-center gap-2 self-start sm:self-auto">
-          {projects.length > 1 && (
-            <ShadcnSelect
-              value={selectedProjectId}
-              onChange={(val) => setSelectedProjectId(val)}
-              className="h-8 text-[12px] min-w-[150px]"
-              wrapperClassName="w-auto"
-              options={[
-                { value: 'ALL', label: 'All Projects' },
-                ...projects.map((p) => ({
-                  value: p.id,
-                  label: `${p.name} (${p.key})`,
-                })),
-              ]}
-            />
-          )}
-
-          <button
-            type="button"
-            onClick={() => openCreate('task')}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[var(--primary)] text-[var(--primary-foreground)] text-[12px] font-medium shadow-2xs hover:opacity-90 transition-all cursor-pointer"
-          >
-            <Plus className="w-3.5 h-3.5" />
-            <span>New task</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => openCreate('bug')}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[var(--card)] text-[var(--foreground)] border border-[var(--border)] hover:bg-[var(--accent)] text-[12px] font-medium transition-all cursor-pointer shadow-2xs"
-          >
-            <BugIcon className="w-3.5 h-3.5 text-[var(--danger-text)]" />
-            <span>Report bug</span>
-          </button>
-        </div>
-      </div>
-
-      {/* 2. Cohesive Unified Toolbar */}
-      <div className="flex flex-wrap items-center justify-between gap-2.5">
-        <div className="flex flex-wrap items-center gap-2">
-          {/* Type Segment Control */}
+        {/* Row 2: Search & Filter Controls */}
+        <div className="flex flex-wrap items-center justify-between gap-2.5 pt-1 border-t border-[var(--border)]/70">
+          <div className="flex flex-wrap items-center gap-2">
+            {/* Type Segment Control */}
           <div className="flex rounded-lg bg-[var(--muted)] p-0.5 border border-[var(--border)]">
             <button
               type="button"
@@ -499,9 +495,11 @@ export function AllWorkPage() {
           </button>
         </div>
       </div>
+      </div>
 
       {/* 3. Main Data Content */}
-      {isLoading ? (
+      <div className="flex-1 p-4 sm:p-6 space-y-5">
+        {isLoading ? (
         <div className="space-y-3 py-4">
           <Skeleton className="h-12 w-full rounded-xl" />
           <Skeleton className="h-12 w-full rounded-xl" />
@@ -975,8 +973,7 @@ export function AllWorkPage() {
           </div>
         </Modal>
       )}
-      {/* Floating Action Button */}
-      <FloatingCreateButton type="task" label="New task" />
+      </div>
     </PageContainer>
   );
 }

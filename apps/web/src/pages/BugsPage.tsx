@@ -10,7 +10,6 @@ import { useToast } from '@/components/ui/toast';
 import { PageContainer } from '@/components/layout/PageContainer';
 import { ShadcnSelect } from '@/components/ui/select';
 import { SolutionPromptPanel } from '@/components/tasks/SolutionPromptPanel';
-import { FloatingCreateButton } from '@/components/layout/FloatingCreateButton';
 import { useCreateStore } from '@/lib/create-store';
 import {
   Search,
@@ -157,9 +156,9 @@ export function BugsPage() {
   const screenshotUrl = rawUrl ? resolveAttachmentUrl(rawUrl) : null;
 
   return (
-    <PageContainer width="workspace" className="space-y-4 select-none relative">
+    <PageContainer width="workspace" className="select-none relative flex flex-col min-h-full">
       {/* Top Workspace Toolbar */}
-      <div className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-3 shadow-2xs space-y-3">
+      <div className="border-b border-[var(--border)] bg-[var(--card)] px-4 sm:px-6 py-3 shrink-0 space-y-3">
         {/* Row 1: Context & Primary Action */}
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-2">
@@ -265,7 +264,8 @@ export function BugsPage() {
       </div>
 
       {/* Main Split Layout: Triage List (Left ~42%) + Detail Inspector (Right ~58%) */}
-      {isLoading ? (
+      <div className="flex-1 p-4 sm:p-6 space-y-4">
+        {isLoading ? (
         <div className="space-y-3 py-4">
           <Skeleton className="h-12 w-full rounded-xl" />
           <Skeleton className="h-12 w-full rounded-xl" />
@@ -600,9 +600,7 @@ export function BugsPage() {
           </div>
         </div>
       )}
-
-      {/* Floating Action Button */}
-      <FloatingCreateButton type="bug" label="Report bug" />
+      </div>
     </PageContainer>
   );
 }
