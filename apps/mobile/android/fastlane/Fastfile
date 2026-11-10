@@ -143,7 +143,7 @@ platform :android do
   end
 
   # Helper: Deploy AAB to Google Play Track
-  def deploy_to_play_store(aab_path, track_name)
+  def deploy_to_play_store(aab_path, track_name, release_status = "completed")
     key_file = resolve_play_store_key
     if key_file.nil?
       UI.important("⚠️ Skipping automated upload: Google Play JSON service account key not found.")
@@ -152,19 +152,19 @@ platform :android do
       return false
     end
 
-    UI.message("🚀 Uploading #{aab_path} to Google Play [#{track_name}] track...")
+    UI.message("🚀 Uploading #{aab_path} to Google Play [#{track_name}] track (status: #{release_status})...")
     upload_to_play_store(
       track: track_name,
       aab: aab_path,
       json_key: key_file,
       package_name: "com.samyukt.doit",
-      release_status: "draft",
+      release_status: release_status,
       skip_upload_apk: true,
       skip_upload_metadata: true,
       skip_upload_images: true,
       skip_upload_screenshots: true
     )
-    UI.success("✨ Successfully uploaded build to #{track_name} track on Google Play!")
+    UI.success("✨ Successfully uploaded and published build to #{track_name} track on Google Play!")
     true
   end
 
@@ -173,7 +173,8 @@ platform :android do
   lane :internal do |options|
     version_info = get_target_build_number(options)
     aab = build_android_aab(version_info[:build_number], version_info[:version_name])
-    deploy_to_play_store(aab, "internal")
+    rel_status = options[:release_status] || "completed"
+    deploy_to_play_store(aab, "internal", rel_status)
     git_version_backup(version_info[:build_number], version_info[:version_name], "internal")
   end
 
@@ -182,7 +183,8 @@ platform :android do
   lane :closed do |options|
     version_info = get_target_build_number(options)
     aab = build_android_aab(version_info[:build_number], version_info[:version_name])
-    deploy_to_play_store(aab, "alpha")
+    rel_status = options[:release_status] || "completed"
+    deploy_to_play_store(aab, "alpha", rel_status)
     git_version_backup(version_info[:build_number], version_info[:version_name], "closed")
   end
 
@@ -191,7 +193,8 @@ platform :android do
   lane :beta do |options|
     version_info = get_target_build_number(options)
     aab = build_android_aab(version_info[:build_number], version_info[:version_name])
-    deploy_to_play_store(aab, "beta")
+    rel_status = options[:release_status] || "completed"
+    deploy_to_play_store(aab, "beta", rel_status)
     git_version_backup(version_info[:build_number], version_info[:version_name], "beta")
   end
 
@@ -200,7 +203,8 @@ platform :android do
   lane :production do |options|
     version_info = get_target_build_number(options)
     aab = build_android_aab(version_info[:build_number], version_info[:version_name])
-    deploy_to_play_store(aab, "production")
+    rel_status = options[:release_status] || "completed"
+    deploy_to_play_store(aab, "production", rel_status)
     git_version_backup(version_info[:build_number], version_info[:version_name], "production")
   end
 

@@ -65,6 +65,8 @@ class HttpClient {
 
   // Mutex promise to prevent concurrent refresh requests
   private refreshPromise: Promise<string | null> | null = null;
+  // Deduplicate simultaneous in-flight GET requests
+  private inFlightGetRequests: Map<string, Promise<any>> = new Map();
 
   setOnUnauthorized(callback: (() => void) | null) {
     this.onUnauthorizedCallback = callback;
@@ -207,9 +209,40 @@ class HttpClient {
 
   async request<T>(path: string, options: RequestInit = {}, isRetry = false): Promise<T> {
     const url = path.startsWith('http') ? path : `${this.baseUrl}${path.startsWith('/') ? path : `/${path}`}`;
+    const method = (options.method || 'GET').toUpperCase();
+    const isGet = method === 'GET';
+
+    // Deduplicate concurrent identical GET requests across components
+    if (isGet && !isRetry) {
+      const cacheKey = `${url}|${this.authToken || ''}|${this.workspaceId || ''}`;
+      const inFlight = this.inFlightGetRequests.get(cacheKey);
+      if (inFlight) {
+        return inFlight as Promise<T>;
+      }
+      const promise = this.executeRequest<T>(url, path, method, isGet, options, isRetry)
+        .finally(() => {
+          this.inFlightGetRequests.delete(cacheKey);
+        });
+      this.inFlightGetRequests.set(cacheKey, promise);
+      return promise;
+    }
+
+    return this.executeRequest<T>(url, path, method, isGet, options, isRetry);
+  }
+
+  private async executeRequest<T>(
+    url: string,
+    path: string,
+    method: string,
+    isGet: boolean,
+    options: RequestInit,
+    isRetry: boolean
+  ): Promise<T> {
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
       Accept: 'application/json',
+      'Accept-Encoding': 'gzip, deflate, br',
+      Connection: 'keep-alive',
       ...((options.headers as Record<string, string>) || {}),
     };
 
@@ -221,12 +254,9 @@ class HttpClient {
       headers['x-workspace-id'] = this.workspaceId;
     }
 
-    const method = (options.method || 'GET').toUpperCase();
-    const isGet = method === 'GET';
-
-    // 15-second request timeout controller
+    // 10-second request timeout controller
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 15000);
+    const timeoutId = setTimeout(() => controller.abort(), 10000);
 
     let response: Response;
     try {
