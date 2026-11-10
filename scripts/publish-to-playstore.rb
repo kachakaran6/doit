@@ -42,6 +42,7 @@ track_release = Google::Apis::AndroidpublisherV3::TrackRelease.new(
   release_notes: [
     Google::Apis::AndroidpublisherV3::LocalizedText.new(
       language: 'en-US',
+      text: "Fix workspace invitation links to doit-web.samyukt.pro and enable deep linking."
       text: "Global Android back navigation & exit confirmation policy, persistent auth sessions across app updates, interactive priority & status pickers, and inline task editing."
     )
   ]
