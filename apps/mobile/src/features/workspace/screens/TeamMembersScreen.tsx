@@ -121,8 +121,14 @@ export const TeamMembersScreen: React.FC = () => {
       };
 
       const res: any = await http.post(`/workspaces/${workspaceId}/invitations`, payload);
+      let rawUrl = (res.inviteUrl || '')
+        .replace('doit.web.samyukt.pro', 'doit-web.samyukt.pro')
+        .replace('doit.kachakaran.tech', 'doit-web.samyukt.pro');
+      if (!rawUrl.startsWith('http') && (res.token || res.id)) {
+        rawUrl = `https://doit-web.samyukt.pro/invite/${res.token || res.id}`;
+      }
       setGeneratedResult({
-        url: res.inviteUrl,
+        url: rawUrl,
         emailSent: res.emailSent,
         emailError: res.emailError,
       });
@@ -253,6 +259,8 @@ export const TeamMembersScreen: React.FC = () => {
         <TouchableOpacity
           onPress={() => navigation.goBack()}
           hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+          accessibilityLabel="Back"
+          accessibilityRole="button"
           style={styles.backBtn}
         >
           <ArrowLeft size={22} color={colors.textPrimary} />

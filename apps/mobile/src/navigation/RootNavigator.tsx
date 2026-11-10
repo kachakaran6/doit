@@ -69,6 +69,8 @@ const linking: LinkingOptions<RootStackParamList> = {
   prefixes: [
     'doit://',
     'samyukt://',
+    'https://doit-web.samyukt.pro',
+    'https://doit.web.samyukt.pro',
     'https://doit.kachakaran.tech',
     'https://doit.samyukt.pro',
     'https://app.samyukt.com',

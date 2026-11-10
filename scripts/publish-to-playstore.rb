@@ -35,17 +35,31 @@ res = service.upload_edit_bundle(
 )
 puts "✅ Uploaded bundle versionCode: #{res.version_code}, SHA256: #{res.sha256}"
 
-track = Google::Apis::AndroidpublisherV3::Track.new(
-  track: track_arg,
-  releases: [
-    Google::Apis::AndroidpublisherV3::TrackRelease.new(
-      name: "#{version_name} (#{build_number})",
-      version_codes: [res.version_code.to_s],
-      status: 'draft'
+track_release = Google::Apis::AndroidpublisherV3::TrackRelease.new(
+  name: "#{version_name} (#{build_number})",
+  version_codes: [res.version_code.to_s],
+  status: 'completed',
+  release_notes: [
+    Google::Apis::AndroidpublisherV3::LocalizedText.new(
+      language: 'en-US',
+      text: "Fix workspace invitation links to doit-web.samyukt.pro and enable deep linking."
     )
   ]
 )
 
-service.update_edit_track(pkg, edit.id, track_arg, track)
-commit_res = service.commit_edit(pkg, edit.id)
-puts "🎉 SUCCESS! The release is committed to Google Play Console [#{track_arg}] track!"
+track = Google::Apis::AndroidpublisherV3::Track.new(
+  track: track_arg,
+  releases: [track_release]
+)
+
+begin
+  service.update_edit_track(pkg, edit.id, track_arg, track)
+  commit_res = service.commit_edit(pkg, edit.id)
+  puts "🎉 SUCCESS! The release is rolled out (completed) to Google Play Console [#{track_arg}] track!"
+rescue => e
+  puts "⚠️ Direct rollout failed (#{e.message}). Falling back to 'draft' status..."
+  track_release.status = 'draft'
+  service.update_edit_track(pkg, edit.id, track_arg, track)
+  commit_res = service.commit_edit(pkg, edit.id)
+  puts "🎉 SUCCESS! The release is committed as draft to Google Play Console [#{track_arg}] track!"
+end

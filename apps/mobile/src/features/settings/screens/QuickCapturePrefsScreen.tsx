@@ -33,7 +33,7 @@ export const QuickCapturePrefsScreen: React.FC = () => {
         setShowProjectSelector(prefs.showProjectSelector !== false);
         setLabelsExpanded(Boolean(prefs.labelsExpanded));
       })
-      .catch(() => {});
+      .catch(() => { });
   }, [workspace?.id]);
 
   const handleSave = async () => {

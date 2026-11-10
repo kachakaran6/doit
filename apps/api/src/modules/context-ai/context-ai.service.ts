@@ -347,7 +347,7 @@ export class ContextAiService {
           Authorization: `Bearer ${secret}`,
           ...(provEnum === 'OPENROUTER'
             ? {
-                'HTTP-Referer': process.env.APP_URL || 'https://doit.web.samyukt.pro',
+                'HTTP-Referer': process.env.APP_URL || 'https://doit-web.samyukt.pro',
                 'X-Title': 'DoIt AI Workspace',
               }
             : {}),
@@ -596,7 +596,7 @@ export class ContextAiService {
       'Content-Type': 'application/json',
       ...(isOpenRouter
         ? {
-            'HTTP-Referer': process.env.APP_URL || 'https://doit.web.samyukt.pro',
+            'HTTP-Referer': process.env.APP_URL || 'https://doit-web.samyukt.pro',
             'X-Title': 'DoIt AI Solution Assistant',
           }
         : {}),

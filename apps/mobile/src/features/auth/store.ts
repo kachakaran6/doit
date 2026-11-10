@@ -96,3 +96,8 @@ export const useAuthStore = create<AuthState>((set) => ({
     });
   },
 }));
+
+http.setOnUnauthorized(() => {
+  useAuthStore.getState().logout();
+});
+

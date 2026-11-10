@@ -63,6 +63,11 @@ class HttpClient {
   private workspaceId: string | null = null;
   public readonly failedRequests: FailedRequestLog[] = [];
   private isRefreshing: boolean = false;
+  private onUnauthorizedCallback: (() => void) | null = null;
+
+  setOnUnauthorized(callback: (() => void) | null) {
+    this.onUnauthorizedCallback = callback;
+  }
 
   constructor() {
     this.loadPersistedBaseUrl();
@@ -236,6 +241,10 @@ class HttpClient {
     }
 
     if (!response.ok) {
+      if (response.status === 401 && !url.includes('/auth/login')) {
+        this.onUnauthorizedCallback?.();
+      }
+
       let errorBody: any = {};
       try {
         errorBody = await response.json();

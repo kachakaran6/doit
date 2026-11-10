@@ -27,7 +27,7 @@ export class MembersService {
         // ignore invalid URL
       }
     }
-    return process.env.APP_URL || 'https://doit.web.samyukt.pro';
+    return process.env.APP_URL || 'https://doit-web.samyukt.pro';
   }
 
   async getMembers(workspaceId: string) {

@@ -32,7 +32,7 @@ let MembersService = MembersService_1 = class MembersService {
             catch {
             }
         }
-        return process.env.APP_URL || 'https://doit.web.samyukt.pro';
+        return process.env.APP_URL || 'https://doit-web.samyukt.pro';
     }
     async getMembers(workspaceId) {
         return this.prisma.membership.findMany({

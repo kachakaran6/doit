@@ -102,6 +102,8 @@ export const OurAppsScreen: React.FC = () => {
         <Pressable
           onPress={() => navigation.goBack()}
           hitSlop={8}
+          accessibilityLabel="Back"
+          accessibilityRole="button"
           style={[styles.backBtn, { backgroundColor: colors.surface2, borderRadius: radius.md }]}
         >
           <ArrowLeft size={18} color={colors.textPrimary} />

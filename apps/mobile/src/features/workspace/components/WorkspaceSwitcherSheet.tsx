@@ -78,7 +78,13 @@ export const WorkspaceSwitcherSheet: React.FC<WorkspaceSwitcherSheetProps> = ({
     setIsSubmitting(true);
     setErrorMsg(null);
     try {
-      const cleanToken = inviteCode.trim().split('/').pop() || inviteCode.trim();
+      let cleanToken = inviteCode.trim();
+      const match = cleanToken.match(/(?:^|\/)invite\/([^/?#]+)/i);
+      if (match && match[1]) {
+        cleanToken = match[1];
+      } else {
+        cleanToken = cleanToken.split(/[/?#]/).filter(Boolean).pop() || cleanToken;
+      }
       const res: any = await http.post('/invitations/accept', { token: cleanToken });
       if (res && res.workspace) {
         await refetch();

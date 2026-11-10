@@ -27,7 +27,7 @@ export const EnvSchema = z
     TRUST_PROXY: z.coerce.number().default(1),
     MIN_APP_VERSION: z.string().default('0.1.0'),
     REDIS_URL: z.string().optional(),
-    APP_URL: z.string().default('https://doit.web.samyukt.pro'),
+    APP_URL: z.string().default('https://doit-web.samyukt.pro'),
     STORAGE_BASE_URL: z.string().optional(),
     SMTP_HOST: z.string().optional(),
     SMTP_PORT: z.coerce.number().optional(),
