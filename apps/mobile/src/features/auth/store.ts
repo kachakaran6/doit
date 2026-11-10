@@ -9,6 +9,7 @@ interface AuthState {
   accessToken: string | null;
   refreshToken: string | null;
   isAuthenticated: boolean;
+  isInitialized: boolean;
   initAuth: () => Promise<void>;
   setSession: (session: AuthSession) => void;
   logout: () => void;
@@ -19,6 +20,7 @@ export const useAuthStore = create<AuthState>((set) => ({
   accessToken: null,
   refreshToken: null,
   isAuthenticated: false,
+  isInitialized: false,
 
   initAuth: async () => {
     try {
@@ -38,6 +40,7 @@ export const useAuthStore = create<AuthState>((set) => ({
           accessToken: saved.accessToken,
           refreshToken: saved.refreshToken,
           isAuthenticated: true,
+          isInitialized: true,
         });
 
         // Background profile refresh from /auth/me
@@ -58,9 +61,12 @@ export const useAuthStore = create<AuthState>((set) => ({
         }).catch(() => {
           // Ignore network errors on background refresh
         });
+        return;
       }
     } catch (e) {
       console.warn('[useAuthStore] initAuth error:', e);
+    } finally {
+      set({ isInitialized: true });
     }
   },
 
@@ -81,6 +87,7 @@ export const useAuthStore = create<AuthState>((set) => ({
       accessToken: session.accessToken,
       refreshToken: session.refreshToken,
       isAuthenticated: true,
+      isInitialized: true,
     });
   },
 
@@ -93,6 +100,7 @@ export const useAuthStore = create<AuthState>((set) => ({
       accessToken: null,
       refreshToken: null,
       isAuthenticated: false,
+      isInitialized: true,
     });
   },
 }));

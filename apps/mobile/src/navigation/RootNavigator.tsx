@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { Linking, BackHandler, Platform } from 'react-native';
+import { Linking, BackHandler, Platform, View, ActivityIndicator } from 'react-native';
 import { DefaultTheme, DarkTheme, NavigationContainer, LinkingOptions, getStateFromPath } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { RootStackParamList } from './types';
@@ -104,6 +104,7 @@ const linking: LinkingOptions<RootStackParamList> = {
 };
 
 export const RootNavigator: React.FC = () => {
+  const isInitialized = useAuthStore((s) => s.isInitialized);
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const versionPolicy = useVersionPolicy();
   const { colors, resolvedTheme } = useTheme();
@@ -145,6 +146,14 @@ export const RootNavigator: React.FC = () => {
     const sub = BackHandler.addEventListener('hardwareBackPress', onHardwareBack);
     return () => sub.remove();
   }, []);
+
+  if (!isInitialized) {
+    return (
+      <View style={{ flex: 1, backgroundColor: colors.canvas, alignItems: 'center', justifyContent: 'center' }}>
+        <ActivityIndicator size="large" color={colors.accent} />
+      </View>
+    );
+  }
 
   if (versionPolicy.checked && versionPolicy.needsUpdate) {
     return (

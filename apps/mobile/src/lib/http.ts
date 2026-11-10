@@ -1,8 +1,7 @@
 /**
  * Core HTTP Client for Mobile Application
- * Automatically unwraps standard { data, meta } envelopes,
- * supports silent token rotation via /auth/refresh,
- * and extracts typed ApiError with server error codes, details, and request IDs.
+ * Robust JWT authorization interceptor, mutex-guarded silent token rotation,
+ * resilient network error handling, safe GET retries, and strict session preservation.
  */
 
 import Constants from 'expo-constants';
@@ -62,8 +61,10 @@ class HttpClient {
   private authToken: string | null = null;
   private workspaceId: string | null = null;
   public readonly failedRequests: FailedRequestLog[] = [];
-  private isRefreshing: boolean = false;
   private onUnauthorizedCallback: (() => void) | null = null;
+
+  // Mutex promise to prevent concurrent refresh requests
+  private refreshPromise: Promise<string | null> | null = null;
 
   setOnUnauthorized(callback: (() => void) | null) {
     this.onUnauthorizedCallback = callback;
@@ -75,7 +76,6 @@ class HttpClient {
 
   private async loadPersistedBaseUrl() {
     if (!__DEV__) {
-      // Strictly enforce the live production API URL for all release builds
       this.baseUrl = PRODUCTION_API_URL;
       return;
     }
@@ -98,7 +98,6 @@ class HttpClient {
 
   setBaseUrl(url: string) {
     if (!__DEV__) {
-      // In release builds, never allow switching away from production API
       this.baseUrl = PRODUCTION_API_URL;
       return;
     }
@@ -141,6 +140,71 @@ class HttpClient {
     }
   }
 
+  /**
+   * Mutex-guarded Token Refresh
+   * Guarantees only one /auth/refresh network call executes at a time.
+   * All concurrent requests queue behind this promise.
+   */
+  private async executeTokenRefresh(): Promise<string | null> {
+    try {
+      const session = await AuthStorage.getSession();
+      let refreshTokenToUse = session?.refreshToken;
+
+      // Check native overlay credentials if available
+      try {
+        const overlayCreds = await overlayService.getCredentials();
+        if (overlayCreds?.refreshToken) {
+          refreshTokenToUse = overlayCreds.refreshToken;
+        }
+      } catch {}
+
+      if (!refreshTokenToUse) {
+        return null;
+      }
+
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 12000);
+
+      const refreshRes = await fetch(`${this.baseUrl}/auth/refresh`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Accept: 'application/json',
+        },
+        body: JSON.stringify({ refreshToken: refreshTokenToUse }),
+        signal: controller.signal,
+      }).finally(() => clearTimeout(timer));
+
+      if (refreshRes.ok) {
+        const refreshData = await refreshRes.json();
+        const payload = refreshData.data || refreshData;
+        const newAccessToken = payload.accessToken;
+        const newRefreshToken = payload.refreshToken || refreshTokenToUse;
+
+        if (newAccessToken && session) {
+          this.setAuthToken(newAccessToken);
+          const updatedSession = {
+            ...session,
+            accessToken: newAccessToken,
+            refreshToken: newRefreshToken,
+          };
+          await AuthStorage.setSession(updatedSession);
+          overlayService.syncAuthCredentials(newAccessToken, this.baseUrl, this.workspaceId, newRefreshToken);
+          return newAccessToken;
+        }
+      } else if (refreshRes.status === 401 || refreshRes.status === 403) {
+        // Refresh token is genuinely invalid, revoked, or expired
+        console.warn('[HttpClient] Refresh token expired or revoked. Logging out.');
+        this.onUnauthorizedCallback?.();
+        return null;
+      }
+    } catch (err: any) {
+      // Network error or timeout during refresh - DO NOT log out user!
+      console.warn('[HttpClient] Refresh network error (session preserved):', err.message);
+    }
+    return null;
+  }
+
   async request<T>(path: string, options: RequestInit = {}, isRetry = false): Promise<T> {
     const url = path.startsWith('http') ? path : `${this.baseUrl}${path.startsWith('/') ? path : `/${path}`}`;
     const headers: Record<string, string> = {
@@ -157,92 +221,72 @@ class HttpClient {
       headers['x-workspace-id'] = this.workspaceId;
     }
 
+    const method = (options.method || 'GET').toUpperCase();
+    const isGet = method === 'GET';
+
+    // 15-second request timeout controller
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 15000);
+
     let response: Response;
     try {
       response = await fetch(url, {
         ...options,
         headers,
+        signal: controller.signal,
       });
     } catch (netErr: any) {
+      clearTimeout(timeoutId);
+
+      // Safe retry once for transient GET network errors
+      if (isGet && !isRetry) {
+        await new Promise((r) => setTimeout(r, 600));
+        return this.request<T>(path, options, true);
+      }
+
       const failedEntry: FailedRequestLog = {
         timestamp: new Date().toISOString(),
-        method: options.method || 'GET',
+        method,
         url,
         status: 0,
         code: 'NETWORK_ERROR',
-        message: `Cannot reach server at ${this.baseUrl}: ${netErr.message || 'Network unreachable'}`,
+        message: `Cannot reach server: ${netErr.message || 'Network unreachable'}`,
       };
       this.logFailedRequest(failedEntry);
       throw new ApiError(
         0,
         'NETWORK_ERROR',
-        `Cannot reach API server at ${this.baseUrl}. Check network or ADB reverse.`
+        `Network error connecting to API. Please check your connection.`
       );
+    } finally {
+      clearTimeout(timeoutId);
     }
 
-    // Handle 401 Unauthorized with silent token rotation
-    if (response.status === 401 && !isRetry && !url.includes('/auth/login') && !url.includes('/auth/refresh') && !this.isRefreshing) {
-      this.isRefreshing = true;
-      try {
-        const session = await AuthStorage.getSession();
-        let refreshTokenToUse = session?.refreshToken;
-        try {
-          const overlayCreds = await overlayService.getCredentials();
-          if (overlayCreds?.authToken && session && overlayCreds.authToken !== session.accessToken) {
-            this.setAuthToken(overlayCreds.authToken);
-            await AuthStorage.setSession({
-              ...session,
-              accessToken: overlayCreds.authToken,
-              refreshToken: overlayCreds.refreshToken || session.refreshToken,
-            });
-            this.isRefreshing = false;
-            return this.request<T>(path, options, true);
-          }
-          if (overlayCreds?.refreshToken) {
-            refreshTokenToUse = overlayCreds.refreshToken;
-          }
-        } catch {}
+    // Handle 401 with synchronized mutex token refresh
+    if (response.status === 401 && !isRetry && !url.includes('/auth/login') && !url.includes('/auth/refresh')) {
+      if (!this.refreshPromise) {
+        this.refreshPromise = this.executeTokenRefresh().finally(() => {
+          this.refreshPromise = null;
+        });
+      }
 
-        if (refreshTokenToUse) {
-          const refreshRes = await fetch(`${this.baseUrl}/auth/refresh`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              Accept: 'application/json',
-            },
-            body: JSON.stringify({ refreshToken: refreshTokenToUse }),
-          });
-
-          if (refreshRes.ok) {
-            const refreshData = await refreshRes.json();
-            const payload = refreshData.data || refreshData;
-            const newAccessToken = payload.accessToken;
-            const newRefreshToken = payload.refreshToken || refreshTokenToUse;
-
-            if (newAccessToken && session) {
-              this.setAuthToken(newAccessToken);
-              await AuthStorage.setSession({
-                ...session,
-                accessToken: newAccessToken,
-                refreshToken: newRefreshToken,
-              });
-              overlayService.syncAuthCredentials(newAccessToken, this.baseUrl, this.workspaceId, newRefreshToken);
-              this.isRefreshing = false;
-              // Retry original request with fresh token
-              return this.request<T>(path, options, true);
-            }
-          }
-        }
-      } catch (refreshErr) {
-        console.warn('[HttpClient] Automatic refresh failed:', refreshErr);
-      } finally {
-        this.isRefreshing = false;
+      const freshToken = await this.refreshPromise;
+      if (freshToken) {
+        const retryHeaders = {
+          ...headers,
+          Authorization: `Bearer ${freshToken}`,
+        };
+        return this.request<T>(path, { ...options, headers: retryHeaders }, true);
       }
     }
 
     if (!response.ok) {
+      // If 401 and refresh explicitly returned invalid/revoked or we already retried and still 401
       if (response.status === 401 && !url.includes('/auth/login')) {
-        this.onUnauthorizedCallback?.();
+        const session = await AuthStorage.getSession();
+        if (!session?.refreshToken) {
+          this.onUnauthorizedCallback?.();
+        }
       }
 
       let errorBody: any = {};
@@ -268,7 +312,7 @@ class HttpClient {
 
       const failedEntry: FailedRequestLog = {
         timestamp: new Date().toISOString(),
-        method: options.method || 'GET',
+        method,
         url,
         status: response.status,
         code,

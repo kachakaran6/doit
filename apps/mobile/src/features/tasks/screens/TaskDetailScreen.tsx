@@ -1,5 +1,15 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, ScrollView, TouchableOpacity, Alert } from 'react-native';
+import {
+  View,
+  StyleSheet,
+  ScrollView,
+  TouchableOpacity,
+  Alert,
+  Modal,
+  TextInput,
+  KeyboardAvoidingView,
+  Platform,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRoute, useNavigation, RouteProp } from '@react-navigation/native';
 import { useTheme } from '../../../theme/useTheme';
@@ -16,12 +26,13 @@ import { AttachmentGallery } from '../../../components/patterns';
 import { useTaskDetailQuery } from '../api/queries';
 import {
   useUpdateTaskStatusMutation,
+  useUpdateTaskMutation,
   useDeleteTaskMutation,
   useSetTaskLabelsMutation,
 } from '../api/mutations';
 import { useWorkspaceStore } from '../../workspace';
 import { RootStackParamList } from '../../../navigation/types';
-import { TaskStatus } from '../types';
+import { TaskStatus, TaskPriority } from '../types';
 import {
   Clock,
   Flag,
@@ -35,9 +46,11 @@ import {
   AlertCircle,
   CheckCircle2,
   FileText,
+  X,
 } from 'lucide-react-native';
 import { SolutionPromptSection } from '../components/SolutionPromptSection';
 import { TaskStatusPickerSheet } from '../components/TaskStatusPickerSheet';
+import { TaskPriorityPickerSheet } from '../components/TaskPriorityPickerSheet';
 import { TaskLabelPickerSheet } from '../components/TaskLabelPickerSheet';
 import { LabelManagerSheet } from '../../labels/components/LabelManagerSheet';
 
@@ -64,12 +77,22 @@ export const TaskDetailScreen: React.FC = () => {
 
   const { data: task, isLoading, error } = useTaskDetailQuery(id);
   const updateStatus = useUpdateTaskStatusMutation(task?.projectId || 'default');
+  const updateTask = useUpdateTaskMutation(task?.projectId || 'default');
   const deleteTask = useDeleteTaskMutation(task?.projectId || 'default');
   const setLabels = useSetTaskLabelsMutation(task?.projectId || 'default');
 
   const [statusPickerOpen, setStatusPickerOpen] = useState(false);
+  const [priorityPickerOpen, setPriorityPickerOpen] = useState(false);
   const [labelPickerOpen, setLabelPickerOpen] = useState(false);
   const [labelManagerOpen, setLabelManagerOpen] = useState(false);
+
+  // Title edit state
+  const [isEditingTitle, setIsEditingTitle] = useState(false);
+  const [editedTitle, setEditedTitle] = useState('');
+
+  // Description edit state
+  const [isEditingDescription, setIsEditingDescription] = useState(false);
+  const [editedDescription, setEditedDescription] = useState('');
 
   const handleConfirmDelete = () => {
     Alert.alert(
@@ -91,6 +114,34 @@ export const TaskDetailScreen: React.FC = () => {
         },
       ]
     );
+  };
+
+  const handleSaveTitle = async () => {
+    if (!editedTitle.trim()) {
+      Alert.alert('Title Required', 'Task title cannot be empty.');
+      return;
+    }
+    try {
+      await updateTask.mutateAsync({
+        id: task!.id,
+        data: { title: editedTitle.trim() },
+      });
+      setIsEditingTitle(false);
+    } catch (err: any) {
+      Alert.alert('Error', err?.message || 'Could not update task title.');
+    }
+  };
+
+  const handleSaveDescription = async () => {
+    try {
+      await updateTask.mutateAsync({
+        id: task!.id,
+        data: { description: editedDescription.trim() },
+      });
+      setIsEditingDescription(false);
+    } catch (err: any) {
+      Alert.alert('Error', err?.message || 'Could not update task description.');
+    }
   };
 
   if (isLoading) {
@@ -134,6 +185,7 @@ export const TaskDetailScreen: React.FC = () => {
     updateStatus.mutate({
       id: task.id,
       status: isDone ? 'TODO' : 'DONE',
+      currentStatus: task.status,
     });
   };
 
@@ -142,6 +194,15 @@ export const TaskDetailScreen: React.FC = () => {
     updateStatus.mutate({
       id: task.id,
       status: newStatus,
+      currentStatus: task.status,
+    });
+  };
+
+  const handleSelectPriority = (newPriority: TaskPriority) => {
+    setPriorityPickerOpen(false);
+    updateTask.mutate({
+      id: task.id,
+      data: { priority: newPriority },
     });
   };
 
@@ -151,6 +212,9 @@ export const TaskDetailScreen: React.FC = () => {
       labelIds,
     });
   };
+
+  // Resolved workspace ID for label queries
+  const resolvedWorkspaceId = (task as any).project?.workspaceId || activeWorkspace?.id || '';
 
   return (
     <SafeAreaView edges={['top', 'bottom']} style={[styles.container, { backgroundColor: colors.bg }]}>
@@ -222,17 +286,34 @@ export const TaskDetailScreen: React.FC = () => {
         ]}
         showsVerticalScrollIndicator={false}
       >
-        {/* 2. Task Title (Primary content) */}
-        <Text
-          variant="h1"
-          style={[
-            styles.titleText,
-            { color: colors.textPrimary },
-            isDone ? { textDecorationLine: 'line-through', opacity: 0.55 } : undefined,
-          ]}
+        {/* 2. Task Title (Primary content & editable) */}
+        <TouchableOpacity
+          activeOpacity={0.75}
+          onPress={() => {
+            setEditedTitle(task.title);
+            setIsEditingTitle(true);
+          }}
+          style={styles.titleContainer}
         >
-          {task.title}
-        </Text>
+          <Text
+            variant="h1"
+            style={[
+              styles.titleText,
+              { color: colors.textPrimary },
+              isDone ? { textDecorationLine: 'line-through', opacity: 0.55 } : undefined,
+            ]}
+          >
+            {task.title}
+          </Text>
+          <View
+            style={[
+              styles.inlineEditBadge,
+              { backgroundColor: colors.surface2, borderRadius: radius.xs },
+            ]}
+          >
+            <Edit3 size={12} color={colors.textTertiary} />
+          </View>
+        </TouchableOpacity>
 
         {/* 3. Inline Properties Panel (Flat, quiet, no heavy cards) */}
         <View
@@ -246,8 +327,14 @@ export const TaskDetailScreen: React.FC = () => {
             },
           ]}
         >
-          {/* Priority Row */}
-          <View style={styles.propRow}>
+          {/* Priority Row (Interactive with Picker Sheet) */}
+          <TouchableOpacity
+            style={styles.propRow}
+            activeOpacity={0.7}
+            onPress={() => setPriorityPickerOpen(true)}
+            accessibilityRole="button"
+            accessibilityLabel="Change priority"
+          >
             <View style={styles.propLabelGroup}>
               <Flag size={12} color={colors.textTertiary} />
               <Text variant="caption" color="secondary" style={styles.propLabelText}>
@@ -265,8 +352,9 @@ export const TaskDetailScreen: React.FC = () => {
               >
                 {task.priority || 'MEDIUM'}
               </Text>
+              <ChevronDown size={11} color={colors.textSecondary} />
             </View>
-          </View>
+          </TouchableOpacity>
 
           {/* Due Date Row (if present) */}
           {task.dueDate ? (
@@ -326,8 +414,13 @@ export const TaskDetailScreen: React.FC = () => {
           </View>
         </View>
 
-        {/* 4. Description Box */}
-        <View
+        {/* 4. Description Box (Interactive with Edit Modal) */}
+        <TouchableOpacity
+          activeOpacity={0.8}
+          onPress={() => {
+            setEditedDescription(task.description || '');
+            setIsEditingDescription(true);
+          }}
           style={[
             styles.sectionCard,
             {
@@ -340,10 +433,24 @@ export const TaskDetailScreen: React.FC = () => {
           ]}
         >
           <View style={styles.cardHeaderRow}>
-            <FileText size={12} color={colors.textTertiary} />
-            <Text variant="caption" color="secondary" style={styles.cardHeaderTitle}>
-              DESCRIPTION
-            </Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <FileText size={12} color={colors.textTertiary} />
+              <Text variant="caption" color="secondary" style={styles.cardHeaderTitle}>
+                DESCRIPTION
+              </Text>
+            </View>
+            <View
+              style={[
+                styles.editIconBadge,
+                {
+                  backgroundColor: colors.surface2,
+                  borderRadius: radius.xs,
+                  padding: 3,
+                },
+              ]}
+            >
+              <Edit3 size={11} color={colors.textTertiary} />
+            </View>
           </View>
           <Text
             variant="body"
@@ -353,9 +460,9 @@ export const TaskDetailScreen: React.FC = () => {
               !task.description ? { fontStyle: 'italic' } : undefined,
             ]}
           >
-            {task.description || 'No description provided.'}
+            {task.description || 'No description provided. Tap to add.'}
           </Text>
-        </View>
+        </TouchableOpacity>
 
         {/* 5. Attachments Gallery */}
         {task.attachments && task.attachments.length > 0 ? (
@@ -387,11 +494,18 @@ export const TaskDetailScreen: React.FC = () => {
         onSelectStatus={handleSelectStatus}
       />
 
+      <TaskPriorityPickerSheet
+        visible={priorityPickerOpen}
+        onClose={() => setPriorityPickerOpen(false)}
+        currentPriority={task.priority || 'MEDIUM'}
+        onSelectPriority={handleSelectPriority}
+      />
+
       <TaskLabelPickerSheet
         visible={labelPickerOpen}
         onClose={() => setLabelPickerOpen(false)}
         assignedLabels={task.labels || []}
-        workspaceId={activeWorkspace?.id || ''}
+        workspaceId={resolvedWorkspaceId}
         onSaveLabels={handleSaveLabels}
         onOpenLabelManager={() => {
           setLabelPickerOpen(false);
@@ -403,6 +517,178 @@ export const TaskDetailScreen: React.FC = () => {
         visible={labelManagerOpen}
         onClose={() => setLabelManagerOpen(false)}
       />
+
+      {/* Title Edit Modal */}
+      <Modal
+        visible={isEditingTitle}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setIsEditingTitle(false)}
+      >
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={styles.modalOverlay}
+        >
+          <TouchableOpacity
+            style={styles.modalBackdrop}
+            activeOpacity={1}
+            onPress={() => setIsEditingTitle(false)}
+          />
+          <View
+            style={[
+              styles.modalContent,
+              {
+                backgroundColor: colors.surface1 || colors.surface,
+                borderColor: colors.border,
+                borderRadius: radius.lg,
+              },
+            ]}
+          >
+            <View style={styles.modalHeader}>
+              <Text variant="h3" style={{ fontWeight: '700' }}>
+                Edit Title
+              </Text>
+              <TouchableOpacity
+                onPress={() => setIsEditingTitle(false)}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              >
+                <X size={18} color={colors.textSecondary} />
+              </TouchableOpacity>
+            </View>
+
+            <TextInput
+              style={[
+                styles.modalInput,
+                {
+                  backgroundColor: colors.surface2 || colors.surfaceRaised,
+                  borderColor: colors.border,
+                  color: colors.textPrimary,
+                  borderRadius: radius.md,
+                },
+              ]}
+              value={editedTitle}
+              onChangeText={setEditedTitle}
+              placeholder="Task title"
+              placeholderTextColor={colors.textTertiary}
+              autoFocus
+              selectTextOnFocus
+            />
+
+            <View style={styles.modalFooter}>
+              <TouchableOpacity
+                onPress={() => setIsEditingTitle(false)}
+                style={[
+                  styles.modalCancelBtn,
+                  { backgroundColor: colors.surface2, borderRadius: radius.md },
+                ]}
+              >
+                <Text variant="body" color="secondary">
+                  Cancel
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={handleSaveTitle}
+                disabled={updateTask.isPending}
+                style={[
+                  styles.modalSaveBtn,
+                  { backgroundColor: colors.accent, borderRadius: radius.md },
+                ]}
+              >
+                <Text variant="bodyStrong" style={{ color: colors.accentOnPrimary, fontWeight: '700' }}>
+                  Save
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
+
+      {/* Description Edit Modal */}
+      <Modal
+        visible={isEditingDescription}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setIsEditingDescription(false)}
+      >
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={styles.modalOverlay}
+        >
+          <TouchableOpacity
+            style={styles.modalBackdrop}
+            activeOpacity={1}
+            onPress={() => setIsEditingDescription(false)}
+          />
+          <View
+            style={[
+              styles.modalContent,
+              {
+                backgroundColor: colors.surface1 || colors.surface,
+                borderColor: colors.border,
+                borderRadius: radius.lg,
+              },
+            ]}
+          >
+            <View style={styles.modalHeader}>
+              <Text variant="h3" style={{ fontWeight: '700' }}>
+                Edit Description
+              </Text>
+              <TouchableOpacity
+                onPress={() => setIsEditingDescription(false)}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              >
+                <X size={18} color={colors.textSecondary} />
+              </TouchableOpacity>
+            </View>
+
+            <TextInput
+              style={[
+                styles.modalTextArea,
+                {
+                  backgroundColor: colors.surface2 || colors.surfaceRaised,
+                  borderColor: colors.border,
+                  color: colors.textPrimary,
+                  borderRadius: radius.md,
+                },
+              ]}
+              value={editedDescription}
+              onChangeText={setEditedDescription}
+              placeholder="Add details, acceptance criteria, or context..."
+              placeholderTextColor={colors.textTertiary}
+              multiline
+              numberOfLines={5}
+              textAlignVertical="top"
+              autoFocus
+            />
+
+            <View style={styles.modalFooter}>
+              <TouchableOpacity
+                onPress={() => setIsEditingDescription(false)}
+                style={[
+                  styles.modalCancelBtn,
+                  { backgroundColor: colors.surface2, borderRadius: radius.md },
+                ]}
+              >
+                <Text variant="body" color="secondary">
+                  Cancel
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={handleSaveDescription}
+                disabled={updateTask.isPending}
+                style={[
+                  styles.modalSaveBtn,
+                  { backgroundColor: colors.accent, borderRadius: radius.md },
+                ]}
+              >
+                <Text variant="bodyStrong" style={{ color: colors.accentOnPrimary, fontWeight: '700' }}>
+                  Save
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
     </SafeAreaView>
   );
 };
@@ -435,11 +721,24 @@ const styles = StyleSheet.create({
     padding: 6,
     borderWidth: 1,
   },
+  titleContainer: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    gap: 8,
+  },
   titleText: {
     fontSize: 20,
     fontWeight: '700',
     lineHeight: 26,
     letterSpacing: -0.3,
+    flex: 1,
+  },
+  inlineEditBadge: {
+    padding: 5,
+    marginTop: 2,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   propertiesPanel: {
     borderWidth: 1,
@@ -475,6 +774,7 @@ const styles = StyleSheet.create({
   cardHeaderRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
     marginBottom: 6,
   },
   cardHeaderTitle: {
@@ -486,5 +786,64 @@ const styles = StyleSheet.create({
   descriptionText: {
     fontSize: 13,
     lineHeight: 20,
+  },
+  modalOverlay: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  modalBackdrop: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+  },
+  modalContent: {
+    width: '100%',
+    maxWidth: 420,
+    padding: 20,
+    borderWidth: 1,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 16,
+    elevation: 24,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 16,
+  },
+  modalInput: {
+    borderWidth: 1,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    fontSize: 15,
+    marginBottom: 16,
+  },
+  modalTextArea: {
+    borderWidth: 1,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    fontSize: 14,
+    minHeight: 120,
+    marginBottom: 16,
+  },
+  modalFooter: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    gap: 10,
+  },
+  modalCancelBtn: {
+    paddingHorizontal: 16,
+    paddingVertical: 9,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  modalSaveBtn: {
+    paddingHorizontal: 20,
+    paddingVertical: 9,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });

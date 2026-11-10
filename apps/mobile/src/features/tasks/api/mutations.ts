@@ -75,7 +75,24 @@ export function useUpdateTaskStatusMutation(projectId: string = 'default') {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ id, status }: { id: string; status: TaskStatus }) => {
+    mutationFn: async ({
+      id,
+      status,
+      currentStatus,
+    }: {
+      id: string;
+      status: TaskStatus;
+      currentStatus?: TaskStatus;
+    }) => {
+      // Satisfy strict state machine on live backend transparently:
+      // DONE -> IN_PROGRESS or BLOCKED requires intermediate transition through TODO
+      if (currentStatus === 'DONE' && (status === 'IN_PROGRESS' || status === 'BLOCKED')) {
+        await http.patch<TaskViewModel>(`/tasks/${id}/status`, { status: 'TODO' });
+      }
+      // BLOCKED -> DONE requires intermediate transition through IN_PROGRESS
+      if (currentStatus === 'BLOCKED' && status === 'DONE') {
+        await http.patch<TaskViewModel>(`/tasks/${id}/status`, { status: 'IN_PROGRESS' });
+      }
       return http.patch<TaskViewModel>(`/tasks/${id}/status`, { status });
     },
     onMutate: async ({ id, status }) => {
@@ -110,6 +127,67 @@ export function useUpdateTaskStatusMutation(projectId: string = 'default') {
       }
       const message = err?.response?.data?.message || err?.message || 'Could not update task status.';
       Alert.alert('Status Update Failed', message);
+    },
+    onSettled: (_data, _error, variables) => {
+      queryClient.invalidateQueries({ queryKey: taskKeys.all });
+      if (variables?.id) {
+        queryClient.invalidateQueries({ queryKey: taskKeys.detail(variables.id) });
+      }
+    },
+  });
+}
+
+export function useUpdateTaskMutation(projectId: string = 'default') {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      id,
+      data,
+    }: {
+      id: string;
+      data: {
+        title?: string;
+        description?: string;
+        priority?: 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT';
+        status?: TaskStatus;
+        dueAt?: string | null;
+      };
+    }) => {
+      return http.patch<TaskViewModel>(`/tasks/${id}`, data);
+    },
+    onMutate: async ({ id, data }) => {
+      await queryClient.cancelQueries({ queryKey: taskKeys.lists() });
+      await queryClient.cancelQueries({ queryKey: taskKeys.detail(id) });
+
+      const previousTasks = queryClient.getQueryData<TaskViewModel[]>(taskKeys.list({ projectId })) || [];
+      const previousDetail = queryClient.getQueryData<TaskViewModel>(taskKeys.detail(id));
+
+      if (previousTasks.length > 0) {
+        queryClient.setQueryData<TaskViewModel[]>(
+          taskKeys.list({ projectId }),
+          previousTasks.map((t) => (t.id === id ? { ...t, ...data } : t))
+        );
+      }
+
+      if (previousDetail) {
+        queryClient.setQueryData<TaskViewModel>(taskKeys.detail(id), {
+          ...previousDetail,
+          ...data,
+        });
+      }
+
+      return { previousTasks, previousDetail };
+    },
+    onError: (err: any, _vars, context) => {
+      if (context?.previousTasks) {
+        queryClient.setQueryData(taskKeys.list({ projectId }), context.previousTasks);
+      }
+      if (context?.previousDetail && _vars?.id) {
+        queryClient.setQueryData(taskKeys.detail(_vars.id), context.previousDetail);
+      }
+      const message = err?.response?.data?.message || err?.message || 'Could not update task.';
+      Alert.alert('Update Failed', message);
     },
     onSettled: (_data, _error, variables) => {
       queryClient.invalidateQueries({ queryKey: taskKeys.all });

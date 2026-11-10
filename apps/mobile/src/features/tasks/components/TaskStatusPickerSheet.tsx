@@ -76,11 +76,13 @@ const STATUS_OPTIONS: StatusOption[] = [
  * BLOCKED -> TODO, IN_PROGRESS
  * DONE -> TODO
  */
+const ALL_STATUS_OPTIONS: TaskStatus[] = ['TODO', 'IN_PROGRESS', 'BLOCKED', 'DONE'];
+
 const LEGAL_TRANSITIONS: Record<TaskStatus, TaskStatus[]> = {
-  TODO: ['TODO', 'IN_PROGRESS', 'BLOCKED', 'DONE'],
-  IN_PROGRESS: ['TODO', 'IN_PROGRESS', 'BLOCKED', 'DONE'],
-  BLOCKED: ['TODO', 'IN_PROGRESS', 'BLOCKED'],
-  DONE: ['TODO', 'DONE'],
+  TODO: ALL_STATUS_OPTIONS,
+  IN_PROGRESS: ALL_STATUS_OPTIONS,
+  BLOCKED: ALL_STATUS_OPTIONS,
+  DONE: ALL_STATUS_OPTIONS,
 };
 
 export const TaskStatusPickerSheet: React.FC<TaskStatusPickerSheetProps> = ({
@@ -190,7 +192,7 @@ export const TaskStatusPickerSheet: React.FC<TaskStatusPickerSheetProps> = ({
                 return (
                   <TouchableOpacity
                     key={opt.status}
-                    disabled={isLoading || (!isSelected && !isAllowed)}
+                    disabled={isLoading}
                     style={[
                       styles.statusOption,
                       {
@@ -201,7 +203,6 @@ export const TaskStatusPickerSheet: React.FC<TaskStatusPickerSheetProps> = ({
                         borderWidth: isSelected ? 1.5 : 1,
                         borderRadius: radius.md,
                         padding: spacing.md,
-                        opacity: !isSelected && !isAllowed ? 0.45 : 1,
                       },
                     ]}
                     onPress={() => {
