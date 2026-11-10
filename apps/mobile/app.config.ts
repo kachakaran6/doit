@@ -21,7 +21,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   },
   android: {
     package: 'com.samyukt.doit',
-    versionCode: 40,
+    versionCode: 41,
     allowBackup: false,
     adaptiveIcon: {
       foregroundImage: './assets/adaptive-icon-foreground.png',
