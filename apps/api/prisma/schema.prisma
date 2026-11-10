@@ -121,6 +121,7 @@ model User {
   aiCredentials AiProviderCredential[]
   quickCapturePreferences QuickCapturePreference[]
   solutionPrompts TaskSolutionPrompt[]
+  defaultAssignedProjects Project[] @relation("ProjectDefaultAssignee")
 }
 
 model Session {
@@ -189,7 +190,11 @@ model Project {
   sessions    TestSession[]
   context     ProjectContext?
   solutionPrompts TaskSolutionPrompt[]
+  defaultAssigneeId String?       @db.Uuid
+  defaultAssignee   User?         @relation("ProjectDefaultAssignee", fields: [defaultAssigneeId], references: [id], onDelete: SetNull)
+  defaultAssignedProjects Project[] @relation("ProjectDefaultAssignee")
 
+  @@index([defaultAssigneeId])
   @@unique([workspaceId, key])
 }
 

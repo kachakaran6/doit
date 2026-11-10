@@ -1,8 +1,8 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useWorkspaceStore } from '@/lib/workspace-store';
 import { api } from '@/lib/api';
-import { Project } from '@/lib/types';
+import { Project, WorkspaceMember } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/components/ui/toast';
@@ -16,8 +16,18 @@ export function ProjectsPage() {
   const [selected, setSelected] = useState<Project | null>(null);
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
+  const [defaultAssigneeId, setDefaultAssigneeId] = useState('');
+  const [members, setMembers] = useState<WorkspaceMember[]>([]);
   const [confirmKey, setConfirmKey] = useState('');
   const queryClient = useQueryClient();
+
+  useEffect(() => {
+    if (!activeWorkspace?.id) return;
+    api.workspaces
+      .members(activeWorkspace.id)
+      .then((m) => setMembers(m || []))
+      .catch(() => setMembers([]));
+  }, [activeWorkspace?.id]);
 
   const refresh = async () => {
     if (activeWorkspace?.id) await loadProjects(activeWorkspace.id);
@@ -28,6 +38,7 @@ export function ProjectsPage() {
     setSelected(project);
     setName(project.name);
     setDescription(project.description || '');
+    setDefaultAssigneeId(project.defaultAssigneeId || '');
     setConfirmKey('');
   };
 
@@ -75,12 +86,31 @@ export function ProjectsPage() {
             rows={3}
             className="w-full rounded-lg border border-[var(--input)] bg-[var(--card)] px-3 py-2 text-[13px]"
           />
+          <div className="space-y-1">
+            <label className="block text-[13px] font-medium">Default Assignee</label>
+            <select
+              value={defaultAssigneeId}
+              onChange={(e) => setDefaultAssigneeId(e.target.value)}
+              className="w-full rounded-lg border border-[var(--input)] bg-[var(--card)] px-3 py-2 text-[13px] text-[var(--foreground)]"
+            >
+              <option value="">No default assignee</option>
+              {members.map((m) => (
+                <option key={m.userId} value={m.userId}>
+                  {m.user?.name || m.user?.email || m.userId} ({m.role})
+                </option>
+              ))}
+            </select>
+          </div>
           <div className="flex flex-wrap gap-2">
             <Button
               size="sm"
               onClick={async () => {
                 try {
-                  const updated = await api.projects.update(selected.id, { name, description });
+                  const updated = await api.projects.update(selected.id, {
+                    name,
+                    description,
+                    defaultAssigneeId: defaultAssigneeId || null,
+                  });
                   success('Saved', updated.name);
                   await refresh();
                 } catch (err: any) {

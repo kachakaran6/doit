@@ -4,36 +4,36 @@ export declare class LabelsController {
     private readonly labelsService;
     constructor(labelsService: LabelsService);
     create(workspaceId: string, dto: CreateLabelDto): Promise<{
-        id: string;
-        workspaceId: string;
         name: string;
         color: import(".prisma/client").$Enums.AccentName;
+        id: string;
+        workspaceId: string;
     }>;
     findAll(workspaceId: string): Promise<({
         _count: {
             tasks: number;
         };
     } & {
-        id: string;
-        workspaceId: string;
         name: string;
         color: import(".prisma/client").$Enums.AccentName;
+        id: string;
+        workspaceId: string;
     })[]>;
     findOne(id: string): Promise<{
         _count: {
             tasks: number;
         };
     } & {
-        id: string;
-        workspaceId: string;
         name: string;
         color: import(".prisma/client").$Enums.AccentName;
+        id: string;
+        workspaceId: string;
     }>;
     update(id: string, dto: UpdateLabelDto): Promise<{
-        id: string;
-        workspaceId: string;
         name: string;
         color: import(".prisma/client").$Enums.AccentName;
+        id: string;
+        workspaceId: string;
     }>;
     delete(id: string): Promise<{
         success: boolean;

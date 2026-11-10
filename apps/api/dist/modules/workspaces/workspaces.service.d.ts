@@ -7,32 +7,33 @@ export declare class WorkspacesService {
         role: string;
         memberships: {
             id: string;
-            workspaceId: string;
             createdAt: Date;
+            workspaceId: string;
             userId: string;
             role: import(".prisma/client").$Enums.Role;
-            inviteToken: string | null;
             invitedEmail: string | null;
+            inviteToken: string | null;
             inviteExpiresAt: Date | null;
             acceptedAt: Date | null;
-        }[];
-        projects: {
-            id: string;
-            workspaceId: string;
-            name: string;
-            key: string;
-            description: string | null;
-            color: import(".prisma/client").$Enums.AccentName;
-            archivedAt: Date | null;
-            createdAt: Date;
-            updatedAt: Date;
         }[];
         _count: {
             memberships: number;
             projects: number;
         };
-        id: string;
+        projects: {
+            name: string;
+            key: string;
+            description: string | null;
+            color: import(".prisma/client").$Enums.AccentName;
+            defaultAssigneeId: string | null;
+            id: string;
+            archivedAt: Date | null;
+            createdAt: Date;
+            updatedAt: Date;
+            workspaceId: string;
+        }[];
         name: string;
+        id: string;
         createdAt: Date;
         updatedAt: Date;
         slug: string;
@@ -40,23 +41,24 @@ export declare class WorkspacesService {
     }>;
     findAll(userId: string): Promise<{
         role: string;
-        projects: {
-            id: string;
-            workspaceId: string;
-            name: string;
-            key: string;
-            description: string | null;
-            color: import(".prisma/client").$Enums.AccentName;
-            archivedAt: Date | null;
-            createdAt: Date;
-            updatedAt: Date;
-        }[];
         _count: {
             memberships: number;
             projects: number;
         };
-        id: string;
+        projects: {
+            name: string;
+            key: string;
+            description: string | null;
+            color: import(".prisma/client").$Enums.AccentName;
+            defaultAssigneeId: string | null;
+            id: string;
+            archivedAt: Date | null;
+            createdAt: Date;
+            updatedAt: Date;
+            workspaceId: string;
+        }[];
         name: string;
+        id: string;
         createdAt: Date;
         updatedAt: Date;
         slug: string;
@@ -65,44 +67,45 @@ export declare class WorkspacesService {
     findOne(workspaceId: string): Promise<{
         memberships: ({
             user: {
-                id: string;
                 name: string;
+                id: string;
                 email: string;
                 avatarUrl: string | null;
             };
         } & {
             id: string;
-            workspaceId: string;
             createdAt: Date;
+            workspaceId: string;
             userId: string;
             role: import(".prisma/client").$Enums.Role;
-            inviteToken: string | null;
             invitedEmail: string | null;
+            inviteToken: string | null;
             inviteExpiresAt: Date | null;
             acceptedAt: Date | null;
         })[];
         projects: {
-            id: string;
-            workspaceId: string;
             name: string;
             key: string;
             description: string | null;
             color: import(".prisma/client").$Enums.AccentName;
+            defaultAssigneeId: string | null;
+            id: string;
             archivedAt: Date | null;
             createdAt: Date;
             updatedAt: Date;
+            workspaceId: string;
         }[];
     } & {
-        id: string;
         name: string;
+        id: string;
         createdAt: Date;
         updatedAt: Date;
         slug: string;
         ownerId: string;
     }>;
     update(workspaceId: string, dto: UpdateWorkspaceDto): Promise<{
-        id: string;
         name: string;
+        id: string;
         createdAt: Date;
         updatedAt: Date;
         slug: string;

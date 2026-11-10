@@ -29,6 +29,7 @@ import android.os.Looper
 import android.os.VibrationEffect
 import android.os.Vibrator
 import android.text.Editable
+import android.text.TextUtils
 import android.text.TextWatcher
 import android.util.DisplayMetrics
 import android.util.TypedValue
@@ -41,6 +42,7 @@ import android.widget.EditText
 import android.widget.FrameLayout
 import android.widget.ImageView
 import android.widget.LinearLayout
+import android.widget.ScrollView
 import android.widget.TextView
 import android.widget.Toast
 import androidx.core.app.NotificationCompat
@@ -56,11 +58,32 @@ import java.util.Date
 import java.util.Locale
 
 /**
+ * Data model for project options in Quick Capture
+ */
+data class ProjectItem(
+    val id: String,
+    val name: String,
+    val key: String,
+    val defaultAssigneeId: String? = null
+)
+
+/**
+ * Data model for assignee members in Quick Capture
+ */
+data class MemberItem(
+    val id: String,
+    val name: String,
+    val email: String? = null,
+    val role: String? = null,
+    val avatarUrl: String? = null
+)
+
+/**
  * Android Foreground Service hosting:
  * 1. 44dp draggable floating Quick Capture bubble using official app icon
- * 2. Background accelerometer shake detector outside DoIt
- * 3. Compact Shake Prompt dialog ("Report a Bug" / "Create a Task" / "Cancel") with Lucide icons
- * 4. Premium Quick Capture modal overlay with clean screenshot & voice recording attachments
+ * 2. Background accelerometer shake detector outside Doit
+ * 3. Unified Quick Capture modal overlay with mandatory Project & Assignee dropdowns
+ * 4. Clean screenshot & voice recording attachments
  */
 class BubbleService : Service(), SensorEventListener {
 
@@ -99,15 +122,36 @@ class BubbleService : Service(), SensorEventListener {
     private var screenshotIcon: ImageView? = null
     private var screenshotText: TextView? = null
 
+    // Projects and Assignees State
+    private var availableProjects: List<ProjectItem> = emptyList()
+    private var selectedProject: ProjectItem? = null
+    private var availableMembers: List<MemberItem> = emptyList()
+    private var selectedAssignee: MemberItem? = null
+    private var isLoadingProjects: Boolean = false
+    private var isLoadingMembers: Boolean = false
+
+    // UI elements in Compact Modal
+    private var projectDropdownBtn: LinearLayout? = null
+    private var projectDropdownText: TextView? = null
+    private var assigneeDropdownBtn: LinearLayout? = null
+    private var assigneeDropdownText: TextView? = null
+    private var assigneeAvatarContainer: FrameLayout? = null
+    private var assigneeAvatarText: TextView? = null
+
+    // Picker Dialog Overlay
+    private var pickerContainer: LinearLayout? = null
+    private var pickerParams: WindowManager.LayoutParams? = null
+
     // Audio Recording State
     private var mediaRecorder: MediaRecorder? = null
     private var activeAudioFile: File? = null
-    private var audioDurationMs: Long = 0L
     private var isRecordingAudio: Boolean = false
-    private var recordingStartTime: Long = 0L
-    private val recordingTimerHandler = Handler(Looper.getMainLooper())
-    private var recordingTimerText: TextView? = null
+    private var audioRecordingStartTime: Long = 0
+    private var audioDurationMs: Long = 0
+    private var recordingTimerHandler = Handler(Looper.getMainLooper())
+    private var recordingTimerRunnable: Runnable? = null
     private var recordingStateLayout: LinearLayout? = null
+    private var recordingTimerText: TextView? = null
     private var voiceRecordButton: LinearLayout? = null
     private var audioPreviewLayout: LinearLayout? = null
     private var audioPreviewDurationText: TextView? = null
@@ -115,38 +159,36 @@ class BubbleService : Service(), SensorEventListener {
     private var mediaPlayer: MediaPlayer? = null
     private var isPlayingAudio: Boolean = false
 
-    // Submit Button
+    // Submission UI State
     private var submitButton: LinearLayout? = null
     private var submitButtonText: TextView? = null
     private var submitButtonIcon: ImageView? = null
     private var isSubmitting: Boolean = false
 
-    // Floating Overlay Snackbar
+    // Toast/Snackbar Overlay
     private var snackbarView: View? = null
     private val snackbarHandler = Handler(Looper.getMainLooper())
     private var snackbarDismissRunnable: Runnable? = null
 
-    private val timerRunnable = object : Runnable {
-        override fun run() {
-            if (!isRecordingAudio) return
-            val elapsedSec = ((System.currentTimeMillis() - recordingStartTime) / 1000).toInt()
-            val formatted = String.format(Locale.US, "%02d:%02d", elapsedSec / 60, elapsedSec % 60)
-            recordingTimerText?.text = formatted
-            recordingTimerHandler.postDelayed(this, 500)
+    private val longPressRunnable = Runnable {
+        if (!isActionMenuShowing && modalContainer == null && pickerContainer == null) {
+            triggerHaptic(40)
+            showBubbleActionMenu()
         }
     }
 
     companion object {
-        const val CHANNEL_ID = "doit_quick_capture_overlay"
-        const val NOTIFICATION_ID = 4001
+        private const val NOTIFICATION_ID = 9182
+        private const val CHANNEL_ID = "doit_bubble_channel"
         const val ACTION_START = "com.samyukt.doit.START_BUBBLE"
         const val ACTION_STOP = "com.samyukt.doit.STOP_BUBBLE"
 
         @Volatile
         var isRunning: Boolean = false
+            private set
 
         @Volatile
-        var instance: BubbleService? = null
+        private var instance: BubbleService? = null
 
         fun hideOverlays() {
             instance?.let { s ->
@@ -155,6 +197,8 @@ class BubbleService : Service(), SensorEventListener {
                     s.bubbleActionContainer?.visibility = View.GONE
                     s.promptContainer?.visibility = View.GONE
                     s.modalContainer?.visibility = View.GONE
+                    s.pickerContainer?.visibility = View.GONE
+                    s.snackbarView?.visibility = View.GONE
                 }
             }
         }
@@ -163,23 +207,21 @@ class BubbleService : Service(), SensorEventListener {
             instance?.let { s ->
                 Handler(Looper.getMainLooper()).post {
                     s.bubbleContainer?.visibility = View.VISIBLE
-                    if (s.modalContainer != null) {
-                        s.modalContainer?.visibility = View.VISIBLE
-                    }
+                    s.promptContainer?.visibility = View.VISIBLE
+                    s.modalContainer?.visibility = View.VISIBLE
+                    s.pickerContainer?.visibility = View.VISIBLE
+                    s.snackbarView?.visibility = View.VISIBLE
                 }
             }
         }
 
-        @JvmStatic
         fun setAppInForeground(inForeground: Boolean) {
             instance?.let { s ->
                 Handler(Looper.getMainLooper()).post {
                     if (inForeground) {
-                        s.bubbleContainer?.visibility = View.GONE
+                        s.dismissBubbleActionMenu(immediate = true)
+                        s.dismissPicker()
                         s.dismissCompactModal()
-                        s.dismissShakePrompt()
-                    } else {
-                        s.bubbleContainer?.visibility = View.VISIBLE
                     }
                 }
             }
@@ -202,7 +244,7 @@ class BubbleService : Service(), SensorEventListener {
         instance = this
         isRunning = true
         windowManager = getSystemService(Context.WINDOW_SERVICE) as WindowManager
-        sensorManager = getSystemService(Context.SENSOR_SERVICE) as? SensorManager
+        sensorManager = getSystemService(Context.SENSOR_SERVICE) as SensorManager
         accelerometer = sensorManager?.getDefaultSensor(Sensor.TYPE_ACCELEROMETER)
         prefs = getSharedPreferences("doit_overlay_prefs", Context.MODE_PRIVATE)
 
@@ -219,6 +261,7 @@ class BubbleService : Service(), SensorEventListener {
         } else {
             startForeground(NOTIFICATION_ID, createNotification())
         }
+
         createBubbleView()
         registerShakeSensor()
     }
@@ -256,22 +299,18 @@ class BubbleService : Service(), SensorEventListener {
     }
 
     private fun createNotification(): Notification {
-        val openIntent = packageManager.getLaunchIntentForPackage(packageName)
+        val launchIntent = packageManager.getLaunchIntentForPackage(packageName)?.apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP
+        }
         val openPendingIntent = PendingIntent.getActivity(
             this,
             0,
-            openIntent,
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-        )
-
-        val stopIntent = Intent(this, BubbleService::class.java).apply {
-            action = ACTION_STOP
-        }
-        val stopPendingIntent = PendingIntent.getService(
-            this,
-            1,
-            stopIntent,
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            launchIntent,
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
+            } else {
+                PendingIntent.FLAG_UPDATE_CURRENT
+            }
         )
 
         return NotificationCompat.Builder(this, CHANNEL_ID)
@@ -279,139 +318,119 @@ class BubbleService : Service(), SensorEventListener {
             .setContentText("Tap bubble or shake phone anywhere to capture a task or bug")
             .setSmallIcon(R.mipmap.ic_launcher_round)
             .setContentIntent(openPendingIntent)
-            .addAction(android.R.drawable.ic_menu_close_clear_cancel, "Hide Bubble", stopPendingIntent)
             .setOngoing(true)
             .setPriority(NotificationCompat.PRIORITY_LOW)
             .build()
     }
 
     // ==========================================
-    // 1. DRAGGABLE FLOATING BUBBLE OVERLAY
+    // 1. FLOATING BUBBLE (Official Doit Icon)
     // ==========================================
 
     private fun createBubbleView() {
-        if (windowManager == null) return
+        val wm = windowManager ?: return
 
-        val bubbleSizePx = dpToPx(44f)
+        val sizePx = dpToPx(44f)
+        val initialX = prefs?.getInt("bubble_pos_x", dpToPx(16f)) ?: dpToPx(16f)
+        val initialY = prefs?.getInt("bubble_pos_y", dpToPx(240f)) ?: dpToPx(240f)
+
         bubbleParams = WindowManager.LayoutParams(
-            bubbleSizePx,
-            bubbleSizePx,
+            sizePx,
+            sizePx,
             getOverlayLayoutType(),
             WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
-                WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
+                WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS or
+                WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL,
             PixelFormat.TRANSLUCENT
         ).apply {
             gravity = Gravity.TOP or Gravity.START
-            x = dpToPx(16f)
-            y = dpToPx(240f)
+            x = initialX
+            y = initialY
         }
 
         bubbleContainer = FrameLayout(this).apply {
-            val bg = GradientDrawable().apply {
+            isClickable = true
+            isFocusable = false
+
+            background = GradientDrawable().apply {
                 shape = GradientDrawable.OVAL
-                setColor(Color.parseColor("#1C1E24"))
-                setStroke(dpToPx(1.5f), Color.parseColor("#3D424D"))
+                setColor(Color.parseColor("#121418"))
+                setStroke(dpToPx(1.5f), Color.parseColor("#2E333D"))
             }
-            background = bg
+
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-                elevation = dpToPx(8f).toFloat()
+                elevation = dpToPx(12f).toFloat()
             }
         }
 
-        // Inner app icon
-        val iconView = ImageView(this).apply {
+        val appIconView = ImageView(this).apply {
             setImageResource(R.mipmap.ic_launcher_round)
-            val p = dpToPx(5f)
-            setPadding(p, p, p, p)
             scaleType = ImageView.ScaleType.FIT_CENTER
-        }
-        bubbleContainer?.addView(
-            iconView,
-            FrameLayout.LayoutParams(
+            val p = dpToPx(2f)
+            setPadding(p, p, p, p)
+            layoutParams = FrameLayout.LayoutParams(
                 FrameLayout.LayoutParams.MATCH_PARENT,
-                FrameLayout.LayoutParams.MATCH_PARENT,
-                Gravity.CENTER
-            )
-        )
-
-        // Drag, Tap & Long-Press Handling
-        bubbleContainer?.setOnTouchListener(object : View.OnTouchListener {
-            private var initialX = 0
-            private var initialY = 0
-            private var initialTouchX = 0f
-            private var initialTouchY = 0f
-            private var touchDownTime = 0L
-            private var isDragging = false
-            private var isLongPressHandled = false
-            private val longPressRunnable = Runnable {
-                if (!isDragging && bubbleContainer?.visibility == View.VISIBLE) {
-                    isLongPressHandled = true
-                    triggerHaptic(60)
-                    showBubbleActionMenu()
-                }
+                FrameLayout.LayoutParams.MATCH_PARENT
+            ).apply {
+                gravity = Gravity.CENTER
             }
+        }
+        bubbleContainer?.addView(appIconView)
 
+        var initialTouchX = 0f
+        var initialTouchY = 0f
+        var initialParamX = 0
+        var initialParamY = 0
+        var isDragging = false
+
+        bubbleContainer?.setOnTouchListener(object : View.OnTouchListener {
             override fun onTouch(v: View, event: MotionEvent): Boolean {
-                val currentParams = bubbleParams ?: return false
-
+                val params = bubbleParams ?: return false
                 when (event.action) {
                     MotionEvent.ACTION_DOWN -> {
-                        initialX = currentParams.x
-                        initialY = currentParams.y
                         initialTouchX = event.rawX
                         initialTouchY = event.rawY
-                        touchDownTime = System.currentTimeMillis()
+                        initialParamX = params.x
+                        initialParamY = params.y
                         isDragging = false
-                        isLongPressHandled = false
-                        longPressHandler.removeCallbacks(longPressRunnable)
-                        longPressHandler.postDelayed(longPressRunnable, 450L)
+
+                        longPressHandler.postDelayed(longPressRunnable, 450)
                         return true
                     }
                     MotionEvent.ACTION_MOVE -> {
-                        val dx = (event.rawX - initialTouchX).toInt()
-                        val dy = (event.rawY - initialTouchY).toInt()
-
+                        val dx = event.rawX - initialTouchX
+                        val dy = event.rawY - initialTouchY
                         if (!isDragging && (Math.abs(dx) > dpToPx(6f) || Math.abs(dy) > dpToPx(6f))) {
                             isDragging = true
                             longPressHandler.removeCallbacks(longPressRunnable)
-                            dismissBubbleActionMenu(immediate = false)
+                            dismissBubbleActionMenu(immediate = true)
                         }
-
                         if (isDragging) {
-                            currentParams.x = initialX + dx
-                            currentParams.y = initialY + dy
+                            params.x = (initialParamX + dx).toInt()
+                            params.y = (initialParamY + dy).toInt()
                             try {
-                                windowManager?.updateViewLayout(bubbleContainer, currentParams)
+                                wm.updateViewLayout(bubbleContainer, params)
                             } catch (_: Exception) {}
                         }
                         return true
                     }
-                    MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+                    MotionEvent.ACTION_UP -> {
                         longPressHandler.removeCallbacks(longPressRunnable)
-                        if (isLongPressHandled) {
-                            isLongPressHandled = false
-                            return true
-                        }
-
-                        val duration = System.currentTimeMillis() - touchDownTime
-                        val movedDist = Math.hypot(
-                            (event.rawX - initialTouchX).toDouble(),
-                            (event.rawY - initialTouchY).toDouble()
-                        )
-
-                        if (!isDragging && duration < 350 && movedDist < dpToPx(10f)) {
+                        if (!isDragging) {
                             if (isActionMenuShowing) {
-                                dismissBubbleActionMenu(immediate = false)
+                                dismissBubbleActionMenu()
                             } else {
-                                triggerHaptic(40)
+                                triggerHaptic(20)
                                 onBubbleTapped()
                             }
                         } else {
-                            if (isActionMenuShowing) {
-                                dismissBubbleActionMenu(immediate = false)
-                            }
                             snapBubbleToEdge()
                         }
+                        return true
+                    }
+                    MotionEvent.ACTION_CANCEL -> {
+                        longPressHandler.removeCallbacks(longPressRunnable)
+                        if (isDragging) snapBubbleToEdge()
                         return true
                     }
                 }
@@ -420,177 +439,163 @@ class BubbleService : Service(), SensorEventListener {
         })
 
         try {
-            bubbleParams?.let { windowManager?.addView(bubbleContainer, it) }
-        } catch (_: Exception) {
-            stopSelf()
+            bubbleParams?.let { wm.addView(bubbleContainer, it) }
+        } catch (e: Exception) {
+            android.util.Log.e("BubbleService", "Error adding bubble view: " + e.message)
         }
     }
 
     private fun snapBubbleToEdge() {
-        val currentParams = bubbleParams ?: return
+        val params = bubbleParams ?: return
+        val wm = windowManager ?: return
+
         val displayMetrics = resources.displayMetrics
         val screenWidth = displayMetrics.widthPixels
         val screenHeight = displayMetrics.heightPixels
         val bubbleSize = dpToPx(44f)
-        val margin = dpToPx(10f)
-        val minTop = dpToPx(48f)
-        val maxTop = screenHeight - bubbleSize - dpToPx(72f)
 
-        currentParams.y = currentParams.y.coerceIn(minTop, maxTop)
-        currentParams.x = if (currentParams.x + (bubbleSize / 2) < screenWidth / 2) {
-            margin
+        val targetX = if (params.x + bubbleSize / 2 < screenWidth / 2) {
+            dpToPx(12f)
         } else {
-            screenWidth - bubbleSize - margin
+            screenWidth - bubbleSize - dpToPx(12f)
         }
 
+        val clampedY = params.y.coerceIn(dpToPx(48f), screenHeight - bubbleSize - dpToPx(72f))
+
+        params.x = targetX
+        params.y = clampedY
+
         try {
-            windowManager?.updateViewLayout(bubbleContainer, currentParams)
+            wm.updateViewLayout(bubbleContainer, params)
         } catch (_: Exception) {}
+
+        prefs?.edit()?.apply {
+            putInt("bubble_pos_x", targetX)
+            putInt("bubble_pos_y", clampedY)
+            apply()
+        }
     }
 
     private fun onBubbleTapped() {
         showCompactModal("TASK")
     }
 
+    // ==========================================
+    // 2. BUBBLE ACTIONS CONTEXT MENU
+    // ==========================================
+
     private fun showBubbleActionMenu() {
-        dismissBubbleActionMenu(immediate = true)
         val wm = windowManager ?: return
-        val currentBubbleParams = bubbleParams ?: return
+        val bParams = bubbleParams ?: return
+        dismissBubbleActionMenu(immediate = true)
 
         val displayMetrics = resources.displayMetrics
         val screenWidth = displayMetrics.widthPixels
-        val bubbleSize = dpToPx(44f)
-        val actionHeight = dpToPx(44f)
-        val actionWidth = dpToPx(136f)
-        val gap = dpToPx(8f)
+        val isLeft = bParams.x < screenWidth / 2
 
-        val isLeft = (currentBubbleParams.x + (bubbleSize / 2)) < (screenWidth / 2)
-        val targetX = if (isLeft) {
-            currentBubbleParams.x + bubbleSize + gap
-        } else {
-            currentBubbleParams.x - actionWidth - gap
-        }
-        val targetY = currentBubbleParams.y
-
+        val menuWidth = dpToPx(148f)
         bubbleActionParams = WindowManager.LayoutParams(
-            actionWidth,
-            actionHeight,
+            menuWidth,
+            WindowManager.LayoutParams.WRAP_CONTENT,
             getOverlayLayoutType(),
-            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
-                WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
+            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or WindowManager.LayoutParams.FLAG_WATCH_OUTSIDE_TOUCH,
             PixelFormat.TRANSLUCENT
         ).apply {
             gravity = Gravity.TOP or Gravity.START
-            x = targetX.coerceIn(dpToPx(8f), screenWidth - actionWidth - dpToPx(8f))
-            y = targetY
+            x = if (isLeft) bParams.x + dpToPx(52f) else bParams.x - menuWidth - dpToPx(8f)
+            y = bParams.y
         }
 
         bubbleActionContainer = LinearLayout(this).apply {
-            orientation = LinearLayout.HORIZONTAL
-            gravity = Gravity.CENTER
-            val bg = GradientDrawable().apply {
+            orientation = LinearLayout.VERTICAL
+            background = GradientDrawable().apply {
                 shape = GradientDrawable.RECTANGLE
-                cornerRadius = dpToPx(22f).toFloat()
-                setColor(Color.parseColor("#181A20"))
-                setStroke(dpToPx(1.2f), Color.parseColor("#353945"))
+                cornerRadius = dpToPx(12f).toFloat()
+                setColor(Color.parseColor("#181A1F"))
+                setStroke(dpToPx(1f), Color.parseColor("#2E333D"))
             }
-            background = bg
+            val p = dpToPx(6f)
+            setPadding(p, p, p, p)
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-                elevation = dpToPx(10f).toFloat()
-            }
-            isClickable = true
-            isFocusable = false
-
-            // Close / Hide Icon
-            val closeIconView = ImageView(context).apply {
-                setImageResource(R.drawable.ic_lucide_x)
-                setColorFilter(Color.parseColor("#EF4444"))
-                val iconSize = dpToPx(16f)
-                val lp = LinearLayout.LayoutParams(iconSize, iconSize).apply {
-                    marginEnd = dpToPx(6f)
-                }
-                layoutParams = lp
-            }
-            addView(closeIconView)
-
-            // Label
-            val labelView = TextView(context).apply {
-                text = "Hide Bubble"
-                setTextColor(Color.WHITE)
-                setTextSize(TypedValue.COMPLEX_UNIT_SP, 12f)
-                setTypeface(typeface, Typeface.BOLD)
-            }
-            addView(labelView)
-
-            setOnClickListener {
-                triggerHaptic(50)
-                dismissBubbleActionMenu(immediate = true)
-                hideBubbleAndStopService()
+                elevation = dpToPx(16f).toFloat()
             }
         }
 
-        try {
-            bubbleActionContainer?.alpha = 0f
-            bubbleActionContainer?.scaleX = 0.8f
-            bubbleActionContainer?.scaleY = 0.8f
-            wm.addView(bubbleActionContainer, bubbleActionParams)
-            isActionMenuShowing = true
+        val openItem = createMenuItem(R.drawable.ic_lucide_list_checks, "Open Doit") {
+            dismissBubbleActionMenu()
+            val launchIntent = packageManager.getLaunchIntentForPackage(packageName)?.apply {
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP
+            }
+            startActivity(launchIntent)
+        }
+        bubbleActionContainer?.addView(openItem)
 
-            bubbleActionContainer?.animate()
-                ?.alpha(1f)
-                ?.scaleX(1f)
-                ?.scaleY(1f)
-                ?.setDuration(180)
-                ?.start()
-        } catch (e: Exception) {
-            android.util.Log.e("BubbleService", "Error showing bubble action menu: ${e.message}")
+        val captureItem = createMenuItem(R.drawable.ic_lucide_bug, "Quick Bug") {
+            dismissBubbleActionMenu()
+            showCompactModal("BUG")
+        }
+        bubbleActionContainer?.addView(captureItem)
+
+        val hideItem = createMenuItem(R.drawable.ic_lucide_x, "Hide Bubble") {
+            dismissBubbleActionMenu()
+            hideBubbleAndStopService()
+        }
+        bubbleActionContainer?.addView(hideItem)
+
+        try {
+            bubbleActionParams?.let { wm.addView(bubbleActionContainer, it) }
+            isActionMenuShowing = true
+        } catch (_: Exception) {}
+    }
+
+    private fun createMenuItem(iconRes: Int, title: String, onClick: () -> Unit): LinearLayout {
+        return LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            val p = dpToPx(8f)
+            setPadding(p, p, p, p)
+            isClickable = true
+            isFocusable = true
+            background = RippleDrawable(
+                ColorStateList.valueOf(Color.parseColor("#2E333D")),
+                null,
+                null
+            )
+            setOnClickListener { onClick() }
+
+            val icon = ImageView(this@BubbleService).apply {
+                setImageResource(iconRes)
+                imageTintList = ColorStateList.valueOf(Color.parseColor("#9EA3AE"))
+                layoutParams = LinearLayout.LayoutParams(dpToPx(16f), dpToPx(16f)).apply {
+                    marginEnd = dpToPx(8f)
+                }
+            }
+            addView(icon)
+
+            val text = TextView(this@BubbleService).apply {
+                this.text = title
+                setTextColor(Color.WHITE)
+                setTextSize(TypedValue.COMPLEX_UNIT_SP, 13f)
+            }
+            addView(text)
         }
     }
 
     private fun dismissBubbleActionMenu(immediate: Boolean = false) {
-        if (bubbleActionContainer == null) {
-            isActionMenuShowing = false
-            return
-        }
-        val viewToDismiss = bubbleActionContainer
+        if (!isActionMenuShowing && bubbleActionContainer == null) return
+        try {
+            bubbleActionContainer?.let { windowManager?.removeView(it) }
+        } catch (_: Exception) {}
         bubbleActionContainer = null
         isActionMenuShowing = false
-
-        if (immediate) {
-            try {
-                windowManager?.removeView(viewToDismiss)
-            } catch (_: Exception) {}
-        } else {
-            try {
-                viewToDismiss?.animate()
-                    ?.alpha(0f)
-                    ?.scaleX(0.8f)
-                    ?.scaleY(0.8f)
-                    ?.setDuration(120)
-                    ?.withEndAction {
-                        try {
-                            windowManager?.removeView(viewToDismiss)
-                        } catch (_: Exception) {}
-                    }
-                    ?.start()
-            } catch (_: Exception) {
-                try {
-                    windowManager?.removeView(viewToDismiss)
-                } catch (_: Exception) {}
-            }
-        }
     }
 
     private fun hideBubbleAndStopService() {
-        try {
-            prefs?.edit()?.putBoolean("bubble_enabled", false)?.apply()
-            Toast.makeText(applicationContext, "Quick capture bubble hidden. Turn back on in Settings.", Toast.LENGTH_SHORT).show()
-        } catch (_: Exception) {}
         stopSelf()
     }
 
     // ==========================================
-    // 2. BACKGROUND SHAKE DETECTION
+    // 3. BACKGROUND SHAKE DETECTOR
     // ==========================================
 
     private fun registerShakeSensor() {
@@ -639,175 +644,32 @@ class BubbleService : Service(), SensorEventListener {
 
     override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) {}
 
+    /**
+     * UNIFIED TRIGGER HANDLER
+     * Both device shake and bubble click invoke the exact same showCompactModal("TASK") component!
+     */
     private fun onShakeDetected() {
         Handler(Looper.getMainLooper()).post {
             triggerHaptic(60)
-            if (modalContainer != null || promptContainer != null) return@post
-            showShakePrompt()
-        }
-    }
-
-    // ==========================================
-    // 3. SHAKE CHOICE PROMPT (Clean Lucide Icons)
-    // ==========================================
-
-    private fun showShakePrompt() {
-        dismissShakePrompt()
-        val wm = windowManager ?: return
-
-        val widthPx = dpToPx(300f)
-        promptParams = WindowManager.LayoutParams(
-            widthPx,
-            WindowManager.LayoutParams.WRAP_CONTENT,
-            getOverlayLayoutType(),
-            WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL or WindowManager.LayoutParams.FLAG_WATCH_OUTSIDE_TOUCH,
-            PixelFormat.TRANSLUCENT
-        ).apply {
-            gravity = Gravity.CENTER
-        }
-
-        promptContainer = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            background = GradientDrawable().apply {
-                shape = GradientDrawable.RECTANGLE
-                cornerRadius = dpToPx(16f).toFloat()
-                setColor(Color.parseColor("#181A1F"))
-                setStroke(dpToPx(1.2f), Color.parseColor("#2C2E35"))
-            }
-            val p = dpToPx(18f)
-            setPadding(p, p, p, p)
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-                elevation = dpToPx(16f).toFloat()
-            }
-        }
-
-        // Title
-        val titleView = TextView(this).apply {
-            text = "Quick Capture"
-            setTextColor(Color.WHITE)
-            setTextSize(TypedValue.COMPLEX_UNIT_SP, 17f)
-            setTypeface(typeface, android.graphics.Typeface.BOLD)
-        }
-        promptContainer?.addView(titleView)
-
-        // Subtitle
-        val subtitleView = TextView(this).apply {
-            text = "What would you like to add?"
-            setTextColor(Color.parseColor("#9EA3AE"))
-            setTextSize(TypedValue.COMPLEX_UNIT_SP, 13f)
-            val lp = LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.WRAP_CONTENT,
-                LinearLayout.LayoutParams.WRAP_CONTENT
-            ).apply {
-                topMargin = dpToPx(4f)
-                bottomMargin = dpToPx(16f)
-            }
-            layoutParams = lp
-        }
-        promptContainer?.addView(subtitleView)
-
-        // Button 1: Report a Bug (Lucide Bug icon, NO emoji)
-        val bugBtn = createPromptButton(R.drawable.ic_lucide_bug, "Report a Bug", Color.parseColor("#261B20"), Color.parseColor("#E05656")) {
-            dismissShakePrompt()
-            showCompactModal("BUG")
-        }
-        promptContainer?.addView(bugBtn)
-
-        // Spacer
-        promptContainer?.addView(View(this).apply {
-            layoutParams = LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT,
-                dpToPx(8f)
-            )
-        })
-
-        // Button 2: Create a Task (Lucide List-Checks icon, NO emoji)
-        val taskBtn = createPromptButton(R.drawable.ic_lucide_list_checks, "Create a Task", Color.parseColor("#1E2033"), Color.parseColor("#7775D8")) {
-            dismissShakePrompt()
+            if (modalContainer != null || pickerContainer != null) return@post
             showCompactModal("TASK")
         }
-        promptContainer?.addView(taskBtn)
-
-        // Spacer
-        promptContainer?.addView(View(this).apply {
-            layoutParams = LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT,
-                dpToPx(10f)
-            )
-        })
-
-        // Button 3: Cancel
-        val cancelBtn = TextView(this).apply {
-            text = "Cancel"
-            setTextColor(Color.parseColor("#7A7E89"))
-            setTextSize(TypedValue.COMPLEX_UNIT_SP, 14f)
-            gravity = Gravity.CENTER
-            val pV = dpToPx(8f)
-            setPadding(0, pV, 0, pV)
-            setOnClickListener {
-                dismissShakePrompt()
-            }
-        }
-        promptContainer?.addView(cancelBtn)
-
-        try {
-            promptParams?.let { wm.addView(promptContainer, it) }
-        } catch (_: Exception) {}
     }
 
-    private fun createPromptButton(iconRes: Int, text: String, bgColor: Int, textColor: Int, onClick: () -> Unit): LinearLayout {
-        return LinearLayout(this).apply {
-            orientation = LinearLayout.HORIZONTAL
-            gravity = Gravity.CENTER
-            background = GradientDrawable().apply {
-                shape = GradientDrawable.RECTANGLE
-                cornerRadius = dpToPx(10f).toFloat()
-                setColor(bgColor)
-                setStroke(dpToPx(1f), textColor)
-            }
-            val p = dpToPx(12f)
-            setPadding(p, p, p, p)
-            layoutParams = LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT,
-                LinearLayout.LayoutParams.WRAP_CONTENT
-            )
-            isClickable = true
-            isFocusable = true
-            setOnClickListener { onClick() }
-
-            val iv = ImageView(context).apply {
-                setImageResource(iconRes)
-                imageTintList = ColorStateList.valueOf(textColor)
-                layoutParams = LinearLayout.LayoutParams(dpToPx(18f), dpToPx(18f)).apply {
-                    marginEnd = dpToPx(8f)
-                }
-            }
-            addView(iv)
-
-            val tv = TextView(context).apply {
-                this.text = text
-                setTextColor(textColor)
-                setTextSize(TypedValue.COMPLEX_UNIT_SP, 14.5f)
-                setTypeface(typeface, android.graphics.Typeface.BOLD)
-                gravity = Gravity.CENTER
-            }
-            addView(tv)
-        }
+    private fun showShakePrompt() {
+        showCompactModal("TASK")
     }
 
     private fun dismissShakePrompt() {
-        try {
-            promptContainer?.let { windowManager?.removeView(it) }
-        } catch (_: Exception) {}
-        promptContainer = null
+        // No-op for backwards compatibility
     }
 
     // ==========================================
-    // 4. PREMIUM QUICK CAPTURE MODAL OVERLAY
+    // 4. UNIFIED QUICK CAPTURE MODAL OVERLAY
     // ==========================================
 
     private fun showCompactModal(initialMode: String) {
-        dismissShakePrompt()
+        dismissPicker()
         dismissCompactModal()
 
         val wm = windowManager ?: return
@@ -818,6 +680,13 @@ class BubbleService : Service(), SensorEventListener {
         audioDurationMs = 0L
         isRecordingAudio = false
         isPlayingAudio = false
+
+        availableProjects = emptyList()
+        selectedProject = null
+        availableMembers = emptyList()
+        selectedAssignee = null
+        isLoadingProjects = true
+        isLoadingMembers = false
 
         val displayMetrics = resources.displayMetrics
         val screenWidth = displayMetrics.widthPixels
@@ -849,7 +718,7 @@ class BubbleService : Service(), SensorEventListener {
             }
         }
 
-        // Header: DoIt App Identity + Title + Close Button
+        // Header: Doit App Identity + Title + Close Button
         val headerLayout = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
@@ -871,7 +740,7 @@ class BubbleService : Service(), SensorEventListener {
             text = "Quick Capture"
             setTextColor(Color.WHITE)
             setTextSize(TypedValue.COMPLEX_UNIT_SP, 15.5f)
-            setTypeface(typeface, android.graphics.Typeface.BOLD)
+            setTypeface(typeface, Typeface.BOLD)
             layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
         }
         headerLayout.addView(headerTitle)
@@ -891,7 +760,7 @@ class BubbleService : Service(), SensorEventListener {
         headerLayout.addView(closeBtn)
         modalContainer?.addView(headerLayout)
 
-        // Type Toggle Pills: Task / Bug (Lucide Icons, zero emojis)
+        // Type Toggle Pills: Task / Bug (Lucide Icons, equal size, smooth transition)
         val toggleLayout = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             val lp = LinearLayout.LayoutParams(
@@ -924,7 +793,7 @@ class BubbleService : Service(), SensorEventListener {
         toggleLayout.addView(bugPill, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.MATCH_PARENT, 1f).apply { marginStart = dpToPx(6f) })
         modalContainer?.addView(toggleLayout)
 
-        // Multiline Input Field
+        // Multiline Input Field (Preserves text across tab switches)
         val inputBg = GradientDrawable().apply {
             shape = GradientDrawable.RECTANGLE
             cornerRadius = dpToPx(10f).toFloat()
@@ -947,7 +816,7 @@ class BubbleService : Service(), SensorEventListener {
                 LinearLayout.LayoutParams.MATCH_PARENT,
                 LinearLayout.LayoutParams.WRAP_CONTENT
             ).apply {
-                bottomMargin = dpToPx(12f)
+                bottomMargin = dpToPx(10f)
             }
             addTextChangedListener(object : TextWatcher {
                 override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
@@ -958,6 +827,135 @@ class BubbleService : Service(), SensorEventListener {
             })
         }
         modalContainer?.addView(activeEditText)
+
+        // ==========================================
+        // PROJECT & ASSIGNEE SELECTION SECTION
+        // ==========================================
+
+        // 1. Project Dropdown Row (Mandatory)
+        projectDropdownBtn = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            background = GradientDrawable().apply {
+                shape = GradientDrawable.RECTANGLE
+                cornerRadius = dpToPx(8f).toFloat()
+                setColor(Color.parseColor("#1F2126"))
+                setStroke(dpToPx(1f), Color.parseColor("#30333C"))
+            }
+            val pH = dpToPx(12f)
+            val pV = dpToPx(8f)
+            setPadding(pH, pV, pH, pV)
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                dpToPx(38f)
+            ).apply {
+                bottomMargin = dpToPx(8f)
+            }
+            isClickable = true
+            isFocusable = true
+            setOnClickListener {
+                showProjectPickerDialog()
+            }
+        }
+
+        val folderIcon = ImageView(this).apply {
+            setImageResource(R.drawable.ic_lucide_folder)
+            imageTintList = ColorStateList.valueOf(Color.parseColor("#9EA3AE"))
+            layoutParams = LinearLayout.LayoutParams(dpToPx(16f), dpToPx(16f)).apply {
+                marginEnd = dpToPx(8f)
+            }
+        }
+        projectDropdownBtn?.addView(folderIcon)
+
+        projectDropdownText = TextView(this).apply {
+            text = "Loading projects..."
+            setTextColor(Color.parseColor("#696E79"))
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 13f)
+            setSingleLine(true)
+            ellipsize = TextUtils.TruncateAt.END
+            layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+        }
+        projectDropdownBtn?.addView(projectDropdownText)
+
+        val projectChevron = ImageView(this).apply {
+            setImageResource(R.drawable.ic_lucide_chevron_down)
+            imageTintList = ColorStateList.valueOf(Color.parseColor("#696E79"))
+            layoutParams = LinearLayout.LayoutParams(dpToPx(14f), dpToPx(14f)).apply {
+                marginStart = dpToPx(6f)
+            }
+        }
+        projectDropdownBtn?.addView(projectChevron)
+        modalContainer?.addView(projectDropdownBtn)
+
+        // 2. Assignee Dropdown Row (Mandatory)
+        assigneeDropdownBtn = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            background = GradientDrawable().apply {
+                shape = GradientDrawable.RECTANGLE
+                cornerRadius = dpToPx(8f).toFloat()
+                setColor(Color.parseColor("#1F2126"))
+                setStroke(dpToPx(1f), Color.parseColor("#30333C"))
+            }
+            val pH = dpToPx(12f)
+            val pV = dpToPx(8f)
+            setPadding(pH, pV, pH, pV)
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                dpToPx(38f)
+            ).apply {
+                bottomMargin = dpToPx(12f)
+            }
+            isClickable = true
+            isFocusable = true
+            setOnClickListener {
+                if (selectedProject == null) {
+                    showOverlaySnackbar("Please select a project first", false)
+                } else {
+                    showAssigneePickerDialog()
+                }
+            }
+        }
+
+        assigneeAvatarContainer = FrameLayout(this).apply {
+            layoutParams = LinearLayout.LayoutParams(dpToPx(20f), dpToPx(20f)).apply {
+                marginEnd = dpToPx(8f)
+            }
+            background = GradientDrawable().apply {
+                shape = GradientDrawable.OVAL
+                setColor(Color.parseColor("#2A2D36"))
+            }
+        }
+        assigneeAvatarText = TextView(this).apply {
+            text = ""
+            setTextColor(Color.parseColor("#A5B4FC"))
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 10f)
+            setTypeface(typeface, Typeface.BOLD)
+            gravity = Gravity.CENTER
+            layoutParams = FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT)
+        }
+        assigneeAvatarContainer?.addView(assigneeAvatarText)
+        assigneeDropdownBtn?.addView(assigneeAvatarContainer)
+
+        assigneeDropdownText = TextView(this).apply {
+            text = "Select assignee *"
+            setTextColor(Color.parseColor("#8E93A0"))
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 13f)
+            setSingleLine(true)
+            ellipsize = TextUtils.TruncateAt.END
+            layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+        }
+        assigneeDropdownBtn?.addView(assigneeDropdownText)
+
+        val assigneeChevron = ImageView(this).apply {
+            setImageResource(R.drawable.ic_lucide_chevron_down)
+            imageTintList = ColorStateList.valueOf(Color.parseColor("#696E79"))
+            layoutParams = LinearLayout.LayoutParams(dpToPx(14f), dpToPx(14f)).apply {
+                marginStart = dpToPx(6f)
+            }
+        }
+        assigneeDropdownBtn?.addView(assigneeChevron)
+        modalContainer?.addView(assigneeDropdownBtn)
 
         // Actions Toolbar: Screenshot Toggle & Record Voice Button
         val toolbarLayout = LinearLayout(this).apply {
@@ -1072,7 +1070,7 @@ class BubbleService : Service(), SensorEventListener {
             text = "Recording"
             setTextColor(Color.parseColor("#E05656"))
             setTextSize(TypedValue.COMPLEX_UNIT_SP, 13f)
-            setTypeface(typeface, android.graphics.Typeface.BOLD)
+            setTypeface(typeface, Typeface.BOLD)
         }
         recordingStateLayout?.addView(recLabel)
 
@@ -1114,7 +1112,7 @@ class BubbleService : Service(), SensorEventListener {
             text = "Stop"
             setTextColor(Color.WHITE)
             setTextSize(TypedValue.COMPLEX_UNIT_SP, 12f)
-            setTypeface(typeface, android.graphics.Typeface.BOLD)
+            setTypeface(typeface, Typeface.BOLD)
         }
         stopBtn.addView(stopIcon)
         stopBtn.addView(stopText)
@@ -1192,7 +1190,7 @@ class BubbleService : Service(), SensorEventListener {
 
         modalContainer?.addView(audioPreviewLayout)
 
-        // Actions Row: [ Cancel ] [ Submit (Lucide Send icon) ]
+        // Actions Row: [ Cancel ] [ Submit ]
         val actionsLayout = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
@@ -1236,7 +1234,7 @@ class BubbleService : Service(), SensorEventListener {
         submitButtonText = TextView(this).apply {
             text = "Submit"
             setTextSize(TypedValue.COMPLEX_UNIT_SP, 14f)
-            setTypeface(typeface, android.graphics.Typeface.BOLD)
+            setTypeface(typeface, Typeface.BOLD)
         }
         submitButton?.addView(submitButtonText)
 
@@ -1249,6 +1247,9 @@ class BubbleService : Service(), SensorEventListener {
         try {
             modalParams?.let { wm.addView(modalContainer, it) }
         } catch (_: Exception) {}
+
+        // Fetch projects from backend to populate dropdowns
+        fetchProjects()
     }
 
     private fun updateScreenshotToggleUI() {
@@ -1268,7 +1269,7 @@ class BubbleService : Service(), SensorEventListener {
         screenshotIcon?.imageTintList = ColorStateList.valueOf(tint)
         screenshotText?.apply {
             setTextColor(tint)
-            setTypeface(typeface, if (isSelected) android.graphics.Typeface.BOLD else android.graphics.Typeface.NORMAL)
+            setTypeface(typeface, if (isSelected) Typeface.BOLD else Typeface.NORMAL)
         }
     }
 
@@ -1312,15 +1313,21 @@ class BubbleService : Service(), SensorEventListener {
         iconView?.imageTintList = ColorStateList.valueOf(if (isSelected) Color.WHITE else Color.parseColor("#9EA3AE"))
         textView?.apply {
             setTextColor(if (isSelected) Color.WHITE else Color.parseColor("#9EA3AE"))
-            setTypeface(typeface, if (isSelected) android.graphics.Typeface.BOLD else android.graphics.Typeface.NORMAL)
+            setTypeface(typeface, if (isSelected) Typeface.BOLD else Typeface.NORMAL)
         }
     }
 
+    /**
+     * Submit button remains DISABLED until:
+     * - Description is non-empty
+     * - Project is selected
+     * - Assignee is selected
+     */
     private fun updateSubmitButtonState() {
         val hasText = activeEditText?.text?.toString()?.trim()?.isNotEmpty() == true
-        val hasAudio = activeAudioFile != null && activeAudioFile!!.exists() && activeAudioFile!!.length() > 0
-        val hasScreenshot = isScreenshotSelected
-        val canSubmit = (hasText || hasAudio || hasScreenshot) && !isRecordingAudio && !isSubmitting
+        val hasProject = selectedProject != null
+        val hasAssignee = selectedAssignee != null
+        val canSubmit = hasText && hasProject && hasAssignee && !isRecordingAudio && !isSubmitting
 
         submitButton?.apply {
             isClickable = canSubmit
@@ -1336,115 +1343,925 @@ class BubbleService : Service(), SensorEventListener {
         submitButtonIcon?.imageTintList = ColorStateList.valueOf(contentColor)
     }
 
+    private fun updateProjectDropdownUI() {
+        if (isLoadingProjects) {
+            projectDropdownText?.text = "Loading projects..."
+            projectDropdownText?.setTextColor(Color.parseColor("#696E79"))
+            projectDropdownText?.setTypeface(projectDropdownText?.typeface, Typeface.NORMAL)
+        } else if (selectedProject != null) {
+            projectDropdownText?.text = selectedProject!!.name
+            projectDropdownText?.setTextColor(Color.WHITE)
+            projectDropdownText?.setTypeface(projectDropdownText?.typeface, Typeface.BOLD)
+        } else if (availableProjects.isEmpty()) {
+            projectDropdownText?.text = "No projects found"
+            projectDropdownText?.setTextColor(Color.parseColor("#EF4444"))
+            projectDropdownText?.setTypeface(projectDropdownText?.typeface, Typeface.NORMAL)
+        } else {
+            projectDropdownText?.text = "Select project *"
+            projectDropdownText?.setTextColor(Color.parseColor("#8E93A0"))
+            projectDropdownText?.setTypeface(projectDropdownText?.typeface, Typeface.NORMAL)
+        }
+    }
+
+    private fun updateAssigneeDropdownUI() {
+        if (selectedProject == null) {
+            assigneeDropdownText?.text = "Select a project first"
+            assigneeDropdownText?.setTextColor(Color.parseColor("#606470"))
+            assigneeDropdownText?.setTypeface(assigneeDropdownText?.typeface, Typeface.NORMAL)
+            assigneeAvatarText?.text = ""
+            assigneeAvatarContainer?.background = GradientDrawable().apply {
+                shape = GradientDrawable.OVAL
+                setColor(Color.parseColor("#2A2D36"))
+            }
+        } else if (isLoadingMembers) {
+            assigneeDropdownText?.text = "Loading members..."
+            assigneeDropdownText?.setTextColor(Color.parseColor("#696E79"))
+            assigneeDropdownText?.setTypeface(assigneeDropdownText?.typeface, Typeface.NORMAL)
+            assigneeAvatarText?.text = ""
+            assigneeAvatarContainer?.background = GradientDrawable().apply {
+                shape = GradientDrawable.OVAL
+                setColor(Color.parseColor("#2A2D36"))
+            }
+        } else if (selectedAssignee != null) {
+            val isDefault = selectedAssignee!!.id == selectedProject?.defaultAssigneeId
+            val suffix = if (isDefault) " (Default)" else ""
+            assigneeDropdownText?.text = selectedAssignee!!.name + suffix
+            assigneeDropdownText?.setTextColor(Color.WHITE)
+            assigneeDropdownText?.setTypeface(assigneeDropdownText?.typeface, Typeface.BOLD)
+            val initials = getInitials(selectedAssignee!!.name)
+            assigneeAvatarText?.text = initials
+            assigneeAvatarContainer?.background = GradientDrawable().apply {
+                shape = GradientDrawable.OVAL
+                setColor(Color.parseColor("#4338CA"))
+            }
+        } else if (availableMembers.isEmpty()) {
+            assigneeDropdownText?.text = "No members available"
+            assigneeDropdownText?.setTextColor(Color.parseColor("#EF4444"))
+            assigneeDropdownText?.setTypeface(assigneeDropdownText?.typeface, Typeface.NORMAL)
+            assigneeAvatarText?.text = ""
+            assigneeAvatarContainer?.background = GradientDrawable().apply {
+                shape = GradientDrawable.OVAL
+                setColor(Color.parseColor("#2A2D36"))
+            }
+        } else {
+            assigneeDropdownText?.text = "Select assignee *"
+            assigneeDropdownText?.setTextColor(Color.parseColor("#8E93A0"))
+            assigneeDropdownText?.setTypeface(assigneeDropdownText?.typeface, Typeface.NORMAL)
+            assigneeAvatarText?.text = ""
+            assigneeAvatarContainer?.background = GradientDrawable().apply {
+                shape = GradientDrawable.OVAL
+                setColor(Color.parseColor("#2A2D36"))
+            }
+        }
+    }
+
+    private fun getInitials(name: String): String {
+        val parts = name.trim().split(" ").filter { it.isNotBlank() }
+        return when {
+            parts.size >= 2 -> (parts[0].take(1) + parts[1].take(1)).uppercase(Locale.ROOT)
+            parts.size == 1 && parts[0].length >= 2 -> parts[0].take(2).uppercase(Locale.ROOT)
+            parts.size == 1 -> parts[0].take(1).uppercase(Locale.ROOT)
+            else -> "?"
+        }
+    }
+
+    // ==========================================
+    // DATA FETCHING: PROJECTS & PROJECT MEMBERS
+    // ==========================================
+
+    private fun fetchProjects() {
+        isLoadingProjects = true
+        updateProjectDropdownUI()
+        Thread {
+            try {
+                val sp = prefs ?: getSharedPreferences("doit_overlay_prefs", Context.MODE_PRIVATE)
+                val token = sp.getString("auth_token", null)
+                val rawBaseUrl = sp.getString("base_url", "https://doit.samyukt.pro/api/v1") ?: "https://doit.samyukt.pro/api/v1"
+                val baseUrl = rawBaseUrl.trimEnd('/')
+
+                if (token.isNullOrEmpty()) {
+                    Handler(Looper.getMainLooper()).post {
+                        isLoadingProjects = false
+                        updateProjectDropdownUI()
+                    }
+                    return@Thread
+                }
+
+                val url = URL(baseUrl + "/workspaces")
+                val conn = (url.openConnection() as HttpURLConnection).apply {
+                    requestMethod = "GET"
+                    setRequestProperty("Authorization", "Bearer " + token)
+                    connectTimeout = 8000
+                    readTimeout = 8000
+                }
+
+                if (conn.responseCode in 200..299) {
+                    val body = conn.inputStream.bufferedReader().use { it.readText() }
+                    val jsonVal = org.json.JSONTokener(body).nextValue()
+                    val workspacesArr = if (jsonVal is org.json.JSONArray) {
+                        jsonVal
+                    } else if (jsonVal is JSONObject && jsonVal.has("data")) {
+                        val d = jsonVal.get("data")
+                        if (d is org.json.JSONArray) d else null
+                    } else {
+                        null
+                    }
+
+                    val projectsList = mutableListOf<ProjectItem>()
+                    if (workspacesArr != null) {
+                        for (i in 0 until workspacesArr.length()) {
+                            val ws = workspacesArr.getJSONObject(i)
+                            val projs = ws.optJSONArray("projects")
+                            if (projs != null) {
+                                for (j in 0 until projs.length()) {
+                                    val p = projs.getJSONObject(j)
+                                    val pId = p.getString("id")
+                                    val pName = p.getString("name")
+                                    val pKey = p.optString("key", "PRJ")
+                                    val defAssignee = if (p.has("defaultAssigneeId") && !p.isNull("defaultAssigneeId")) p.getString("defaultAssigneeId") else null
+                                    if (projectsList.none { it.id == pId }) {
+                                        projectsList.add(ProjectItem(pId, pName, pKey, defAssignee))
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    Handler(Looper.getMainLooper()).post {
+                        availableProjects = projectsList
+                        isLoadingProjects = false
+                        // Rule:
+                        // If only one project exists, preselect it clearly and load members
+                        // If multiple projects exist, require explicit user selection
+                        if (projectsList.size == 1) {
+                            selectedProject = projectsList[0]
+                            updateProjectDropdownUI()
+                            fetchMembersForProject(selectedProject!!.id)
+                        } else {
+                            selectedProject = null
+                            updateProjectDropdownUI()
+                        }
+                        updateSubmitButtonState()
+                    }
+                } else {
+                    Handler(Looper.getMainLooper()).post {
+                        isLoadingProjects = false
+                        updateProjectDropdownUI()
+                    }
+                }
+                conn.disconnect()
+            } catch (e: Exception) {
+                android.util.Log.e("BubbleService", "Error fetching projects: " + e.message)
+                Handler(Looper.getMainLooper()).post {
+                    isLoadingProjects = false
+                    updateProjectDropdownUI()
+                }
+            }
+        }.start()
+    }
+
+    private fun fetchMembersForProject(projectId: String) {
+        isLoadingMembers = true
+        updateAssigneeDropdownUI()
+        Thread {
+            try {
+                val sp = prefs ?: getSharedPreferences("doit_overlay_prefs", Context.MODE_PRIVATE)
+                val token = sp.getString("auth_token", null)
+                val rawBaseUrl = sp.getString("base_url", "https://doit.samyukt.pro/api/v1") ?: "https://doit.samyukt.pro/api/v1"
+                val baseUrl = rawBaseUrl.trimEnd('/')
+
+                if (token.isNullOrEmpty()) {
+                    Handler(Looper.getMainLooper()).post {
+                        isLoadingMembers = false
+                        updateAssigneeDropdownUI()
+                    }
+                    return@Thread
+                }
+
+                val url = URL(baseUrl + "/projects/" + projectId + "/members")
+                val conn = (url.openConnection() as HttpURLConnection).apply {
+                    requestMethod = "GET"
+                    setRequestProperty("Authorization", "Bearer " + token)
+                    connectTimeout = 8000
+                    readTimeout = 8000
+                }
+
+                if (conn.responseCode in 200..299) {
+                    val resp = conn.inputStream.bufferedReader().use { it.readText() }
+                    val json = JSONObject(resp)
+                    val defaultAssigneeId = if (json.has("defaultAssigneeId") && !json.isNull("defaultAssigneeId")) json.getString("defaultAssigneeId") else null
+                    val membersArr = json.optJSONArray("members")
+                    val membersList = mutableListOf<MemberItem>()
+                    if (membersArr != null) {
+                        for (i in 0 until membersArr.length()) {
+                            val m = membersArr.getJSONObject(i)
+                            membersList.add(
+                                MemberItem(
+                                    id = m.getString("id"),
+                                    name = m.getString("name"),
+                                    email = if (m.has("email") && !m.isNull("email")) m.getString("email") else null,
+                                    role = if (m.has("role") && !m.isNull("role")) m.getString("role") else null,
+                                    avatarUrl = if (m.has("avatarUrl") && !m.isNull("avatarUrl")) m.getString("avatarUrl") else null
+                                )
+                            )
+                        }
+                    }
+
+                    Handler(Looper.getMainLooper()).post {
+                        availableMembers = membersList
+                        isLoadingMembers = false
+                        // Rule:
+                        // Automatically select the project's default assignee.
+                        // If no default assignee exists, require the user to select one.
+                        if (!defaultAssigneeId.isNullOrEmpty()) {
+                            selectedAssignee = membersList.find { it.id == defaultAssigneeId }
+                        } else {
+                            selectedAssignee = null
+                        }
+                        updateAssigneeDropdownUI()
+                        updateSubmitButtonState()
+                    }
+                } else {
+                    Handler(Looper.getMainLooper()).post {
+                        isLoadingMembers = false
+                        updateAssigneeDropdownUI()
+                    }
+                }
+                conn.disconnect()
+            } catch (e: Exception) {
+                android.util.Log.e("BubbleService", "Error fetching project members: " + e.message)
+                Handler(Looper.getMainLooper()).post {
+                    isLoadingMembers = false
+                    updateAssigneeDropdownUI()
+                }
+            }
+        }.start()
+    }
+
+    // ==========================================
+    // DIALOG PICKERS: PROJECT & ASSIGNEE
+    // ==========================================
+
+    private fun showProjectPickerDialog() {
+        dismissPicker()
+        if (isLoadingProjects) {
+            showOverlaySnackbar("Loading projects, please wait...", false)
+            return
+        }
+        if (availableProjects.isEmpty()) {
+            showOverlaySnackbar("No projects found", false)
+            return
+        }
+        val wm = windowManager ?: return
+
+        val displayMetrics = resources.displayMetrics
+        val screenWidth = displayMetrics.widthPixels
+        val pickerWidth = Math.min((screenWidth * 0.90f).toInt(), dpToPx(340f))
+
+        pickerParams = WindowManager.LayoutParams(
+            pickerWidth,
+            WindowManager.LayoutParams.WRAP_CONTENT,
+            getOverlayLayoutType(),
+            WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL or WindowManager.LayoutParams.FLAG_WATCH_OUTSIDE_TOUCH,
+            PixelFormat.TRANSLUCENT
+        ).apply {
+            gravity = Gravity.CENTER
+        }
+
+        pickerContainer = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            background = GradientDrawable().apply {
+                shape = GradientDrawable.RECTANGLE
+                cornerRadius = dpToPx(16f).toFloat()
+                setColor(Color.parseColor("#181A1F"))
+                setStroke(dpToPx(1.2f), Color.parseColor("#2C2E35"))
+            }
+            val p = dpToPx(16f)
+            setPadding(p, p, p, p)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                elevation = dpToPx(24f).toFloat()
+            }
+            setOnTouchListener { _, event ->
+                if (event.action == MotionEvent.ACTION_OUTSIDE) {
+                    dismissPicker()
+                    true
+                } else false
+            }
+        }
+
+        // Header
+        val header = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            ).apply {
+                bottomMargin = dpToPx(4f)
+            }
+        }
+        val titleView = TextView(this).apply {
+            text = "Select Project"
+            setTextColor(Color.WHITE)
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 16f)
+            setTypeface(typeface, Typeface.BOLD)
+            layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+        }
+        header.addView(titleView)
+
+        val closeBtn = ImageView(this).apply {
+            setImageResource(R.drawable.ic_lucide_x)
+            imageTintList = ColorStateList.valueOf(Color.parseColor("#9EA3AE"))
+            val pC = dpToPx(4f)
+            setPadding(pC, pC, pC, pC)
+            layoutParams = LinearLayout.LayoutParams(dpToPx(24f), dpToPx(24f))
+            isClickable = true
+            isFocusable = true
+            setOnClickListener { dismissPicker() }
+        }
+        header.addView(closeBtn)
+        pickerContainer?.addView(header)
+
+        val subtitleView = TextView(this).apply {
+            text = "Select the target project for this capture"
+            setTextColor(Color.parseColor("#8E93A0"))
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 12f)
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            ).apply {
+                bottomMargin = dpToPx(10f)
+            }
+        }
+        pickerContainer?.addView(subtitleView)
+
+        // Search Input if multiple projects
+        val searchEdit = EditText(this).apply {
+            hint = "Search projects..."
+            setHintTextColor(Color.parseColor("#696E79"))
+            setTextColor(Color.WHITE)
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 13f)
+            background = GradientDrawable().apply {
+                shape = GradientDrawable.RECTANGLE
+                cornerRadius = dpToPx(8f).toFloat()
+                setColor(Color.parseColor("#1F2126"))
+                setStroke(dpToPx(1f), Color.parseColor("#30333C"))
+            }
+            val pI = dpToPx(8f)
+            setPadding(pI, pI, pI, pI)
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            ).apply {
+                bottomMargin = dpToPx(8f)
+            }
+        }
+
+        // List ScrollView
+        val scrollView = ScrollView(this).apply {
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                dpToPx(220f)
+            )
+            isFillViewport = true
+        }
+
+        val itemsLayout = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            )
+        }
+
+        fun renderProjects(query: String) {
+            itemsLayout.removeAllViews()
+            val filtered = availableProjects.filter {
+                query.isEmpty() || it.name.contains(query, ignoreCase = true) || it.key.contains(query, ignoreCase = true)
+            }
+            if (filtered.isEmpty()) {
+                val emptyTv = TextView(this).apply {
+                    text = "No matching projects"
+                    setTextColor(Color.parseColor("#8E93A0"))
+                    setTextSize(TypedValue.COMPLEX_UNIT_SP, 13f)
+                    gravity = Gravity.CENTER
+                    val pE = dpToPx(20f)
+                    setPadding(pE, pE, pE, pE)
+                }
+                itemsLayout.addView(emptyTv)
+                return
+            }
+
+            for (p in filtered) {
+                val isSelected = p.id == selectedProject?.id
+                val row = LinearLayout(this).apply {
+                    orientation = LinearLayout.HORIZONTAL
+                    gravity = Gravity.CENTER_VERTICAL
+                    background = GradientDrawable().apply {
+                        shape = GradientDrawable.RECTANGLE
+                        cornerRadius = dpToPx(8f).toFloat()
+                        if (isSelected) {
+                            setColor(Color.parseColor("#262445"))
+                            setStroke(dpToPx(1f), Color.parseColor("#7775D8"))
+                        } else {
+                            setColor(Color.parseColor("#1F2126"))
+                            setStroke(dpToPx(1f), Color.parseColor("#282A32"))
+                        }
+                    }
+                    val pH = dpToPx(12f)
+                    val pV = dpToPx(9f)
+                    setPadding(pH, pV, pH, pV)
+                    layoutParams = LinearLayout.LayoutParams(
+                        LinearLayout.LayoutParams.MATCH_PARENT,
+                        LinearLayout.LayoutParams.WRAP_CONTENT
+                    ).apply {
+                        bottomMargin = dpToPx(6f)
+                    }
+                    isClickable = true
+                    isFocusable = true
+                    setOnClickListener {
+                        selectedProject = p
+                        selectedAssignee = null
+                        availableMembers = emptyList()
+                        updateProjectDropdownUI()
+                        updateAssigneeDropdownUI()
+                        dismissPicker()
+                        fetchMembersForProject(p.id)
+                        updateSubmitButtonState()
+                    }
+                }
+
+                val rowIcon = ImageView(this).apply {
+                    setImageResource(R.drawable.ic_lucide_folder)
+                    imageTintList = ColorStateList.valueOf(if (isSelected) Color.parseColor("#A5A3F6") else Color.parseColor("#9EA3AE"))
+                    layoutParams = LinearLayout.LayoutParams(dpToPx(16f), dpToPx(16f)).apply {
+                        marginEnd = dpToPx(8f)
+                    }
+                }
+                row.addView(rowIcon)
+
+                val col = LinearLayout(this).apply {
+                    orientation = LinearLayout.VERTICAL
+                    layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+                }
+
+                val pName = TextView(this).apply {
+                    text = p.name
+                    setTextColor(if (isSelected) Color.WHITE else Color.parseColor("#E0E3EB"))
+                    setTextSize(TypedValue.COMPLEX_UNIT_SP, 13.5f)
+                    setTypeface(typeface, if (isSelected) Typeface.BOLD else Typeface.NORMAL)
+                }
+                col.addView(pName)
+
+                val pKey = TextView(this).apply {
+                    text = p.key
+                    setTextColor(Color.parseColor("#7775D8"))
+                    setTextSize(TypedValue.COMPLEX_UNIT_SP, 11f)
+                    setTypeface(Typeface.MONOSPACE)
+                }
+                col.addView(pKey)
+
+                row.addView(col)
+
+                if (isSelected) {
+                    val checkIcon = ImageView(this).apply {
+                        setImageResource(R.drawable.ic_lucide_check)
+                        imageTintList = ColorStateList.valueOf(Color.parseColor("#7775D8"))
+                        layoutParams = LinearLayout.LayoutParams(dpToPx(16f), dpToPx(16f))
+                    }
+                    row.addView(checkIcon)
+                }
+
+                itemsLayout.addView(row)
+            }
+        }
+
+        renderProjects("")
+
+        searchEdit.addTextChangedListener(object : TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
+                renderProjects(s?.toString()?.trim() ?: "")
+            }
+            override fun afterTextChanged(s: Editable?) {}
+        })
+
+        if (availableProjects.size > 3) {
+            pickerContainer?.addView(searchEdit)
+        }
+
+        scrollView.addView(itemsLayout)
+        pickerContainer?.addView(scrollView)
+
+        try {
+            pickerParams?.let { wm.addView(pickerContainer, it) }
+        } catch (_: Exception) {}
+    }
+
+    private fun showAssigneePickerDialog() {
+        dismissPicker()
+        if (selectedProject == null) {
+            showOverlaySnackbar("Please select a project first", false)
+            return
+        }
+        if (isLoadingMembers) {
+            showOverlaySnackbar("Loading project members...", false)
+            return
+        }
+        if (availableMembers.isEmpty()) {
+            showOverlaySnackbar("No eligible members found in " + selectedProject?.name, false)
+            return
+        }
+        val wm = windowManager ?: return
+
+        val displayMetrics = resources.displayMetrics
+        val screenWidth = displayMetrics.widthPixels
+        val pickerWidth = Math.min((screenWidth * 0.90f).toInt(), dpToPx(340f))
+
+        pickerParams = WindowManager.LayoutParams(
+            pickerWidth,
+            WindowManager.LayoutParams.WRAP_CONTENT,
+            getOverlayLayoutType(),
+            WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL or WindowManager.LayoutParams.FLAG_WATCH_OUTSIDE_TOUCH,
+            PixelFormat.TRANSLUCENT
+        ).apply {
+            gravity = Gravity.CENTER
+        }
+
+        pickerContainer = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            background = GradientDrawable().apply {
+                shape = GradientDrawable.RECTANGLE
+                cornerRadius = dpToPx(16f).toFloat()
+                setColor(Color.parseColor("#181A1F"))
+                setStroke(dpToPx(1.2f), Color.parseColor("#2C2E35"))
+            }
+            val p = dpToPx(16f)
+            setPadding(p, p, p, p)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                elevation = dpToPx(24f).toFloat()
+            }
+            setOnTouchListener { _, event ->
+                if (event.action == MotionEvent.ACTION_OUTSIDE) {
+                    dismissPicker()
+                    true
+                } else false
+            }
+        }
+
+        // Header
+        val header = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            ).apply {
+                bottomMargin = dpToPx(4f)
+            }
+        }
+        val titleView = TextView(this).apply {
+            text = "Select Assignee"
+            setTextColor(Color.WHITE)
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 16f)
+            setTypeface(typeface, Typeface.BOLD)
+            layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+        }
+        header.addView(titleView)
+
+        val closeBtn = ImageView(this).apply {
+            setImageResource(R.drawable.ic_lucide_x)
+            imageTintList = ColorStateList.valueOf(Color.parseColor("#9EA3AE"))
+            val pC = dpToPx(4f)
+            setPadding(pC, pC, pC, pC)
+            layoutParams = LinearLayout.LayoutParams(dpToPx(24f), dpToPx(24f))
+            isClickable = true
+            isFocusable = true
+            setOnClickListener { dismissPicker() }
+        }
+        header.addView(closeBtn)
+        pickerContainer?.addView(header)
+
+        val subtitleView = TextView(this).apply {
+            text = "Assign to a member of " + selectedProject?.name
+            setTextColor(Color.parseColor("#8E93A0"))
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 12f)
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            ).apply {
+                bottomMargin = dpToPx(10f)
+            }
+        }
+        pickerContainer?.addView(subtitleView)
+
+        // Search Input if multiple members
+        val searchEdit = EditText(this).apply {
+            hint = "Search members..."
+            setHintTextColor(Color.parseColor("#696E79"))
+            setTextColor(Color.WHITE)
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 13f)
+            background = GradientDrawable().apply {
+                shape = GradientDrawable.RECTANGLE
+                cornerRadius = dpToPx(8f).toFloat()
+                setColor(Color.parseColor("#1F2126"))
+                setStroke(dpToPx(1f), Color.parseColor("#30333C"))
+            }
+            val pI = dpToPx(8f)
+            setPadding(pI, pI, pI, pI)
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            ).apply {
+                bottomMargin = dpToPx(8f)
+            }
+        }
+
+        // List ScrollView
+        val scrollView = ScrollView(this).apply {
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                dpToPx(220f)
+            )
+            isFillViewport = true
+        }
+
+        val itemsLayout = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            )
+        }
+
+        fun renderMembers(query: String) {
+            itemsLayout.removeAllViews()
+            val filtered = availableMembers.filter {
+                query.isEmpty() || it.name.contains(query, ignoreCase = true) || (it.email?.contains(query, ignoreCase = true) == true)
+            }
+            if (filtered.isEmpty()) {
+                val emptyTv = TextView(this).apply {
+                    text = "No matching members"
+                    setTextColor(Color.parseColor("#8E93A0"))
+                    setTextSize(TypedValue.COMPLEX_UNIT_SP, 13f)
+                    gravity = Gravity.CENTER
+                    val pE = dpToPx(20f)
+                    setPadding(pE, pE, pE, pE)
+                }
+                itemsLayout.addView(emptyTv)
+                return
+            }
+
+            for (m in filtered) {
+                val isSelected = m.id == selectedAssignee?.id
+                val isDefault = m.id == selectedProject?.defaultAssigneeId
+
+                val row = LinearLayout(this).apply {
+                    orientation = LinearLayout.HORIZONTAL
+                    gravity = Gravity.CENTER_VERTICAL
+                    background = GradientDrawable().apply {
+                        shape = GradientDrawable.RECTANGLE
+                        cornerRadius = dpToPx(8f).toFloat()
+                        if (isSelected) {
+                            setColor(Color.parseColor("#262445"))
+                            setStroke(dpToPx(1f), Color.parseColor("#7775D8"))
+                        } else {
+                            setColor(Color.parseColor("#1F2126"))
+                            setStroke(dpToPx(1f), Color.parseColor("#282A32"))
+                        }
+                    }
+                    val pH = dpToPx(12f)
+                    val pV = dpToPx(9f)
+                    setPadding(pH, pV, pH, pV)
+                    layoutParams = LinearLayout.LayoutParams(
+                        LinearLayout.LayoutParams.MATCH_PARENT,
+                        LinearLayout.LayoutParams.WRAP_CONTENT
+                    ).apply {
+                        bottomMargin = dpToPx(6f)
+                    }
+                    isClickable = true
+                    isFocusable = true
+                    setOnClickListener {
+                        selectedAssignee = m
+                        updateAssigneeDropdownUI()
+                        dismissPicker()
+                        updateSubmitButtonState()
+                    }
+                }
+
+                // Avatar initials circle
+                val avatarBox = FrameLayout(this).apply {
+                    layoutParams = LinearLayout.LayoutParams(dpToPx(26f), dpToPx(26f)).apply {
+                        marginEnd = dpToPx(10f)
+                    }
+                    background = GradientDrawable().apply {
+                        shape = GradientDrawable.OVAL
+                        setColor(if (isSelected) Color.parseColor("#4338CA") else Color.parseColor("#2D313E"))
+                    }
+                }
+                val initialsTv = TextView(this).apply {
+                    text = getInitials(m.name)
+                    setTextColor(if (isSelected) Color.WHITE else Color.parseColor("#A5B4FC"))
+                    setTextSize(TypedValue.COMPLEX_UNIT_SP, 11f)
+                    setTypeface(typeface, Typeface.BOLD)
+                    gravity = Gravity.CENTER
+                    layoutParams = FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT)
+                }
+                avatarBox.addView(initialsTv)
+                row.addView(avatarBox)
+
+                val col = LinearLayout(this).apply {
+                    orientation = LinearLayout.VERTICAL
+                    layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+                }
+
+                val rowNameLayout = LinearLayout(this).apply {
+                    orientation = LinearLayout.HORIZONTAL
+                    gravity = Gravity.CENTER_VERTICAL
+                }
+
+                val nameTv = TextView(this).apply {
+                    text = m.name
+                    setTextColor(if (isSelected) Color.WHITE else Color.parseColor("#E0E3EB"))
+                    setTextSize(TypedValue.COMPLEX_UNIT_SP, 13.5f)
+                    setTypeface(typeface, if (isSelected) Typeface.BOLD else Typeface.NORMAL)
+                }
+                rowNameLayout.addView(nameTv)
+
+                if (isDefault) {
+                    val defaultBadge = TextView(this).apply {
+                        text = "Default"
+                        setTextColor(Color.parseColor("#A5A3F6"))
+                        setTextSize(TypedValue.COMPLEX_UNIT_SP, 10f)
+                        setTypeface(typeface, Typeface.BOLD)
+                        background = GradientDrawable().apply {
+                            shape = GradientDrawable.RECTANGLE
+                            cornerRadius = dpToPx(4f).toFloat()
+                            setColor(Color.parseColor("#262445"))
+                            setStroke(dpToPx(1f), Color.parseColor("#4338CA"))
+                        }
+                        val pB = dpToPx(2f)
+                        setPadding(dpToPx(5f), pB, dpToPx(5f), pB)
+                        layoutParams = LinearLayout.LayoutParams(
+                            LinearLayout.LayoutParams.WRAP_CONTENT,
+                            LinearLayout.LayoutParams.WRAP_CONTENT
+                        ).apply {
+                            marginStart = dpToPx(6f)
+                        }
+                    }
+                    rowNameLayout.addView(defaultBadge)
+                }
+
+                col.addView(rowNameLayout)
+
+                if (!m.email.isNullOrEmpty()) {
+                    val emailTv = TextView(this).apply {
+                        text = m.email
+                        setTextColor(Color.parseColor("#8E93A0"))
+                        setTextSize(TypedValue.COMPLEX_UNIT_SP, 11.5f)
+                    }
+                    col.addView(emailTv)
+                }
+
+                row.addView(col)
+
+                if (isSelected) {
+                    val checkIcon = ImageView(this).apply {
+                        setImageResource(R.drawable.ic_lucide_check)
+                        imageTintList = ColorStateList.valueOf(Color.parseColor("#7775D8"))
+                        layoutParams = LinearLayout.LayoutParams(dpToPx(16f), dpToPx(16f))
+                    }
+                    row.addView(checkIcon)
+                }
+
+                itemsLayout.addView(row)
+            }
+        }
+
+        renderMembers("")
+
+        searchEdit.addTextChangedListener(object : TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
+                renderMembers(s?.toString()?.trim() ?: "")
+            }
+            override fun afterTextChanged(s: Editable?) {}
+        })
+
+        if (availableMembers.size > 3) {
+            pickerContainer?.addView(searchEdit)
+        }
+
+        scrollView.addView(itemsLayout)
+        pickerContainer?.addView(scrollView)
+
+        try {
+            pickerParams?.let { wm.addView(pickerContainer, it) }
+        } catch (_: Exception) {}
+    }
+
     // ==========================================
     // 5. AUDIO RECORDING & PLAYBACK CONTROLS
     // ==========================================
 
     private fun startAudioRecording() {
-        AudioPermissionActivity.requestAudioPermission(this) { granted ->
-            if (!granted) {
-                Handler(Looper.getMainLooper()).post {
-                    showOverlaySnackbar("Microphone permission required", false)
-                }
-                return@requestAudioPermission
+        if (isRecordingAudio) return
+        stopAudioPlayback()
+
+        try {
+            val audioDir = File(cacheDir, "quick_capture_audio").apply { if (!exists()) mkdirs() }
+            activeAudioFile = File(audioDir, "note_" + System.currentTimeMillis() + ".m4a")
+
+            mediaRecorder = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                MediaRecorder(this)
+            } else {
+                @Suppress("DEPRECATION")
+                MediaRecorder()
+            }.apply {
+                setAudioSource(MediaRecorder.AudioSource.MIC)
+                setOutputFormat(MediaRecorder.OutputFormat.MPEG_4)
+                setAudioEncoder(MediaRecorder.AudioEncoder.AAC)
+                setAudioEncodingBitRate(128000)
+                setAudioSamplingRate(44100)
+                setOutputFile(activeAudioFile?.absolutePath)
+                prepare()
+                start()
             }
 
-            Handler(Looper.getMainLooper()).post {
-                try {
-                    stopAudioPlayback()
+            isRecordingAudio = true
+            audioRecordingStartTime = System.currentTimeMillis()
+            voiceRecordButton?.visibility = View.GONE
+            recordingStateLayout?.visibility = View.VISIBLE
+            audioPreviewLayout?.visibility = View.GONE
 
-                    val audioDir = File(cacheDir, "recordings").apply { mkdirs() }
-                    val file = File(audioDir, "doit_voice_${System.currentTimeMillis()}.m4a")
-                    activeAudioFile = file
-
-                    mediaRecorder = (if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                        MediaRecorder(this)
-                    } else {
-                        @Suppress("DEPRECATION")
-                        MediaRecorder()
-                    }).apply {
-                        setAudioSource(MediaRecorder.AudioSource.MIC)
-                        setOutputFormat(MediaRecorder.OutputFormat.MPEG_4)
-                        setAudioEncoder(MediaRecorder.AudioEncoder.AAC)
-                        setAudioEncodingBitRate(128000)
-                        setAudioSamplingRate(44100)
-                        setOutputFile(file.absolutePath)
-                        prepare()
-                        start()
+            recordingTimerRunnable = object : Runnable {
+                override fun run() {
+                    if (isRecordingAudio) {
+                        val elapsed = (System.currentTimeMillis() - audioRecordingStartTime) / 1000
+                        val mins = elapsed / 60
+                        val secs = elapsed % 60
+                        recordingTimerText?.text = String.format(Locale.US, "%02d:%02d", mins, secs)
+                        recordingTimerHandler.postDelayed(this, 500)
                     }
-
-                    isRecordingAudio = true
-                    recordingStartTime = System.currentTimeMillis()
-                    triggerHaptic(40)
-
-                    voiceRecordButton?.visibility = View.GONE
-                    audioPreviewLayout?.visibility = View.GONE
-                    recordingStateLayout?.visibility = View.VISIBLE
-                    updateSubmitButtonState()
-
-                    recordingTimerText?.text = "00:00"
-                    recordingTimerHandler.removeCallbacks(timerRunnable)
-                    recordingTimerHandler.post(timerRunnable)
-                } catch (e: Exception) {
-                    android.util.Log.e("BubbleService", "Failed to start recording: ${e.message}", e)
-                    showOverlaySnackbar("Failed to start audio recording", false)
-                    stopAudioRecording(discard = true)
                 }
             }
+            recordingTimerRunnable?.let { recordingTimerHandler.post(it) }
+            updateSubmitButtonState()
+        } catch (e: Exception) {
+            android.util.Log.e("BubbleService", "Error starting recording: " + e.message)
+            showOverlaySnackbar("Microphone access failed", false)
+            isRecordingAudio = false
+            voiceRecordButton?.visibility = View.VISIBLE
+            recordingStateLayout?.visibility = View.GONE
         }
     }
 
     private fun stopAudioRecording(discard: Boolean = false) {
         if (!isRecordingAudio) return
-        isRecordingAudio = false
-        recordingTimerHandler.removeCallbacks(timerRunnable)
+
+        recordingTimerRunnable?.let { recordingTimerHandler.removeCallbacks(it) }
+        recordingTimerRunnable = null
 
         try {
             mediaRecorder?.apply {
-                stop()
+                try { stop() } catch (_: Exception) {}
                 release()
             }
-        } catch (e: Exception) {
-            android.util.Log.w("BubbleService", "Error stopping MediaRecorder: ${e.message}")
-        } finally {
-            mediaRecorder = null
-        }
+        } catch (_: Exception) {}
+        mediaRecorder = null
+        isRecordingAudio = false
 
-        triggerHaptic(30)
-
-        if (discard || activeAudioFile == null || !activeAudioFile!!.exists() || activeAudioFile!!.length() < 100) {
+        if (discard) {
             try { activeAudioFile?.delete() } catch (_: Exception) {}
             activeAudioFile = null
             audioDurationMs = 0L
-
             recordingStateLayout?.visibility = View.GONE
-            audioPreviewLayout?.visibility = View.GONE
             voiceRecordButton?.visibility = View.VISIBLE
+            audioPreviewLayout?.visibility = View.GONE
         } else {
-            audioDurationMs = System.currentTimeMillis() - recordingStartTime
-            val seconds = (audioDurationMs / 1000).toInt()
-            val formattedTime = String.format(Locale.US, "%d:%02d", seconds / 60, seconds % 60)
-            audioPreviewDurationText?.text = "Voice note ($formattedTime)"
+            audioDurationMs = System.currentTimeMillis() - audioRecordingStartTime
+            val totalSecs = (audioDurationMs / 1000).toInt()
+            val mins = totalSecs / 60
+            val secs = totalSecs % 60
+            val durStr = String.format(Locale.US, "%02d:%02d", mins, secs)
 
             recordingStateLayout?.visibility = View.GONE
-            voiceRecordButton?.visibility = View.GONE
+            audioPreviewDurationText?.text = "Voice note ($durStr)"
             audioPreviewLayout?.visibility = View.VISIBLE
+            voiceRecordButton?.visibility = View.GONE
         }
-
         updateSubmitButtonState()
     }
 
     private fun togglePlayPauseAudio() {
-        val file = activeAudioFile ?: return
-        if (!file.exists()) return
+        if (activeAudioFile == null || !activeAudioFile!!.exists()) return
 
         if (isPlayingAudio) {
             stopAudioPlayback()
         } else {
             try {
-                stopAudioPlayback()
                 mediaPlayer = MediaPlayer().apply {
-                    setDataSource(file.absolutePath)
+                    setDataSource(activeAudioFile!!.absolutePath)
                     prepare()
                     setOnCompletionListener {
                         stopAudioPlayback()
@@ -1454,7 +2271,7 @@ class BubbleService : Service(), SensorEventListener {
                 isPlayingAudio = true
                 audioPlayPauseIcon?.setImageResource(R.drawable.ic_lucide_pause)
             } catch (e: Exception) {
-                android.util.Log.e("BubbleService", "Error playing audio: ${e.message}")
+                android.util.Log.e("BubbleService", "Error playing audio: " + e.message)
                 stopAudioPlayback()
             }
         }
@@ -1485,6 +2302,7 @@ class BubbleService : Service(), SensorEventListener {
     }
 
     private fun dismissCompactModal() {
+        dismissPicker()
         stopAudioPlayback()
         if (isRecordingAudio) {
             stopAudioRecording(discard = true)
@@ -1513,6 +2331,20 @@ class BubbleService : Service(), SensorEventListener {
         submitButton = null
         submitButtonText = null
         submitButtonIcon = null
+
+        projectDropdownBtn = null
+        projectDropdownText = null
+        assigneeDropdownBtn = null
+        assigneeDropdownText = null
+        assigneeAvatarContainer = null
+        assigneeAvatarText = null
+    }
+
+    private fun dismissPicker() {
+        try {
+            pickerContainer?.let { windowManager?.removeView(it) }
+        } catch (_: Exception) {}
+        pickerContainer = null
     }
 
     // ==========================================
@@ -1526,32 +2358,27 @@ class BubbleService : Service(), SensorEventListener {
         }
 
         val rawText = activeEditText?.text?.toString()?.trim() ?: ""
-        val hasAudio = activeAudioFile != null && activeAudioFile!!.exists() && activeAudioFile!!.length() > 0
-        val hasScreenshot = isScreenshotSelected
-
-        if (rawText.isEmpty() && !hasAudio && !hasScreenshot) {
-            showOverlaySnackbar("Please enter details, voice note, or screenshot", false)
+        if (rawText.isEmpty()) {
+            showOverlaySnackbar("Please enter a description", false)
+            return
+        }
+        if (selectedProject == null) {
+            showOverlaySnackbar("Please select a project", false)
+            return
+        }
+        if (selectedAssignee == null) {
+            showOverlaySnackbar("Please select an assignee", false)
             return
         }
 
-        // Title fallback if user submitted attachment-only
-        val titleText = if (rawText.isNotEmpty()) {
-            rawText
-        } else {
-            val nowStr = SimpleDateFormat("MMM d, HH:mm", Locale.US).format(Date())
-            if (hasAudio) {
-                if (currentMode == "BUG") "Voice Bug - $nowStr" else "Voice Task - $nowStr"
-            } else {
-                if (currentMode == "BUG") "Quick Bug - $nowStr" else "Quick Task - $nowStr"
-            }
-        }
-
+        val titleText = rawText
         val mode = currentMode
         val audioToUpload = activeAudioFile
         val audioDuration = audioDurationMs
         isSubmitting = true
         updateSubmitButtonState()
 
+        val hasScreenshot = isScreenshotSelected
         if (hasScreenshot) {
             if (DoItAccessibilityService.isRunning()) {
                 dismissCompactModal()
@@ -1649,10 +2476,10 @@ class BubbleService : Service(), SensorEventListener {
                 container.addView(iconView)
 
                 val textView = TextView(this).apply {
-                    text = message
+                    this.text = message
                     setTextColor(Color.WHITE)
-                    textSize = 14f
-                    typeface = Typeface.DEFAULT_BOLD
+                    setTextSize(TypedValue.COMPLEX_UNIT_SP, 13.5f)
+                    setTypeface(typeface, Typeface.BOLD)
                     val lp = LinearLayout.LayoutParams(
                         LinearLayout.LayoutParams.WRAP_CONTENT,
                         LinearLayout.LayoutParams.WRAP_CONTENT
@@ -1686,14 +2513,14 @@ class BubbleService : Service(), SensorEventListener {
                 snackbarDismissRunnable = dismissRunnable
                 snackbarHandler.postDelayed(dismissRunnable, 3000)
             } catch (e: Exception) {
-                android.util.Log.e("BubbleService", "Error showing overlay snackbar: ${e.message}")
+                android.util.Log.e("BubbleService", "Error showing overlay snackbar: " + e.message)
             }
         }
     }
 
     private fun refreshAccessToken(baseUrl: String, refreshToken: String): String? {
         try {
-            val url = URL("$baseUrl/auth/refresh")
+            val url = URL(baseUrl + "/auth/refresh")
             val conn = (url.openConnection() as HttpURLConnection).apply {
                 requestMethod = "POST"
                 setRequestProperty("Content-Type", "application/json")
@@ -1729,7 +2556,7 @@ class BubbleService : Service(), SensorEventListener {
             }
             conn.disconnect()
         } catch (e: Exception) {
-            android.util.Log.e("BubbleService", "refreshAccessToken failed: ${e.message}", e)
+            android.util.Log.e("BubbleService", "refreshAccessToken failed: " + e.message, e)
         }
         return null
     }
@@ -1741,13 +2568,20 @@ class BubbleService : Service(), SensorEventListener {
         audioFile: File?,
         audioDurationMs: Long
     ) {
+        val targetProject = selectedProject
+        val targetAssignee = selectedAssignee
+
+        if (targetProject == null || targetAssignee == null) {
+            showOverlaySnackbar("Please select both project and assignee", false)
+            return
+        }
+
         Thread {
             try {
                 val sp = prefs ?: getSharedPreferences("doit_overlay_prefs", Context.MODE_PRIVATE)
                 var token = sp.getString("auth_token", null)
                 val rawBaseUrl = sp.getString("base_url", "https://doit.samyukt.pro/api/v1") ?: "https://doit.samyukt.pro/api/v1"
                 val baseUrl = rawBaseUrl.trimEnd('/')
-                var projectId = sp.getString("project_id", null)
 
                 if (token.isNullOrEmpty()) {
                     android.util.Log.w("BubbleService", "Cannot submit: unauthenticated")
@@ -1755,51 +2589,15 @@ class BubbleService : Service(), SensorEventListener {
                     return@Thread
                 }
 
-                // If project ID is missing, auto-fetch first available project
-                if (projectId.isNullOrEmpty()) {
-                    try {
-                        val pUrl = URL("$baseUrl/workspaces")
-                        val pConn = (pUrl.openConnection() as HttpURLConnection).apply {
-                            requestMethod = "GET"
-                            setRequestProperty("Authorization", "Bearer $token")
-                            connectTimeout = 8000
-                            readTimeout = 8000
-                        }
-                        if (pConn.responseCode in 200..299) {
-                            val body = pConn.inputStream.bufferedReader().use { it.readText() }
-                            val jsonVal = org.json.JSONTokener(body).nextValue()
-                            val arr = if (jsonVal is org.json.JSONArray) {
-                                jsonVal
-                            } else if (jsonVal is JSONObject && jsonVal.has("data")) {
-                                val d = jsonVal.get("data")
-                                if (d is org.json.JSONArray) d else null
-                            } else {
-                                null
-                            }
-                            if (arr != null && arr.length() > 0) {
-                                val ws = arr.getJSONObject(0)
-                                val projs = ws.optJSONArray("projects")
-                                if (projs != null && projs.length() > 0) {
-                                    projectId = projs.getJSONObject(0).optString("id")
-                                    sp.edit().putString("project_id", projectId).apply()
-                                }
-                            }
-                        }
-                        pConn.disconnect()
-                    } catch (e: Exception) {
-                        android.util.Log.w("BubbleService", "Error resolving project: ${e.message}")
-                    }
-                }
-
-                val targetProjectId = if (!projectId.isNullOrEmpty()) projectId else "default"
-
                 // 1. Create Task or Bug endpoint
-                val endpointUrl = if (mode == "BUG") "$baseUrl/projects/$targetProjectId/bugs" else "$baseUrl/projects/$targetProjectId/tasks"
+                val endpointUrl = if (mode == "BUG") baseUrl + "/projects/" + targetProject.id + "/bugs" else baseUrl + "/projects/" + targetProject.id + "/tasks"
                 val payload = JSONObject().apply {
                     put("title", title)
+                    put("description", title)
                     put("type", mode)
                     put("source", "OVERLAY")
                     put("priority", "MEDIUM")
+                    put("assigneeId", targetAssignee.id)
                     if (mode == "BUG") {
                         put("severity", "MAJOR")
                     }
@@ -1807,7 +2605,7 @@ class BubbleService : Service(), SensorEventListener {
 
                 var taskConn = (URL(endpointUrl).openConnection() as HttpURLConnection).apply {
                     requestMethod = "POST"
-                    setRequestProperty("Authorization", "Bearer $token")
+                    setRequestProperty("Authorization", "Bearer " + token)
                     setRequestProperty("Content-Type", "application/json")
                     doOutput = true
                     connectTimeout = 10000
@@ -1830,7 +2628,7 @@ class BubbleService : Service(), SensorEventListener {
                             taskConn.disconnect()
                             taskConn = (URL(endpointUrl).openConnection() as HttpURLConnection).apply {
                                 requestMethod = "POST"
-                                setRequestProperty("Authorization", "Bearer $token")
+                                setRequestProperty("Authorization", "Bearer " + token)
                                 setRequestProperty("Content-Type", "application/json")
                                 doOutput = true
                                 connectTimeout = 10000
@@ -1856,15 +2654,15 @@ class BubbleService : Service(), SensorEventListener {
                     } else {
                         dataObj.optString("id")
                     }
-                    android.util.Log.d("BubbleService", "Created $mode successfully: id=$createdTaskId")
+                    android.util.Log.d("BubbleService", "Created " + mode + " successfully: id=" + createdTaskId)
 
                     val itemType = if (mode == "BUG") "Bug reported" else "Task captured"
                     val extra = if (audioFile != null) " with voice note" else if (screenshotFile != null) " with screenshot" else ""
-                    showOverlaySnackbar("✓ $itemType$extra in Doit", true)
+                    showOverlaySnackbar("✓ " + itemType + extra + " in " + targetProject.name, true)
                 } else {
-                    android.util.Log.e("BubbleService", "Failed to create $mode: http code $taskCode")
+                    android.util.Log.e("BubbleService", "Failed to create " + mode + ": http code " + taskCode)
                     val itemType = if (mode == "BUG") "bug" else "task"
-                    showOverlaySnackbar("Could not create $itemType (HTTP $taskCode)", false)
+                    showOverlaySnackbar("Could not create " + itemType + " (HTTP " + taskCode + ")", false)
                 }
                 taskConn.disconnect()
 
@@ -1884,7 +2682,7 @@ class BubbleService : Service(), SensorEventListener {
                     }
                 }
             } catch (e: Exception) {
-                android.util.Log.e("BubbleService", "submitToBackend error: ${e.message}", e)
+                android.util.Log.e("BubbleService", "submitToBackend error: " + e.message, e)
                 showOverlaySnackbar("Failed to submit: network error", false)
             } finally {
                 isSubmitting = false
@@ -1905,14 +2703,14 @@ class BubbleService : Service(), SensorEventListener {
     ): Boolean {
         val sizeBytes = file.length()
         if (sizeBytes <= 0) return false
-        android.util.Log.d("BubbleService", "uploadFileAttachment: file=${file.name}, type=$contentType, size=$sizeBytes, target=$targetId, isBug=$isBug")
+        android.util.Log.d("BubbleService", "uploadFileAttachment: file=" + file.name + ", type=" + contentType + ", size=" + sizeBytes + ", target=" + targetId + ", isBug=" + isBug)
 
         try {
             // Step 1: /uploads/init
-            val initUrl = URL("$baseUrl/uploads/init")
+            val initUrl = URL(baseUrl + "/uploads/init")
             val initConn = (initUrl.openConnection() as HttpURLConnection).apply {
                 requestMethod = "POST"
-                setRequestProperty("Authorization", "Bearer $token")
+                setRequestProperty("Authorization", "Bearer " + token)
                 setRequestProperty("Content-Type", "application/json")
                 doOutput = true
                 connectTimeout = 10000
@@ -1926,7 +2724,7 @@ class BubbleService : Service(), SensorEventListener {
             initConn.outputStream.use { it.write(initPayload.toString().toByteArray(StandardCharsets.UTF_8)) }
             val initCode = initConn.responseCode
             if (initCode !in 200..299) {
-                android.util.Log.e("BubbleService", "init upload failed with code $initCode")
+                android.util.Log.e("BubbleService", "init upload failed with code " + initCode)
                 initConn.disconnect()
                 return false
             }
@@ -1943,52 +2741,60 @@ class BubbleService : Service(), SensorEventListener {
             }
 
             // Step 2: PUT raw file bytes
-            val putUrl = URL(if (putUrlStr.startsWith("/")) "$baseUrl$putUrlStr" else putUrlStr)
+            val putUrl = URL(if (putUrlStr.startsWith("/")) baseUrl + putUrlStr else putUrlStr)
             val putConn = (putUrl.openConnection() as HttpURLConnection).apply {
                 requestMethod = "PUT"
                 setRequestProperty("Content-Type", contentType)
                 doOutput = true
                 setFixedLengthStreamingMode(sizeBytes.toInt())
-                connectTimeout = 20000
-                readTimeout = 20000
+                connectTimeout = 30000
+                readTimeout = 30000
             }
             FileInputStream(file).use { fis ->
-                putConn.outputStream.use { pos ->
-                    fis.copyTo(pos)
+                putConn.outputStream.use { os ->
+                    val buffer = ByteArray(8192)
+                    var bytesRead: Int
+                    while (fis.read(buffer).also { bytesRead = it } != -1) {
+                        os.write(buffer, 0, bytesRead)
+                    }
+                    os.flush()
                 }
             }
             val putCode = putConn.responseCode
             putConn.disconnect()
-            android.util.Log.d("BubbleService", "PUT file completed with code $putCode")
-            if (putCode !in 200..299) return false
+            if (putCode !in 200..299) {
+                android.util.Log.e("BubbleService", "put upload bytes failed with code " + putCode)
+                return false
+            }
 
-            // Step 3: Complete upload
-            val compUrl = URL("$baseUrl/uploads/$uploadId/complete")
-            val compConn = (compUrl.openConnection() as HttpURLConnection).apply {
+            // Step 3: Complete upload and attach to task/bug
+            val completeUrl = URL(baseUrl + "/uploads/" + uploadId + "/complete")
+            val completeConn = (completeUrl.openConnection() as HttpURLConnection).apply {
                 requestMethod = "POST"
-                setRequestProperty("Authorization", "Bearer $token")
+                setRequestProperty("Authorization", "Bearer " + token)
                 setRequestProperty("Content-Type", "application/json")
                 doOutput = true
                 connectTimeout = 10000
                 readTimeout = 10000
             }
-            val compPayload = JSONObject().apply {
+            val completePayload = JSONObject().apply {
                 if (isBug) {
                     put("bugId", targetId)
                 } else {
                     put("taskId", targetId)
                 }
                 if (durationMs != null && durationMs > 0) {
-                    put("durationMs", durationMs.toInt())
+                    put("durationSec", (durationMs / 1000).toInt())
                 }
             }
-            compConn.outputStream.use { it.write(compPayload.toString().toByteArray(StandardCharsets.UTF_8)) }
-            val compCode = compConn.responseCode
-            compConn.disconnect()
-            android.util.Log.d("BubbleService", "complete upload code=$compCode for target=$targetId, isBug=$isBug, uploadId=$uploadId")
-            return compCode in 200..299
+            completeConn.outputStream.use { it.write(completePayload.toString().toByteArray(StandardCharsets.UTF_8)) }
+            val completeCode = completeConn.responseCode
+            completeConn.disconnect()
+
+            android.util.Log.d("BubbleService", "Upload completed successfully for " + uploadId + ", attached to " + targetId)
+            return completeCode in 200..299
         } catch (e: Exception) {
-            android.util.Log.e("BubbleService", "uploadFileAttachment error: ${e.message}", e)
+            android.util.Log.e("BubbleService", "uploadFileAttachment exception: " + e.message, e)
             return false
         }
     }
@@ -2010,15 +2816,10 @@ class BubbleService : Service(), SensorEventListener {
             stopSelf()
             return START_NOT_STICKY
         }
-        if (intent?.action == "com.samyukt.doit.SHOW_MODAL") {
+        if (intent?.action == "com.samyukt.doit.SHOW_MODAL" || intent?.action == "com.samyukt.doit.SHOW_PROMPT") {
             val mode = intent.getStringExtra("mode") ?: "TASK"
             Handler(Looper.getMainLooper()).post {
                 showCompactModal(mode)
-            }
-        }
-        if (intent?.action == "com.samyukt.doit.SHOW_PROMPT") {
-            Handler(Looper.getMainLooper()).post {
-                showShakePrompt()
             }
         }
         return START_STICKY
@@ -2033,7 +2834,7 @@ class BubbleService : Service(), SensorEventListener {
         try {
             sensorManager?.unregisterListener(this)
         } catch (_: Exception) {}
-        dismissShakePrompt()
+        dismissPicker()
         dismissCompactModal()
         try {
             snackbarView?.let { windowManager?.removeView(it) }

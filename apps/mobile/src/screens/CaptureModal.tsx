@@ -54,6 +54,7 @@ import {
   Plus,
   AlignLeft,
   ChevronDown,
+  User,
 } from 'lucide-react-native';
 
 type CaptureRouteProp = RouteProp<RootStackParamList, 'CaptureModal'>;
@@ -121,6 +122,51 @@ export const CaptureModal: React.FC = () => {
   const [showProjectList, setShowProjectList] = useState(false);
   const [showLabelList, setShowLabelList] = useState(false);
   const [labelNotice, setLabelNotice] = useState<string | null>(null);
+
+  const [projectMembers, setProjectMembers] = useState<any[]>([]);
+  const [selectedAssigneeId, setSelectedAssigneeId] = useState<string | null>(null);
+  const [showAssigneeList, setShowAssigneeList] = useState(false);
+  const [assigneeQuery, setAssigneeQuery] = useState('');
+  const [loadingMembers, setLoadingMembers] = useState(false);
+  const [projectDefaultAssigneeId, setProjectDefaultAssigneeId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!selectedProjectId || selectedProjectId === 'default') {
+      setProjectMembers([]);
+      setSelectedAssigneeId(null);
+      setProjectDefaultAssigneeId(null);
+      return;
+    }
+    let cancelled = false;
+    setLoadingMembers(true);
+    http
+      .get<any>(`/projects/${selectedProjectId}/members`)
+      .then((res) => {
+        if (cancelled || !res) return;
+        const members = res.members || [];
+        setProjectMembers(members);
+        const defId = res.defaultAssigneeId || null;
+        setProjectDefaultAssigneeId(defId);
+        if (defId && members.some((m: any) => m.id === defId)) {
+          setSelectedAssigneeId(defId);
+        } else {
+          setSelectedAssigneeId(null);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setProjectMembers([]);
+          setSelectedAssigneeId(null);
+          setProjectDefaultAssigneeId(null);
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setLoadingMembers(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedProjectId]);
 
   useEffect(() => {
     if (!activeWorkspace?.id) return;
@@ -270,7 +316,14 @@ export const CaptureModal: React.FC = () => {
     createVoiceNote.isPending ||
     isUploadingAttachments;
 
-  const isSubmitDisabled = isSaving || (mode === 'voice' ? !recordedUri : !title.trim());
+  const isSubmitDisabled =
+    isSaving ||
+    (mode === 'voice'
+      ? !recordedUri
+      : !title.trim() ||
+        !selectedProjectId ||
+        selectedProjectId === 'default' ||
+        ((mode === 'task' || mode === 'bug') && !selectedAssigneeId));
 
   const handleSave = async () => {
     if (mode === 'voice') {
@@ -281,6 +334,14 @@ export const CaptureModal: React.FC = () => {
     } else {
       if (!title.trim()) {
         setErrorMessage('Please enter what needs doing.');
+        return;
+      }
+      if (!selectedProjectId || selectedProjectId === 'default') {
+        setErrorMessage('Please select a project.');
+        return;
+      }
+      if ((mode === 'task' || mode === 'bug') && !selectedAssigneeId) {
+        setErrorMessage('Please select an assignee.');
         return;
       }
     }
@@ -297,6 +358,7 @@ export const CaptureModal: React.FC = () => {
           severity,
           labelIds: selectedLabelIds,
           projectId: selectedProjectId,
+          assigneeId: selectedAssigneeId || undefined,
           telemetry: {
             platform: Platform.OS,
             version: Platform.Version,
@@ -328,6 +390,7 @@ export const CaptureModal: React.FC = () => {
           priority,
           labelIds: selectedLabelIds,
           projectId: selectedProjectId,
+          assigneeId: selectedAssigneeId || undefined,
         });
         createdId = res?.task?.id || res?.id || null;
       }
@@ -531,6 +594,77 @@ export const CaptureModal: React.FC = () => {
                     ))}
                   {projects.length === 0 ? <Text variant="caption" color="secondary">No projects in this workspace.</Text> : null}
                 </View>
+              ) : null}
+
+              {(mode === 'task' || mode === 'bug') ? (
+                <>
+                  <TouchableOpacity
+                    onPress={() => setShowAssigneeList((v) => !v)}
+                    style={{ flexDirection: 'row', alignItems: 'center', gap: 8, minHeight: 44 }}
+                  >
+                    <User size={16} color={colors.textSecondary} />
+                    <Text variant="body" style={{ flex: 1 }}>
+                      {loadingMembers
+                        ? 'Loading assignees...'
+                        : selectedAssigneeId
+                        ? (() => {
+                            const found = projectMembers.find((m) => m.id === selectedAssigneeId);
+                            const isDef = selectedAssigneeId === projectDefaultAssigneeId;
+                            return found ? `${found.name}${isDef ? ' (Default)' : ''}` : 'Select Assignee *';
+                          })()
+                        : 'Select Assignee *'}
+                    </Text>
+                    <ChevronDown size={16} color={colors.textMuted} />
+                  </TouchableOpacity>
+                  {showAssigneeList ? (
+                    <View>
+                      <TextInput
+                        value={assigneeQuery}
+                        onChangeText={setAssigneeQuery}
+                        placeholder="Search assignees"
+                        placeholderTextColor={colors.textMuted}
+                        style={{
+                          color: colors.textPrimary,
+                          borderBottomWidth: StyleSheet.hairlineWidth,
+                          borderBottomColor: colors.border,
+                          marginBottom: 6,
+                          minHeight: 36,
+                        }}
+                      />
+                      {projectMembers
+                        .filter((m) => m.name.toLowerCase().includes(assigneeQuery.trim().toLowerCase()))
+                        .map((m) => (
+                          <TouchableOpacity
+                            key={m.id}
+                            onPress={() => {
+                              setSelectedAssigneeId(m.id);
+                              setShowAssigneeList(false);
+                            }}
+                            style={{
+                              minHeight: 40,
+                              flexDirection: 'row',
+                              alignItems: 'center',
+                              justifyContent: 'space-between',
+                            }}
+                          >
+                            <Text variant="body" style={{ fontWeight: m.id === selectedAssigneeId ? '700' : '400' }}>
+                              {m.name} {m.id === projectDefaultAssigneeId ? ' (Default)' : ''}
+                            </Text>
+                            {m.email ? (
+                              <Text variant="caption" color="secondary">
+                                {m.email}
+                              </Text>
+                            ) : null}
+                          </TouchableOpacity>
+                        ))}
+                      {projectMembers.length === 0 ? (
+                        <Text variant="caption" color="secondary">
+                          No eligible members in this project.
+                        </Text>
+                      ) : null}
+                    </View>
+                  ) : null}
+                </>
               ) : null}
               {mode !== 'sticky' ? (
                 <>

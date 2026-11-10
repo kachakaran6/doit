@@ -15,8 +15,8 @@ export declare class ContextAiService {
         version: number;
         updatedAt: Date | null;
         updatedBy: {
-            id: string;
             name: string;
+            id: string;
         } | null;
         maxChars: number;
         starter: string;
@@ -27,8 +27,8 @@ export declare class ContextAiService {
         version: number;
         updatedAt: Date;
         updatedBy: {
-            id: string;
             name: string;
+            id: string;
         } | null;
     }>;
     getCapturePrefs(userId: string, workspaceId: string): Promise<{

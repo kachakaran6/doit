@@ -10,6 +10,7 @@ export const CreateProjectSchema = z.object({
     .transform((k) => k.toUpperCase()),
   description: z.string().optional(),
   color: z.enum(['INDIGO', 'TEAL', 'AMBER', 'ROSE', 'VIOLET']).default('INDIGO'),
+  defaultAssigneeId: z.string().uuid().nullable().optional(),
 });
 
 export type CreateProjectDto = z.infer<typeof CreateProjectSchema>;
@@ -18,6 +19,7 @@ export const UpdateProjectSchema = z.object({
   name: z.string().min(2).optional(),
   description: z.string().optional(),
   color: z.enum(['INDIGO', 'TEAL', 'AMBER', 'ROSE', 'VIOLET']).optional(),
+  defaultAssigneeId: z.string().uuid().nullable().optional(),
   archived: z.boolean().optional(),
 });
 

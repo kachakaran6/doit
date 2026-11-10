@@ -64,6 +64,7 @@ export class TasksController {
         type: 'BUG',
         source: 'BUG',
         projectId,
+        assigneeId: dto.assigneeId,
         dueHasTime: false,
         labelIds: Array.isArray(dto.labelIds) ? dto.labelIds : [],
         severity: dto.severity || 'MAJOR',

@@ -15,6 +15,7 @@ export function useCreateBugMutation(projectId: string = 'default') {
       telemetry?: any;
       labelIds?: string[];
       projectId?: string;
+      assigneeId?: string;
     }) => {
       const targetProject = payload.projectId || projectId;
       return http.post<BugViewModel>(`/projects/${targetProject}/bugs`, payload);

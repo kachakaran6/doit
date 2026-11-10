@@ -34,6 +34,9 @@ let ProjectsController = class ProjectsController {
     async findOne(id) {
         return this.projectsService.findOne(id);
     }
+    async getProjectMembers(id) {
+        return this.projectsService.getProjectMembers(id);
+    }
     async update(id, dto) {
         return this.projectsService.update(id, dto);
     }
@@ -74,6 +77,16 @@ __decorate([
     __metadata("design:paramtypes", [String]),
     __metadata("design:returntype", Promise)
 ], ProjectsController.prototype, "findOne", null);
+__decorate([
+    (0, common_1.Get)('projects/:id/members'),
+    (0, common_1.UseGuards)(workspace_member_guard_1.WorkspaceMemberGuard),
+    (0, swagger_1.ApiBearerAuth)('bearer-auth'),
+    (0, swagger_1.ApiOperation)({ summary: 'List members and default assignee for project' }),
+    __param(0, (0, common_1.Param)('id')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", Promise)
+], ProjectsController.prototype, "getProjectMembers", null);
 __decorate([
     (0, common_1.Patch)('projects/:id'),
     (0, common_1.UseGuards)(workspace_member_guard_1.WorkspaceMemberGuard),

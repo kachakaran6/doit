@@ -17,6 +17,7 @@ export function useCreateTaskMutation(projectId: string = 'default') {
       priority?: string;
       labelIds?: string[];
       projectId?: string;
+      assigneeId?: string;
     }) => {
       const { dueDate, dueAt, ...rest } = payload;
       let finalDueAt = dueAt;

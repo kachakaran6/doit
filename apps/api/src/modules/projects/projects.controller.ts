@@ -55,6 +55,14 @@ export class ProjectsController {
     return this.projectsService.findOne(id);
   }
 
+  @Get('projects/:id/members')
+  @UseGuards(WorkspaceMemberGuard)
+  @ApiBearerAuth('bearer-auth')
+  @ApiOperation({ summary: 'List members and default assignee for project' })
+  async getProjectMembers(@Param('id') id: string) {
+    return this.projectsService.getProjectMembers(id);
+  }
+
   @Patch('projects/:id')
   @UseGuards(WorkspaceMemberGuard)
   @Roles('OWNER', 'ADMIN')

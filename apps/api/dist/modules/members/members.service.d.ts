@@ -9,13 +9,14 @@ export declare class MembersService {
     private getAppBaseUrl;
     getMembers(workspaceId: string): Promise<({
         user: {
+            name: string;
             id: string;
             email: string;
-            name: string;
             avatarUrl: string | null;
         };
     } & {
         id: string;
+        createdAt: Date;
         workspaceId: string;
         userId: string;
         role: import(".prisma/client").$Enums.Role;
@@ -23,7 +24,6 @@ export declare class MembersService {
         inviteToken: string | null;
         inviteExpiresAt: Date | null;
         acceptedAt: Date | null;
-        createdAt: Date;
     })[]>;
     getInvitations(workspaceId: string): Promise<{
         id: string;
@@ -38,9 +38,9 @@ export declare class MembersService {
         revokedAt: Date | null;
         createdAt: Date;
         invitedBy: {
+            name: string;
             id: string;
             email: string;
-            name: string;
         };
     }[]>;
     inviteMember(workspaceId: string, invitedById: string, dto: InviteMemberDto, clientOrigin?: string): Promise<{
@@ -94,8 +94,8 @@ export declare class MembersService {
     } | {
         valid: boolean;
         workspace: {
-            id: string;
             name: string;
+            id: string;
             slug: string;
         };
         role: import(".prisma/client").$Enums.Role;
@@ -109,14 +109,15 @@ export declare class MembersService {
     acceptInvite(userId: string, token: string): Promise<{
         success: boolean;
         workspace: {
-            id: string;
             name: string;
+            id: string;
             slug: string;
         };
         role: import(".prisma/client").$Enums.Role;
     }>;
     updateRole(workspaceId: string, memberId: string, dto: UpdateMemberRoleDto): Promise<{
         id: string;
+        createdAt: Date;
         workspaceId: string;
         userId: string;
         role: import(".prisma/client").$Enums.Role;
@@ -124,7 +125,6 @@ export declare class MembersService {
         inviteToken: string | null;
         inviteExpiresAt: Date | null;
         acceptedAt: Date | null;
-        createdAt: Date;
     }>;
     removeMember(workspaceId: string, memberId: string): Promise<{
         success: boolean;

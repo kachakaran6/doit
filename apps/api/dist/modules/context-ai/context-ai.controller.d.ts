@@ -82,8 +82,8 @@ export declare class ContextAiController {
         version: number;
         updatedAt: Date | null;
         updatedBy: {
-            id: string;
             name: string;
+            id: string;
         } | null;
         maxChars: number;
         starter: string;
@@ -94,8 +94,8 @@ export declare class ContextAiController {
         version: number;
         updatedAt: Date;
         updatedBy: {
-            id: string;
             name: string;
+            id: string;
         } | null;
     }>;
     getPrefs(user: AuthUserPayload, workspaceId: string): Promise<{

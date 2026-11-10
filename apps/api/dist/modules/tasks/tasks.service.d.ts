@@ -61,8 +61,8 @@ export declare class TasksService {
             thumbKey: string | null;
         })[];
         bug: {
-            id: string;
             expected: string | null;
+            id: string;
             taskId: string;
             sessionId: string | null;
             reporterId: string | null;
@@ -80,8 +80,8 @@ export declare class TasksService {
         } | null;
         activity: ({
             actor: {
-                id: string;
                 name: string;
+                id: string;
             };
         } & {
             id: string;
@@ -154,8 +154,8 @@ export declare class TasksService {
     }>;
     getComments(taskId: string): Promise<({
         author: {
-            id: string;
             name: string;
+            id: string;
             email: string;
             avatarUrl: string | null;
         };
@@ -174,8 +174,8 @@ export declare class TasksService {
         voiceNoteId?: string;
     }): Promise<{
         author: {
-            id: string;
             name: string;
+            id: string;
             email: string;
             avatarUrl: string | null;
         };

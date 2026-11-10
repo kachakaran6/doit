@@ -61,6 +61,13 @@ export interface Project {
   key: string;
   description?: string | null;
   isArchived?: boolean;
+  defaultAssigneeId?: string | null;
+  defaultAssignee?: {
+    id: string;
+    name: string;
+    email?: string | null;
+    avatarUrl?: string | null;
+  } | null;
   createdAt?: string;
   updatedAt?: string;
 }

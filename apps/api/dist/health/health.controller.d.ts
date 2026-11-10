@@ -9,14 +9,14 @@ export declare const PingSchema: z.ZodObject<{
     uptime: z.ZodNumber;
     timestamp: z.ZodString;
 }, "strip", z.ZodTypeAny, {
-    version: string;
     status: "ok";
+    version: string;
     uptime: number;
     timestamp: string;
     db?: "up" | "down" | undefined;
 }, {
-    version: string;
     status: "ok";
+    version: string;
     uptime: number;
     timestamp: string;
     db?: "up" | "down" | undefined;

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   StyleSheet,
@@ -8,6 +8,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   Keyboard,
+  Modal,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Text, Button, Input } from '../../../components/ui';
@@ -40,11 +41,17 @@ export const LoginScreen: React.FC = () => {
   const [serverPing, setServerPing] = useState<string | null>(null);
   const [pinging, setPinging] = useState(false);
   const [keyboardVisible, setKeyboardVisible] = useState(false);
+  const scrollViewRef = useRef<ScrollView>(null);
 
   useEffect(() => {
     const showSub = Keyboard.addListener(
       Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow',
-      () => setKeyboardVisible(true)
+      () => {
+        setKeyboardVisible(true);
+        setTimeout(() => {
+          scrollViewRef.current?.scrollToEnd({ animated: true });
+        }, 80);
+      }
     );
     const hideSub = Keyboard.addListener(
       Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide',
@@ -150,6 +157,7 @@ export const LoginScreen: React.FC = () => {
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
         <ScrollView
+          ref={scrollViewRef}
           contentContainerStyle={[
             styles.container,
             {
@@ -330,6 +338,11 @@ export const LoginScreen: React.FC = () => {
               value={password}
               onChangeText={setPassword}
               isPassword
+              onFocus={() => {
+                setTimeout(() => {
+                  scrollViewRef.current?.scrollToEnd({ animated: true });
+                }, 100);
+              }}
             />
 
             {mode === 'signin' && (
@@ -530,14 +543,18 @@ export const LoginScreen: React.FC = () => {
       </ScrollView>
       </KeyboardAvoidingView>
 
-      {/* Forgot Password Bottom Sheet Overlay */}
-      {showForgotSheet && (
-        <View
+      {/* Forgot Password Bottom Sheet Modal */}
+      <Modal
+        visible={showForgotSheet}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowForgotSheet(false)}
+      >
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
           style={[
             StyleSheet.absoluteFillObject,
             {
-              zIndex: 99999,
-              elevation: 10000,
               backgroundColor: 'rgba(0,0,0,0.7)',
               justifyContent: 'flex-end',
             },
@@ -657,8 +674,8 @@ export const LoginScreen: React.FC = () => {
               </View>
             )}
           </View>
-        </View>
-      )}
+        </KeyboardAvoidingView>
+      </Modal>
     </SafeAreaView>
   );
 };

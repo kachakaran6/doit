@@ -51,8 +51,8 @@ export declare class TasksController {
             thumbKey: string | null;
         })[];
         bug: {
-            id: string;
             expected: string | null;
+            id: string;
             taskId: string;
             sessionId: string | null;
             reporterId: string | null;
@@ -70,8 +70,8 @@ export declare class TasksController {
         } | null;
         activity: ({
             actor: {
-                id: string;
                 name: string;
+                id: string;
             };
         } & {
             id: string;
@@ -167,8 +167,8 @@ export declare class TasksController {
             thumbKey: string | null;
         })[];
         bug: {
-            id: string;
             expected: string | null;
+            id: string;
             taskId: string;
             sessionId: string | null;
             reporterId: string | null;
@@ -186,8 +186,8 @@ export declare class TasksController {
         } | null;
         activity: ({
             actor: {
-                id: string;
                 name: string;
+                id: string;
             };
         } & {
             id: string;
@@ -261,8 +261,8 @@ export declare class TasksController {
     }>;
     getComments(id: string): Promise<({
         author: {
-            id: string;
             name: string;
+            id: string;
             email: string;
             avatarUrl: string | null;
         };
@@ -278,8 +278,8 @@ export declare class TasksController {
     })[]>;
     addComment(user: AuthUserPayload, id: string, dto: CreateCommentDto): Promise<{
         author: {
-            id: string;
             name: string;
+            id: string;
             email: string;
             avatarUrl: string | null;
         };

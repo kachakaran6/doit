@@ -332,7 +332,7 @@ export const api = {
     list: (workspaceId: string) =>
       apiRequest<Project[]>(`/workspaces/${workspaceId}/projects`),
     get: (id: string) => apiRequest<Project>(`/projects/${id}`),
-    create: (workspaceId: string, data: { name: string; key: string; description?: string }) =>
+    create: (workspaceId: string, data: { name: string; key: string; description?: string; defaultAssigneeId?: string | null }) =>
       apiRequest<Project>(`/workspaces/${workspaceId}/projects`, {
         method: 'POST',
         body: JSON.stringify(data),
