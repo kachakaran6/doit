@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
 import { Modal } from '@/components/ui/modal';
 import { useToast } from '@/components/ui/toast';
-import { ShieldCheck, UserCheck, ArrowRight } from 'lucide-react';
+import { ShieldCheck, UserCheck, ArrowRight, Eye, EyeOff } from 'lucide-react';
 
 export function AuthPage() {
   const navigate = useNavigate();
@@ -20,6 +20,7 @@ export function AuthPage() {
   const [isRegister, setIsRegister] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [name, setName] = useState('');
   const [loading, setLoading] = useState(false);
   const [forgotOpen, setForgotOpen] = useState(false);
@@ -35,7 +36,7 @@ export function AuthPage() {
     try {
       setForgotLoading(true);
       await api.auth.forgotPassword(forgotEmail.trim());
-      success('Reset email sent', 'If an account exists, password reset instructions have been dispatched.');
+      success('Reset request dispatched', 'If an account exists, instructions have been dispatched. (Demo password: Password123!)');
       setForgotOpen(false);
       setForgotEmail('');
     } catch (err: any) {
@@ -150,16 +151,24 @@ export function AuthPage() {
               required
             />
 
-            <div>
+            <div className="relative">
               <Input
                 label="Password"
-                type="password"
+                type={showPassword ? 'text' : 'password'}
                 placeholder="••••••••••••"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 autoComplete={isRegister ? 'new-password' : 'current-password'}
                 required
               />
+              <button
+                type="button"
+                onClick={() => setShowPassword((prev) => !prev)}
+                className="absolute right-3 top-[32px] text-[var(--muted-foreground)] hover:text-[var(--foreground)] p-1 cursor-pointer"
+                aria-label={showPassword ? 'Hide password' : 'Show password'}
+              >
+                {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              </button>
               {!isRegister && (
                 <div className="mt-1 text-right">
                   <button

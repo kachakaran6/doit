@@ -1,5 +1,14 @@
-import React, { useState } from 'react';
-import { View, StyleSheet, ScrollView, TouchableOpacity, Image } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import {
+  View,
+  StyleSheet,
+  ScrollView,
+  TouchableOpacity,
+  Image,
+  KeyboardAvoidingView,
+  Platform,
+  Keyboard,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Text, Button, Input } from '../../../components/ui';
 import { useTheme } from '../../../theme/useTheme';
@@ -21,9 +30,31 @@ export const LoginScreen: React.FC = () => {
   const [password, setPassword] = useState('');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
+  const [showForgotSheet, setShowForgotSheet] = useState(false);
+  const [forgotEmail, setForgotEmail] = useState('');
+  const [forgotLoading, setForgotLoading] = useState(false);
+  const [forgotSuccess, setForgotSuccess] = useState(false);
+  const [forgotError, setForgotError] = useState<string | null>(null);
+
   const [activeUrl, setActiveUrl] = useState(http.getBaseUrl());
   const [serverPing, setServerPing] = useState<string | null>(null);
   const [pinging, setPinging] = useState(false);
+  const [keyboardVisible, setKeyboardVisible] = useState(false);
+
+  useEffect(() => {
+    const showSub = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow',
+      () => setKeyboardVisible(true)
+    );
+    const hideSub = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide',
+      () => setKeyboardVisible(false)
+    );
+    return () => {
+      showSub.remove();
+      hideSub.remove();
+    };
+  }, []);
 
   const loginMutation = useLoginMutation();
   const registerMutation = useRegisterMutation();
@@ -87,6 +118,23 @@ export const LoginScreen: React.FC = () => {
     }
   };
 
+  const handleForgotSubmit = async () => {
+    setForgotError(null);
+    if (!forgotEmail.trim()) {
+      setForgotError('Please enter your account email.');
+      return;
+    }
+    try {
+      setForgotLoading(true);
+      await http.post('/auth/password/forgot', { email: forgotEmail.trim() });
+      setForgotSuccess(true);
+    } catch (err: any) {
+      setForgotError(err?.message || 'Unable to request password reset. Please verify connection.');
+    } finally {
+      setForgotLoading(false);
+    }
+  };
+
   const setDemoAccount = (demoEmail: string) => {
     setEmail(demoEmail);
     setPassword('Password123!');
@@ -97,49 +145,63 @@ export const LoginScreen: React.FC = () => {
 
   return (
     <SafeAreaView edges={['top', 'bottom']} style={[styles.safeArea, { backgroundColor: colors.bg }]}>
-      <ScrollView
-        contentContainerStyle={[
-          styles.container,
-          {
-            paddingHorizontal: spacing.lg,
-            paddingVertical: spacing['2xl'],
-          },
-        ]}
-        keyboardShouldPersistTaps="handled"
-        showsVerticalScrollIndicator={false}
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
-        {/* Brand Header */}
-        <View style={[styles.header, { marginBottom: spacing.xl }]}>
-          <View
-            style={[
-              styles.logoTile,
-              {
-                marginBottom: spacing.md,
-                borderRadius: radius.xl,
-                overflow: 'hidden',
-                ...elevation.e2,
-              },
-            ]}
-          >
-            <Image
-              source={require('../../../../assets/icon.png')}
-              style={{ width: 64, height: 64, borderRadius: radius.xl }}
-              resizeMode="contain"
-            />
+        <ScrollView
+          contentContainerStyle={[
+            styles.container,
+            {
+              paddingHorizontal: spacing.lg,
+              paddingTop: keyboardVisible ? spacing.sm : spacing.xl,
+              paddingBottom: keyboardVisible ? 280 : spacing['2xl'],
+              justifyContent: keyboardVisible ? 'flex-start' : 'center',
+            },
+          ]}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="on-drag"
+          showsVerticalScrollIndicator={false}
+        >
+          {/* Brand Header */}
+          <View style={[styles.header, { marginBottom: keyboardVisible ? spacing.sm : spacing.xl }]}>
+            {!keyboardVisible && (
+              <View
+                style={[
+                  styles.logoTile,
+                  {
+                    marginBottom: spacing.md,
+                    borderRadius: radius.xl,
+                    overflow: 'hidden',
+                    ...elevation.e2,
+                  },
+                ]}
+              >
+                <Image
+                  source={require('../../../../assets/icon.png')}
+                  style={{ width: 64, height: 64, borderRadius: radius.xl }}
+                  resizeMode="contain"
+                />
+              </View>
+            )}
+            <Text
+              variant={keyboardVisible ? 'title1' : 'display'}
+              style={{ textAlign: 'center', letterSpacing: -0.5 }}
+            >
+              Doit
+            </Text>
+            {!keyboardVisible && (
+              <Text
+                variant="body"
+                color="secondary"
+                style={{ marginTop: spacing.xs, textAlign: 'center' }}
+              >
+                {mode === 'signin'
+                  ? 'Precision project management & issue tracking'
+                  : 'Create your workspace and start building'}
+              </Text>
+            )}
           </View>
-          <Text variant="display" style={{ textAlign: 'center', letterSpacing: -0.5 }}>
-            Doit
-          </Text>
-          <Text
-            variant="body"
-            color="secondary"
-            style={{ marginTop: spacing.xs, textAlign: 'center' }}
-          >
-            {mode === 'signin'
-              ? 'Precision project management & issue tracking'
-              : 'Create your workspace and start building'}
-          </Text>
-        </View>
 
         {/* Card Container */}
         <View
@@ -267,8 +329,27 @@ export const LoginScreen: React.FC = () => {
               placeholder="••••••••••••"
               value={password}
               onChangeText={setPassword}
-              secureTextEntry
+              isPassword
             />
+
+            {mode === 'signin' && (
+              <View style={{ flexDirection: 'row', justifyContent: 'flex-end', marginTop: -spacing.xs }}>
+                <TouchableOpacity
+                  onPress={() => {
+                    setForgotEmail(email);
+                    setForgotSuccess(false);
+                    setForgotError(null);
+                    setShowForgotSheet(true);
+                  }}
+                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                  activeOpacity={0.7}
+                >
+                  <Text variant="caption" color="secondary" style={{ fontSize: 12 }}>
+                    Forgot password?
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            )}
 
             <View style={{ marginTop: spacing.xs }}>
               <Button
@@ -447,6 +528,137 @@ export const LoginScreen: React.FC = () => {
           </View>
         )}
       </ScrollView>
+      </KeyboardAvoidingView>
+
+      {/* Forgot Password Bottom Sheet Overlay */}
+      {showForgotSheet && (
+        <View
+          style={[
+            StyleSheet.absoluteFillObject,
+            {
+              zIndex: 99999,
+              elevation: 10000,
+              backgroundColor: 'rgba(0,0,0,0.7)',
+              justifyContent: 'flex-end',
+            },
+          ]}
+        >
+          <TouchableOpacity
+            style={StyleSheet.absoluteFillObject}
+            activeOpacity={1}
+            onPress={() => setShowForgotSheet(false)}
+          />
+          <View
+            style={{
+              backgroundColor: colors.surface,
+              borderTopLeftRadius: radius.xl,
+              borderTopRightRadius: radius.xl,
+              borderWidth: 1,
+              borderColor: colors.border,
+              padding: spacing.xl,
+              gap: spacing.md,
+            }}
+          >
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+              <Text variant="title" style={{ fontWeight: '600' }}>
+                Reset Password
+              </Text>
+              <TouchableOpacity
+                onPress={() => setShowForgotSheet(false)}
+                hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+              >
+                <Text variant="label" color="tertiary" style={{ fontSize: 16 }}>
+                  ✕
+                </Text>
+              </TouchableOpacity>
+            </View>
+
+            <Text variant="body" color="secondary" style={{ fontSize: 13, lineHeight: 18 }}>
+              Enter the email associated with your account to receive password reset assistance.
+            </Text>
+
+            {forgotSuccess ? (
+              <View
+                style={{
+                  backgroundColor: colors.surfaceRaised,
+                  borderColor: colors.success,
+                  borderWidth: 1,
+                  borderRadius: radius.md,
+                  padding: spacing.md,
+                  gap: spacing.xs,
+                }}
+              >
+                <Text variant="label" style={{ color: colors.success, fontWeight: '600' }}>
+                  ✓ Reset Request Dispatched
+                </Text>
+                <Text variant="caption" color="secondary" style={{ lineHeight: 18 }}>
+                  If an account is registered with this email, reset instructions have been logged.
+                </Text>
+                <Text variant="caption" color="accent" style={{ lineHeight: 18, marginTop: 4 }}>
+                  💡 Demo Hint: Demo accounts (alice@samyukt.com / bob@samyukt.com) use password: Password123!
+                </Text>
+                <View style={{ marginTop: spacing.sm }}>
+                  <Button
+                    title="Back to Sign In"
+                    variant="secondary"
+                    size="sm"
+                    fullWidth
+                    onPress={() => setShowForgotSheet(false)}
+                  />
+                </View>
+              </View>
+            ) : (
+              <View style={{ gap: spacing.md }}>
+                {forgotError && (
+                  <View
+                    style={{
+                      backgroundColor: colors.surfaceRaised,
+                      borderColor: colors.danger,
+                      borderWidth: 1,
+                      borderRadius: radius.sm,
+                      padding: spacing.sm,
+                    }}
+                  >
+                    <Text variant="caption" color="danger">
+                      {forgotError}
+                    </Text>
+                  </View>
+                )}
+
+                <Input
+                  label="Email Address"
+                  placeholder="alice@samyukt.com"
+                  value={forgotEmail}
+                  onChangeText={setForgotEmail}
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                />
+
+                <View style={{ flexDirection: 'row', gap: spacing.sm, marginTop: spacing.xs }}>
+                  <View style={{ flex: 1 }}>
+                    <Button
+                      title="Cancel"
+                      variant="secondary"
+                      fullWidth
+                      onPress={() => setShowForgotSheet(false)}
+                    />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Button
+                      title="Send Request"
+                      variant="primary"
+                      fullWidth
+                      loading={forgotLoading}
+                      onPress={handleForgotSubmit}
+                    />
+                  </View>
+                </View>
+              </View>
+            )}
+          </View>
+        </View>
+      )}
     </SafeAreaView>
   );
 };

@@ -8,6 +8,7 @@ import {
 } from 'react-native';
 import { useTheme } from '../../theme/useTheme';
 import { Text } from './Text';
+import { Eye, EyeOff } from 'lucide-react-native';
 
 export interface FieldProps extends Omit<TextInputProps, 'style'> {
   label?: string;
@@ -16,6 +17,7 @@ export interface FieldProps extends Omit<TextInputProps, 'style'> {
   suffix?: React.ReactNode;
   onClear?: () => void;
   disabled?: boolean;
+  isPassword?: boolean;
 }
 
 /**
@@ -33,12 +35,15 @@ export const Field: React.FC<FieldProps> = ({
   onClear,
   value,
   disabled = false,
+  isPassword = false,
   onFocus,
   onBlur,
+  secureTextEntry,
   ...rest
 }) => {
   const { colors, radius, spacing, typography } = useTheme();
   const [isFocused, setIsFocused] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   let borderColor = 'transparent';
   let borderWidth = 0;
@@ -52,6 +57,26 @@ export const Field: React.FC<FieldProps> = ({
   }
 
   const bg = disabled ? colors.surfaceSubtle : colors.surfaceRaised; // L2 for inputs
+  const resolvedSecureTextEntry = isPassword ? !showPassword : secureTextEntry;
+
+  let effectiveSuffix = suffix;
+  if (isPassword && !suffix) {
+    effectiveSuffix = (
+      <Pressable
+        onPress={() => setShowPassword((prev) => !prev)}
+        accessibilityRole="button"
+        accessibilityLabel={showPassword ? 'Hide password' : 'Show password'}
+        hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+        style={{ padding: 4, justifyContent: 'center', alignItems: 'center' }}
+      >
+        {showPassword ? (
+          <EyeOff size={18} color={colors.textSecondary} />
+        ) : (
+          <Eye size={18} color={colors.textSecondary} />
+        )}
+      </Pressable>
+    );
+  }
 
   return (
     <View style={styles.container}>
@@ -100,6 +125,7 @@ export const Field: React.FC<FieldProps> = ({
               lineHeight: typography.body.lineHeight,
             },
           ]}
+          secureTextEntry={resolvedSecureTextEntry}
           {...rest}
         />
 
@@ -115,8 +141,8 @@ export const Field: React.FC<FieldProps> = ({
               ✕
             </Text>
           </Pressable>
-        ) : suffix ? (
-          <View style={{ marginLeft: spacing.sm }}>{suffix}</View>
+        ) : effectiveSuffix ? (
+          <View style={{ marginLeft: spacing.sm }}>{effectiveSuffix}</View>
         ) : null}
       </View>
 
