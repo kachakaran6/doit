@@ -16,7 +16,7 @@ export const TabsNavigator: React.FC = () => {
   return (
     <Tab.Navigator
       initialRouteName="Home"
-      backBehavior="initialRoute"
+      backBehavior="none"
       tabBar={(props) => <FloatingNavBar {...props} />}
       screenOptions={{
         headerShown: false,

@@ -173,9 +173,19 @@ export const RootNavigator: React.FC = () => {
           screenOptions={{
             headerShown: false,
             animation: 'slide_from_right',
-            gestureEnabled: true,
+            gestureEnabled: Platform.OS === 'ios',
             fullScreenGestureEnabled: Platform.OS === 'ios',
             contentStyle: { backgroundColor: colors.canvas },
+          }}
+          screenListeners={{
+            beforeRemove: (e) => {
+              if (Platform.OS !== 'android') return;
+              const actionType = (e.data as any)?.action?.type;
+              if (actionType === 'GO_BACK' || actionType === 'POP' || actionType === 'POP_TO_TOP') {
+                e.preventDefault();
+                useBackNavigationStore.getState().handleAndroidBack();
+              }
+            },
           }}
         >
           {!isAuthenticated ? (
