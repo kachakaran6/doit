@@ -1,7 +1,7 @@
 <resources>
-  <string name="app_name">DoIt</string>
+  <string name="app_name">Doit</string>
   <string name="expo_splash_screen_resize_mode" translatable="false">contain</string>
   <string name="expo_splash_screen_status_bar_translucent" translatable="false">false</string>
-  <string name="accessibility_service_label">DoIt - One-Tap Screenshot</string>
-  <string name="accessibility_service_description">Enables 1-tap instant silent screenshot capture for DoIt floating bubble and shake without system recording popups.</string>
+  <string name="accessibility_service_label">Doit - One-Tap Screenshot</string>
+  <string name="accessibility_service_description">Enables 1-tap instant silent screenshot capture for Doit floating bubble and shake without system recording popups.</string>
 </resources>

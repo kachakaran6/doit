@@ -2,6 +2,8 @@ package com.samyukt.doit
 
 import android.os.Build
 import android.os.Bundle
+import android.window.OnBackInvokedDispatcher
+import androidx.activity.OnBackPressedCallback
 
 import com.facebook.react.ReactActivity
 import com.facebook.react.ReactActivityDelegate
@@ -18,6 +20,31 @@ class MainActivity : ReactActivity() {
     setTheme(R.style.AppTheme);
     super.onCreate(null)
     consumeDeepLinkIntent()
+
+    // Centralized Android back gesture interceptor:
+    // Ensures swipe-from-edge gestures and back button presses
+    // are forwarded directly to React Native rather than closing the activity.
+    onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
+      override fun handleOnBackPressed() {
+        val delegate = reactActivityDelegate
+        if (delegate != null) {
+          delegate.onBackPressed()
+        }
+      }
+    })
+
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+      try {
+        onBackInvokedDispatcher.registerOnBackInvokedCallback(
+          OnBackInvokedDispatcher.PRIORITY_DEFAULT
+        ) {
+          val delegate = reactActivityDelegate
+          if (delegate != null) {
+            delegate.onBackPressed()
+          }
+        }
+      } catch (_: Exception) {}
+    }
   }
 
   override fun onNewIntent(intent: android.content.Intent) {
@@ -124,16 +151,15 @@ class MainActivity : ReactActivity() {
     * @see <a href="https://developer.android.com/reference/android/app/Activity#onBackPressed()">onBackPressed</a>
     */
   override fun invokeDefaultOnBackPressed() {
+      // Primary rule: Never unexpectedly close or finish the application on back press
       if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.R) {
           if (!moveTaskToBack(false)) {
-              // For non-root activities, use the default implementation to finish them.
               super.invokeDefaultOnBackPressed()
           }
           return
       }
 
-      // Use the default back button implementation on Android S
-      // because it's doing more than [Activity.moveTaskToBack] in fact.
-      super.invokeDefaultOnBackPressed()
+      // On Android S+, keep the application in background instead of destroying/finishing it
+      moveTaskToBack(false)
   }
 }

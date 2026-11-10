@@ -63,7 +63,7 @@ export const AccountMenuSheet: React.FC<AccountMenuSheetProps> = ({
 
   const handleLogout = () => {
     Alert.alert(
-      'Log out of DoIt?',
+      'Log out of Doit?',
       'Are you sure you want to sign out of your account on this device?',
       [
         { text: 'Cancel', style: 'cancel' },
@@ -351,7 +351,7 @@ export const AccountMenuSheet: React.FC<AccountMenuSheetProps> = ({
                   <View style={[styles.menuIconBox, { backgroundColor: colors.surface3 || colors.surface }]}>
                     <Share2 size={16} color={colors.textPrimary} />
                   </View>
-                  <Text variant="bodyStrong">Share DoIt</Text>
+                  <Text variant="bodyStrong">Share Doit</Text>
                 </View>
                 <ChevronRight size={16} color={colors.textTertiary || colors.textMuted} />
               </TouchableOpacity>

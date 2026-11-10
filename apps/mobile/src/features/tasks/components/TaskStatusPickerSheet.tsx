@@ -113,31 +113,24 @@ export const TaskStatusPickerSheet: React.FC<TaskStatusPickerSheetProps> = ({
   };
 
   return (
-    <Modal
-      transparent
-      visible={visible}
-      animationType="fade"
-      onRequestClose={onClose}
-      statusBarTranslucent
-    >
-      <View style={styles.overlayRoot}>
-        <TouchableOpacity
-          style={[styles.backdrop, { backgroundColor: colors.overlay || 'rgba(0,0,0,0.65)' }]}
-          activeOpacity={1}
-          onPress={onClose}
-        />
-        <View
-          style={[
-            styles.sheet,
-            {
-              backgroundColor: colors.surface1 || colors.surface,
-              borderTopLeftRadius: 24,
-              borderTopRightRadius: 24,
-              maxHeight: Dimensions.get('window').height * 0.85,
-              minHeight: 240,
-            },
-          ]}
-        >
+    <View style={styles.overlayRoot} pointerEvents="box-none">
+      <TouchableOpacity
+        style={[styles.backdrop, { backgroundColor: colors.overlay || 'rgba(0,0,0,0.65)' }]}
+        activeOpacity={1}
+        onPress={onClose}
+      />
+      <View
+        style={[
+          styles.sheet,
+          {
+            backgroundColor: colors.surface1 || colors.surface,
+            borderTopLeftRadius: 24,
+            borderTopRightRadius: 24,
+            maxHeight: Dimensions.get('window').height * 0.85,
+            minHeight: 240,
+          },
+        ]}
+      >
           <ScrollView
             style={{ flexGrow: 0 }}
             showsVerticalScrollIndicator={false}
@@ -285,24 +278,31 @@ export const TaskStatusPickerSheet: React.FC<TaskStatusPickerSheetProps> = ({
           </ScrollView>
         </View>
       </View>
-    </Modal>
   );
 };
 
 const styles = StyleSheet.create({
   overlayRoot: {
-    flex: 1,
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: 99999,
+    elevation: 9999,
     justifyContent: 'flex-end',
   },
   backdrop: {
     ...StyleSheet.absoluteFillObject,
   },
   sheet: {
+    width: '100%',
     shadowColor: '#000000',
     shadowOffset: { width: 0, height: -6 },
     shadowOpacity: 0.25,
     shadowRadius: 20,
-    elevation: 1000,
+    elevation: 10000,
+    zIndex: 10000,
   },
   handleContainer: {
     alignItems: 'center',

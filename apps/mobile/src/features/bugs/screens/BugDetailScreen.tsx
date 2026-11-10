@@ -5,6 +5,10 @@ import {
   ScrollView,
   Alert,
   TouchableOpacity,
+  Modal,
+  TextInput,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRoute, useNavigation, RouteProp } from '@react-navigation/native';
@@ -17,6 +21,7 @@ import {
   CompactHeader,
 } from '../../../components/ui';
 import { BugAutoContextCard } from '../components/BugAutoContextCard';
+import { BugStatusPickerSheet } from '../components/BugStatusPickerSheet';
 import { SeverityPicker, AttachmentGallery } from '../../../components/patterns';
 import { useBugDetailQuery } from '../api/queries';
 import {
@@ -38,6 +43,8 @@ import {
   AlertCircle,
   FileText,
   Smartphone,
+  Edit3,
+  X,
 } from 'lucide-react-native';
 import { SolutionPromptSection } from '../../tasks/components/SolutionPromptSection';
 
@@ -66,11 +73,55 @@ export const BugDetailScreen: React.FC = () => {
   const deleteBug = useDeleteBugMutation(bug?.projectId || 'default');
 
   const [severity, setSeverity] = useState<BugSeverity | null>(null);
+  const [statusPickerOpen, setStatusPickerOpen] = useState(false);
+
+  // Title edit state
+  const [isEditingTitle, setIsEditingTitle] = useState(false);
+  const [editedTitle, setEditedTitle] = useState('');
+
+  // Description edit state
+  const [isEditingDescription, setIsEditingDescription] = useState(false);
+  const [editedDescription, setEditedDescription] = useState('');
 
   const handleSelectSeverity = (newSev: BugSeverity) => {
     setSeverity(newSev);
     if (bug?.id) {
       updateBug.mutate({ id: bug.id, severity: newSev });
+    }
+  };
+
+  const handleSelectStatus = (newStatus: BugStatus) => {
+    setStatusPickerOpen(false);
+    if (bug?.id) {
+      updateStatus.mutate({ id: bug.id, status: newStatus });
+    }
+  };
+
+  const handleSaveTitle = async () => {
+    if (!editedTitle.trim()) {
+      Alert.alert('Title Required', 'Bug title cannot be empty.');
+      return;
+    }
+    try {
+      await updateBug.mutateAsync({
+        id: bug!.id,
+        title: editedTitle.trim(),
+      });
+      setIsEditingTitle(false);
+    } catch (err: any) {
+      Alert.alert('Error', err?.message || 'Could not update bug title.');
+    }
+  };
+
+  const handleSaveDescription = async () => {
+    try {
+      await updateBug.mutateAsync({
+        id: bug!.id,
+        description: editedDescription.trim(),
+      });
+      setIsEditingDescription(false);
+    } catch (err: any) {
+      Alert.alert('Error', err?.message || 'Could not update bug description.');
     }
   };
 
@@ -135,13 +186,6 @@ export const BugDetailScreen: React.FC = () => {
     updateStatus.mutate({ id: bug.id, status: nextStatus });
   };
 
-  const handleCycleStatus = () => {
-    const statuses: BugStatus[] = ['TRIAGED', 'IN_PROGRESS', 'RESOLVED', 'VERIFIED'];
-    const currentIndex = statuses.indexOf(bug.status);
-    const nextStatus: BugStatus = statuses[(currentIndex + 1) % statuses.length] || 'TRIAGED';
-    updateStatus.mutate({ id: bug.id, status: nextStatus });
-  };
-
   const activeSeverity = severity || bug.severity;
 
   return (
@@ -153,10 +197,10 @@ export const BugDetailScreen: React.FC = () => {
         onBack={() => navigation.goBack()}
         rightAction={
           <View style={styles.headerActions}>
-            {/* Status Pill in Header */}
+            {/* Interactive Status Pill in Header */}
             <TouchableOpacity
               activeOpacity={0.7}
-              onPress={handleCycleStatus}
+              onPress={() => setStatusPickerOpen(true)}
               style={[
                 styles.statusTrigger,
                 {
@@ -166,9 +210,9 @@ export const BugDetailScreen: React.FC = () => {
                 },
               ]}
               accessibilityRole="button"
-              accessibilityLabel={`Status: ${currentStatusMeta.label}. Tap to change.`}
+              accessibilityLabel={`Change status, current is ${currentStatusMeta.label}`}
             >
-              <StatusIcon size={12} color={statusColor} />
+              <StatusIcon size={12} color={isResolved ? colors.success : statusColor} />
               <Text
                 variant="caption"
                 style={[
@@ -181,21 +225,20 @@ export const BugDetailScreen: React.FC = () => {
               <ChevronDown size={11} color={colors.textSecondary} />
             </TouchableOpacity>
 
-            {/* Trash icon button */}
+            {/* Trash Action */}
             <TouchableOpacity
-              activeOpacity={0.7}
-              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
               onPress={handleConfirmDelete}
+              activeOpacity={0.7}
               style={[
                 styles.trashBtn,
                 {
-                  backgroundColor: colors.surface2,
-                  borderColor: colors.border,
-                  borderRadius: radius.sm,
+                  backgroundColor: colors.danger + '12',
+                  borderColor: colors.danger + '30',
+                  borderRadius: radius.pill,
                 },
               ]}
               accessibilityRole="button"
-              accessibilityLabel="Move bug to trash"
+              accessibilityLabel="Move to trash"
             >
               <Trash2 size={15} color={colors.danger} />
             </TouchableOpacity>
@@ -214,10 +257,34 @@ export const BugDetailScreen: React.FC = () => {
         ]}
         showsVerticalScrollIndicator={false}
       >
-        {/* 2. Bug Title (Primary content) */}
-        <Text variant="h1" style={[styles.titleText, { color: colors.textPrimary }]}>
-          {bug.title}
-        </Text>
+        {/* 2. Bug Title (Interactive with Edit Modal) */}
+        <TouchableOpacity
+          activeOpacity={0.75}
+          onPress={() => {
+            setEditedTitle(bug.title);
+            setIsEditingTitle(true);
+          }}
+          style={styles.titleContainer}
+        >
+          <Text
+            variant="h1"
+            style={[
+              styles.titleText,
+              { color: colors.textPrimary },
+              isResolved ? { textDecorationLine: 'line-through', opacity: 0.55 } : undefined,
+            ]}
+          >
+            {bug.title}
+          </Text>
+          <View
+            style={[
+              styles.inlineEditBadge,
+              { backgroundColor: colors.surface2, borderRadius: radius.xs },
+            ]}
+          >
+            <Edit3 size={12} color={colors.textTertiary} />
+          </View>
+        </TouchableOpacity>
 
         {/* 3. Inline Metadata Row (Quiet, single-line, flat) */}
         <View style={styles.metadataRow}>
@@ -262,8 +329,13 @@ export const BugDetailScreen: React.FC = () => {
           />
         </View>
 
-        {/* 5. Description Box (Clean, restrained) */}
-        <View
+        {/* 5. Description Box (Interactive with Edit Modal) */}
+        <TouchableOpacity
+          activeOpacity={0.8}
+          onPress={() => {
+            setEditedDescription(bug.description || '');
+            setIsEditingDescription(true);
+          }}
           style={[
             styles.sectionCard,
             {
@@ -276,10 +348,24 @@ export const BugDetailScreen: React.FC = () => {
           ]}
         >
           <View style={styles.cardHeaderRow}>
-            <FileText size={12} color={colors.textTertiary} />
-            <Text variant="caption" color="secondary" style={styles.cardHeaderTitle}>
-              DESCRIPTION
-            </Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <FileText size={12} color={colors.textTertiary} />
+              <Text variant="caption" color="secondary" style={styles.cardHeaderTitle}>
+                DESCRIPTION
+              </Text>
+            </View>
+            <View
+              style={[
+                styles.editIconBadge,
+                {
+                  backgroundColor: colors.surface2,
+                  borderRadius: radius.xs,
+                  padding: 3,
+                },
+              ]}
+            >
+              <Edit3 size={11} color={colors.textTertiary} />
+            </View>
           </View>
           <Text
             variant="body"
@@ -289,9 +375,9 @@ export const BugDetailScreen: React.FC = () => {
               !bug.description ? { fontStyle: 'italic' } : undefined,
             ]}
           >
-            {bug.description || 'No written description entered.'}
+            {bug.description || 'No written description entered. Tap to add.'}
           </Text>
-        </View>
+        </TouchableOpacity>
 
         {/* 6. Reproduction Steps (if present) */}
         {bug.reproductionSteps && bug.reproductionSteps.length > 0 && (
@@ -357,6 +443,178 @@ export const BugDetailScreen: React.FC = () => {
           />
         </View>
       </ScrollView>
+
+      {/* Bug Status Picker Sheet */}
+      <BugStatusPickerSheet
+        visible={statusPickerOpen}
+        currentStatus={bug.status}
+        onSelectStatus={handleSelectStatus}
+        onClose={() => setStatusPickerOpen(false)}
+        isLoading={updateStatus.isPending}
+      />
+
+      {/* Title Edit Overlay */}
+      {isEditingTitle && (
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          style={styles.modalOverlay}
+        >
+          <TouchableOpacity
+            style={styles.modalBackdrop}
+            activeOpacity={1}
+            onPress={() => setIsEditingTitle(false)}
+          />
+          <View
+            style={[
+              styles.modalContent,
+              {
+                backgroundColor: colors.surface1 || colors.surface,
+                borderColor: colors.border,
+                borderRadius: radius.lg,
+              },
+            ]}
+          >
+            <View style={styles.modalHeader}>
+              <Text variant="h3" style={{ fontWeight: '700' }}>
+                Edit Bug Title
+              </Text>
+              <TouchableOpacity
+                onPress={() => setIsEditingTitle(false)}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              >
+                <X size={18} color={colors.textSecondary} />
+              </TouchableOpacity>
+            </View>
+
+            <TextInput
+              style={[
+                styles.modalInput,
+                {
+                  backgroundColor: colors.surface2 || colors.surfaceRaised,
+                  borderColor: colors.border,
+                  color: colors.textPrimary,
+                  borderRadius: radius.md,
+                },
+              ]}
+              value={editedTitle}
+              onChangeText={setEditedTitle}
+              placeholder="Bug title"
+              placeholderTextColor={colors.textTertiary}
+              autoFocus
+              selectTextOnFocus
+            />
+
+            <View style={styles.modalFooter}>
+              <TouchableOpacity
+                onPress={() => setIsEditingTitle(false)}
+                style={[
+                  styles.modalCancelBtn,
+                  { backgroundColor: colors.surface2, borderRadius: radius.md },
+                ]}
+              >
+                <Text variant="body" color="secondary">
+                  Cancel
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={handleSaveTitle}
+                disabled={updateBug.isPending}
+                style={[
+                  styles.modalSaveBtn,
+                  { backgroundColor: colors.accent, borderRadius: radius.md },
+                ]}
+              >
+                <Text variant="bodyStrong" style={{ color: colors.accentOnPrimary, fontWeight: '700' }}>
+                  Save
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </KeyboardAvoidingView>
+      )}
+
+      {/* Description Edit Overlay */}
+      {isEditingDescription && (
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          style={styles.modalOverlay}
+        >
+          <TouchableOpacity
+            style={styles.modalBackdrop}
+            activeOpacity={1}
+            onPress={() => setIsEditingDescription(false)}
+          />
+          <View
+            style={[
+              styles.modalContent,
+              {
+                backgroundColor: colors.surface1 || colors.surface,
+                borderColor: colors.border,
+                borderRadius: radius.lg,
+              },
+            ]}
+          >
+            <View style={styles.modalHeader}>
+              <Text variant="h3" style={{ fontWeight: '700' }}>
+                Edit Description
+              </Text>
+              <TouchableOpacity
+                onPress={() => setIsEditingDescription(false)}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              >
+                <X size={18} color={colors.textSecondary} />
+              </TouchableOpacity>
+            </View>
+
+            <TextInput
+              style={[
+                styles.modalInput,
+                styles.modalTextArea,
+                {
+                  backgroundColor: colors.surface2 || colors.surfaceRaised,
+                  borderColor: colors.border,
+                  color: colors.textPrimary,
+                  borderRadius: radius.md,
+                },
+              ]}
+              value={editedDescription}
+              onChangeText={setEditedDescription}
+              placeholder="Detailed reproduction notes or issue context..."
+              placeholderTextColor={colors.textTertiary}
+              multiline
+              numberOfLines={6}
+              textAlignVertical="top"
+              autoFocus
+            />
+
+            <View style={styles.modalFooter}>
+              <TouchableOpacity
+                onPress={() => setIsEditingDescription(false)}
+                style={[
+                  styles.modalCancelBtn,
+                  { backgroundColor: colors.surface2, borderRadius: radius.md },
+                ]}
+              >
+                <Text variant="body" color="secondary">
+                  Cancel
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={handleSaveDescription}
+                disabled={updateBug.isPending}
+                style={[
+                  styles.modalSaveBtn,
+                  { backgroundColor: colors.accent, borderRadius: radius.md },
+                ]}
+              >
+                <Text variant="bodyStrong" style={{ color: colors.accentOnPrimary, fontWeight: '700' }}>
+                  Save
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </KeyboardAvoidingView>
+      )}
     </SafeAreaView>
   );
 };
@@ -389,11 +647,21 @@ const styles = StyleSheet.create({
     padding: 6,
     borderWidth: 1,
   },
+  titleContainer: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
+  },
   titleText: {
+    flex: 1,
     fontSize: 20,
     fontWeight: '700',
     lineHeight: 26,
     letterSpacing: -0.3,
+  },
+  inlineEditBadge: {
+    padding: 4,
+    marginTop: 4,
   },
   metadataRow: {
     flexDirection: 'row',
@@ -416,6 +684,7 @@ const styles = StyleSheet.create({
   cardHeaderRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
     marginBottom: 6,
   },
   cardHeaderTitle: {
@@ -424,8 +693,67 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
     marginLeft: 6,
   },
+  editIconBadge: {
+    padding: 3,
+  },
   descriptionText: {
     fontSize: 13,
     lineHeight: 20,
+  },
+  modalOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: 99999,
+    elevation: 9999,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  modalBackdrop: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+  },
+  modalContent: {
+    width: '100%',
+    maxWidth: 420,
+    padding: 20,
+    borderWidth: 1,
+    elevation: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.25,
+    shadowRadius: 16,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 16,
+  },
+  modalInput: {
+    borderWidth: 1,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    fontSize: 15,
+  },
+  modalTextArea: {
+    minHeight: 120,
+  },
+  modalFooter: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    gap: 10,
+    marginTop: 18,
+  },
+  modalCancelBtn: {
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+  },
+  modalSaveBtn: {
+    paddingHorizontal: 20,
+    paddingVertical: 10,
   },
 });

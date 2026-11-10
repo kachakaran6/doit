@@ -244,10 +244,10 @@ class BubbleService : Service(), SensorEventListener {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val channel = NotificationChannel(
                 CHANNEL_ID,
-                "DoIt Quick Capture",
+                "Doit Quick Capture",
                 NotificationManager.IMPORTANCE_LOW
             ).apply {
-                description = "Shows the floating DoIt quick capture bubble and listens for shake"
+                description = "Shows the floating Doit quick capture bubble and listens for shake"
                 setShowBadge(false)
             }
             val nm = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
@@ -275,7 +275,7 @@ class BubbleService : Service(), SensorEventListener {
         )
 
         return NotificationCompat.Builder(this, CHANNEL_ID)
-            .setContentTitle("DoIt Quick Capture")
+            .setContentTitle("Doit Quick Capture")
             .setContentText("Tap bubble or shake phone anywhere to capture a task or bug")
             .setSmallIcon(R.mipmap.ic_launcher_round)
             .setContentIntent(openPendingIntent)
@@ -1751,7 +1751,7 @@ class BubbleService : Service(), SensorEventListener {
 
                 if (token.isNullOrEmpty()) {
                     android.util.Log.w("BubbleService", "Cannot submit: unauthenticated")
-                    showOverlaySnackbar("Please sign in to DoIt to capture", false)
+                    showOverlaySnackbar("Please sign in to Doit to capture", false)
                     return@Thread
                 }
 
@@ -1860,7 +1860,7 @@ class BubbleService : Service(), SensorEventListener {
 
                     val itemType = if (mode == "BUG") "Bug reported" else "Task captured"
                     val extra = if (audioFile != null) " with voice note" else if (screenshotFile != null) " with screenshot" else ""
-                    showOverlaySnackbar("✓ $itemType$extra in DoIt", true)
+                    showOverlaySnackbar("✓ $itemType$extra in Doit", true)
                 } else {
                     android.util.Log.e("BubbleService", "Failed to create $mode: http code $taskCode")
                     val itemType = if (mode == "BUG") "bug" else "task"

@@ -72,6 +72,9 @@ export const SeverityPicker: React.FC<SeverityPickerProps> = ({ value, onChange,
               />
               <Text
                 variant="caption"
+                numberOfLines={1}
+                adjustsFontSizeToFit
+                minimumFontScale={0.8}
                 style={[
                   styles.segmentText,
                   {
@@ -107,25 +110,30 @@ const styles = StyleSheet.create({
   },
   segmentedControl: {
     flexDirection: 'row',
-    padding: 3,
+    padding: 2,
     borderWidth: 1,
-    height: 38,
+    minHeight: 38,
+    overflow: 'hidden',
+    width: '100%',
   },
   segment: {
     flex: 1,
+    minWidth: 0,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    paddingHorizontal: 4,
+    paddingHorizontal: 2,
   },
   dot: {
     width: 6,
     height: 6,
     borderRadius: 3,
-    marginRight: 4,
+    marginRight: 3,
+    flexShrink: 0,
   },
   segmentText: {
     fontSize: 11,
+    flexShrink: 1,
   },
 });

@@ -128,7 +128,7 @@ export const LoginScreen: React.FC = () => {
             />
           </View>
           <Text variant="display" style={{ textAlign: 'center', letterSpacing: -0.5 }}>
-            DoIt
+            Doit
           </Text>
           <Text
             variant="body"

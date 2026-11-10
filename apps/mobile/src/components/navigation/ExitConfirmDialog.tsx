@@ -27,7 +27,7 @@ export const ExitConfirmDialog: React.FC = () => {
   return (
     <ConfirmationDialog
       visible={isExitDialogOpen}
-      title="Exit DoIt?"
+      title="Exit Doit?"
       message="Are you sure you want to exit the application?"
       confirmLabel="Exit App"
       cancelLabel="Cancel"

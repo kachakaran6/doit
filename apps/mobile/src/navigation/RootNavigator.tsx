@@ -172,19 +172,21 @@ export const RootNavigator: React.FC = () => {
           initialRouteName={isAuthenticated ? 'MainTabs' : 'Auth'}
           screenOptions={{
             headerShown: false,
-            animation: 'slide_from_right',
-            gestureEnabled: Platform.OS === 'ios',
-            fullScreenGestureEnabled: Platform.OS === 'ios',
+            animation: 'default',
+            gestureEnabled: true,
+            fullScreenGestureEnabled: false,
             contentStyle: { backgroundColor: colors.canvas },
           }}
           screenListeners={{
             beforeRemove: (e) => {
               if (Platform.OS !== 'android') return;
-              const actionType = (e.data as any)?.action?.type;
-              if (actionType === 'GO_BACK' || actionType === 'POP' || actionType === 'POP_TO_TOP') {
-                e.preventDefault();
-                useBackNavigationStore.getState().handleAndroidBack();
+              // If we can pop to a previous screen in the stack, allow the native smooth transition
+              if (navigationRef.isReady() && navigationRef.canGoBack()) {
+                return;
               }
+              // At root screen: prevent closing the app unexpectedly and delegate to exit confirm
+              e.preventDefault();
+              useBackNavigationStore.getState().handleAndroidBack();
             },
           }}
         >

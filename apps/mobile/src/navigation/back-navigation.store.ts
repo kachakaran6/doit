@@ -21,6 +21,7 @@ interface BackNavigationState {
 
 let isKeyboardOpen = false;
 let lastBackActionTime = 0;
+let exitDialogOpenTime = 0;
 
 if (typeof Keyboard !== 'undefined' && Keyboard.addListener) {
   Keyboard.addListener('keyboardDidShow', () => {
@@ -43,6 +44,9 @@ export function isAtHomeScreen(): boolean {
 
   // Root Auth screen when logged out
   if (routeName === 'Auth') return true;
+
+  // Active screen is Home
+  if (routeName === 'Home') return true;
 
   const rootState = navigationRef.getRootState();
   if (!rootState || !rootState.routes || rootState.routes.length === 0) {
@@ -73,7 +77,10 @@ export const useBackNavigationStore = create<BackNavigationState>((set, get) => 
   isExitDialogOpen: false,
   subscribers: [],
 
-  openExitDialog: () => set({ isExitDialogOpen: true }),
+  openExitDialog: () => {
+    exitDialogOpenTime = Date.now();
+    set({ isExitDialogOpen: true });
+  },
   closeExitDialog: () => set({ isExitDialogOpen: false }),
 
   registerBackSubscriber: (id: string, handler: () => boolean, priority = 10) => {
@@ -101,9 +108,13 @@ export const useBackNavigationStore = create<BackNavigationState>((set, get) => 
 
     const state = get();
 
-    // Priority 1: If Exit Confirmation Dialog is open, dismiss it and stay on Home
+    // Priority 1: If Exit Confirmation Dialog is open:
+    // Dismiss only if dialog has been visible for at least 800ms
+    // to prevent trailing back gestures from immediately closing the dialog!
     if (state.isExitDialogOpen) {
-      state.closeExitDialog();
+      if (Date.now() - exitDialogOpenTime > 800) {
+        state.closeExitDialog();
+      }
       return true;
     }
 
@@ -146,42 +157,28 @@ export const useBackNavigationStore = create<BackNavigationState>((set, get) => 
       return true; // Keep app open while navigation initializes
     }
 
-    // Priority 5: Home Screen Detection
-    // If the user is already on the Home screen (or Auth root), show Exit Confirmation Dialog
-    if (isAtHomeScreen()) {
-      state.openExitDialog();
-      return true;
+    // Priority 5: If navigation can go back in the current stack, do a smooth native pop!
+    if (navigationRef.canGoBack()) {
+      try {
+        navigationRef.goBack();
+        return true;
+      } catch (err) {
+        console.warn('[BackHandler] goBack failed:', err);
+      }
     }
 
-    // Priority 6: Any other screen (Task Details, Bug Details, Sticky Notes, Settings, other tabs)
-    // Directly navigate to Home and RESET the navigation state so history does not retain old screens!
-    try {
-      navigationRef.dispatch(
-        CommonActions.reset({
-          index: 0,
-          routes: [
-            {
-              name: 'MainTabs',
-              state: {
-                routes: [{ name: 'Home' }],
-                index: 0,
-              },
-            },
-          ],
-        })
-      );
-      return true;
-    } catch (e) {
-      console.warn('[BackHandler] Reset to Home failed, falling back to navigate:', e);
+    // Priority 6: If at root of stack, check if active tab is NOT Home
+    // If on another tab (Tasks, Bugs, Search), switch to Home tab smoothly
+    if (!isAtHomeScreen()) {
       try {
         navigationRef.navigate('MainTabs', { screen: 'Home' } as any);
         return true;
       } catch (err) {
-        console.warn('[BackHandler] Navigation fallback failed:', err);
+        console.warn('[BackHandler] Navigate to Home tab failed:', err);
       }
     }
 
-    // Fallback safeguard: Never allow the app to exit unexpectedly
+    // Priority 7: Already on Home (root) -> Show Exit Confirmation Dialog
     state.openExitDialog();
     return true;
   },

@@ -175,7 +175,7 @@ export const HomeScreen: React.FC = () => {
           >
             <View pointerEvents="none" style={styles.workspaceSelectorInner}>
               <WorkspaceTile
-                name={activeWorkspace?.name || 'DoIt'}
+                name={activeWorkspace?.name || 'Doit'}
                 id={activeWorkspace?.id || 'default'}
                 size={26}
               />

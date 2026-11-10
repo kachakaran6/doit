@@ -69,31 +69,24 @@ export const TaskPriorityPickerSheet: React.FC<TaskPriorityPickerSheetProps> = (
   if (!visible) return null;
 
   return (
-    <Modal
-      visible={visible}
-      transparent
-      animationType="fade"
-      onRequestClose={onClose}
-      statusBarTranslucent
-    >
-      <View style={styles.overlayRoot}>
-        <TouchableOpacity
-          style={[styles.backdrop, { backgroundColor: colors.overlay || 'rgba(0,0,0,0.65)' }]}
-          activeOpacity={1}
-          onPress={onClose}
-        />
-        <View
-          style={[
-            styles.sheet,
-            {
-              backgroundColor: colors.surface1 || colors.surface,
-              borderTopLeftRadius: 24,
-              borderTopRightRadius: 24,
-              maxHeight: Dimensions.get('window').height * 0.85,
-              minHeight: 240,
-            },
-          ]}
-        >
+    <View style={styles.overlayRoot} pointerEvents="box-none">
+      <TouchableOpacity
+        style={[styles.backdrop, { backgroundColor: colors.overlay || 'rgba(0,0,0,0.65)' }]}
+        activeOpacity={1}
+        onPress={onClose}
+      />
+      <View
+        style={[
+          styles.sheet,
+          {
+            backgroundColor: colors.surface1 || colors.surface,
+            borderTopLeftRadius: 24,
+            borderTopRightRadius: 24,
+            maxHeight: Dimensions.get('window').height * 0.85,
+            minHeight: 240,
+          },
+        ]}
+      >
           <ScrollView
             style={{ flexGrow: 0 }}
             showsVerticalScrollIndicator={false}
@@ -230,13 +223,18 @@ export const TaskPriorityPickerSheet: React.FC<TaskPriorityPickerSheetProps> = (
           </ScrollView>
         </View>
       </View>
-    </Modal>
   );
 };
 
 const styles = StyleSheet.create({
   overlayRoot: {
-    flex: 1,
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: 99999,
+    elevation: 9999,
     justifyContent: 'flex-end',
   },
   backdrop: {
@@ -248,7 +246,8 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: -4 },
     shadowOpacity: 0.15,
     shadowRadius: 16,
-    elevation: 20,
+    elevation: 10000,
+    zIndex: 10000,
   },
   handleContainer: {
     alignItems: 'center',

@@ -199,7 +199,7 @@ export const SettingsScreen: React.FC = () => {
   };
 
   const handleSignOut = () => {
-    Alert.alert('Log out of DoIt?', 'You will need to sign in again to access your projects and tasks.', [
+    Alert.alert('Log out of Doit?', 'You will need to sign in again to access your projects and tasks.', [
       { text: 'Cancel', style: 'cancel' },
       {
         text: 'Log out',
@@ -236,7 +236,7 @@ export const SettingsScreen: React.FC = () => {
               />
               <View style={{ marginLeft: 12, flex: 1 }}>
                 <Text variant="bodyStrong">
-                  {user?.fullName || 'DoIt User'}
+                  {user?.fullName || 'Doit User'}
                 </Text>
                 <Text variant="caption" color="secondary" numberOfLines={1}>
                   {user?.email || 'user@samyukt.com'}
@@ -436,7 +436,7 @@ export const SettingsScreen: React.FC = () => {
                   <Text variant="caption" color="secondary">
                     {hasAccessibility
                       ? 'Zero system dialogs or bottom sheets'
-                      : 'Enable DoIt in Accessibility settings'}
+                      : 'Enable Doit in Accessibility settings'}
                   </Text>
                 </View>
                 {!hasAccessibility ? (
@@ -444,7 +444,7 @@ export const SettingsScreen: React.FC = () => {
                     onPress={() => {
                       Alert.alert(
                         'Accessibility Service Disclosure',
-                        'DoIt uses the Android AccessibilityService API to capture screenshots when you tap the floating overlay bubble or trigger shake-to-report.\n\n• Purpose: Enables one-tap screenshot capture to attach visual context to your bug reports without interrupting your workflow.\n• Data Privacy: DoIt does NOT collect keystrokes, passwords, personal messages, or sensitive screen content. Captured screenshots are processed locally and only attached to reports you explicitly create.\n• Control: This permission is completely optional. You can disable it at any time in system settings.',
+                        'Doit uses the Android AccessibilityService API to capture screenshots when you tap the floating overlay bubble or trigger shake-to-report.\n\n• Purpose: Enables one-tap screenshot capture to attach visual context to your bug reports without interrupting your workflow.\n• Data Privacy: Doit does NOT collect keystrokes, passwords, personal messages, or sensitive screen content. Captured screenshots are processed locally and only attached to reports you explicitly create.\n• Control: This permission is completely optional. You can disable it at any time in system settings.',
                         [
                           { text: 'Deny', style: 'cancel' },
                           {
@@ -790,7 +790,7 @@ export const SettingsScreen: React.FC = () => {
                   <Share2 size={16} color={colors.textPrimary} />
                 </View>
                 <View style={{ flex: 1 }}>
-                  <Text variant="bodyStrong">Share DoIt</Text>
+                  <Text variant="bodyStrong">Share Doit</Text>
                   <Text variant="caption" color="secondary">
                     Share with colleagues and engineering teams
                   </Text>
@@ -821,7 +821,7 @@ export const SettingsScreen: React.FC = () => {
           >
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
               <View>
-                <Text variant="bodyStrong">DoIt Mobile</Text>
+                <Text variant="bodyStrong">Doit Mobile</Text>
                 <Text variant="caption" color="secondary">
                   Version {packageMetadata.versionName} (Build {packageMetadata.versionCode})
                 </Text>

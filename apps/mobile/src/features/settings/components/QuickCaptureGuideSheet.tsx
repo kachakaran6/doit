@@ -99,7 +99,7 @@ export const QuickCaptureGuideSheet: React.FC<QuickCaptureGuideSheetProps> = ({
                       ? bubbleEnabled
                         ? 'Bubble is active on your screen right now.'
                         : 'Ready to use. Toggle the switch to show the bubble.'
-                      : 'Android requires one-time permission to allow DoIt to float above other applications.'}
+                      : 'Android requires one-time permission to allow Doit to float above other applications.'}
                   </Text>
                 </View>
               </View>
@@ -150,7 +150,7 @@ export const QuickCaptureGuideSheet: React.FC<QuickCaptureGuideSheetProps> = ({
                 </Text>
               </View>
               <Text variant="body" color="secondary" style={{ fontSize: 13, marginTop: 4 }}>
-                Tap button 1 above. Locate "DoIt" in Android's system list and turn ON "Allow display over other apps".
+                Tap button 1 above. Locate "Doit" in Android's system list and turn ON "Allow display over other apps".
               </Text>
             </View>
 
@@ -192,7 +192,7 @@ export const QuickCaptureGuideSheet: React.FC<QuickCaptureGuideSheetProps> = ({
                 </Text>
               </View>
               <Text variant="body" color="secondary" style={{ fontSize: 13, marginTop: 4 }}>
-                In DoIt Settings &gt; Quick Capture, toggle "Floating Overlay Bubble" to ON. A sleek circular icon will appear on your screen and dock to the side.
+                In Doit Settings &gt; Quick Capture, toggle "Floating Overlay Bubble" to ON. A sleek circular icon will appear on your screen and dock to the side.
               </Text>
             </View>
 
@@ -206,7 +206,7 @@ export const QuickCaptureGuideSheet: React.FC<QuickCaptureGuideSheetProps> = ({
                 </Text>
               </View>
               <Text variant="body" color="secondary" style={{ fontSize: 13, marginTop: 4 }}>
-                Whether you are browsing in Chrome, reading email, or testing an app, simply tap the floating bubble. The DoIt Quick Capture sheet pops up instantly to log a task, bug, or voice note without losing your place.
+                Whether you are browsing in Chrome, reading email, or testing an app, simply tap the floating bubble. The Doit Quick Capture sheet pops up instantly to log a task, bug, or voice note without losing your place.
               </Text>
             </View>
 
@@ -269,7 +269,7 @@ export const QuickCaptureGuideSheet: React.FC<QuickCaptureGuideSheetProps> = ({
                     Accelerometer Shake Sensor: Active
                   </Text>
                   <Text variant="caption" color="secondary" style={{ marginTop: 2 }}>
-                    DoIt continuously samples device motion with high-pass filtering to distinguish intentional shakes from normal walking or pockets.
+                    Doit continuously samples device motion with high-pass filtering to distinguish intentional shakes from normal walking or pockets.
                   </Text>
                 </View>
               </View>
@@ -293,7 +293,7 @@ export const QuickCaptureGuideSheet: React.FC<QuickCaptureGuideSheetProps> = ({
                 2. Instant UI Snapshot & Telemetry
               </Text>
               <Text variant="body" color="secondary" style={{ fontSize: 13, marginTop: 4 }}>
-                On shake confirmation, DoIt automatically packages device diagnostics (OS version, device model, battery status, timestamp) and opens the bug triage modal with the screenshot attached.
+                On shake confirmation, Doit automatically packages device diagnostics (OS version, device model, battery status, timestamp) and opens the bug triage modal with the screenshot attached.
               </Text>
             </View>
 
@@ -329,7 +329,7 @@ export const QuickCaptureGuideSheet: React.FC<QuickCaptureGuideSheetProps> = ({
                 Samsung / One UI
               </Text>
               <Text variant="body" color="secondary" style={{ fontSize: 13, marginTop: 4 }}>
-                Go to Settings &gt; Apps &gt; DoIt &gt; Battery &gt; Select "Unrestricted". Ensure "Appear on top" is enabled.
+                Go to Settings &gt; Apps &gt; Doit &gt; Battery &gt; Select "Unrestricted". Ensure "Appear on top" is enabled.
               </Text>
             </View>
 
@@ -338,7 +338,7 @@ export const QuickCaptureGuideSheet: React.FC<QuickCaptureGuideSheetProps> = ({
                 Xiaomi / MIUI / HyperOS
               </Text>
               <Text variant="body" color="secondary" style={{ fontSize: 13, marginTop: 4 }}>
-                Open Security &gt; Manage Apps &gt; DoIt &gt; Other Permissions &gt; Enable "Display pop-up windows while running in the background".
+                Open Security &gt; Manage Apps &gt; Doit &gt; Other Permissions &gt; Enable "Display pop-up windows while running in the background".
               </Text>
             </View>
 
@@ -347,7 +347,7 @@ export const QuickCaptureGuideSheet: React.FC<QuickCaptureGuideSheetProps> = ({
                 OnePlus / Oppo / Realme (ColorOS / OxygenOS)
               </Text>
               <Text variant="body" color="secondary" style={{ fontSize: 13, marginTop: 4 }}>
-                Go to App Management &gt; DoIt &gt; Permissions &gt; Floating window: "Always Allow". Set Battery usage to "Allow background activity".
+                Go to App Management &gt; Doit &gt; Permissions &gt; Floating window: "Always Allow". Set Battery usage to "Allow background activity".
               </Text>
             </View>
 

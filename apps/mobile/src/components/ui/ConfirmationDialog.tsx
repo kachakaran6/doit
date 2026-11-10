@@ -42,63 +42,74 @@ export const ConfirmationDialog: React.FC<ConfirmationDialogProps> = ({
 }) => {
   const { colors, spacing, radius, elevation } = useTheme();
 
-  return (
-    <Modal
-      visible={visible}
-      transparent
-      animationType="fade"
-      onRequestClose={onCancel}
-    >
-      <TouchableWithoutFeedback onPress={onCancel}>
-        <View style={[styles.backdrop, { backgroundColor: colors.overlay }]}>
-          <TouchableWithoutFeedback>
-            <View
-              style={[
-                styles.card,
-                {
-                  backgroundColor: colors.surface,
-                  borderColor: colors.border,
-                  borderRadius: radius.lg,
-                  padding: spacing.lg,
-                  ...elevation.e3,
-                },
-                style,
-              ]}
-            >
-              <Text variant="h2" style={{ marginBottom: spacing.xs, fontWeight: '600' }}>
-                {title}
-              </Text>
-              <Text
-                variant="body"
-                color="secondary"
-                style={{ marginBottom: spacing.xl, lineHeight: 21 }}
-              >
-                {message}
-              </Text>
+  if (!visible) return null;
 
-              <View style={[styles.buttonRow, { gap: spacing.sm }]}>
-                <View style={styles.dialogBtn}><Button title={cancelLabel} variant="secondary" size="sm" onPress={onCancel} /></View>
-                <View style={styles.dialogBtn}><Button title={confirmLabel} variant={destructive ? 'danger' : 'primary'} size="sm" loading={loading} onPress={onConfirm} /></View>
-              </View>
-            </View>
-          </TouchableWithoutFeedback>
+  return (
+    <View style={styles.overlayRoot} pointerEvents="box-none">
+      <TouchableOpacity
+        style={[styles.backdrop, { backgroundColor: colors.overlay || 'rgba(0, 0, 0, 0.65)' }]}
+        activeOpacity={1}
+        onPress={onCancel}
+      />
+      <View
+        style={[
+          styles.card,
+          {
+            backgroundColor: colors.surface1 || colors.surface,
+            borderColor: colors.border,
+            borderRadius: radius.lg,
+            padding: spacing.lg,
+            ...elevation.e3,
+          },
+          style,
+        ]}
+      >
+        <Text variant="h2" style={{ marginBottom: spacing.xs, fontWeight: '700', color: colors.textPrimary }}>
+          {title}
+        </Text>
+        <Text
+          variant="body"
+          color="secondary"
+          style={{ marginBottom: spacing.xl, lineHeight: 21, color: colors.textSecondary }}
+        >
+          {message}
+        </Text>
+
+        <View style={[styles.buttonRow, { gap: spacing.sm }]}>
+          <View style={styles.dialogBtn}>
+            <Button title={cancelLabel} variant="secondary" size="sm" onPress={onCancel} />
+          </View>
+          <View style={styles.dialogBtn}>
+            <Button title={confirmLabel} variant={destructive ? 'danger' : 'primary'} size="sm" loading={loading} onPress={onConfirm} />
+          </View>
         </View>
-      </TouchableWithoutFeedback>
-    </Modal>
+      </View>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
-  backdrop: {
-    flex: 1,
+  overlayRoot: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: 99999,
+    elevation: 9999,
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 24,
   },
+  backdrop: {
+    ...StyleSheet.absoluteFillObject,
+  },
   card: {
     width: '100%',
     maxWidth: 360,
-    borderWidth: 1,
+    borderWidth: 1.5,
+    zIndex: 100000,
+    elevation: 10000,
   },
   buttonRow: {
     flexDirection: 'row',

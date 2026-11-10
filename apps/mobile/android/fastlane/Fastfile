@@ -34,7 +34,7 @@ platform :android do
     content = File.read(build_gradle_path)
 
     current_code = content[/versionCode\s+(\d+)/, 1].to_i
-    version_name = content[/versionName\s+["']([^"']+)["']/, 1] || "0.2.8"
+    version_name = options[:version_name] || content[/versionName\s+["']([^"']+)["']/, 1] || "0.3.8"
 
     target_code = if options[:build_number]
                     options[:build_number].to_i

@@ -518,15 +518,10 @@ export const TaskDetailScreen: React.FC = () => {
         onClose={() => setLabelManagerOpen(false)}
       />
 
-      {/* Title Edit Modal */}
-      <Modal
-        visible={isEditingTitle}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setIsEditingTitle(false)}
-      >
+      {/* Title Edit Overlay */}
+      {isEditingTitle && (
         <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
           style={styles.modalOverlay}
         >
           <TouchableOpacity
@@ -601,17 +596,12 @@ export const TaskDetailScreen: React.FC = () => {
             </View>
           </View>
         </KeyboardAvoidingView>
-      </Modal>
+      )}
 
-      {/* Description Edit Modal */}
-      <Modal
-        visible={isEditingDescription}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setIsEditingDescription(false)}
-      >
+      {/* Description Edit Overlay */}
+      {isEditingDescription && (
         <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
           style={styles.modalOverlay}
         >
           <TouchableOpacity
@@ -688,7 +678,7 @@ export const TaskDetailScreen: React.FC = () => {
             </View>
           </View>
         </KeyboardAvoidingView>
-      </Modal>
+      )}
     </SafeAreaView>
   );
 };
@@ -788,7 +778,13 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
   modalOverlay: {
-    flex: 1,
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: 99999,
+    elevation: 9999,
     justifyContent: 'center',
     alignItems: 'center',
     padding: 20,
