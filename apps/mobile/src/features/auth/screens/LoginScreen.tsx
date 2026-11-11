@@ -51,9 +51,6 @@ export const LoginScreen: React.FC = () => {
       Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow',
       () => {
         setKeyboardVisible(true);
-        setTimeout(() => {
-          scrollViewRef.current?.scrollToEnd({ animated: true });
-        }, 80);
       }
     );
     const hideSub = Keyboard.addListener(
@@ -175,8 +172,8 @@ export const LoginScreen: React.FC = () => {
             styles.container,
             {
               paddingHorizontal: spacing.lg,
-              paddingTop: keyboardVisible ? spacing.xs : spacing.xl,
-              paddingBottom: keyboardVisible ? 380 : spacing['2xl'],
+              paddingTop: keyboardVisible ? spacing.sm : spacing.xl,
+              paddingBottom: keyboardVisible ? 80 : spacing['2xl'],
               justifyContent: keyboardVisible ? 'flex-start' : 'center',
             },
           ]}
@@ -391,8 +388,8 @@ export const LoginScreen: React.FC = () => {
                 onFocus={() => {
                   setKeyboardVisible(true);
                   setTimeout(() => {
-                    scrollViewRef.current?.scrollTo({ y: 160, animated: true });
-                  }, 120);
+                    scrollViewRef.current?.scrollTo({ y: 80, animated: true });
+                  }, 100);
                 }}
               />
             </View>
