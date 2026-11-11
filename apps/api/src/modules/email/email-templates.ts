@@ -6,6 +6,154 @@ export interface InvitationEmailData {
   expiresAt: Date;
 }
 
+export interface PasswordResetEmailData {
+  userName: string;
+  resetUrl: string;
+  expiresInMinutes: number;
+}
+
+export function generatePasswordResetEmailHtml(data: PasswordResetEmailData): string {
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Reset your DoIt password</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      background-color: #0b0b0e;
+      color: #e5e7eb;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      -webkit-font-smoothing: antialiased;
+    }
+    .container {
+      max-width: 560px;
+      margin: 40px auto;
+      padding: 32px;
+      background-color: #121217;
+      border-radius: 12px;
+      border: 1px solid #1f2028;
+    }
+    .header {
+      margin-bottom: 24px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .logo-badge {
+      display: inline-block;
+      width: 36px;
+      height: 36px;
+      line-height: 36px;
+      text-align: center;
+      background: #4f46e5;
+      color: #ffffff;
+      font-weight: 700;
+      font-size: 18px;
+      border-radius: 10px;
+    }
+    .brand-title {
+      font-size: 20px;
+      font-weight: 700;
+      color: #f9fafb;
+      letter-spacing: -0.02em;
+    }
+    .content-box {
+      background-color: #181920;
+      border-radius: 8px;
+      padding: 20px;
+      margin: 20px 0;
+      border: 1px solid #23242e;
+    }
+    .btn {
+      display: block;
+      width: 100%;
+      box-sizing: border-box;
+      text-align: center;
+      background-color: #4f46e5;
+      color: #ffffff !important;
+      text-decoration: none;
+      padding: 14px 24px;
+      border-radius: 8px;
+      font-weight: 600;
+      font-size: 15px;
+      margin: 28px 0 20px 0;
+    }
+    .fallback-url {
+      word-break: break-all;
+      color: #818cf8;
+      font-size: 13px;
+      line-height: 1.5;
+    }
+    .security-notice {
+      margin-top: 32px;
+      padding-top: 20px;
+      border-top: 1px solid #1f2028;
+      font-size: 12px;
+      line-height: 1.5;
+      color: #6b7280;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <span class="logo-badge">D</span>
+      <span class="brand-title">DoIt</span>
+    </div>
+
+    <h2 style="margin: 0 0 12px 0; font-size: 20px; color: #f9fafb; font-weight: 600;">
+      Reset your password
+    </h2>
+    <p style="margin: 0 0 16px 0; font-size: 14px; line-height: 1.6; color: #9ca3af;">
+      Hello ${escapeHtml(data.userName || 'there')}, we received a request to reset the password for your DoIt account.
+    </p>
+
+    <div class="content-box">
+      <p style="margin: 0; font-size: 14px; line-height: 1.6; color: #e5e7eb;">
+        Click the button below to securely choose a new password. This link will expire in <strong>${data.expiresInMinutes} minutes</strong>.
+      </p>
+    </div>
+
+    <a href="${data.resetUrl}" class="btn">
+      Reset My Password
+    </a>
+
+    <p style="font-size: 13px; color: #9ca3af; margin: 16px 0 6px 0;">
+      Button not working? Copy and paste this link into your browser:
+    </p>
+    <a href="${data.resetUrl}" class="fallback-url">${data.resetUrl}</a>
+
+    <div class="security-notice">
+      Security Notice: If you did not request this password reset, please ignore this email or contact support. Your password remains safe and unchanged until you create a new one.
+    </div>
+  </div>
+</body>
+</html>`;
+}
+
+export function generatePasswordResetEmailText(data: PasswordResetEmailData): string {
+  return `Reset your DoIt password
+
+Hello ${data.userName || 'there'},
+
+We received a request to reset the password for your DoIt account.
+
+To reset your password, visit the link below:
+${data.resetUrl}
+
+This link is valid for ${data.expiresInMinutes} minutes.
+
+Security Notice:
+If you did not request this password reset, please ignore this email. Your password will remain unchanged.
+
+--
+DoIt by Samyukt
+`;
+}
+
 export function generateInvitationEmailHtml(data: InvitationEmailData): string {
   const formattedExpiry = data.expiresAt.toLocaleDateString('en-US', {
     month: 'short',

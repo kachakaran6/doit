@@ -18,6 +18,7 @@ import { ProjectsPage } from './pages/ProjectsPage';
 import { NotificationsPage } from './pages/NotificationsPage';
 import { WorkspaceSettingsPage } from './pages/WorkspaceSettingsPage';
 import { InviteAcceptPage } from './pages/InviteAcceptPage';
+import { ResetPasswordPage } from './pages/ResetPasswordPage';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -42,6 +43,7 @@ export function App() {
           <Routes>
             {/* Public routes */}
             <Route path="/login" element={<AuthPage />} />
+            <Route path="/reset-password" element={<ResetPasswordPage />} />
             <Route path="/invite/:token" element={<InviteAcceptPage />} />
 
             {/* Protected application routes */}

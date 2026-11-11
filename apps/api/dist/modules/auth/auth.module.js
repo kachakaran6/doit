@@ -14,6 +14,7 @@ const auth_service_1 = require("./auth.service");
 const password_service_1 = require("./password.service");
 const token_service_1 = require("./token.service");
 const users_module_1 = require("../users/users.module");
+const email_module_1 = require("../email/email.module");
 let AuthModule = class AuthModule {
 };
 exports.AuthModule = AuthModule;
@@ -26,6 +27,7 @@ exports.AuthModule = AuthModule = __decorate([
                 signOptions: { expiresIn: '15m' },
             }),
             users_module_1.UsersModule,
+            email_module_1.EmailModule,
         ],
         controllers: [auth_controller_1.AuthController],
         providers: [auth_service_1.AuthService, password_service_1.PasswordService, token_service_1.TokenService],

@@ -16,11 +16,11 @@ export declare class AuthController {
         success: boolean;
     }>;
     getSessions(user: AuthUserPayload): Promise<{
+        id: string;
         deviceName: string | null;
         deviceId: string | null;
         platform: string | null;
         appVersion: string | null;
-        id: string;
         lastSeenAt: Date;
         createdAt: Date;
     }[]>;
@@ -29,6 +29,7 @@ export declare class AuthController {
     }>;
     forgotPassword(dto: ForgotPasswordDto): Promise<{
         sent: boolean;
+        message: string;
     }>;
     resetPassword(dto: ResetPasswordDto): Promise<{
         success: boolean;

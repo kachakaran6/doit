@@ -1,6 +1,6 @@
 import { PrismaService } from '../../infra/prisma/prisma.service';
 import { SmtpConfigDto } from './email.dto';
-import { InvitationEmailData } from './email-templates';
+import { InvitationEmailData, PasswordResetEmailData } from './email-templates';
 export interface PublicSmtpConfig {
     configured: boolean;
     host: string | null;
@@ -42,6 +42,10 @@ export declare class EmailService {
         message: string;
     }>;
     sendInvitationEmail(to: string, data: InvitationEmailData): Promise<{
+        delivered: boolean;
+        reason?: string;
+    }>;
+    sendPasswordResetEmail(to: string, data: PasswordResetEmailData): Promise<{
         delivered: boolean;
         reason?: string;
     }>;

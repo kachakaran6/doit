@@ -124,7 +124,7 @@ export class AuthController {
     if (!email || !newPassword) {
       throw new AppError(ErrorCode.VALIDATION_FAILED, 'Email and new password are required.', 400);
     }
-    return this.authService.resetPassword(email, newPassword);
+    return this.authService.resetPassword(email, newPassword, dto.token);
   }
 
   @Get('me')

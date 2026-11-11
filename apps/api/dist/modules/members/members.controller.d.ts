@@ -6,14 +6,13 @@ export declare class MembersController {
     constructor(membersService: MembersService);
     getMembers(workspaceId: string): Promise<({
         user: {
-            name: string;
             id: string;
             email: string;
+            name: string;
             avatarUrl: string | null;
         };
     } & {
         id: string;
-        createdAt: Date;
         workspaceId: string;
         userId: string;
         role: import(".prisma/client").$Enums.Role;
@@ -21,6 +20,7 @@ export declare class MembersController {
         inviteToken: string | null;
         inviteExpiresAt: Date | null;
         acceptedAt: Date | null;
+        createdAt: Date;
     })[]>;
     getInvitations(workspaceId: string): Promise<{
         id: string;
@@ -35,9 +35,9 @@ export declare class MembersController {
         revokedAt: Date | null;
         createdAt: Date;
         invitedBy: {
-            name: string;
             id: string;
             email: string;
+            name: string;
         };
     }[]>;
     invite(workspaceId: string, user: AuthUserPayload, dto: InviteMemberDto, origin?: string, referer?: string): Promise<{
@@ -105,8 +105,8 @@ export declare class MembersController {
     } | {
         valid: boolean;
         workspace: {
-            name: string;
             id: string;
+            name: string;
             slug: string;
         };
         role: import(".prisma/client").$Enums.Role;
@@ -120,8 +120,8 @@ export declare class MembersController {
     acceptInvitation(user: AuthUserPayload, dto: AcceptInviteDto): Promise<{
         success: boolean;
         workspace: {
-            name: string;
             id: string;
+            name: string;
             slug: string;
         };
         role: import(".prisma/client").$Enums.Role;
@@ -129,15 +129,14 @@ export declare class MembersController {
     acceptInvite(user: AuthUserPayload, dto: AcceptInviteDto): Promise<{
         success: boolean;
         workspace: {
-            name: string;
             id: string;
+            name: string;
             slug: string;
         };
         role: import(".prisma/client").$Enums.Role;
     }>;
     updateRole(workspaceId: string, memberId: string, dto: UpdateMemberRoleDto): Promise<{
         id: string;
-        createdAt: Date;
         workspaceId: string;
         userId: string;
         role: import(".prisma/client").$Enums.Role;
@@ -145,6 +144,7 @@ export declare class MembersController {
         inviteToken: string | null;
         inviteExpiresAt: Date | null;
         acceptedAt: Date | null;
+        createdAt: Date;
     }>;
     removeMember(workspaceId: string, memberId: string): Promise<{
         success: boolean;

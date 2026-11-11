@@ -71,13 +71,13 @@ export declare const ResetPasswordSchema: z.ZodObject<{
     newPassword: z.ZodOptional<z.ZodString>;
 }, "strip", z.ZodTypeAny, {
     email?: string | undefined;
-    password?: string | undefined;
     token?: string | undefined;
+    password?: string | undefined;
     newPassword?: string | undefined;
 }, {
     email?: string | undefined;
-    password?: string | undefined;
     token?: string | undefined;
+    password?: string | undefined;
     newPassword?: string | undefined;
 }>;
 export type ResetPasswordDto = z.infer<typeof ResetPasswordSchema>;

@@ -62,7 +62,7 @@ let AuthController = class AuthController {
         if (!email || !newPassword) {
             throw new app_error_1.AppError(error_code_enum_1.ErrorCode.VALIDATION_FAILED, 'Email and new password are required.', 400);
         }
-        return this.authService.resetPassword(email, newPassword);
+        return this.authService.resetPassword(email, newPassword, dto.token);
     }
     async getMe(user) {
         return this.usersService.getMe(user.sub);

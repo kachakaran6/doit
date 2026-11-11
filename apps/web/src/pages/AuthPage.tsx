@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
 import { Modal } from '@/components/ui/modal';
 import { useToast } from '@/components/ui/toast';
-import { ShieldCheck, UserCheck, ArrowRight, Eye, EyeOff, Check } from 'lucide-react';
+import { ShieldCheck, UserCheck, ArrowRight, Eye, EyeOff, Check, Mail, KeyRound } from 'lucide-react';
 
 export function AuthPage() {
   const navigate = useNavigate();
@@ -24,26 +24,48 @@ export function AuthPage() {
   const [name, setName] = useState('');
   const [loading, setLoading] = useState(false);
   const [forgotOpen, setForgotOpen] = useState(false);
+  const [forgotMode, setForgotMode] = useState<'email' | 'direct'>('email');
   const [forgotEmail, setForgotEmail] = useState('');
   const [forgotNewPassword, setForgotNewPassword] = useState('');
   const [forgotConfirmPassword, setForgotConfirmPassword] = useState('');
   const [forgotShowPassword, setForgotShowPassword] = useState(false);
   const [forgotError, setForgotError] = useState<string | null>(null);
   const [forgotSuccess, setForgotSuccess] = useState(false);
+  const [forgotSuccessMsg, setForgotSuccessMsg] = useState('');
   const [forgotLoading, setForgotLoading] = useState(false);
 
   const handleForgotSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setForgotError(null);
     const cleanEmail = forgotEmail.trim().toLowerCase();
-    const cleanPassword = forgotNewPassword.trim();
-    const cleanConfirm = forgotConfirmPassword.trim();
 
     if (!cleanEmail) {
       setForgotError('Please enter your account email.');
       error('Email required', 'Please enter your account email.');
       return;
     }
+
+    if (forgotMode === 'email') {
+      try {
+        setForgotLoading(true);
+        const res = await api.auth.forgotPassword(cleanEmail);
+        setForgotSuccess(true);
+        setForgotSuccessMsg(res?.message || 'Password reset link sent to your email. Please check your inbox.');
+        success('Reset instructions sent', 'Please check your email inbox.');
+      } catch (err: any) {
+        const msg = err.message || 'Unable to dispatch reset email. Please try again.';
+        setForgotError(msg);
+        error('Request failed', msg);
+      } finally {
+        setForgotLoading(false);
+      }
+      return;
+    }
+
+    // Direct mode
+    const cleanPassword = forgotNewPassword.trim();
+    const cleanConfirm = forgotConfirmPassword.trim();
+
     if (!cleanPassword || cleanPassword.length < 8) {
       setForgotError('New password must be at least 8 characters long.');
       error('Invalid password', 'New password must be at least 8 characters long.');
@@ -59,6 +81,7 @@ export function AuthPage() {
       setForgotLoading(true);
       const res = await api.auth.resetPassword(cleanEmail, cleanPassword);
       setForgotSuccess(true);
+      setForgotSuccessMsg(res?.message || 'Password reset successful! You can now sign in.');
       success('Password reset successful', res?.message || 'You can now sign in with your new password.');
       setEmail(cleanEmail);
       setPassword(cleanPassword);
@@ -265,25 +288,80 @@ export function AuthPage() {
           setForgotOpen(false);
           setForgotError(null);
           setForgotSuccess(false);
+          setForgotSuccessMsg('');
         }}
         title="Reset password"
-        description="Enter your account email and your new password to reset your credentials."
+        description={
+          forgotMode === 'email'
+            ? 'We will send a password reset link to your email via PMS Orbit SMTP.'
+            : 'Enter your account email and your new password to reset credentials.'
+        }
       >
         {forgotSuccess ? (
-          <div className="py-6 text-center space-y-2">
+          <div className="py-6 text-center space-y-3">
             <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-[var(--success-soft)] text-[var(--success-text)] mb-1">
               <Check className="w-6 h-6" />
             </div>
-            <p className="text-[15px] font-semibold text-[var(--foreground)]">Password reset successful!</p>
-            <p className="text-[13px] text-[var(--muted-foreground)]">Your credentials have been updated. Preparing sign in...</p>
+            <p className="text-[15px] font-semibold text-[var(--foreground)]">Request Dispatched</p>
+            <p className="text-[13px] text-[var(--muted-foreground)] px-2">
+              {forgotSuccessMsg}
+            </p>
+            <div className="pt-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  setForgotOpen(false);
+                  setForgotSuccess(false);
+                }}
+              >
+                Close
+              </Button>
+            </div>
           </div>
         ) : (
           <form onSubmit={handleForgotSubmit} className="space-y-4">
+            {/* Mode Selector Tabs */}
+            <div className="flex rounded-lg bg-[var(--muted)] p-1 mb-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setForgotMode('email');
+                  setForgotError(null);
+                }}
+                className={`flex-1 py-1.5 text-[12px] font-medium rounded-md transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+                  forgotMode === 'email'
+                    ? 'bg-[var(--card)] text-[var(--foreground)] shadow-xs'
+                    : 'text-[var(--muted-foreground)] hover:text-[var(--foreground)]'
+                }`}
+              >
+                <Mail className="w-3.5 h-3.5" />
+                <span>Email Reset Link</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setForgotMode('direct');
+                  setForgotError(null);
+                }}
+                className={`flex-1 py-1.5 text-[12px] font-medium rounded-md transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+                  forgotMode === 'direct'
+                    ? 'bg-[var(--card)] text-[var(--foreground)] shadow-xs'
+                    : 'text-[var(--muted-foreground)] hover:text-[var(--foreground)]'
+                }`}
+              >
+                <KeyRound className="w-3.5 h-3.5" />
+                <span>Direct Reset</span>
+              </button>
+            </div>
+
             {forgotError && (
               <div className="p-3 text-[12px] font-medium rounded-lg bg-[var(--danger-soft)] text-[var(--danger-text)] border border-[var(--danger-border)]">
                 {forgotError}
               </div>
             )}
+
             <Input
               label="Email address"
               type="email"
@@ -292,44 +370,50 @@ export function AuthPage() {
                 setForgotEmail(e.target.value);
                 setForgotError(null);
               }}
-              placeholder="alice@samyukt.com"
+              placeholder="kachakaran06@gmail.com"
               required
               autoFocus
             />
-            <div className="relative">
-              <Input
-                label="New password (min 8 characters)"
-                type={forgotShowPassword ? 'text' : 'password'}
-                value={forgotNewPassword}
-                onChange={(e) => {
-                  setForgotNewPassword(e.target.value);
-                  setForgotError(null);
-                }}
-                placeholder="Enter at least 8 characters"
-                required
-              />
-              <button
-                type="button"
-                onClick={() => setForgotShowPassword((prev) => !prev)}
-                className="absolute right-3 top-[32px] text-[var(--muted-foreground)] hover:text-[var(--foreground)] p-1 cursor-pointer"
-                aria-label={forgotShowPassword ? 'Hide password' : 'Show password'}
-              >
-                {forgotShowPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-              </button>
-            </div>
-            <div className="relative">
-              <Input
-                label="Confirm new password"
-                type={forgotShowPassword ? 'text' : 'password'}
-                value={forgotConfirmPassword}
-                onChange={(e) => {
-                  setForgotConfirmPassword(e.target.value);
-                  setForgotError(null);
-                }}
-                placeholder="Re-enter new password"
-                required
-              />
-            </div>
+
+            {forgotMode === 'direct' && (
+              <>
+                <div className="relative">
+                  <Input
+                    label="New password (min 8 characters)"
+                    type={forgotShowPassword ? 'text' : 'password'}
+                    value={forgotNewPassword}
+                    onChange={(e) => {
+                      setForgotNewPassword(e.target.value);
+                      setForgotError(null);
+                    }}
+                    placeholder="Enter at least 8 characters"
+                    required
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setForgotShowPassword((prev) => !prev)}
+                    className="absolute right-3 top-[32px] text-[var(--muted-foreground)] hover:text-[var(--foreground)] p-1 cursor-pointer"
+                    aria-label={forgotShowPassword ? 'Hide password' : 'Show password'}
+                  >
+                    {forgotShowPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+                <div className="relative">
+                  <Input
+                    label="Confirm new password"
+                    type={forgotShowPassword ? 'text' : 'password'}
+                    value={forgotConfirmPassword}
+                    onChange={(e) => {
+                      setForgotConfirmPassword(e.target.value);
+                      setForgotError(null);
+                    }}
+                    placeholder="Re-enter new password"
+                    required
+                  />
+                </div>
+              </>
+            )}
+
             <div className="flex justify-end gap-2 pt-2">
               <Button
                 type="button"
@@ -343,7 +427,7 @@ export function AuthPage() {
                 Cancel
               </Button>
               <Button type="submit" size="sm" loading={forgotLoading}>
-                Reset password
+                {forgotMode === 'email' ? 'Send reset link' : 'Reset password'}
               </Button>
             </div>
           </form>

@@ -1,8 +1,10 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { JwtService } from '@nestjs/jwt';
 import { v4 as uuidv4 } from 'uuid';
 import { PrismaService } from '../../infra/prisma/prisma.service';
 import { PasswordService } from './password.service';
 import { TokenService, TokenPair } from './token.service';
+import { EmailService } from '../email/email.service';
 import { RegisterDto, LoginDto } from './auth.dto';
 import { AppError } from '../../common/errors/app.error';
 import { ErrorCode } from '../../common/errors/error-code.enum';
@@ -25,6 +27,8 @@ export class AuthService {
     private readonly prisma: PrismaService,
     private readonly passwordService: PasswordService,
     private readonly tokenService: TokenService,
+    private readonly emailService: EmailService,
+    private readonly jwtService: JwtService,
   ) {}
 
   async register(dto: RegisterDto): Promise<AuthSuccessResult> {
@@ -198,24 +202,83 @@ export class AuthService {
     });
   }
 
-  async forgotPassword(email: string): Promise<{ sent: boolean }> {
+  async forgotPassword(email: string): Promise<{ sent: boolean; message: string }> {
+    const cleanEmail = email?.trim().toLowerCase();
+    if (!cleanEmail) {
+      return { sent: false, message: 'Email address is required.' };
+    }
+
     const user = await this.prisma.user.findUnique({
-      where: { email: email.toLowerCase() },
+      where: { email: cleanEmail },
     });
 
     if (user) {
-      this.logger.log(`[Mail Mock] Password reset link dispatched for: ${user.email}`);
+      try {
+        const resetToken = await this.jwtService.signAsync(
+          {
+            sub: user.id,
+            email: user.email,
+            type: 'password_reset',
+          },
+          {
+            expiresIn: '1h',
+            secret: process.env.JWT_SECRET || 'super-secret-development-jwt-key-replace-in-prod',
+          },
+        );
+
+        const baseUrl =
+          process.env.FRONTEND_URL ||
+          process.env.APP_URL ||
+          'https://doit.kachakaran.tech';
+
+        const resetUrl = `${baseUrl.replace(/\/$/, '')}/reset-password?token=${encodeURIComponent(resetToken)}&email=${encodeURIComponent(user.email)}`;
+
+        const result = await this.emailService.sendPasswordResetEmail(user.email, {
+          userName: user.name || user.email.split('@')[0],
+          resetUrl,
+          expiresInMinutes: 60,
+        });
+
+        this.logger.log(`[Password Reset] Dispatched email to ${user.email} (delivered: ${result.delivered})`);
+      } catch (err: any) {
+        this.logger.error(`[Password Reset] Failed to send email to ${user.email}: ${err.message}`);
+      }
     }
 
-    // Always return success to prevent email enumeration
-    return { sent: true };
+    return {
+      sent: true,
+      message: 'If an account exists with this email address, password reset instructions have been sent.',
+    };
   }
 
-  async resetPassword(email: string, newPassword: string): Promise<{ success: boolean; message: string }> {
+  async resetPassword(
+    email: string,
+    newPassword: string,
+    token?: string,
+  ): Promise<{ success: boolean; message: string }> {
     const cleanEmail = email?.trim().toLowerCase();
     if (!cleanEmail) {
       throw new AppError(ErrorCode.VALIDATION_FAILED, 'Email is required.', 400);
     }
+
+    // Verify token if supplied
+    if (token) {
+      try {
+        const payload = await this.jwtService.verifyAsync(token, {
+          secret: process.env.JWT_SECRET || 'super-secret-development-jwt-key-replace-in-prod',
+        });
+        if (payload.type !== 'password_reset' || payload.email?.toLowerCase() !== cleanEmail) {
+          throw new AppError(ErrorCode.INVALID_CREDENTIALS, 'Invalid or expired password reset token.', 401);
+        }
+      } catch (err: any) {
+        throw new AppError(
+          ErrorCode.TOKEN_EXPIRED,
+          'Invalid or expired password reset token. Please request a new link.',
+          401,
+        );
+      }
+    }
+
     const user = await this.prisma.user.findUnique({
       where: { email: cleanEmail },
     });

@@ -53,13 +53,20 @@ let EmailService = EmailService_1 = class EmailService {
             this.logger.warn(`Could not read SmtpConfig from database: ${e.message}`);
         }
         const host = process.env.SMTP_HOST;
-        const fromEmail = process.env.SMTP_FROM_EMAIL || process.env.SMTP_FROM;
-        if (host && fromEmail) {
+        const rawFrom = process.env.SMTP_FROM_EMAIL || process.env.SMTP_FROM;
+        if (host && rawFrom) {
             const port = parseInt(process.env.SMTP_PORT || '587', 10);
             const secure = process.env.SMTP_SECURE === 'true' || port === 465;
             const username = process.env.SMTP_USERNAME || process.env.SMTP_USER;
             const password = process.env.SMTP_PASSWORD || process.env.SMTP_PASS;
-            const fromName = process.env.SMTP_FROM_NAME || 'DoIt';
+            let fromName = process.env.SMTP_FROM_NAME || 'DoIt';
+            let fromEmail = rawFrom.trim();
+            const match = fromEmail.match(/(?:["']?([^"']+)["']?\s+)?<([^>]+)>/);
+            if (match) {
+                if (match[1])
+                    fromName = match[1].trim();
+                fromEmail = match[2].trim();
+            }
             return {
                 host,
                 port,
@@ -288,6 +295,36 @@ let EmailService = EmailService_1 = class EmailService {
         }
         catch (err) {
             this.logger.error(`Failed to deliver invitation email to ${to}: ${err.message}`);
+            return { delivered: false, reason: err.message };
+        }
+    }
+    async sendPasswordResetEmail(to, data) {
+        const config = await this.getResolvedSmtpConfig();
+        if (!config) {
+            this.logger.warn(`SMTP not configured; cannot deliver password reset email to ${to}`);
+            return { delivered: false, reason: 'SMTP is not configured' };
+        }
+        if (!config.enabled) {
+            this.logger.warn(`SMTP delivery is disabled; cannot deliver password reset email to ${to}`);
+            return { delivered: false, reason: 'SMTP delivery is disabled' };
+        }
+        try {
+            const transporter = this.createTransporter(config);
+            const subject = `Reset your DoIt password`;
+            const html = (0, email_templates_1.generatePasswordResetEmailHtml)(data);
+            const text = (0, email_templates_1.generatePasswordResetEmailText)(data);
+            const info = await transporter.sendMail({
+                from: `"${config.fromName}" <${config.fromEmail}>`,
+                to,
+                subject,
+                text,
+                html,
+            });
+            this.logger.log(`Password reset email successfully sent to ${to}, messageId: ${info.messageId}`);
+            return { delivered: true };
+        }
+        catch (err) {
+            this.logger.error(`Failed to deliver password reset email to ${to}: ${err.message}`);
             return { delivered: false, reason: err.message };
         }
     }
