@@ -226,10 +226,14 @@ export class AuthService {
           },
         );
 
-        const baseUrl =
-          process.env.FRONTEND_URL ||
+        let baseUrl =
           process.env.APP_URL ||
-          'https://doit.kachakaran.tech';
+          process.env.FRONTEND_URL ||
+          'https://doit-web.samyukt.pro';
+
+        if (baseUrl.includes('kachakaran.tech')) {
+          baseUrl = 'https://doit-web.samyukt.pro';
+        }
 
         const resetUrl = `${baseUrl.replace(/\/$/, '')}/reset-password?token=${encodeURIComponent(resetToken)}&email=${encodeURIComponent(user.email)}`;
 

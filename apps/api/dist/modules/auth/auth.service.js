@@ -185,9 +185,12 @@ let AuthService = AuthService_1 = class AuthService {
                     expiresIn: '1h',
                     secret: process.env.JWT_SECRET || 'super-secret-development-jwt-key-replace-in-prod',
                 });
-                const baseUrl = process.env.FRONTEND_URL ||
-                    process.env.APP_URL ||
-                    'https://doit.kachakaran.tech';
+                let baseUrl = process.env.APP_URL ||
+                    process.env.FRONTEND_URL ||
+                    'https://doit-web.samyukt.pro';
+                if (baseUrl.includes('kachakaran.tech')) {
+                    baseUrl = 'https://doit-web.samyukt.pro';
+                }
                 const resetUrl = `${baseUrl.replace(/\/$/, '')}/reset-password?token=${encodeURIComponent(resetToken)}&email=${encodeURIComponent(user.email)}`;
                 const result = await this.emailService.sendPasswordResetEmail(user.email, {
                     userName: user.name || user.email.split('@')[0],
