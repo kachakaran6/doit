@@ -269,6 +269,17 @@ class OverlayServiceModule(private val reactContext: ReactApplicationContext) :
     }
 
     @ReactMethod
+    fun showQuickCapture(mode: String?, promise: Promise) {
+        try {
+            val targetMode = (mode ?: "TASK").uppercase()
+            BubbleService.showQuickCapture(targetMode)
+            promise.resolve(true)
+        } catch (e: Exception) {
+            promise.reject("QUICK_CAPTURE_ERROR", e.message)
+        }
+    }
+
+    @ReactMethod
     fun setShakeEnabled(enabled: Boolean, sensitivity: String?, promise: Promise) {
         try {
             val prefs = reactContext.getSharedPreferences("doit_overlay_prefs", Context.MODE_PRIVATE)

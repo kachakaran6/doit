@@ -113,15 +113,25 @@ export const WorkspaceSwitcherSheet: React.FC<WorkspaceSwitcherSheetProps> = ({
   if (!visible) return null;
 
   return (
-    <View style={styles.overlayRoot}>
-      <TouchableOpacity
-        style={[styles.backdrop, { backgroundColor: colors.overlay || 'rgba(0,0,0,0.65)' }]}
-        activeOpacity={1}
-        onPress={() => {
-          resetMode();
-          onClose();
-        }}
-      />
+    <Modal
+      visible={visible}
+      transparent
+      animationType="fade"
+      onRequestClose={() => {
+        resetMode();
+        onClose();
+      }}
+      statusBarTranslucent
+    >
+      <View style={styles.overlayRoot}>
+        <TouchableOpacity
+          style={[styles.backdrop, { backgroundColor: colors.overlay || 'rgba(0,0,0,0.65)' }]}
+          activeOpacity={1}
+          onPress={() => {
+            resetMode();
+            onClose();
+          }}
+        />
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         style={styles.keyboardContainer}
@@ -374,6 +384,7 @@ export const WorkspaceSwitcherSheet: React.FC<WorkspaceSwitcherSheetProps> = ({
           </View>
         </KeyboardAvoidingView>
       </View>
+    </Modal>
   );
 };
 

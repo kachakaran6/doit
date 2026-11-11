@@ -44,7 +44,7 @@ export type ReorderTaskDto = z.infer<typeof ReorderTaskSchema>;
 
 export const AssignTaskSchema = z.object({
   assigneeId: z
-    .preprocess((val) => (val === '' || val === 'unassigned' ? null : val), z.string().uuid().nullable()),
+    .preprocess((val) => (val === '' || val === 'unassigned' ? null : val), z.string().uuid().nullable().optional()),
 });
 
 export type AssignTaskDto = z.infer<typeof AssignTaskSchema>;

@@ -43,19 +43,19 @@ export const LoginScreen: React.FC = () => {
   const [activeUrl, setActiveUrl] = useState(http.getBaseUrl());
   const [serverPing, setServerPing] = useState<string | null>(null);
   const [pinging, setPinging] = useState(false);
-  const [keyboardVisible, setKeyboardVisible] = useState(false);
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
   const scrollViewRef = useRef<ScrollView>(null);
 
   useEffect(() => {
     const showSub = Keyboard.addListener(
       Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow',
-      () => {
-        setKeyboardVisible(true);
+      (e) => {
+        setKeyboardHeight(e.endCoordinates.height);
       }
     );
     const hideSub = Keyboard.addListener(
       Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide',
-      () => setKeyboardVisible(false)
+      () => setKeyboardHeight(0)
     );
     return () => {
       showSub.remove();
@@ -172,9 +172,9 @@ export const LoginScreen: React.FC = () => {
             styles.container,
             {
               paddingHorizontal: spacing.lg,
-              paddingTop: keyboardVisible ? spacing.sm : spacing.xl,
-              paddingBottom: keyboardVisible ? 80 : spacing['2xl'],
-              justifyContent: keyboardVisible ? 'flex-start' : 'center',
+              paddingTop: keyboardHeight > 0 ? spacing.sm : spacing.lg,
+              paddingBottom: keyboardHeight > 0 ? keyboardHeight + 80 : spacing.lg,
+              justifyContent: keyboardHeight > 0 ? 'flex-start' : 'center',
             },
           ]}
           keyboardShouldPersistTaps="handled"
@@ -182,43 +182,39 @@ export const LoginScreen: React.FC = () => {
           showsVerticalScrollIndicator={false}
         >
           {/* Brand Header */}
-          <View style={[styles.header, { marginBottom: keyboardVisible ? spacing.sm : spacing.xl }]}>
-            {!keyboardVisible && (
-              <View
-                style={[
-                  styles.logoTile,
-                  {
-                    marginBottom: spacing.md,
-                    borderRadius: radius.xl,
-                    overflow: 'hidden',
-                    ...elevation.e2,
-                  },
-                ]}
-              >
-                <Image
-                  source={require('../../../../assets/icon.png')}
-                  style={{ width: 64, height: 64, borderRadius: radius.xl }}
-                  resizeMode="contain"
-                />
-              </View>
-            )}
+          <View style={[styles.header, { marginBottom: spacing.lg }]}>
+            <View
+              style={[
+                styles.logoTile,
+                {
+                  marginBottom: spacing.sm,
+                  borderRadius: radius.xl,
+                  overflow: 'hidden',
+                  ...elevation.e2,
+                },
+              ]}
+            >
+              <Image
+                source={require('../../../../assets/icon.png')}
+                style={{ width: 64, height: 64, borderRadius: radius.xl }}
+                resizeMode="contain"
+              />
+            </View>
             <Text
-              variant={keyboardVisible ? 'title1' : 'display'}
+              variant="display"
               style={{ textAlign: 'center', letterSpacing: -0.5 }}
             >
               Doit
             </Text>
-            {!keyboardVisible && (
-              <Text
-                variant="body"
-                color="secondary"
-                style={{ marginTop: spacing.xs, textAlign: 'center' }}
-              >
-                {mode === 'signin'
-                  ? 'Precision project management & issue tracking'
-                  : 'Create your workspace and start building'}
-              </Text>
-            )}
+            <Text
+              variant="body"
+              color="secondary"
+              style={{ marginTop: spacing.xs, textAlign: 'center' }}
+            >
+              {mode === 'signin'
+                ? 'Precision project management & issue tracking'
+                : 'Create your workspace and start building'}
+            </Text>
           </View>
 
         {/* Card Container */}
@@ -340,6 +336,11 @@ export const LoginScreen: React.FC = () => {
               keyboardType="email-address"
               autoCapitalize="none"
               autoCorrect={false}
+              onFocus={() => {
+                setTimeout(() => {
+                  scrollViewRef.current?.scrollTo({ y: 40, animated: true });
+                }, 150);
+              }}
             />
 
             <View>
@@ -380,17 +381,31 @@ export const LoginScreen: React.FC = () => {
               </View>
 
               <Input
-                placeholder="••••••••••••"
+                placeholder="Enter your password"
                 value={password}
                 onChangeText={setPassword}
                 secureTextEntry={!showPassword}
                 isPassword
                 onFocus={() => {
-                  setKeyboardVisible(true);
                   setTimeout(() => {
-                    scrollViewRef.current?.scrollTo({ y: 80, animated: true });
-                  }, 100);
+                    scrollViewRef.current?.scrollTo({ y: 150, animated: true });
+                  }, 150);
                 }}
+                suffix={
+                  <TouchableOpacity
+                    onPress={() => setShowPassword((prev) => !prev)}
+                    accessibilityRole="button"
+                    accessibilityLabel={showPassword ? 'Hide password' : 'Show password'}
+                    hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+                    style={{ padding: 4, justifyContent: 'center', alignItems: 'center' }}
+                  >
+                    {showPassword ? (
+                      <EyeOff size={18} color={colors.textSecondary} />
+                    ) : (
+                      <Eye size={18} color={colors.textSecondary} />
+                    )}
+                  </TouchableOpacity>
+                }
               />
             </View>
 
@@ -734,6 +749,21 @@ export const LoginScreen: React.FC = () => {
                     onChangeText={setForgotNewPassword}
                     secureTextEntry={!showForgotNewPassword}
                     isPassword
+                    suffix={
+                      <TouchableOpacity
+                        onPress={() => setShowForgotNewPassword((prev) => !prev)}
+                        accessibilityRole="button"
+                        accessibilityLabel={showForgotNewPassword ? 'Hide password' : 'Show password'}
+                        hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+                        style={{ padding: 4, justifyContent: 'center', alignItems: 'center' }}
+                      >
+                        {showForgotNewPassword ? (
+                          <EyeOff size={18} color={colors.textSecondary} />
+                        ) : (
+                          <Eye size={18} color={colors.textSecondary} />
+                        )}
+                      </TouchableOpacity>
+                    }
                   />
                 </View>
 

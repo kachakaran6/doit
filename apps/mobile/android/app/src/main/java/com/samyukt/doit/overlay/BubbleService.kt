@@ -220,8 +220,6 @@ class BubbleService : Service(), SensorEventListener {
                 Handler(Looper.getMainLooper()).post {
                     if (inForeground) {
                         s.dismissBubbleActionMenu(immediate = true)
-                        s.dismissPicker()
-                        s.dismissCompactModal()
                     }
                 }
             }
@@ -232,6 +230,14 @@ class BubbleService : Service(), SensorEventListener {
                 s.shakeEnabled = enabled
                 if (!sensitivity.isNullOrEmpty()) {
                     s.shakeSensitivity = sensitivity
+                }
+            }
+        }
+
+        fun showQuickCapture(mode: String = "TASK") {
+            instance?.let { s ->
+                Handler(Looper.getMainLooper()).post {
+                    s.showCompactModal(mode)
                 }
             }
         }
@@ -1548,7 +1554,8 @@ class BubbleService : Service(), SensorEventListener {
 
                 if (conn.responseCode in 200..299) {
                     val resp = conn.inputStream.bufferedReader().use { it.readText() }
-                    val json = JSONObject(resp)
+                    val rawJson = JSONObject(resp)
+                    val json = if (rawJson.has("data") && !rawJson.isNull("data") && rawJson.get("data") is JSONObject) rawJson.getJSONObject("data") else rawJson
                     val defaultAssigneeId = if (json.has("defaultAssigneeId") && !json.isNull("defaultAssigneeId")) json.getString("defaultAssigneeId") else null
                     val membersArr = json.optJSONArray("members")
                     val membersList = mutableListOf<MemberItem>()

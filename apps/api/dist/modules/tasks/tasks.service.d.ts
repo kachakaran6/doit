@@ -21,9 +21,9 @@ export declare class TasksService {
     private resolveTaskId;
     findOne(rawTaskId: string): Promise<{
         checklist: {
-            id: string;
             text: string;
             done: boolean;
+            id: string;
             order: Prisma.Decimal;
             taskId: string;
         }[];
@@ -62,7 +62,6 @@ export declare class TasksService {
         })[];
         bug: {
             expected: string | null;
-            appVersion: string | null;
             id: string;
             taskId: string;
             sessionId: string | null;
@@ -74,19 +73,20 @@ export declare class TasksService {
             deviceModel: string | null;
             osVersion: string | null;
             appUnderTest: string | null;
+            appVersion: string | null;
             buildNumber: string | null;
             capturedAt: Date;
             autoContext: Prisma.JsonValue;
         } | null;
         activity: ({
             actor: {
-                name: string;
                 id: string;
+                name: string;
             };
         } & {
+            workspaceId: string;
             id: string;
             createdAt: Date;
-            workspaceId: string;
             taskId: string | null;
             actorId: string;
             action: string;
@@ -136,16 +136,16 @@ export declare class TasksService {
         success: boolean;
     }>;
     addChecklistItem(taskId: string, dto: CreateChecklistItemDto): Promise<{
-        id: string;
         text: string;
         done: boolean;
+        id: string;
         order: Prisma.Decimal;
         taskId: string;
     }>;
     updateChecklistItem(itemId: string, dto: UpdateChecklistItemDto): Promise<{
-        id: string;
         text: string;
         done: boolean;
+        id: string;
         order: Prisma.Decimal;
         taskId: string;
     }>;
@@ -154,18 +154,18 @@ export declare class TasksService {
     }>;
     getComments(taskId: string): Promise<({
         author: {
-            email: string;
-            name: string;
             id: string;
+            name: string;
+            email: string;
             avatarUrl: string | null;
         };
     } & {
+        body: string;
+        voiceNoteId: string | null;
         id: string;
         createdAt: Date;
         updatedAt: Date;
         deletedAt: Date | null;
-        body: string;
-        voiceNoteId: string | null;
         taskId: string;
         authorId: string;
     })[]>;
@@ -174,18 +174,18 @@ export declare class TasksService {
         voiceNoteId?: string;
     }): Promise<{
         author: {
-            email: string;
-            name: string;
             id: string;
+            name: string;
+            email: string;
             avatarUrl: string | null;
         };
     } & {
+        body: string;
+        voiceNoteId: string | null;
         id: string;
         createdAt: Date;
         updatedAt: Date;
         deletedAt: Date | null;
-        body: string;
-        voiceNoteId: string | null;
         taskId: string;
         authorId: string;
     }>;

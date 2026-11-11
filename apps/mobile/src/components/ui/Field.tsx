@@ -57,19 +57,20 @@ export const Field: React.FC<FieldProps> = ({
   }
 
   const bg = disabled ? colors.surfaceSubtle : colors.surfaceRaised; // L2 for inputs
-  const resolvedSecureTextEntry = isPassword ? !showPassword : secureTextEntry;
+  const resolvedSecureTextEntry = secureTextEntry !== undefined ? secureTextEntry : (isPassword ? !showPassword : secureTextEntry);
 
   let effectiveSuffix = suffix;
   if (isPassword && !suffix) {
+    const isCurrentlyHidden = secureTextEntry !== undefined ? secureTextEntry : !showPassword;
     effectiveSuffix = (
       <Pressable
         onPress={() => setShowPassword((prev) => !prev)}
         accessibilityRole="button"
-        accessibilityLabel={showPassword ? 'Hide password' : 'Show password'}
+        accessibilityLabel={!isCurrentlyHidden ? 'Hide password' : 'Show password'}
         hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
         style={{ padding: 4, justifyContent: 'center', alignItems: 'center' }}
       >
-        {showPassword ? (
+        {!isCurrentlyHidden ? (
           <EyeOff size={18} color={colors.textSecondary} />
         ) : (
           <Eye size={18} color={colors.textSecondary} />
@@ -104,6 +105,7 @@ export const Field: React.FC<FieldProps> = ({
         {prefix && <View style={{ marginRight: spacing.sm }}>{prefix}</View>}
 
         <TextInput
+          key={isPassword ? (resolvedSecureTextEntry ? 'pwd-hidden' : 'pwd-visible') : undefined}
           value={value}
           editable={!disabled}
           keyboardAppearance="dark"

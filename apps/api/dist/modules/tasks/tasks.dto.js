@@ -34,7 +34,7 @@ exports.ReorderTaskSchema = zod_1.z.object({
 });
 exports.AssignTaskSchema = zod_1.z.object({
     assigneeId: zod_1.z
-        .preprocess((val) => (val === '' || val === 'unassigned' ? null : val), zod_1.z.string().uuid().nullable()),
+        .preprocess((val) => (val === '' || val === 'unassigned' ? null : val), zod_1.z.string().uuid().nullable().optional()),
 });
 exports.SetLabelsSchema = zod_1.z.object({
     labelIds: zod_1.z.array(zod_1.z.string().uuid()),

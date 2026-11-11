@@ -101,10 +101,10 @@ let TasksController = class TasksController {
         return this.tasksService.reorder(id, dto);
     }
     async assign(user, id, dto) {
-        return this.tasksService.assign(id, user.sub, dto.assigneeId);
+        return this.tasksService.assign(id, user.sub, dto.assigneeId ?? null);
     }
     async assignPatch(user, id, dto) {
-        return this.tasksService.assign(id, user.sub, dto.assigneeId);
+        return this.tasksService.assign(id, user.sub, dto.assigneeId ?? null);
     }
     async setLabels(user, id, dto) {
         return this.tasksService.setLabels(id, user.sub, dto.labelIds);

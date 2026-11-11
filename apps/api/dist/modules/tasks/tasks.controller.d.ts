@@ -12,10 +12,10 @@ export declare class TasksController {
     findOneBug(id: string): Promise<{
         checklist: {
             id: string;
-            text: string;
-            done: boolean;
             order: import("@prisma/client/runtime/library").Decimal;
             taskId: string;
+            text: string;
+            done: boolean;
         }[];
         attachments: ({
             url: string;
@@ -52,7 +52,6 @@ export declare class TasksController {
         })[];
         bug: {
             expected: string | null;
-            appVersion: string | null;
             id: string;
             taskId: string;
             sessionId: string | null;
@@ -64,19 +63,20 @@ export declare class TasksController {
             deviceModel: string | null;
             osVersion: string | null;
             appUnderTest: string | null;
+            appVersion: string | null;
             buildNumber: string | null;
             capturedAt: Date;
             autoContext: import("@prisma/client/runtime/library").JsonValue;
         } | null;
         activity: ({
             actor: {
-                name: string;
                 id: string;
+                name: string;
             };
         } & {
+            workspaceId: string;
             id: string;
             createdAt: Date;
-            workspaceId: string;
             taskId: string | null;
             actorId: string;
             action: string;
@@ -128,10 +128,10 @@ export declare class TasksController {
     findOne(id: string): Promise<{
         checklist: {
             id: string;
-            text: string;
-            done: boolean;
             order: import("@prisma/client/runtime/library").Decimal;
             taskId: string;
+            text: string;
+            done: boolean;
         }[];
         attachments: ({
             url: string;
@@ -168,7 +168,6 @@ export declare class TasksController {
         })[];
         bug: {
             expected: string | null;
-            appVersion: string | null;
             id: string;
             taskId: string;
             sessionId: string | null;
@@ -180,19 +179,20 @@ export declare class TasksController {
             deviceModel: string | null;
             osVersion: string | null;
             appUnderTest: string | null;
+            appVersion: string | null;
             buildNumber: string | null;
             capturedAt: Date;
             autoContext: import("@prisma/client/runtime/library").JsonValue;
         } | null;
         activity: ({
             actor: {
-                name: string;
                 id: string;
+                name: string;
             };
         } & {
+            workspaceId: string;
             id: string;
             createdAt: Date;
-            workspaceId: string;
             taskId: string | null;
             actorId: string;
             action: string;
@@ -245,26 +245,26 @@ export declare class TasksController {
     }>;
     addChecklistItem(id: string, dto: CreateChecklistItemDto): Promise<{
         id: string;
-        text: string;
-        done: boolean;
         order: import("@prisma/client/runtime/library").Decimal;
         taskId: string;
+        text: string;
+        done: boolean;
     }>;
     updateChecklistItem(itemId: string, dto: UpdateChecklistItemDto): Promise<{
         id: string;
-        text: string;
-        done: boolean;
         order: import("@prisma/client/runtime/library").Decimal;
         taskId: string;
+        text: string;
+        done: boolean;
     }>;
     deleteChecklistItem(itemId: string): Promise<{
         success: boolean;
     }>;
     getComments(id: string): Promise<({
         author: {
-            email: string;
-            name: string;
             id: string;
+            name: string;
+            email: string;
             avatarUrl: string | null;
         };
     } & {
@@ -272,16 +272,16 @@ export declare class TasksController {
         createdAt: Date;
         updatedAt: Date;
         deletedAt: Date | null;
-        body: string;
-        voiceNoteId: string | null;
         taskId: string;
         authorId: string;
+        body: string;
+        voiceNoteId: string | null;
     })[]>;
     addComment(user: AuthUserPayload, id: string, dto: CreateCommentDto): Promise<{
         author: {
-            email: string;
-            name: string;
             id: string;
+            name: string;
+            email: string;
             avatarUrl: string | null;
         };
     } & {
@@ -289,10 +289,10 @@ export declare class TasksController {
         createdAt: Date;
         updatedAt: Date;
         deletedAt: Date | null;
-        body: string;
-        voiceNoteId: string | null;
         taskId: string;
         authorId: string;
+        body: string;
+        voiceNoteId: string | null;
     }>;
     deleteComment(user: AuthUserPayload, commentId: string): Promise<{
         success: boolean;

@@ -14,6 +14,7 @@ import { useTheme } from '../../theme/useTheme';
 import { useNavBarScroll } from '../../navigation/nav-bar-scroll.context';
 import { useBottomInsets } from '../../layout/useBottomInsets';
 import { useBackNavigationStore } from '../../navigation/back-navigation.store';
+import { overlayService } from '../../native/overlay';
 import { Text } from './Text';
 import {
   Home as HomeIcon,
@@ -86,7 +87,11 @@ export const FloatingNavBar: React.FC<FloatingNavBarProps> = ({
     if (onCapturePress) {
       onCapturePress();
     } else {
-      (navigation as any).navigate('CaptureModal', { initialMode: 'task' });
+      overlayService.showQuickCapture('TASK').then((shown) => {
+        if (!shown) {
+          (navigation as any).navigate('CaptureModal', { initialMode: 'task' });
+        }
+      });
     }
   };
 

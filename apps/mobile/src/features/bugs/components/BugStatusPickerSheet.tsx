@@ -92,12 +92,19 @@ export const BugStatusPickerSheet: React.FC<BugStatusPickerSheetProps> = ({
   };
 
   return (
-    <View style={styles.overlayRoot} pointerEvents="box-none">
-      <TouchableOpacity
-        style={[styles.backdrop, { backgroundColor: colors.overlay || 'rgba(0,0,0,0.65)' }]}
-        activeOpacity={1}
-        onPress={onClose}
-      />
+    <Modal
+      visible={visible}
+      transparent
+      animationType="fade"
+      onRequestClose={onClose}
+      statusBarTranslucent
+    >
+      <View style={styles.overlayRoot}>
+        <TouchableOpacity
+          style={[styles.backdrop, { backgroundColor: colors.overlay || 'rgba(0,0,0,0.65)' }]}
+          activeOpacity={1}
+          onPress={onClose}
+        />
       <View
         style={[
           styles.sheet,
@@ -246,6 +253,7 @@ export const BugStatusPickerSheet: React.FC<BugStatusPickerSheetProps> = ({
           </ScrollView>
         </View>
       </View>
+    </Modal>
   );
 };
 

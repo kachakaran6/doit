@@ -97,7 +97,8 @@ export const TaskDetailScreen: React.FC = () => {
     http
       .get<any>(`/projects/${task.projectId}/members`)
       .then((res) => {
-        setProjectMembers(res?.members || []);
+        const list = res?.members || res?.data?.members || (Array.isArray(res) ? res : []);
+        setProjectMembers(list);
       })
       .catch(() => {
         setProjectMembers([]);

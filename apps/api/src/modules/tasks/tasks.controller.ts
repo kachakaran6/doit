@@ -257,7 +257,7 @@ export class TasksController {
     @Param('id') id: string,
     @Body(new ZodValidationPipe(AssignTaskSchema)) dto: AssignTaskDto,
   ) {
-    return this.tasksService.assign(id, user.sub, dto.assigneeId);
+    return this.tasksService.assign(id, user.sub, dto.assigneeId ?? null);
   }
 
   @Patch('tasks/:id/assign')
@@ -269,7 +269,7 @@ export class TasksController {
     @Param('id') id: string,
     @Body(new ZodValidationPipe(AssignTaskSchema)) dto: AssignTaskDto,
   ) {
-    return this.tasksService.assign(id, user.sub, dto.assigneeId);
+    return this.tasksService.assign(id, user.sub, dto.assigneeId ?? null);
   }
 
   @Post('tasks/:id/labels')

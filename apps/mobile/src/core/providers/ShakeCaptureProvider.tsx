@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useState, useCallback, useRef } from 'react';
 import { shakeDetector, ShakeSensitivity, ShakeDiagnostics } from '../../native/shake';
 import { navigateToCapture } from '../../navigation/navigationRef';
+import { overlayService } from '../../native/overlay';
 import { useAuthStore } from '../../features/auth/store';
 import * as SecureStore from 'expo-secure-store';
 
@@ -104,7 +105,11 @@ export const ShakeCaptureProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
       // Normal mode: only trigger if user is authenticated and app is in foreground
       if (isAuthenticated) {
-        navigateToCapture('bug');
+        overlayService.showQuickCapture('TASK').then((shown) => {
+          if (!shown) {
+            navigateToCapture('task');
+          }
+        });
       }
     };
 

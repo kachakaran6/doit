@@ -45,46 +45,54 @@ export const ConfirmationDialog: React.FC<ConfirmationDialogProps> = ({
   if (!visible) return null;
 
   return (
-    <View style={styles.overlayRoot} pointerEvents="box-none">
-      <TouchableOpacity
-        style={[styles.backdrop, { backgroundColor: colors.overlay || 'rgba(0, 0, 0, 0.65)' }]}
-        activeOpacity={1}
-        onPress={onCancel}
-      />
-      <View
-        style={[
-          styles.card,
-          {
-            backgroundColor: colors.surface1 || colors.surface,
-            borderColor: colors.border,
-            borderRadius: radius.lg,
-            padding: spacing.lg,
-            ...elevation.e3,
-          },
-          style,
-        ]}
-      >
-        <Text variant="h2" style={{ marginBottom: spacing.xs, fontWeight: '700', color: colors.textPrimary }}>
-          {title}
-        </Text>
-        <Text
-          variant="body"
-          color="secondary"
-          style={{ marginBottom: spacing.xl, lineHeight: 21, color: colors.textSecondary }}
+    <Modal
+      visible={visible}
+      transparent
+      animationType="fade"
+      onRequestClose={onCancel}
+      statusBarTranslucent
+    >
+      <View style={styles.overlayRoot}>
+        <TouchableOpacity
+          style={[styles.backdrop, { backgroundColor: colors.overlay || 'rgba(0, 0, 0, 0.65)' }]}
+          activeOpacity={1}
+          onPress={onCancel}
+        />
+        <View
+          style={[
+            styles.card,
+            {
+              backgroundColor: colors.surface1 || colors.surface,
+              borderColor: colors.border,
+              borderRadius: radius.lg,
+              padding: spacing.lg,
+              ...elevation.e3,
+            },
+            style,
+          ]}
         >
-          {message}
-        </Text>
+          <Text variant="h2" style={{ marginBottom: spacing.xs, fontWeight: '700', color: colors.textPrimary }}>
+            {title}
+          </Text>
+          <Text
+            variant="body"
+            color="secondary"
+            style={{ marginBottom: spacing.xl, lineHeight: 21, color: colors.textSecondary }}
+          >
+            {message}
+          </Text>
 
-        <View style={[styles.buttonRow, { gap: spacing.sm }]}>
-          <View style={styles.dialogBtn}>
-            <Button title={cancelLabel} variant="secondary" size="sm" onPress={onCancel} />
-          </View>
-          <View style={styles.dialogBtn}>
-            <Button title={confirmLabel} variant={destructive ? 'danger' : 'primary'} size="sm" loading={loading} onPress={onConfirm} />
+          <View style={[styles.buttonRow, { gap: spacing.sm }]}>
+            <View style={styles.dialogBtn}>
+              <Button title={cancelLabel} variant="secondary" size="sm" onPress={onCancel} />
+            </View>
+            <View style={styles.dialogBtn}>
+              <Button title={confirmLabel} variant={destructive ? 'danger' : 'primary'} size="sm" loading={loading} onPress={onConfirm} />
+            </View>
           </View>
         </View>
       </View>
-    </View>
+    </Modal>
   );
 };
 

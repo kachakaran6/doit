@@ -11,22 +11,22 @@ export declare const CreateTaskSchema: z.ZodObject<{
     assigneeId: z.ZodEffects<z.ZodOptional<z.ZodNullable<z.ZodString>>, string | null | undefined, unknown>;
     labelIds: z.ZodDefault<z.ZodArray<z.ZodString, "many">>;
 }, "strip", z.ZodTypeAny, {
-    type: "TASK" | "BUG";
     title: string;
     priority: "LOW" | "MEDIUM" | "HIGH" | "URGENT";
+    type: "TASK" | "BUG";
     source: "BUG" | "MANUAL" | "VOICE" | "STICKY" | "WIDGET" | "OVERLAY" | "SHARE";
     dueHasTime: boolean;
     labelIds: string[];
-    description?: string | undefined;
     projectId?: string | undefined;
+    description?: string | undefined;
     dueAt?: string | undefined;
     assigneeId?: string | null | undefined;
 }, {
     title: string;
-    type?: "TASK" | "BUG" | undefined;
-    description?: string | undefined;
     projectId?: string | undefined;
+    description?: string | undefined;
     priority?: "LOW" | "MEDIUM" | "HIGH" | "URGENT" | undefined;
+    type?: "TASK" | "BUG" | undefined;
     source?: "BUG" | "MANUAL" | "VOICE" | "STICKY" | "WIDGET" | "OVERLAY" | "SHARE" | undefined;
     dueAt?: string | undefined;
     dueHasTime?: boolean | undefined;
@@ -43,21 +43,21 @@ export declare const UpdateTaskSchema: z.ZodObject<{
     dueHasTime: z.ZodOptional<z.ZodBoolean>;
     assigneeId: z.ZodEffects<z.ZodOptional<z.ZodNullable<z.ZodString>>, string | null | undefined, unknown>;
 }, "strip", z.ZodTypeAny, {
-    status?: "TODO" | "IN_PROGRESS" | "BLOCKED" | "DONE" | undefined;
-    description?: string | undefined;
     title?: string | undefined;
+    description?: string | undefined;
     priority?: "LOW" | "MEDIUM" | "HIGH" | "URGENT" | undefined;
     dueAt?: string | null | undefined;
     dueHasTime?: boolean | undefined;
     assigneeId?: string | null | undefined;
-}, {
     status?: "TODO" | "IN_PROGRESS" | "BLOCKED" | "DONE" | undefined;
-    description?: string | undefined;
+}, {
     title?: string | undefined;
+    description?: string | undefined;
     priority?: "LOW" | "MEDIUM" | "HIGH" | "URGENT" | undefined;
     dueAt?: string | null | undefined;
     dueHasTime?: boolean | undefined;
     assigneeId?: unknown;
+    status?: "TODO" | "IN_PROGRESS" | "BLOCKED" | "DONE" | undefined;
 }>;
 export type UpdateTaskDto = z.infer<typeof UpdateTaskSchema>;
 export declare const UpdateStatusSchema: z.ZodObject<{
@@ -80,9 +80,9 @@ export declare const ReorderTaskSchema: z.ZodObject<{
 }>;
 export type ReorderTaskDto = z.infer<typeof ReorderTaskSchema>;
 export declare const AssignTaskSchema: z.ZodObject<{
-    assigneeId: z.ZodEffects<z.ZodNullable<z.ZodString>, string | null, unknown>;
+    assigneeId: z.ZodEffects<z.ZodOptional<z.ZodNullable<z.ZodString>>, string | null | undefined, unknown>;
 }, "strip", z.ZodTypeAny, {
-    assigneeId: string | null;
+    assigneeId?: string | null | undefined;
 }, {
     assigneeId?: unknown;
 }>;
@@ -125,21 +125,21 @@ export declare const TaskListQuerySchema: z.ZodObject<{
     limit: z.ZodDefault<z.ZodNumber>;
 }, "strip", z.ZodTypeAny, {
     limit: number;
+    priority?: string | string[] | undefined;
     type?: "TASK" | "BUG" | undefined;
     status?: string | string[] | undefined;
-    cursor?: string | undefined;
-    priority?: string | string[] | undefined;
     assignee?: string | undefined;
-    due?: "week" | "overdue" | "today" | "none" | undefined;
+    due?: "overdue" | "today" | "week" | "none" | undefined;
     q?: string | undefined;
+    cursor?: string | undefined;
 }, {
+    priority?: string | string[] | undefined;
     type?: "TASK" | "BUG" | undefined;
     status?: string | string[] | undefined;
-    cursor?: string | undefined;
-    priority?: string | string[] | undefined;
     assignee?: string | undefined;
-    due?: "week" | "overdue" | "today" | "none" | undefined;
+    due?: "overdue" | "today" | "week" | "none" | undefined;
     q?: string | undefined;
+    cursor?: string | undefined;
     limit?: number | undefined;
 }>;
 export type TaskListQueryDto = z.infer<typeof TaskListQuerySchema>;

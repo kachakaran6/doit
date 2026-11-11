@@ -34,6 +34,7 @@ export interface OverlayService {
   getCredentials(): Promise<{ authToken?: string | null; refreshToken?: string | null; baseUrl?: string | null; projectId?: string | null } | null>;
   syncAuthCredentials(token: string | null, baseUrl?: string, projectId?: string | null, refreshToken?: string | null): Promise<void>;
   setShakeEnabled(enabled: boolean, sensitivity?: string): Promise<void>;
+  showQuickCapture(mode?: 'TASK' | 'BUG' | 'task' | 'bug'): Promise<boolean>;
   hasScreenshotPermission(): Promise<boolean>;
   requestScreenshotPermission(): Promise<boolean>;
   captureCleanScreenshot(): Promise<CleanScreenshotResult>;
@@ -203,6 +204,16 @@ class OverlayServiceImpl implements OverlayService {
       await OverlayServiceModule.setShakeEnabled(enabled, sensitivity);
     } catch (e) {
       console.warn('[OverlayService] Failed to set shake config:', e);
+    }
+  }
+
+  async showQuickCapture(mode: 'TASK' | 'BUG' | 'task' | 'bug' = 'TASK'): Promise<boolean> {
+    if (!this.isAvailable() || !OverlayServiceModule?.showQuickCapture) return false;
+    try {
+      return await OverlayServiceModule.showQuickCapture(mode.toUpperCase());
+    } catch (e) {
+      console.warn('[OverlayService] Failed to show quick capture:', e);
+      return false;
     }
   }
 

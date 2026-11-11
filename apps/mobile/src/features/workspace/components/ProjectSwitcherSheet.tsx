@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   StyleSheet,
@@ -16,7 +16,7 @@ import { Text, Input, Button } from '../../../components/ui';
 import { useWorkspaceStore } from '../store';
 import { useProjectsQuery } from '../queries';
 import { http } from '../../../lib/http';
-import { Check, Plus, X, FolderKanban } from 'lucide-react-native';
+import { Check, Plus, X, FolderKanban, User, Settings2, ChevronDown } from 'lucide-react-native';
 
 interface ProjectSwitcherSheetProps {
   visible?: boolean;
@@ -41,9 +41,30 @@ export const ProjectSwitcherSheet: React.FC<ProjectSwitcherSheetProps> = ({
   );
 
   const [isCreating, setIsCreating] = useState(false);
+  const [editingProject, setEditingProject] = useState<any | null>(null);
   const [newProjectName, setNewProjectName] = useState('');
+  const [editName, setEditName] = useState('');
+  const [selectedDefaultAssigneeId, setSelectedDefaultAssigneeId] = useState<string>('');
+  const [workspaceMembers, setWorkspaceMembers] = useState<any[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [assigneePickerOpen, setAssigneePickerOpen] = useState(false);
+
+  useEffect(() => {
+    if (!activeWorkspace?.id || !isSheetVisible) return;
+    http
+      .get<any>(`/workspaces/${activeWorkspace.id}/members`)
+      .then((res) => {
+        const raw = Array.isArray(res) ? res : res?.members || res?.data || [];
+        const normalized = raw.map((m: any) => ({
+          id: m.user?.id || m.userId || m.id,
+          name: m.user?.name || m.name || m.user?.email || m.email || 'Member',
+          email: m.user?.email || m.email || '',
+        }));
+        setWorkspaceMembers(normalized);
+      })
+      .catch(() => setWorkspaceMembers([]));
+  }, [activeWorkspace?.id, isSheetVisible]);
 
   const handleSelect = (project: any) => {
     setActiveProject(project);
@@ -65,13 +86,13 @@ export const ProjectSwitcherSheet: React.FC<ProjectSwitcherSheetProps> = ({
         name: cleanName,
         key: validKey,
         color: 'INDIGO',
+        defaultAssigneeId: selectedDefaultAssigneeId || null,
       });
       if (res && res.id) {
         setActiveProject(res);
         await refetch();
       }
-      setNewProjectName('');
-      setIsCreating(false);
+      resetForm();
       onClose();
     } catch (e: any) {
       setErrorMsg(e.message || 'Failed to create project');
@@ -80,29 +101,80 @@ export const ProjectSwitcherSheet: React.FC<ProjectSwitcherSheetProps> = ({
     }
   };
 
+  const handleUpdateProject = async () => {
+    if (!editingProject) return;
+    if (!editName.trim()) {
+      setErrorMsg('Project name is required');
+      return;
+    }
+    setIsSubmitting(true);
+    setErrorMsg(null);
+    try {
+      const res: any = await http.patch(`/projects/${editingProject.id}`, {
+        name: editName.trim(),
+        defaultAssigneeId: selectedDefaultAssigneeId || null,
+      });
+      if (res && res.id) {
+        if (activeProject?.id === res.id) {
+          setActiveProject(res);
+        }
+        await refetch();
+      }
+      resetForm();
+    } catch (e: any) {
+      setErrorMsg(e.message || 'Failed to update project');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const openEdit = (p: any) => {
+    setEditingProject(p);
+    setEditName(p.name);
+    setSelectedDefaultAssigneeId(p.defaultAssigneeId || '');
+    setErrorMsg(null);
+  };
+
   const resetForm = () => {
     setIsCreating(false);
+    setEditingProject(null);
     setNewProjectName('');
+    setEditName('');
+    setSelectedDefaultAssigneeId('');
     setErrorMsg(null);
+    setAssigneePickerOpen(false);
   };
 
   if (!isSheetVisible) return null;
 
+  const currentAssigneeName =
+    workspaceMembers.find((m) => m.id === selectedDefaultAssigneeId)?.name || 'Unassigned (No default)';
+
   return (
-    <View style={styles.overlayRoot}>
-      <TouchableOpacity
-        style={[styles.backdrop, { backgroundColor: colors.overlay || 'rgba(0,0,0,0.65)' }]}
-        activeOpacity={1}
-        onPress={() => {
-          resetForm();
-          onClose();
-        }}
-      />
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        style={styles.keyboardContainer}
-        pointerEvents="box-none"
-      >
+    <Modal
+      visible={isSheetVisible}
+      transparent
+      animationType="fade"
+      onRequestClose={() => {
+        resetForm();
+        onClose();
+      }}
+      statusBarTranslucent
+    >
+      <View style={styles.overlayRoot}>
+        <TouchableOpacity
+          style={[styles.backdrop, { backgroundColor: colors.overlay || 'rgba(0,0,0,0.65)' }]}
+          activeOpacity={1}
+          onPress={() => {
+            resetForm();
+            onClose();
+          }}
+        />
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          style={styles.keyboardContainer}
+          pointerEvents="box-none"
+        >
           <View
             style={[
               styles.sheet,
@@ -136,7 +208,7 @@ export const ProjectSwitcherSheet: React.FC<ProjectSwitcherSheetProps> = ({
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                   <FolderKanban size={18} color={colors.accentText} />
                   <Text variant="h3" style={{ fontWeight: '700' }}>
-                    {isCreating ? 'Create Project' : 'Projects'}
+                    {isCreating ? 'Create Project' : editingProject ? 'Project Settings' : 'Projects'}
                   </Text>
                 </View>
                 <TouchableOpacity
@@ -177,15 +249,16 @@ export const ProjectSwitcherSheet: React.FC<ProjectSwitcherSheetProps> = ({
                 </View>
               )}
 
-              {!isCreating ? (
+              {!isCreating && !editingProject ? (
                 <>
                   {/* List of projects */}
                   <View style={{ gap: spacing.xs }}>
                     {projects.map((p) => {
                       const isSelected = p.id === activeProject?.id;
+                      const defaultAssigneeName = p.defaultAssignee?.name;
 
                       return (
-                        <TouchableOpacity
+                        <View
                           key={p.id}
                           style={[
                             styles.projectItem,
@@ -199,10 +272,12 @@ export const ProjectSwitcherSheet: React.FC<ProjectSwitcherSheetProps> = ({
                               padding: spacing.md,
                             },
                           ]}
-                          onPress={() => handleSelect(p)}
-                          activeOpacity={0.7}
                         >
-                          <View style={styles.itemLeft}>
+                          <TouchableOpacity
+                            style={[styles.itemLeft, { flex: 1 }]}
+                            onPress={() => handleSelect(p)}
+                            activeOpacity={0.7}
+                          >
                             <View
                               style={[
                                 styles.keyBadge,
@@ -226,11 +301,37 @@ export const ProjectSwitcherSheet: React.FC<ProjectSwitcherSheetProps> = ({
                               <Text variant="bodyStrong" numberOfLines={1}>
                                 {p.name}
                               </Text>
+                              {defaultAssigneeName ? (
+                                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 2 }}>
+                                  <User size={11} color={colors.accentText} />
+                                  <Text variant="caption" color="secondary" style={{ fontSize: 11 }}>
+                                    Default: <Text style={{ color: colors.textPrimary, fontWeight: '600' }}>{defaultAssigneeName}</Text>
+                                  </Text>
+                                </View>
+                              ) : (
+                                <Text variant="caption" color="secondary" style={{ fontSize: 11, marginTop: 2 }}>
+                                  No default assignee
+                                </Text>
+                              )}
                             </View>
-                          </View>
+                          </TouchableOpacity>
 
-                          {isSelected && <Check size={18} color={colors.accentText} strokeWidth={2.5} />}
-                        </TouchableOpacity>
+                          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                            <TouchableOpacity
+                              onPress={() => openEdit(p)}
+                              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                              style={{
+                                padding: 6,
+                                borderRadius: radius.sm,
+                                backgroundColor: colors.surface2,
+                              }}
+                              accessibilityLabel="Edit project settings"
+                            >
+                              <Settings2 size={16} color={colors.textSecondary} />
+                            </TouchableOpacity>
+                            {isSelected && <Check size={18} color={colors.accentText} strokeWidth={2.5} />}
+                          </View>
+                        </View>
                       );
                     })}
                   </View>
@@ -246,7 +347,10 @@ export const ProjectSwitcherSheet: React.FC<ProjectSwitcherSheetProps> = ({
                         marginTop: spacing.md,
                       },
                     ]}
-                    onPress={() => setIsCreating(true)}
+                    onPress={() => {
+                      resetForm();
+                      setIsCreating(true);
+                    }}
                     activeOpacity={0.7}
                   >
                     <Plus size={16} color={colors.accentText} />
@@ -258,7 +362,8 @@ export const ProjectSwitcherSheet: React.FC<ProjectSwitcherSheetProps> = ({
                     </Text>
                   </TouchableOpacity>
                 </>
-              ) : (
+              ) : isCreating ? (
+                /* Create Project View */
                 <View style={{ gap: spacing.md }}>
                   <Input
                     label="Project Name"
@@ -267,9 +372,102 @@ export const ProjectSwitcherSheet: React.FC<ProjectSwitcherSheetProps> = ({
                     placeholder="e.g. Mobile App"
                     autoFocus
                     returnKeyType="done"
-                    onSubmitEditing={handleCreateProject}
                   />
-                  <View style={[styles.formActions, { gap: spacing.sm }]}>
+
+                  {/* Default Assignee Picker */}
+                  <View style={{ gap: 4 }}>
+                    <Text variant="caption" color="secondary" style={{ fontWeight: '600' }}>
+                      Default Assignee (Optional)
+                    </Text>
+                    <TouchableOpacity
+                      onPress={() => setAssigneePickerOpen((prev) => !prev)}
+                      style={{
+                        flexDirection: 'row',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        borderWidth: 1,
+                        borderColor: colors.border,
+                        borderRadius: radius.md,
+                        paddingHorizontal: spacing.md,
+                        paddingVertical: 12,
+                        backgroundColor: colors.surface2,
+                      }}
+                      activeOpacity={0.7}
+                    >
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                        <User size={16} color={selectedDefaultAssigneeId ? colors.accent : colors.textSecondary} />
+                        <Text variant="bodySmall" style={{ color: colors.textPrimary }}>
+                          {currentAssigneeName}
+                        </Text>
+                      </View>
+                      <ChevronDown size={16} color={colors.textSecondary} />
+                    </TouchableOpacity>
+
+                    {assigneePickerOpen && (
+                      <View
+                        style={{
+                          borderWidth: 1,
+                          borderColor: colors.border,
+                          borderRadius: radius.md,
+                          backgroundColor: colors.surface,
+                          overflow: 'hidden',
+                          marginTop: 4,
+                        }}
+                      >
+                        <TouchableOpacity
+                          style={{
+                            padding: spacing.md,
+                            borderBottomWidth: StyleSheet.hairlineWidth,
+                            borderBottomColor: colors.hairline,
+                            backgroundColor: !selectedDefaultAssigneeId ? colors.surface2 : 'transparent',
+                          }}
+                          onPress={() => {
+                            setSelectedDefaultAssigneeId('');
+                            setAssigneePickerOpen(false);
+                          }}
+                        >
+                          <Text variant="bodySmall" style={{ color: !selectedDefaultAssigneeId ? colors.accent : colors.textSecondary }}>
+                            Unassigned (No default)
+                          </Text>
+                        </TouchableOpacity>
+                        {workspaceMembers.map((m) => {
+                          const isSel = selectedDefaultAssigneeId === m.id;
+                          return (
+                            <TouchableOpacity
+                              key={m.id}
+                              style={{
+                                padding: spacing.md,
+                                borderBottomWidth: StyleSheet.hairlineWidth,
+                                borderBottomColor: colors.hairline,
+                                backgroundColor: isSel ? colors.surface2 : 'transparent',
+                                flexDirection: 'row',
+                                justifyContent: 'space-between',
+                                alignItems: 'center',
+                              }}
+                              onPress={() => {
+                                setSelectedDefaultAssigneeId(m.id);
+                                setAssigneePickerOpen(false);
+                              }}
+                            >
+                              <View>
+                                <Text variant="bodySmall" style={{ fontWeight: isSel ? '700' : '400', color: isSel ? colors.accent : colors.textPrimary }}>
+                                  {m.name}
+                                </Text>
+                                {m.email ? (
+                                  <Text variant="caption" color="secondary" style={{ fontSize: 11 }}>
+                                    {m.email}
+                                  </Text>
+                                ) : null}
+                              </View>
+                              {isSel && <Check size={16} color={colors.accent} />}
+                            </TouchableOpacity>
+                          );
+                        })}
+                      </View>
+                    )}
+                  </View>
+
+                  <View style={[styles.formActions, { gap: spacing.sm, marginTop: spacing.xs }]}>
                     <View style={{ flex: 1 }}>
                       <Button
                         title="Cancel"
@@ -288,11 +486,135 @@ export const ProjectSwitcherSheet: React.FC<ProjectSwitcherSheetProps> = ({
                     </View>
                   </View>
                 </View>
+              ) : (
+                /* Edit Project Settings View */
+                <View style={{ gap: spacing.md }}>
+                  <Input
+                    label="Project Name"
+                    value={editName}
+                    onChangeText={setEditName}
+                    placeholder="Project Name"
+                    returnKeyType="done"
+                  />
+
+                  {/* Default Assignee Picker */}
+                  <View style={{ gap: 4 }}>
+                    <Text variant="caption" color="secondary" style={{ fontWeight: '600' }}>
+                      Default Assignee
+                    </Text>
+                    <TouchableOpacity
+                      onPress={() => setAssigneePickerOpen((prev) => !prev)}
+                      style={{
+                        flexDirection: 'row',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        borderWidth: 1,
+                        borderColor: colors.border,
+                        borderRadius: radius.md,
+                        paddingHorizontal: spacing.md,
+                        paddingVertical: 12,
+                        backgroundColor: colors.surface2,
+                      }}
+                      activeOpacity={0.7}
+                    >
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                        <User size={16} color={selectedDefaultAssigneeId ? colors.accent : colors.textSecondary} />
+                        <Text variant="bodySmall" style={{ color: colors.textPrimary }}>
+                          {currentAssigneeName}
+                        </Text>
+                      </View>
+                      <ChevronDown size={16} color={colors.textSecondary} />
+                    </TouchableOpacity>
+
+                    {assigneePickerOpen && (
+                      <View
+                        style={{
+                          borderWidth: 1,
+                          borderColor: colors.border,
+                          borderRadius: radius.md,
+                          backgroundColor: colors.surface,
+                          overflow: 'hidden',
+                          marginTop: 4,
+                        }}
+                      >
+                        <TouchableOpacity
+                          style={{
+                            padding: spacing.md,
+                            borderBottomWidth: StyleSheet.hairlineWidth,
+                            borderBottomColor: colors.hairline,
+                            backgroundColor: !selectedDefaultAssigneeId ? colors.surface2 : 'transparent',
+                          }}
+                          onPress={() => {
+                            setSelectedDefaultAssigneeId('');
+                            setAssigneePickerOpen(false);
+                          }}
+                        >
+                          <Text variant="bodySmall" style={{ color: !selectedDefaultAssigneeId ? colors.accent : colors.textSecondary }}>
+                            Unassigned (No default)
+                          </Text>
+                        </TouchableOpacity>
+                        {workspaceMembers.map((m) => {
+                          const isSel = selectedDefaultAssigneeId === m.id;
+                          return (
+                            <TouchableOpacity
+                              key={m.id}
+                              style={{
+                                padding: spacing.md,
+                                borderBottomWidth: StyleSheet.hairlineWidth,
+                                borderBottomColor: colors.hairline,
+                                backgroundColor: isSel ? colors.surface2 : 'transparent',
+                                flexDirection: 'row',
+                                justifyContent: 'space-between',
+                                alignItems: 'center',
+                              }}
+                              onPress={() => {
+                                setSelectedDefaultAssigneeId(m.id);
+                                setAssigneePickerOpen(false);
+                              }}
+                            >
+                              <View>
+                                <Text variant="bodySmall" style={{ fontWeight: isSel ? '700' : '400', color: isSel ? colors.accent : colors.textPrimary }}>
+                                  {m.name}
+                                </Text>
+                                {m.email ? (
+                                  <Text variant="caption" color="secondary" style={{ fontSize: 11 }}>
+                                    {m.email}
+                                  </Text>
+                                ) : null}
+                              </View>
+                              {isSel && <Check size={16} color={colors.accent} />}
+                            </TouchableOpacity>
+                          );
+                        })}
+                      </View>
+                    )}
+                  </View>
+
+                  <View style={[styles.formActions, { gap: spacing.sm, marginTop: spacing.xs }]}>
+                    <View style={{ flex: 1 }}>
+                      <Button
+                        title="Cancel"
+                        variant="secondary"
+                        onPress={resetForm}
+                      />
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Button
+                        title="Save Changes"
+                        variant="primary"
+                        loading={isSubmitting}
+                        disabled={!editName.trim()}
+                        onPress={handleUpdateProject}
+                      />
+                    </View>
+                  </View>
+                </View>
               )}
             </ScrollView>
           </View>
         </KeyboardAvoidingView>
       </View>
+    </Modal>
   );
 };
 
@@ -321,9 +643,8 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: -6 },
     shadowOpacity: 0.25,
     shadowRadius: 20,
-    elevation: 1000,
-    zIndex: 1000,
-    overflow: 'hidden',
+    elevation: 10000,
+    zIndex: 10000,
   },
   scrollFlex: {
     flexGrow: 0,
@@ -348,9 +669,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  list: {
-    maxHeight: 280,
-  },
   projectItem: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -359,11 +677,10 @@ const styles = StyleSheet.create({
   itemLeft: {
     flexDirection: 'row',
     alignItems: 'center',
-    flex: 1,
   },
   keyBadge: {
     width: 44,
-    height: 28,
+    height: 32,
     alignItems: 'center',
     justifyContent: 'center',
   },
