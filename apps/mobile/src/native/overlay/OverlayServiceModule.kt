@@ -297,8 +297,12 @@ class OverlayServiceModule(private val reactContext: ReactApplicationContext) :
     fun showQuickCapture(mode: String?, promise: Promise) {
         try {
             val targetMode = (mode ?: "TASK").uppercase()
-            BubbleService.showQuickCapture(targetMode)
-            promise.resolve(true)
+            if (BubbleService.isRunning) {
+                BubbleService.showQuickCapture(targetMode)
+                promise.resolve(true)
+            } else {
+                promise.resolve(false)
+            }
         } catch (e: Exception) {
             promise.reject("QUICK_CAPTURE_ERROR", e.message)
         }

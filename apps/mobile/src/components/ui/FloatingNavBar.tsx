@@ -82,16 +82,29 @@ export const FloatingNavBar: React.FC<FloatingNavBarProps> = ({
     navigation.navigate(route);
   };
 
+  const openQuickMode = (mode: 'task' | 'bug' | 'sticky' | 'voice' = 'task') => {
+    setQuickMenuVisible(false);
+    Vibration.vibrate(12);
+    try {
+      const parent = (navigation as any).getParent?.();
+      if (parent?.navigate) {
+        parent.navigate('CaptureModal', { initialMode: mode });
+        return;
+      }
+    } catch {}
+    try {
+      (navigation as any).navigate('CaptureModal', { initialMode: mode });
+    } catch (e) {
+      console.warn('[FloatingNavBar] Navigation error:', e);
+    }
+  };
+
   const handleCapturePress = () => {
     Vibration.vibrate(15);
     if (onCapturePress) {
       onCapturePress();
     } else {
-      overlayService.showQuickCapture('TASK').then((shown) => {
-        if (!shown) {
-          (navigation as any).navigate('CaptureModal', { initialMode: 'task' });
-        }
-      });
+      openQuickMode('task');
     }
   };
 
@@ -102,12 +115,6 @@ export const FloatingNavBar: React.FC<FloatingNavBarProps> = ({
     } else {
       setQuickMenuVisible(true);
     }
-  };
-
-  const openQuickMode = (mode: 'task' | 'bug' | 'sticky' | 'voice') => {
-    setQuickMenuVisible(false);
-    Vibration.vibrate(12);
-    (navigation as any).navigate('CaptureModal', { initialMode: mode });
   };
 
   const isDark = resolvedTheme === 'dark';
@@ -193,11 +200,15 @@ export const FloatingNavBar: React.FC<FloatingNavBarProps> = ({
             accessibilityLabel="Create new task or long-press for options"
             onPress={handleCapturePress}
             onLongPress={handleCaptureLongPress}
-            style={[
+            delayLongPress={300}
+            hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+            style={({ pressed }) => [
               styles.detachedFab,
               {
                 backgroundColor: colors.accent,
                 borderRadius: radius.pill,
+                transform: [{ scale: pressed ? 0.94 : 1 }],
+                opacity: pressed ? 0.9 : 1,
               },
             ]}
           >

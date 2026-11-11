@@ -17,7 +17,15 @@ export const TabsNavigator: React.FC = () => {
     <Tab.Navigator
       initialRouteName="Home"
       backBehavior="none"
-      tabBar={(props) => <FloatingNavBar {...props} />}
+      tabBar={(props) => (
+        <FloatingNavBar
+          {...props}
+          onCapturePress={() => {
+            const nav = (props.navigation as any).getParent?.() || props.navigation;
+            nav.navigate('CaptureModal', { initialMode: 'task' });
+          }}
+        />
+      )}
       screenOptions={{
         headerShown: false,
         sceneStyle: { backgroundColor: 'transparent' },
