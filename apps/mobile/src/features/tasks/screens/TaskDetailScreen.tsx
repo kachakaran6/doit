@@ -573,141 +573,141 @@ export const TaskDetailScreen: React.FC = () => {
       <Modal
         visible={assigneePickerOpen}
         transparent
-        animationType="fade"
+        animationType="slide"
         onRequestClose={() => setAssigneePickerOpen(false)}
+        statusBarTranslucent
       >
-        <TouchableOpacity
-          style={styles.modalBackdrop}
-          activeOpacity={1}
-          onPress={() => setAssigneePickerOpen(false)}
-        />
-        <View
-          style={{
-            position: 'absolute',
-            bottom: 0,
-            left: 0,
-            right: 0,
-            backgroundColor: colors.surface,
-            borderTopLeftRadius: radius.xl,
-            borderTopRightRadius: radius.xl,
-            borderWidth: 1,
-            borderColor: colors.border,
-            padding: spacing.lg,
-            maxHeight: '60%',
-          }}
-        >
+        <View style={{ flex: 1, justifyContent: 'flex-end' }}>
+          <TouchableOpacity
+            style={styles.modalBackdrop}
+            activeOpacity={1}
+            onPress={() => setAssigneePickerOpen(false)}
+          />
           <View
             style={{
-              flexDirection: 'row',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              marginBottom: spacing.md,
+              width: '100%',
+              backgroundColor: colors.surface1 || colors.surface,
+              borderTopLeftRadius: radius.xl,
+              borderTopRightRadius: radius.xl,
+              borderWidth: 1,
+              borderColor: colors.border,
+              padding: spacing.lg,
+              maxHeight: '60%',
             }}
           >
-            <Text variant="title" style={{ fontWeight: '600' }}>
-              Assign Member
-            </Text>
-            <TouchableOpacity
-              onPress={() => setAssigneePickerOpen(false)}
-              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-            >
-              <X size={18} color={colors.textSecondary} />
-            </TouchableOpacity>
-          </View>
-
-          <ScrollView showsVerticalScrollIndicator={false}>
-            {/* Option to unassign */}
-            <TouchableOpacity
+            <View
               style={{
                 flexDirection: 'row',
-                alignItems: 'center',
                 justifyContent: 'space-between',
-                paddingVertical: spacing.md,
-                borderBottomWidth: StyleSheet.hairlineWidth,
-                borderBottomColor: colors.hairline,
-              }}
-              onPress={async () => {
-                setAssigneePickerOpen(false);
-                await assignTask.mutateAsync({ taskId: task.id, assigneeId: null });
+                alignItems: 'center',
+                marginBottom: spacing.md,
               }}
             >
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-                <View
-                  style={{
-                    width: 32,
-                    height: 32,
-                    borderRadius: 16,
-                    backgroundColor: colors.surface2,
-                    justifyContent: 'center',
-                    alignItems: 'center',
-                  }}
-                >
-                  <Text variant="caption" style={{ color: colors.textTertiary, fontWeight: '700' }}>
-                    ✕
+              <Text variant="title" style={{ fontWeight: '600' }}>
+                Assign Member
+              </Text>
+              <TouchableOpacity
+                onPress={() => setAssigneePickerOpen(false)}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              >
+                <X size={18} color={colors.textSecondary} />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView showsVerticalScrollIndicator={false}>
+              {/* Option to unassign */}
+              <TouchableOpacity
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  paddingVertical: spacing.md,
+                  borderBottomWidth: StyleSheet.hairlineWidth,
+                  borderBottomColor: colors.hairline,
+                }}
+                onPress={async () => {
+                  setAssigneePickerOpen(false);
+                  await assignTask.mutateAsync({ taskId: task.id, assigneeId: null });
+                }}
+              >
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                  <View
+                    style={{
+                      width: 32,
+                      height: 32,
+                      borderRadius: 16,
+                      backgroundColor: colors.surface2,
+                      justifyContent: 'center',
+                      alignItems: 'center',
+                    }}
+                  >
+                    <Text variant="caption" style={{ color: colors.textTertiary, fontWeight: '700' }}>
+                      ✕
+                    </Text>
+                  </View>
+                  <Text variant="body" color={!task.assigneeId ? 'accent' : 'primary'}>
+                    Unassigned
                   </Text>
                 </View>
-                <Text variant="body" color={!task.assigneeId ? 'accent' : 'primary'}>
-                  Unassigned
-                </Text>
-              </View>
-              {!task.assigneeId && <Check size={18} color={colors.accent} />}
-            </TouchableOpacity>
+                {!task.assigneeId && <Check size={18} color={colors.accent} />}
+              </TouchableOpacity>
 
-            {projectMembers.map((m: any) => {
-              const isSelected = task.assigneeId === m.id;
-              return (
-                <TouchableOpacity
-                  key={m.id}
-                  style={{
-                    flexDirection: 'row',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    paddingVertical: spacing.md,
-                    borderBottomWidth: StyleSheet.hairlineWidth,
-                    borderBottomColor: colors.hairline,
-                  }}
-                  onPress={async () => {
-                    setAssigneePickerOpen(false);
-                    await assignTask.mutateAsync({ taskId: task.id, assigneeId: m.id });
-                  }}
-                >
-                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-                    <View
-                      style={{
-                        width: 32,
-                        height: 32,
-                        borderRadius: 16,
-                        backgroundColor: colors.accent,
-                        justifyContent: 'center',
-                        alignItems: 'center',
-                      }}
-                    >
-                      <Text variant="caption" style={{ color: '#FFF', fontWeight: '700' }}>
-                        {m.name.charAt(0).toUpperCase()}
-                      </Text>
-                    </View>
-                    <View>
-                      <Text
-                        variant="body"
+              {projectMembers.map((m: any) => {
+                const isSelected = task.assigneeId === m.id;
+                return (
+                  <TouchableOpacity
+                    key={m.id}
+                    style={{
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      paddingVertical: spacing.md,
+                      borderBottomWidth: StyleSheet.hairlineWidth,
+                      borderBottomColor: colors.hairline,
+                    }}
+                    onPress={async () => {
+                      setAssigneePickerOpen(false);
+                      await assignTask.mutateAsync({ taskId: task.id, assigneeId: m.id });
+                    }}
+                  >
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                      <View
                         style={{
-                          fontWeight: isSelected ? '700' : '500',
-                          color: isSelected ? colors.accent : colors.textPrimary,
+                          width: 32,
+                          height: 32,
+                          borderRadius: 16,
+                          backgroundColor: colors.accent,
+                          justifyContent: 'center',
+                          alignItems: 'center',
                         }}
                       >
-                        {m.name}
-                      </Text>
-                      {m.email && (
-                        <Text variant="caption" color="secondary" style={{ fontSize: 11 }}>
-                          {m.email}
+                        <Text variant="caption" style={{ color: '#FFF', fontWeight: '700' }}>
+                          {m.name.charAt(0).toUpperCase()}
                         </Text>
-                      )}
+                      </View>
+                      <View>
+                        <Text
+                          variant="body"
+                          style={{
+                            fontWeight: isSelected ? '700' : '500',
+                            color: isSelected ? colors.accent : colors.textPrimary,
+                          }}
+                        >
+                          {m.name}
+                        </Text>
+                        {m.email && (
+                          <Text variant="caption" color="secondary" style={{ fontSize: 11 }}>
+                            {m.email}
+                          </Text>
+                        )}
+                      </View>
                     </View>
-                  </View>
-                  {isSelected && <Check size={18} color={colors.accent} />}
-                </TouchableOpacity>
-              );
-            })}
-          </ScrollView>
+                    {isSelected && <Check size={18} color={colors.accent} />}
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
+          </View>
         </View>
       </Modal>
 

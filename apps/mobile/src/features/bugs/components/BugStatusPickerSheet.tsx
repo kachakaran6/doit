@@ -95,7 +95,7 @@ export const BugStatusPickerSheet: React.FC<BugStatusPickerSheetProps> = ({
     <Modal
       visible={visible}
       transparent
-      animationType="fade"
+      animationType="slide"
       onRequestClose={onClose}
       statusBarTranslucent
     >
@@ -259,13 +259,7 @@ export const BugStatusPickerSheet: React.FC<BugStatusPickerSheetProps> = ({
 
 const styles = StyleSheet.create({
   overlayRoot: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    zIndex: 99999,
-    elevation: 9999,
+    flex: 1,
     justifyContent: 'flex-end',
   },
   backdrop: {

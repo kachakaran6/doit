@@ -24,17 +24,39 @@ export const useAuthStore = create<AuthState>((set) => ({
 
   initAuth: async () => {
     try {
-      const saved = await AuthStorage.getSession();
-      if (saved && saved.accessToken) {
-        http.setAuthToken(saved.accessToken);
-        overlayService.syncAuthCredentials(saved.accessToken, 'https://doit.samyukt.pro/api/v1', null, saved.refreshToken);
-        const savedUser = saved.user as UserViewModel & { name?: string };
+      let saved = await AuthStorage.getSession();
+      
+      // Secondary fallback to native overlay credentials if AuthStorage was empty
+      if (!saved?.accessToken && !saved?.refreshToken) {
+        try {
+          const creds = await overlayService.getCredentials();
+          if (creds?.authToken || creds?.refreshToken) {
+            saved = {
+              accessToken: creds.authToken || '',
+              refreshToken: creds.refreshToken || '',
+              user: { id: '', email: '', fullName: '' },
+            };
+          }
+        } catch {
+          // ignore
+        }
+      }
+
+      if (saved && (saved.accessToken || saved.refreshToken)) {
+        if (saved.accessToken) {
+          http.setAuthToken(saved.accessToken);
+        }
+        overlayService.syncAuthCredentials(saved.accessToken || null, 'https://doit.samyukt.pro/api/v1', null, saved.refreshToken || null);
+        const savedUser = (saved.user || {}) as UserViewModel & { name?: string };
         const rawName = (savedUser.fullName || savedUser.name || '').trim();
         const cleanName = rawName.toLowerCase() === 'active user' ? '' : rawName;
         const initialUser: UserViewModel = {
-          ...savedUser,
-          fullName: cleanName || savedUser.email?.split('@')[0] || '',
+          id: savedUser.id || 'user',
+          email: savedUser.email || '',
+          fullName: cleanName || savedUser.email?.split('@')[0] || 'User',
+          avatarUrl: savedUser.avatarUrl || undefined,
         };
+
         set({
           user: initialUser,
           accessToken: saved.accessToken,
@@ -53,7 +75,7 @@ export const useAuthStore = create<AuthState>((set) => ({
               id: liveUser.id,
               email: liveUser.email,
               fullName: resolvedName,
-              avatarUrl: liveUser.avatarUrl || null,
+              avatarUrl: liveUser.avatarUrl || undefined,
             };
             set({ user: updatedUser });
             AuthStorage.setSession({ ...saved, user: updatedUser }).catch(() => {});

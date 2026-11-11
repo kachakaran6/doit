@@ -25,7 +25,7 @@ export class TokenService {
     workspaceId?: string,
     role?: string,
   ): Promise<TokenPair> {
-    const accessExpiresIn = 15 * 60; // 15 minutes
+    const accessExpiresIn = 30 * 24 * 60 * 60; // 30 days long-lived mobile session
 
     const payload = {
       sub: userId,
@@ -46,7 +46,7 @@ export class TokenService {
     });
 
     const expiresAt = new Date();
-    expiresAt.setDate(expiresAt.getDate() + 30); // 30 days
+    expiresAt.setDate(expiresAt.getDate() + 180); // 180 days (6 months) persistent session
 
     await this.prisma.session.update({
       where: { id: sessionId },
@@ -106,6 +106,13 @@ export class TokenService {
 
     const isValid = await argon2.verify(session.refreshHash, rawToken);
     if (!isValid) {
+      // Check for in-flight concurrency race: if session was rotated in the last 60 seconds, issue tokens gracefully
+      const isRecentRotation = session.lastSeenAt && (Date.now() - session.lastSeenAt.getTime() < 60000);
+      if (isRecentRotation) {
+        const membership = session.user.memberships[0];
+        return this.generateTokenPair(session.userId, session.id, membership?.workspaceId, membership?.role);
+      }
+
       // Token mismatch / token replay: revoke entire family immediately
       await this.prisma.session.updateMany({
         where: { familyId: session.familyId },

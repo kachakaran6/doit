@@ -1,6 +1,7 @@
 import * as SecureStore from 'expo-secure-store';
 import { Platform } from 'react-native';
 import { AuthSession } from './types';
+import { overlayService } from '../../native/overlay';
 
 const AUTH_STORAGE_KEY = 'com.samyukt.doit.auth_session';
 const BACKUP_STORAGE_KEY = 'com.samyukt.doit.auth_backup';
@@ -24,14 +25,19 @@ export const AuthStorage = {
         return null;
       }
 
-      // Allow adequate time for Android KeyStore / SecureStore initialization on cold start or app updates (up to 8s)
-      const timeoutPromise = new Promise<null>((resolve) => setTimeout(() => resolve(null), 8000));
-      const readPromise = SecureStore.getItemAsync(AUTH_STORAGE_KEY).catch((e) => {
-        console.warn('[AuthStorage] Primary SecureStore read error:', e);
-        return null;
-      });
+      // Allow adequate time for Android KeyStore / SecureStore initialization on cold start or app updates (up to 4s)
+      let raw: string | null = null;
+      try {
+        const timeoutPromise = new Promise<null>((resolve) => setTimeout(() => resolve(null), 4000));
+        const readPromise = SecureStore.getItemAsync(AUTH_STORAGE_KEY).catch((e) => {
+          console.warn('[AuthStorage] Primary SecureStore read error:', e);
+          return null;
+        });
 
-      let raw = await Promise.race([readPromise, timeoutPromise]);
+        raw = await Promise.race([readPromise, timeoutPromise]);
+      } catch (e) {
+        console.warn('[AuthStorage] SecureStore race error:', e);
+      }
 
       // If primary SecureStore read failed or was empty, check backup key
       if (!raw) {
@@ -39,6 +45,22 @@ export const AuthStorage = {
           raw = await SecureStore.getItemAsync(BACKUP_STORAGE_KEY);
         } catch {
           // ignore
+        }
+      }
+
+      // If SecureStore was wiped or KeyStore invalidated during app update, recover from Native SharedPreferences!
+      if (!raw) {
+        try {
+          const nativeBackup = await overlayService.getSessionBackup();
+          if (nativeBackup) {
+            console.log('[AuthStorage] Recovered session from Native SharedPreferences backup!');
+            raw = nativeBackup;
+            // Restore back to SecureStore in background
+            SecureStore.setItemAsync(AUTH_STORAGE_KEY, raw).catch(() => {});
+            SecureStore.setItemAsync(BACKUP_STORAGE_KEY, raw).catch(() => {});
+          }
+        } catch (e) {
+          console.warn('[AuthStorage] Native backup read error:', e);
         }
       }
 
@@ -71,6 +93,13 @@ export const AuthStorage = {
       await Promise.allSettled([
         SecureStore.setItemAsync(AUTH_STORAGE_KEY, serialized),
         SecureStore.setItemAsync(BACKUP_STORAGE_KEY, serialized),
+        overlayService.persistSessionBackup(serialized),
+        overlayService.syncAuthCredentials(
+          session.accessToken,
+          'https://doit.samyukt.pro/api/v1',
+          null,
+          session.refreshToken
+        ),
       ]);
     } catch (e) {
       console.warn('[AuthStorage] Failed to save session:', e);
@@ -87,6 +116,8 @@ export const AuthStorage = {
       await Promise.allSettled([
         SecureStore.deleteItemAsync(AUTH_STORAGE_KEY),
         SecureStore.deleteItemAsync(BACKUP_STORAGE_KEY),
+        overlayService.persistSessionBackup(null),
+        overlayService.syncAuthCredentials(null),
       ]);
     } catch (e) {
       console.warn('[AuthStorage] Failed to clear session:', e);

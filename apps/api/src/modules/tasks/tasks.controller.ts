@@ -43,7 +43,7 @@ import { CurrentUser, AuthUserPayload } from '../../common/decorators/current-us
 @Controller()
 @UseGuards(JwtAuthGuard)
 export class TasksController {
-  constructor(private readonly tasksService: TasksService) {}
+  constructor(private readonly tasksService: TasksService) { }
 
   @Post('projects/:projectId/bugs')
   @UseGuards(WorkspaceMemberGuard)

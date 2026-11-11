@@ -51,10 +51,11 @@ export declare class TasksController {
             thumbKey: string | null;
         })[];
         bug: {
-            expected: string | null;
             id: string;
-            taskId: string;
+            appVersion: string | null;
             sessionId: string | null;
+            expected: string | null;
+            taskId: string;
             reporterId: string | null;
             severity: import(".prisma/client").$Enums.Severity;
             steps: import("@prisma/client/runtime/library").JsonValue;
@@ -63,7 +64,6 @@ export declare class TasksController {
             deviceModel: string | null;
             osVersion: string | null;
             appUnderTest: string | null;
-            appVersion: string | null;
             buildNumber: string | null;
             capturedAt: Date;
             autoContext: import("@prisma/client/runtime/library").JsonValue;
@@ -74,9 +74,9 @@ export declare class TasksController {
                 name: string;
             };
         } & {
-            workspaceId: string;
             id: string;
             createdAt: Date;
+            workspaceId: string;
             taskId: string | null;
             actorId: string;
             action: string;
@@ -167,10 +167,11 @@ export declare class TasksController {
             thumbKey: string | null;
         })[];
         bug: {
-            expected: string | null;
             id: string;
-            taskId: string;
+            appVersion: string | null;
             sessionId: string | null;
+            expected: string | null;
+            taskId: string;
             reporterId: string | null;
             severity: import(".prisma/client").$Enums.Severity;
             steps: import("@prisma/client/runtime/library").JsonValue;
@@ -179,7 +180,6 @@ export declare class TasksController {
             deviceModel: string | null;
             osVersion: string | null;
             appUnderTest: string | null;
-            appVersion: string | null;
             buildNumber: string | null;
             capturedAt: Date;
             autoContext: import("@prisma/client/runtime/library").JsonValue;
@@ -190,9 +190,9 @@ export declare class TasksController {
                 name: string;
             };
         } & {
-            workspaceId: string;
             id: string;
             createdAt: Date;
+            workspaceId: string;
             taskId: string | null;
             actorId: string;
             action: string;

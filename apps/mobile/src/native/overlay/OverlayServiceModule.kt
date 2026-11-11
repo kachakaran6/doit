@@ -269,6 +269,31 @@ class OverlayServiceModule(private val reactContext: ReactApplicationContext) :
     }
 
     @ReactMethod
+    fun persistSessionBackup(sessionJson: String?, promise: Promise) {
+        try {
+            val prefs = reactContext.getSharedPreferences("doit_overlay_prefs", Context.MODE_PRIVATE)
+            prefs.edit().apply {
+                if (sessionJson != null) putString("session_backup_json", sessionJson) else remove("session_backup_json")
+                apply()
+            }
+            promise.resolve(true)
+        } catch (e: Exception) {
+            promise.resolve(false)
+        }
+    }
+
+    @ReactMethod
+    fun getSessionBackup(promise: Promise) {
+        try {
+            val prefs = reactContext.getSharedPreferences("doit_overlay_prefs", Context.MODE_PRIVATE)
+            val json = prefs.getString("session_backup_json", null)
+            promise.resolve(json)
+        } catch (e: Exception) {
+            promise.resolve(null)
+        }
+    }
+
+    @ReactMethod
     fun showQuickCapture(mode: String?, promise: Promise) {
         try {
             val targetMode = (mode ?: "TASK").uppercase()

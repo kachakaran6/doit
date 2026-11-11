@@ -611,18 +611,17 @@ export const LoginScreen: React.FC = () => {
       <Modal
         visible={showForgotSheet}
         transparent
-        animationType="fade"
+        animationType="slide"
         onRequestClose={() => setShowForgotSheet(false)}
+        statusBarTranslucent
       >
         <KeyboardAvoidingView
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-          style={[
-            StyleSheet.absoluteFillObject,
-            {
-              backgroundColor: 'rgba(0,0,0,0.7)',
-              justifyContent: 'flex-end',
-            },
-          ]}
+          style={{
+            flex: 1,
+            backgroundColor: 'rgba(0,0,0,0.7)',
+            justifyContent: 'flex-end',
+          }}
         >
           <TouchableOpacity
             style={StyleSheet.absoluteFillObject}

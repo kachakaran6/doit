@@ -33,6 +33,8 @@ export interface OverlayService {
   getRunningState(): boolean;
   getCredentials(): Promise<{ authToken?: string | null; refreshToken?: string | null; baseUrl?: string | null; projectId?: string | null } | null>;
   syncAuthCredentials(token: string | null, baseUrl?: string, projectId?: string | null, refreshToken?: string | null): Promise<void>;
+  persistSessionBackup(sessionJson: string | null): Promise<boolean>;
+  getSessionBackup(): Promise<string | null>;
   setShakeEnabled(enabled: boolean, sensitivity?: string): Promise<void>;
   showQuickCapture(mode?: 'TASK' | 'BUG' | 'task' | 'bug'): Promise<boolean>;
   hasScreenshotPermission(): Promise<boolean>;
@@ -195,6 +197,24 @@ class OverlayServiceImpl implements OverlayService {
       }
     } catch (e) {
       console.warn('[OverlayService] Failed to sync auth credentials:', e);
+    }
+  }
+
+  async persistSessionBackup(sessionJson: string | null): Promise<boolean> {
+    if (!this.isAvailable() || !OverlayServiceModule?.persistSessionBackup) return false;
+    try {
+      return await OverlayServiceModule.persistSessionBackup(sessionJson);
+    } catch {
+      return false;
+    }
+  }
+
+  async getSessionBackup(): Promise<string | null> {
+    if (!this.isAvailable() || !OverlayServiceModule?.getSessionBackup) return null;
+    try {
+      return await OverlayServiceModule.getSessionBackup();
+    } catch {
+      return null;
     }
   }
 

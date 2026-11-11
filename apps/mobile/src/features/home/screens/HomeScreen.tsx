@@ -219,10 +219,10 @@ export const HomeScreen: React.FC = () => {
             {/* Avatar Button */}
             <TouchableOpacity
               onPress={() => {
-                console.log('[HomeScreen] Avatar button pressed');
-                openAccountMenu();
+                console.log('[HomeScreen] Avatar button pressed -> openAccountMenu');
+                useSheetStore.getState().openAccountMenu();
               }}
-              hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+              hitSlop={{ top: 16, bottom: 16, left: 16, right: 16 }}
               style={styles.avatarButton}
               activeOpacity={0.7}
               accessibilityRole="button"

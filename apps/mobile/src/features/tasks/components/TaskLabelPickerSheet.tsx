@@ -68,7 +68,7 @@ export const TaskLabelPickerSheet: React.FC<TaskLabelPickerSheetProps> = ({
     <Modal
       transparent
       visible={visible}
-      animationType="fade"
+      animationType="slide"
       onRequestClose={onClose}
       statusBarTranslucent
     >

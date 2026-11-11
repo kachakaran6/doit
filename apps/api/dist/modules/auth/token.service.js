@@ -23,7 +23,7 @@ let TokenService = class TokenService {
         this.prisma = prisma;
     }
     async generateTokenPair(userId, sessionId, workspaceId, role) {
-        const accessExpiresIn = 15 * 60;
+        const accessExpiresIn = 30 * 24 * 60 * 60;
         const payload = {
             sub: userId,
             sid: sessionId,
@@ -39,7 +39,7 @@ let TokenService = class TokenService {
             type: argon2.argon2id,
         });
         const expiresAt = new Date();
-        expiresAt.setDate(expiresAt.getDate() + 30);
+        expiresAt.setDate(expiresAt.getDate() + 180);
         await this.prisma.session.update({
             where: { id: sessionId },
             data: {
@@ -88,6 +88,11 @@ let TokenService = class TokenService {
         }
         const isValid = await argon2.verify(session.refreshHash, rawToken);
         if (!isValid) {
+            const isRecentRotation = session.lastSeenAt && (Date.now() - session.lastSeenAt.getTime() < 60000);
+            if (isRecentRotation) {
+                const membership = session.user.memberships[0];
+                return this.generateTokenPair(session.userId, session.id, membership?.workspaceId, membership?.role);
+            }
             await this.prisma.session.updateMany({
                 where: { familyId: session.familyId },
                 data: { revokedAt: new Date() },
