@@ -47,8 +47,9 @@ platform :android do
                   end
 
     if target_code != current_code
-      UI.message("⬆️ Bumping versionCode from #{current_code} to #{target_code}...")
-      updated_content = content.sub(/versionCode\s+\d+/, "versionCode #{target_code}")
+      UI.message("⬆️ Setting versionCode to #{target_code} and versionName to #{version_name}...")
+      updated_content = content.gsub(/versionCode\s+\d+/, "versionCode #{target_code}")
+      updated_content = updated_content.gsub(/versionName\s+["'][^"']+["']/, "versionName \"#{version_name}\"")
       File.write(build_gradle_path, updated_content)
 
       # Also sync package.json & app.config.ts if present
