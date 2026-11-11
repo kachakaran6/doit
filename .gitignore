@@ -9,6 +9,7 @@ device_*.png
 screenshots/
 *.zip
 
+dist/
 dist-web/
 build/
 out/
