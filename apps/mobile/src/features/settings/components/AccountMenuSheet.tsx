@@ -421,7 +421,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   scrollFlex: {
-    flexGrow: 0,
+    width: '100%',
   },
   handleContainer: {
     alignItems: 'center',

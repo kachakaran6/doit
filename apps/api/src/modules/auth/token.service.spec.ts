@@ -47,7 +47,7 @@ describe('TokenService', () => {
 
     expect(pair.accessToken).toBe('mock-access-jwt-token');
     expect(pair.refreshToken).toContain('session-1:');
-    expect(pair.expiresIn).toBe(900);
+    expect(pair.expiresIn).toBe(30 * 24 * 60 * 60);
     expect(mockPrisma.session.update).toHaveBeenCalled();
   });
 

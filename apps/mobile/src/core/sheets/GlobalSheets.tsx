@@ -6,16 +6,16 @@ import { AccountMenuSheet } from '../../features/settings/components/AccountMenu
 import { navigationRef } from '../../navigation/navigationRef';
 
 export const GlobalSheets: React.FC = () => {
-  const {
-    isWorkspaceSheetOpen,
-    closeWorkspaceSheet,
-    openWorkspaceSheet,
-    isProjectSheetOpen,
-    closeProjectSheet,
-    openProjectSheet,
-    isAccountMenuOpen,
-    closeAccountMenu,
-  } = useSheetStore();
+  const isWorkspaceSheetOpen = useSheetStore((s) => s.isWorkspaceSheetOpen);
+  const closeWorkspaceSheet = useSheetStore((s) => s.closeWorkspaceSheet);
+  const openWorkspaceSheet = useSheetStore((s) => s.openWorkspaceSheet);
+
+  const isProjectSheetOpen = useSheetStore((s) => s.isProjectSheetOpen);
+  const closeProjectSheet = useSheetStore((s) => s.closeProjectSheet);
+  const openProjectSheet = useSheetStore((s) => s.openProjectSheet);
+
+  const isAccountMenuOpen = useSheetStore((s) => s.isAccountMenuOpen);
+  const closeAccountMenu = useSheetStore((s) => s.closeAccountMenu);
 
   return (
     <>

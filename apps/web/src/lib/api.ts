@@ -241,6 +241,11 @@ export const api = {
         method: 'POST',
         body: JSON.stringify({ email }),
       }),
+    resetPassword: (email: string, newPassword: string) =>
+      apiRequest<{ success: boolean; message: string }>('/auth/password/reset', {
+        method: 'POST',
+        body: JSON.stringify({ email: email.trim().toLowerCase(), newPassword: newPassword.trim() }),
+      }),
     logoutAll: () => apiRequest('/auth/logout-all', { method: 'POST' }),
     logout: async () => {
       try {

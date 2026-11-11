@@ -67,7 +67,8 @@ export const HomeScreen: React.FC = () => {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const user = useAuthStore((s) => s.user);
 
-  const { openWorkspaceSheet, openAccountMenu } = useSheetStore();
+  const openWorkspaceSheet = useSheetStore((s) => s.openWorkspaceSheet);
+  const openAccountMenu = useSheetStore((s) => s.openAccountMenu);
   const [firstRunDismissed, setFirstRunDismissed] = useState(false);
 
   useWorkspacesQuery();
@@ -151,8 +152,8 @@ export const HomeScreen: React.FC = () => {
       {/* 1. Top Header: Workspace on Left; Bell + Avatar on Right */}
       <View style={[styles.headerContainer, { paddingHorizontal: spacing.screenMargin, marginBottom: spacing.xs }]}>
         <View style={styles.topBar}>
-          <TouchableOpacity
-            style={[
+          <Pressable
+            style={({ pressed }) => [
               styles.workspaceSelector,
               {
                 backgroundColor: colors.surface1 || colors.surface,
@@ -163,17 +164,17 @@ export const HomeScreen: React.FC = () => {
                 borderColor: colors.hairline,
                 borderWidth: 1,
               },
+              pressed && { opacity: 0.7 },
             ]}
-            hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-            activeOpacity={0.7}
+            hitSlop={{ top: 16, bottom: 16, left: 16, right: 16 }}
             onPress={() => {
               console.log('[HomeScreen] Workspace selector pressed');
-              openWorkspaceSheet();
+              useSheetStore.getState().openWorkspaceSheet();
             }}
             accessibilityRole="button"
             accessibilityLabel="Switch workspace"
           >
-            <View pointerEvents="none" style={styles.workspaceSelectorInner}>
+            <View style={styles.workspaceSelectorInner}>
               <WorkspaceTile
                 name={activeWorkspace?.name || 'Doit'}
                 id={activeWorkspace?.id || 'default'}
@@ -184,14 +185,14 @@ export const HomeScreen: React.FC = () => {
               </Text>
               <ChevronDown size={14} color={colors.textSecondary} style={{ marginLeft: 2 }} />
             </View>
-          </TouchableOpacity>
+          </Pressable>
 
           <View style={styles.topRightActions}>
             {/* Bell Notifications Button with Unread Indicator */}
-            <TouchableOpacity
+            <Pressable
               onPress={() => navigation.navigate('Notifications')}
-              hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-              style={[
+              hitSlop={{ top: 16, bottom: 16, left: 16, right: 16 }}
+              style={({ pressed }) => [
                 styles.iconActionBtn,
                 {
                   backgroundColor: colors.surface1 || colors.surface,
@@ -199,8 +200,8 @@ export const HomeScreen: React.FC = () => {
                   borderWidth: 1,
                   borderRadius: radius.pill,
                 },
+                pressed && { opacity: 0.7 },
               ]}
-              activeOpacity={0.7}
               accessibilityRole="button"
               accessibilityLabel="Notifications"
             >
@@ -214,27 +215,27 @@ export const HomeScreen: React.FC = () => {
                   },
                 ]}
               />
-            </TouchableOpacity>
+            </Pressable>
 
             {/* Avatar Button */}
-            <TouchableOpacity
+            <Pressable
               onPress={() => {
-                console.log('[HomeScreen] Avatar button pressed -> openAccountMenu');
+                console.log('[HomeScreen] Avatar pressed -> openAccountMenu');
                 useSheetStore.getState().openAccountMenu();
               }}
-              hitSlop={{ top: 16, bottom: 16, left: 16, right: 16 }}
-              style={styles.avatarButton}
-              activeOpacity={0.7}
+              hitSlop={{ top: 20, bottom: 20, left: 20, right: 20 }}
+              style={({ pressed }) => [
+                styles.avatarButton,
+                pressed && { opacity: 0.7 },
+              ]}
               accessibilityRole="button"
               accessibilityLabel="Open user account menu"
             >
-              <View pointerEvents="none">
-                <Avatar
-                  name={user?.fullName || user?.email || 'User'}
-                  size={36}
-                />
-              </View>
-            </TouchableOpacity>
+              <Avatar
+                name={user?.fullName || user?.email || 'User'}
+                size={36}
+              />
+            </Pressable>
           </View>
         </View>
       </View>
@@ -704,8 +705,8 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
   },
   avatarButton: {
-    width: 36,
-    height: 36,
+    minWidth: 44,
+    minHeight: 44,
     alignItems: 'center',
     justifyContent: 'center',
   },

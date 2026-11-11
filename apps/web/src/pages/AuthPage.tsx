@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
 import { Modal } from '@/components/ui/modal';
 import { useToast } from '@/components/ui/toast';
-import { ShieldCheck, UserCheck, ArrowRight, Eye, EyeOff } from 'lucide-react';
+import { ShieldCheck, UserCheck, ArrowRight, Eye, EyeOff, Check } from 'lucide-react';
 
 export function AuthPage() {
   const navigate = useNavigate();
@@ -25,22 +25,54 @@ export function AuthPage() {
   const [loading, setLoading] = useState(false);
   const [forgotOpen, setForgotOpen] = useState(false);
   const [forgotEmail, setForgotEmail] = useState('');
+  const [forgotNewPassword, setForgotNewPassword] = useState('');
+  const [forgotConfirmPassword, setForgotConfirmPassword] = useState('');
+  const [forgotShowPassword, setForgotShowPassword] = useState(false);
+  const [forgotError, setForgotError] = useState<string | null>(null);
+  const [forgotSuccess, setForgotSuccess] = useState(false);
   const [forgotLoading, setForgotLoading] = useState(false);
 
   const handleForgotSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!forgotEmail.trim()) {
+    setForgotError(null);
+    const cleanEmail = forgotEmail.trim().toLowerCase();
+    const cleanPassword = forgotNewPassword.trim();
+    const cleanConfirm = forgotConfirmPassword.trim();
+
+    if (!cleanEmail) {
+      setForgotError('Please enter your account email.');
       error('Email required', 'Please enter your account email.');
       return;
     }
+    if (!cleanPassword || cleanPassword.length < 8) {
+      setForgotError('New password must be at least 8 characters long.');
+      error('Invalid password', 'New password must be at least 8 characters long.');
+      return;
+    }
+    if (cleanPassword !== cleanConfirm) {
+      setForgotError('Passwords do not match.');
+      error('Mismatch', 'The confirmation password does not match.');
+      return;
+    }
+
     try {
       setForgotLoading(true);
-      await api.auth.forgotPassword(forgotEmail.trim());
-      success('Reset request dispatched', 'If an account exists, instructions have been dispatched. (Demo password: Password123!)');
-      setForgotOpen(false);
-      setForgotEmail('');
+      const res = await api.auth.resetPassword(cleanEmail, cleanPassword);
+      setForgotSuccess(true);
+      success('Password reset successful', res?.message || 'You can now sign in with your new password.');
+      setEmail(cleanEmail);
+      setPassword(cleanPassword);
+      setTimeout(() => {
+        setForgotOpen(false);
+        setForgotNewPassword('');
+        setForgotConfirmPassword('');
+        setForgotSuccess(false);
+        setForgotError(null);
+      }, 1400);
     } catch (err: any) {
-      error('Reset failed', err.message || 'Unable to request password reset.');
+      const msg = err.message || 'Unable to reset password. Please verify account exists.';
+      setForgotError(msg);
+      error('Reset failed', msg);
     } finally {
       setForgotLoading(false);
     }
@@ -229,29 +261,93 @@ export function AuthPage() {
 
       <Modal
         open={forgotOpen}
-        onClose={() => setForgotOpen(false)}
+        onClose={() => {
+          setForgotOpen(false);
+          setForgotError(null);
+          setForgotSuccess(false);
+        }}
         title="Reset password"
-        description="Enter the email associated with your account and we will send password reset instructions."
+        description="Enter your account email and your new password to reset your credentials."
       >
-        <form onSubmit={handleForgotSubmit} className="space-y-4">
-          <Input
-            label="Email address"
-            type="email"
-            value={forgotEmail}
-            onChange={(e) => setForgotEmail(e.target.value)}
-            placeholder="alice@samyukt.com"
-            required
-            autoFocus
-          />
-          <div className="flex justify-end gap-2 pt-2">
-            <Button type="button" variant="outline" size="sm" onClick={() => setForgotOpen(false)}>
-              Cancel
-            </Button>
-            <Button type="submit" size="sm" loading={forgotLoading}>
-              Send reset instructions
-            </Button>
+        {forgotSuccess ? (
+          <div className="py-6 text-center space-y-2">
+            <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-[var(--success-soft)] text-[var(--success-text)] mb-1">
+              <Check className="w-6 h-6" />
+            </div>
+            <p className="text-[15px] font-semibold text-[var(--foreground)]">Password reset successful!</p>
+            <p className="text-[13px] text-[var(--muted-foreground)]">Your credentials have been updated. Preparing sign in...</p>
           </div>
-        </form>
+        ) : (
+          <form onSubmit={handleForgotSubmit} className="space-y-4">
+            {forgotError && (
+              <div className="p-3 text-[12px] font-medium rounded-lg bg-[var(--danger-soft)] text-[var(--danger-text)] border border-[var(--danger-border)]">
+                {forgotError}
+              </div>
+            )}
+            <Input
+              label="Email address"
+              type="email"
+              value={forgotEmail}
+              onChange={(e) => {
+                setForgotEmail(e.target.value);
+                setForgotError(null);
+              }}
+              placeholder="alice@samyukt.com"
+              required
+              autoFocus
+            />
+            <div className="relative">
+              <Input
+                label="New password (min 8 characters)"
+                type={forgotShowPassword ? 'text' : 'password'}
+                value={forgotNewPassword}
+                onChange={(e) => {
+                  setForgotNewPassword(e.target.value);
+                  setForgotError(null);
+                }}
+                placeholder="Enter at least 8 characters"
+                required
+              />
+              <button
+                type="button"
+                onClick={() => setForgotShowPassword((prev) => !prev)}
+                className="absolute right-3 top-[32px] text-[var(--muted-foreground)] hover:text-[var(--foreground)] p-1 cursor-pointer"
+                aria-label={forgotShowPassword ? 'Hide password' : 'Show password'}
+              >
+                {forgotShowPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              </button>
+            </div>
+            <div className="relative">
+              <Input
+                label="Confirm new password"
+                type={forgotShowPassword ? 'text' : 'password'}
+                value={forgotConfirmPassword}
+                onChange={(e) => {
+                  setForgotConfirmPassword(e.target.value);
+                  setForgotError(null);
+                }}
+                placeholder="Re-enter new password"
+                required
+              />
+            </div>
+            <div className="flex justify-end gap-2 pt-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  setForgotOpen(false);
+                  setForgotError(null);
+                }}
+              >
+                Cancel
+              </Button>
+              <Button type="submit" size="sm" loading={forgotLoading}>
+                Reset password
+              </Button>
+            </div>
+          </form>
+        )}
       </Modal>
     </div>
   );

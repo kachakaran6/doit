@@ -1,5 +1,6 @@
 {
   "name": "@doit/mobile",
+  "version": "0.3.13",
   "version": "0.3.14",
   "private": true,
   "main": "index.js",
@@ -8,6 +9,7 @@
     "start:dev": "expo start --dev-client",
     "android": "expo run:android",
     "ios": "expo run:ios",
+    "build:bundle": "expo export:embed --platform android --dev false --entry-file index.js --bundle-output android/app/src/main/assets/index.android.bundle --assets-dest android/app/src/main/res/ --reset-cache",
     "build:apk": "eas build -p android --profile preview",
     "build:apk:local": "expo prebuild --platform android --clean && cd android && ./gradlew assembleRelease",
     "build:aab": "eas build -p android --profile production",

@@ -105,7 +105,6 @@ export const Field: React.FC<FieldProps> = ({
         {prefix && <View style={{ marginRight: spacing.sm }}>{prefix}</View>}
 
         <TextInput
-          key={isPassword ? (resolvedSecureTextEntry ? 'pwd-hidden' : 'pwd-visible') : undefined}
           value={value}
           editable={!disabled}
           keyboardAppearance="dark"

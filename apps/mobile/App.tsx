@@ -22,7 +22,9 @@ export default function App() {
                 <ShakeCaptureProvider>
                   <View style={styles.root}>
                     <RootNavigator />
-                    <GlobalSheets />
+                    <View style={StyleSheet.absoluteFill} pointerEvents="box-none">
+                      <GlobalSheets />
+                    </View>
                   </View>
                 </ShakeCaptureProvider>
               </KeyboardProvider>

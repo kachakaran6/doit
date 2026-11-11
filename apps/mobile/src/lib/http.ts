@@ -241,8 +241,6 @@ class HttpClient {
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
       Accept: 'application/json',
-      'Accept-Encoding': 'gzip, deflate, br',
-      Connection: 'keep-alive',
       ...((options.headers as Record<string, string>) || {}),
     };
 
@@ -358,7 +356,13 @@ class HttpClient {
       return undefined as unknown as T;
     }
 
-    const json = await response.json();
+    let json: any;
+    try {
+      json = await response.json();
+    } catch {
+      throw new ApiError(response.status, 'INVALID_RESPONSE', 'Invalid response format from server.');
+    }
+
     if (json && typeof json === 'object' && 'data' in json && 'meta' in json) {
       return json.data as T;
     }

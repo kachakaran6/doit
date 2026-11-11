@@ -88,14 +88,17 @@ export const LoginScreen: React.FC = () => {
 
   const handleSubmit = async () => {
     setErrorMessage(null);
-    if (!email.trim() || !password.trim()) {
+    const cleanEmail = email.trim().toLowerCase();
+    const cleanPassword = password.trim();
+
+    if (!cleanEmail || !cleanPassword) {
       setErrorMessage('Please fill in both email and password.');
       return;
     }
 
     try {
       if (mode === 'signin') {
-        await loginMutation.mutateAsync({ email: email.trim(), password });
+        await loginMutation.mutateAsync({ email: cleanEmail, password: cleanPassword });
       } else {
         if (!fullName.trim()) {
           setErrorMessage('Please enter your full name.');
@@ -103,8 +106,8 @@ export const LoginScreen: React.FC = () => {
         }
         await registerMutation.mutateAsync({
           fullName: fullName.trim(),
-          email: email.trim(),
-          password,
+          email: cleanEmail,
+          password: cleanPassword,
         });
       }
 
@@ -127,23 +130,26 @@ export const LoginScreen: React.FC = () => {
 
   const handleForgotSubmit = async () => {
     setForgotError(null);
-    if (!forgotEmail.trim()) {
+    const cleanEmail = forgotEmail.trim().toLowerCase();
+    const cleanPassword = forgotNewPassword.trim();
+
+    if (!cleanEmail) {
       setForgotError('Please enter your account email.');
       return;
     }
-    if (!forgotNewPassword.trim() || forgotNewPassword.length < 8) {
+    if (!cleanPassword || cleanPassword.length < 8) {
       setForgotError('New password must be at least 8 characters long.');
       return;
     }
     try {
       setForgotLoading(true);
       await http.post('/auth/password/reset', {
-        email: forgotEmail.trim(),
-        newPassword: forgotNewPassword.trim(),
+        email: cleanEmail,
+        newPassword: cleanPassword,
       });
       setForgotSuccess(true);
-      setEmail(forgotEmail.trim());
-      setPassword(forgotNewPassword.trim());
+      setEmail(cleanEmail);
+      setPassword(cleanPassword);
       setErrorMessage(null);
     } catch (err: any) {
       setForgotError(err?.message || 'Unable to reset password. Please verify connection.');
@@ -172,8 +178,8 @@ export const LoginScreen: React.FC = () => {
             styles.container,
             {
               paddingHorizontal: spacing.lg,
-              paddingTop: keyboardHeight > 0 ? spacing.sm : spacing.lg,
-              paddingBottom: keyboardHeight > 0 ? keyboardHeight + 80 : spacing.lg,
+              paddingTop: keyboardHeight > 0 ? spacing.xs : spacing.lg,
+              paddingBottom: keyboardHeight > 0 ? keyboardHeight + 160 : spacing.lg,
               justifyContent: keyboardHeight > 0 ? 'flex-start' : 'center',
             },
           ]}
@@ -182,39 +188,43 @@ export const LoginScreen: React.FC = () => {
           showsVerticalScrollIndicator={false}
         >
           {/* Brand Header */}
-          <View style={[styles.header, { marginBottom: spacing.lg }]}>
-            <View
-              style={[
-                styles.logoTile,
-                {
-                  marginBottom: spacing.sm,
-                  borderRadius: radius.xl,
-                  overflow: 'hidden',
-                  ...elevation.e2,
-                },
-              ]}
-            >
-              <Image
-                source={require('../../../../assets/icon.png')}
-                style={{ width: 64, height: 64, borderRadius: radius.xl }}
-                resizeMode="contain"
-              />
-            </View>
+          <View style={[styles.header, { marginBottom: keyboardHeight > 0 ? spacing.xs : spacing.lg }]}>
+            {keyboardHeight === 0 && (
+              <View
+                style={[
+                  styles.logoTile,
+                  {
+                    marginBottom: spacing.sm,
+                    borderRadius: radius.xl,
+                    overflow: 'hidden',
+                    ...elevation.e2,
+                  },
+                ]}
+              >
+                <Image
+                  source={require('../../../../assets/icon.png')}
+                  style={{ width: 64, height: 64, borderRadius: radius.xl }}
+                  resizeMode="contain"
+                />
+              </View>
+            )}
             <Text
-              variant="display"
+              variant={keyboardHeight > 0 ? 'title1' : 'display'}
               style={{ textAlign: 'center', letterSpacing: -0.5 }}
             >
               Doit
             </Text>
-            <Text
-              variant="body"
-              color="secondary"
-              style={{ marginTop: spacing.xs, textAlign: 'center' }}
-            >
-              {mode === 'signin'
-                ? 'Precision project management & issue tracking'
-                : 'Create your workspace and start building'}
-            </Text>
+            {keyboardHeight === 0 && (
+              <Text
+                variant="body"
+                color="secondary"
+                style={{ marginTop: spacing.xs, textAlign: 'center' }}
+              >
+                {mode === 'signin'
+                  ? 'Precision project management & issue tracking'
+                  : 'Create your workspace and start building'}
+              </Text>
+            )}
           </View>
 
         {/* Card Container */}
@@ -357,22 +367,22 @@ export const LoginScreen: React.FC = () => {
                 </Text>
                 <TouchableOpacity
                   onPress={() => setShowPassword((prev) => !prev)}
-                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                  style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}
+                  hitSlop={{ top: 14, bottom: 14, left: 14, right: 14 }}
+                  style={{ flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 2 }}
                   accessibilityRole="button"
                   accessibilityLabel={showPassword ? 'Hide password' : 'Show password'}
                 >
                   {showPassword ? (
-                    <EyeOff size={15} color={colors.accent} />
+                    <EyeOff size={16} color={colors.accent} />
                   ) : (
-                    <Eye size={15} color={colors.accent} />
+                    <Eye size={16} color={colors.accent} />
                   )}
                   <Text
                     variant="caption"
                     style={{
                       color: colors.accent,
-                      fontWeight: '600',
-                      fontSize: 12,
+                      fontWeight: '700',
+                      fontSize: 13,
                     }}
                   >
                     {showPassword ? 'Hide password' : 'Show password'}
@@ -388,21 +398,21 @@ export const LoginScreen: React.FC = () => {
                 isPassword
                 onFocus={() => {
                   setTimeout(() => {
-                    scrollViewRef.current?.scrollTo({ y: 150, animated: true });
-                  }, 150);
+                    scrollViewRef.current?.scrollTo({ y: 240, animated: true });
+                  }, 120);
                 }}
                 suffix={
                   <TouchableOpacity
                     onPress={() => setShowPassword((prev) => !prev)}
                     accessibilityRole="button"
                     accessibilityLabel={showPassword ? 'Hide password' : 'Show password'}
-                    hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-                    style={{ padding: 4, justifyContent: 'center', alignItems: 'center' }}
+                    hitSlop={{ top: 14, bottom: 14, left: 14, right: 14 }}
+                    style={{ padding: 6, justifyContent: 'center', alignItems: 'center' }}
                   >
                     {showPassword ? (
-                      <EyeOff size={18} color={colors.textSecondary} />
+                      <EyeOff size={20} color={colors.accent} />
                     ) : (
-                      <Eye size={18} color={colors.textSecondary} />
+                      <Eye size={20} color={colors.textSecondary} />
                     )}
                   </TouchableOpacity>
                 }
@@ -635,158 +645,167 @@ export const LoginScreen: React.FC = () => {
               borderTopRightRadius: radius.xl,
               borderWidth: 1,
               borderColor: colors.border,
-              padding: spacing.xl,
-              gap: spacing.md,
+              maxHeight: '85%',
+              overflow: 'hidden',
             }}
           >
-            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-              <Text variant="title" style={{ fontWeight: '600' }}>
-                Reset Password
-              </Text>
-              <TouchableOpacity
-                onPress={() => setShowForgotSheet(false)}
-                hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-              >
-                <Text variant="label" color="tertiary" style={{ fontSize: 16 }}>
-                  ✕
+            <ScrollView
+              contentContainerStyle={{
+                padding: spacing.xl,
+                gap: spacing.md,
+              }}
+              keyboardShouldPersistTaps="handled"
+              showsVerticalScrollIndicator={false}
+            >
+              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                <Text variant="title" style={{ fontWeight: '600' }}>
+                  Reset Password
                 </Text>
-              </TouchableOpacity>
-            </View>
-
-            <Text variant="body" color="secondary" style={{ fontSize: 13, lineHeight: 18 }}>
-              Enter your account email and a new password to reset your credentials and sign in immediately.
-            </Text>
-
-            {forgotSuccess ? (
-              <View
-                style={{
-                  backgroundColor: colors.surfaceRaised,
-                  borderColor: colors.success,
-                  borderWidth: 1,
-                  borderRadius: radius.md,
-                  padding: spacing.md,
-                  gap: spacing.xs,
-                }}
-              >
-                <Text variant="label" style={{ color: colors.success, fontWeight: '600' }}>
-                  ✓ Password Reset Successfully
-                </Text>
-                <Text variant="caption" color="secondary" style={{ lineHeight: 18 }}>
-                  Your password has been updated. Credentials have been prefilled in the sign-in form.
-                </Text>
-                <View style={{ marginTop: spacing.sm }}>
-                  <Button
-                    title="Sign In with New Password"
-                    variant="primary"
-                    size="sm"
-                    fullWidth
-                    onPress={() => setShowForgotSheet(false)}
-                  />
-                </View>
+                <TouchableOpacity
+                  onPress={() => setShowForgotSheet(false)}
+                  hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+                >
+                  <Text variant="label" color="tertiary" style={{ fontSize: 16 }}>
+                    ✕
+                  </Text>
+                </TouchableOpacity>
               </View>
-            ) : (
-              <View style={{ gap: spacing.md }}>
-                {forgotError && (
-                  <View
-                    style={{
-                      backgroundColor: colors.surfaceRaised,
-                      borderColor: colors.danger,
-                      borderWidth: 1,
-                      borderRadius: radius.sm,
-                      padding: spacing.sm,
-                    }}
-                  >
-                    <Text variant="caption" color="danger">
-                      {forgotError}
-                    </Text>
-                  </View>
-                )}
 
-                <Input
-                  label="Email Address"
-                  placeholder="alice@samyukt.com"
-                  value={forgotEmail}
-                  onChangeText={setForgotEmail}
-                  keyboardType="email-address"
-                  autoCapitalize="none"
-                  autoCorrect={false}
-                />
+              <Text variant="body" color="secondary" style={{ fontSize: 13, lineHeight: 18 }}>
+                Enter your account email and a new password to reset your credentials and sign in immediately.
+              </Text>
 
-                <View>
-                  <View
-                    style={{
-                      flexDirection: 'row',
-                      justifyContent: 'space-between',
-                      alignItems: 'center',
-                      marginBottom: spacing.xs,
-                    }}
-                  >
-                    <Text variant="label" color="secondary">
-                      New Password (min 8 chars)
-                    </Text>
-                    <TouchableOpacity
-                      onPress={() => setShowForgotNewPassword((prev) => !prev)}
-                      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                      style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}
-                    >
-                      {showForgotNewPassword ? (
-                        <EyeOff size={13} color={colors.accent} />
-                      ) : (
-                        <Eye size={13} color={colors.accent} />
-                      )}
-                      <Text
-                        variant="caption"
-                        style={{ color: colors.accent, fontWeight: '600', fontSize: 11 }}
-                      >
-                        {showForgotNewPassword ? 'Hide' : 'Show'}
-                      </Text>
-                    </TouchableOpacity>
-                  </View>
-                  <Input
-                    placeholder="Enter new password"
-                    value={forgotNewPassword}
-                    onChangeText={setForgotNewPassword}
-                    secureTextEntry={!showForgotNewPassword}
-                    isPassword
-                    suffix={
-                      <TouchableOpacity
-                        onPress={() => setShowForgotNewPassword((prev) => !prev)}
-                        accessibilityRole="button"
-                        accessibilityLabel={showForgotNewPassword ? 'Hide password' : 'Show password'}
-                        hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-                        style={{ padding: 4, justifyContent: 'center', alignItems: 'center' }}
-                      >
-                        {showForgotNewPassword ? (
-                          <EyeOff size={18} color={colors.textSecondary} />
-                        ) : (
-                          <Eye size={18} color={colors.textSecondary} />
-                        )}
-                      </TouchableOpacity>
-                    }
-                  />
-                </View>
-
-                <View style={{ flexDirection: 'row', gap: spacing.sm, marginTop: spacing.xs }}>
-                  <View style={{ flex: 1 }}>
+              {forgotSuccess ? (
+                <View
+                  style={{
+                    backgroundColor: colors.surfaceRaised,
+                    borderColor: colors.success,
+                    borderWidth: 1,
+                    borderRadius: radius.md,
+                    padding: spacing.md,
+                    gap: spacing.xs,
+                  }}
+                >
+                  <Text variant="label" style={{ color: colors.success, fontWeight: '600' }}>
+                    ✓ Password Reset Successfully
+                  </Text>
+                  <Text variant="caption" color="secondary" style={{ lineHeight: 18 }}>
+                    Your password has been updated. Credentials have been prefilled in the sign-in form.
+                  </Text>
+                  <View style={{ marginTop: spacing.sm }}>
                     <Button
-                      title="Cancel"
-                      variant="secondary"
+                      title="Sign In with New Password"
+                      variant="primary"
+                      size="sm"
                       fullWidth
                       onPress={() => setShowForgotSheet(false)}
                     />
                   </View>
-                  <View style={{ flex: 1 }}>
-                    <Button
-                      title="Reset Password"
-                      variant="primary"
-                      fullWidth
-                      loading={forgotLoading}
-                      onPress={handleForgotSubmit}
+                </View>
+              ) : (
+                <View style={{ gap: spacing.md }}>
+                  {forgotError && (
+                    <View
+                      style={{
+                        backgroundColor: colors.surfaceRaised,
+                        borderColor: colors.danger,
+                        borderWidth: 1,
+                        borderRadius: radius.sm,
+                        padding: spacing.sm,
+                      }}
+                    >
+                      <Text variant="caption" color="danger">
+                        {forgotError}
+                      </Text>
+                    </View>
+                  )}
+
+                  <Input
+                    label="Email Address"
+                    placeholder="Enter your account email"
+                    value={forgotEmail}
+                    onChangeText={setForgotEmail}
+                    keyboardType="email-address"
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                  />
+
+                  <View>
+                    <View
+                      style={{
+                        flexDirection: 'row',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        marginBottom: spacing.xs,
+                      }}
+                    >
+                      <Text variant="label" color="secondary">
+                        New Password (min 8 chars)
+                      </Text>
+                      <TouchableOpacity
+                        onPress={() => setShowForgotNewPassword((prev) => !prev)}
+                        hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+                        style={{ flexDirection: 'row', alignItems: 'center', gap: 4, paddingVertical: 2 }}
+                      >
+                        {showForgotNewPassword ? (
+                          <EyeOff size={14} color={colors.accent} />
+                        ) : (
+                          <Eye size={14} color={colors.accent} />
+                        )}
+                        <Text
+                          variant="caption"
+                          style={{ color: colors.accent, fontWeight: '700', fontSize: 12 }}
+                        >
+                          {showForgotNewPassword ? 'Hide' : 'Show'}
+                        </Text>
+                      </TouchableOpacity>
+                    </View>
+                    <Input
+                      placeholder="Enter new password"
+                      value={forgotNewPassword}
+                      onChangeText={setForgotNewPassword}
+                      secureTextEntry={!showForgotNewPassword}
+                      isPassword
+                      suffix={
+                        <TouchableOpacity
+                          onPress={() => setShowForgotNewPassword((prev) => !prev)}
+                          accessibilityRole="button"
+                          accessibilityLabel={showForgotNewPassword ? 'Hide password' : 'Show password'}
+                          hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+                          style={{ padding: 4, justifyContent: 'center', alignItems: 'center' }}
+                        >
+                          {showForgotNewPassword ? (
+                            <EyeOff size={18} color={colors.accent} />
+                          ) : (
+                            <Eye size={18} color={colors.textSecondary} />
+                          )}
+                        </TouchableOpacity>
+                      }
                     />
                   </View>
+
+                  <View style={{ flexDirection: 'row', gap: spacing.sm, marginTop: spacing.xs }}>
+                    <View style={{ flex: 1 }}>
+                      <Button
+                        title="Cancel"
+                        variant="secondary"
+                        fullWidth
+                        onPress={() => setShowForgotSheet(false)}
+                      />
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Button
+                        title="Reset Password"
+                        variant="primary"
+                        fullWidth
+                        loading={forgotLoading}
+                        onPress={handleForgotSubmit}
+                      />
+                    </View>
+                  </View>
                 </View>
-              </View>
-            )}
+              )}
+            </ScrollView>
           </View>
         </KeyboardAvoidingView>
       </Modal>
