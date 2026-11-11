@@ -22,10 +22,10 @@ export declare class TasksService {
     findOne(rawTaskId: string): Promise<{
         checklist: {
             id: string;
-            order: Prisma.Decimal;
-            taskId: string;
             text: string;
             done: boolean;
+            order: Prisma.Decimal;
+            taskId: string;
         }[];
         attachments: ({
             url: string;
@@ -62,6 +62,7 @@ export declare class TasksService {
         })[];
         bug: {
             expected: string | null;
+            appVersion: string | null;
             id: string;
             taskId: string;
             sessionId: string | null;
@@ -73,7 +74,6 @@ export declare class TasksService {
             deviceModel: string | null;
             osVersion: string | null;
             appUnderTest: string | null;
-            appVersion: string | null;
             buildNumber: string | null;
             capturedAt: Date;
             autoContext: Prisma.JsonValue;
@@ -130,33 +130,33 @@ export declare class TasksService {
         id: string;
         order: string;
     }>;
-    assign(taskId: string, userId: string, assigneeId: string | null): Promise<import("./tasks.mapper").TaskListItemMapped>;
+    assign(rawTaskId: string, userId: string, rawAssigneeId: string | null): Promise<import("./tasks.mapper").TaskListItemMapped>;
     setLabels(taskId: string, userId: string, labelIds: string[]): Promise<import("./tasks.mapper").TaskListItemMapped>;
     delete(taskId: string, userId: string): Promise<{
         success: boolean;
     }>;
     addChecklistItem(taskId: string, dto: CreateChecklistItemDto): Promise<{
         id: string;
-        order: Prisma.Decimal;
-        taskId: string;
         text: string;
         done: boolean;
+        order: Prisma.Decimal;
+        taskId: string;
     }>;
     updateChecklistItem(itemId: string, dto: UpdateChecklistItemDto): Promise<{
         id: string;
-        order: Prisma.Decimal;
-        taskId: string;
         text: string;
         done: boolean;
+        order: Prisma.Decimal;
+        taskId: string;
     }>;
     deleteChecklistItem(itemId: string): Promise<{
         success: boolean;
     }>;
     getComments(taskId: string): Promise<({
         author: {
+            email: string;
             name: string;
             id: string;
-            email: string;
             avatarUrl: string | null;
         };
     } & {
@@ -164,19 +164,19 @@ export declare class TasksService {
         createdAt: Date;
         updatedAt: Date;
         deletedAt: Date | null;
-        taskId: string;
-        authorId: string;
         body: string;
         voiceNoteId: string | null;
+        taskId: string;
+        authorId: string;
     })[]>;
     createComment(taskId: string, userId: string, dto: {
         body: string;
         voiceNoteId?: string;
     }): Promise<{
         author: {
+            email: string;
             name: string;
             id: string;
-            email: string;
             avatarUrl: string | null;
         };
     } & {
@@ -184,10 +184,10 @@ export declare class TasksService {
         createdAt: Date;
         updatedAt: Date;
         deletedAt: Date | null;
-        taskId: string;
-        authorId: string;
         body: string;
         voiceNoteId: string | null;
+        taskId: string;
+        authorId: string;
     }>;
     deleteComment(commentId: string, userId: string): Promise<{
         success: boolean;

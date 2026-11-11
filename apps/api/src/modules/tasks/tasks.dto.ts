@@ -9,7 +9,8 @@ export const CreateTaskSchema = z.object({
   source: z.enum(['MANUAL', 'VOICE', 'BUG', 'STICKY', 'WIDGET', 'OVERLAY', 'SHARE']).default('MANUAL'),
   dueAt: z.string().datetime().optional(),
   dueHasTime: z.boolean().default(false),
-  assigneeId: z.string().uuid().optional(),
+  assigneeId: z
+    .preprocess((val) => (val === '' || val === 'unassigned' ? undefined : val), z.string().uuid().nullable().optional()),
   labelIds: z.array(z.string().uuid()).default([]),
 });
 
@@ -22,7 +23,8 @@ export const UpdateTaskSchema = z.object({
   priority: z.enum(['LOW', 'MEDIUM', 'HIGH', 'URGENT']).optional(),
   dueAt: z.string().datetime().nullable().optional(),
   dueHasTime: z.boolean().optional(),
-  assigneeId: z.string().uuid().nullable().optional(),
+  assigneeId: z
+    .preprocess((val) => (val === '' || val === 'unassigned' ? null : val), z.string().uuid().nullable().optional()),
 });
 
 export type UpdateTaskDto = z.infer<typeof UpdateTaskSchema>;
@@ -41,7 +43,8 @@ export const ReorderTaskSchema = z.object({
 export type ReorderTaskDto = z.infer<typeof ReorderTaskSchema>;
 
 export const AssignTaskSchema = z.object({
-  assigneeId: z.string().uuid().nullable(),
+  assigneeId: z
+    .preprocess((val) => (val === '' || val === 'unassigned' ? null : val), z.string().uuid().nullable()),
 });
 
 export type AssignTaskDto = z.infer<typeof AssignTaskSchema>;

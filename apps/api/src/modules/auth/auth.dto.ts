@@ -39,8 +39,10 @@ export const ForgotPasswordSchema = z.object({
 export type ForgotPasswordDto = z.infer<typeof ForgotPasswordSchema>;
 
 export const ResetPasswordSchema = z.object({
-  token: z.string().min(1),
-  password: z.string().min(8, 'Password must be at least 8 characters'),
+  token: z.string().min(1).optional(),
+  email: z.string().email().optional(),
+  password: z.string().min(6, 'Password must be at least 6 characters').optional(),
+  newPassword: z.string().min(6, 'Password must be at least 6 characters').optional(),
 });
 
 export type ResetPasswordDto = z.infer<typeof ResetPasswordSchema>;

@@ -12,10 +12,10 @@ export declare class TasksController {
     findOneBug(id: string): Promise<{
         checklist: {
             id: string;
-            order: import("@prisma/client/runtime/library").Decimal;
-            taskId: string;
             text: string;
             done: boolean;
+            order: import("@prisma/client/runtime/library").Decimal;
+            taskId: string;
         }[];
         attachments: ({
             url: string;
@@ -52,6 +52,7 @@ export declare class TasksController {
         })[];
         bug: {
             expected: string | null;
+            appVersion: string | null;
             id: string;
             taskId: string;
             sessionId: string | null;
@@ -63,7 +64,6 @@ export declare class TasksController {
             deviceModel: string | null;
             osVersion: string | null;
             appUnderTest: string | null;
-            appVersion: string | null;
             buildNumber: string | null;
             capturedAt: Date;
             autoContext: import("@prisma/client/runtime/library").JsonValue;
@@ -128,10 +128,10 @@ export declare class TasksController {
     findOne(id: string): Promise<{
         checklist: {
             id: string;
-            order: import("@prisma/client/runtime/library").Decimal;
-            taskId: string;
             text: string;
             done: boolean;
+            order: import("@prisma/client/runtime/library").Decimal;
+            taskId: string;
         }[];
         attachments: ({
             url: string;
@@ -168,6 +168,7 @@ export declare class TasksController {
         })[];
         bug: {
             expected: string | null;
+            appVersion: string | null;
             id: string;
             taskId: string;
             sessionId: string | null;
@@ -179,7 +180,6 @@ export declare class TasksController {
             deviceModel: string | null;
             osVersion: string | null;
             appUnderTest: string | null;
-            appVersion: string | null;
             buildNumber: string | null;
             capturedAt: Date;
             autoContext: import("@prisma/client/runtime/library").JsonValue;
@@ -238,32 +238,33 @@ export declare class TasksController {
         order: string;
     }>;
     assign(user: AuthUserPayload, id: string, dto: AssignTaskDto): Promise<import("./tasks.mapper").TaskListItemMapped>;
+    assignPatch(user: AuthUserPayload, id: string, dto: AssignTaskDto): Promise<import("./tasks.mapper").TaskListItemMapped>;
     setLabels(user: AuthUserPayload, id: string, dto: SetLabelsDto): Promise<import("./tasks.mapper").TaskListItemMapped>;
     delete(user: AuthUserPayload, id: string): Promise<{
         success: boolean;
     }>;
     addChecklistItem(id: string, dto: CreateChecklistItemDto): Promise<{
         id: string;
-        order: import("@prisma/client/runtime/library").Decimal;
-        taskId: string;
         text: string;
         done: boolean;
+        order: import("@prisma/client/runtime/library").Decimal;
+        taskId: string;
     }>;
     updateChecklistItem(itemId: string, dto: UpdateChecklistItemDto): Promise<{
         id: string;
-        order: import("@prisma/client/runtime/library").Decimal;
-        taskId: string;
         text: string;
         done: boolean;
+        order: import("@prisma/client/runtime/library").Decimal;
+        taskId: string;
     }>;
     deleteChecklistItem(itemId: string): Promise<{
         success: boolean;
     }>;
     getComments(id: string): Promise<({
         author: {
+            email: string;
             name: string;
             id: string;
-            email: string;
             avatarUrl: string | null;
         };
     } & {
@@ -271,16 +272,16 @@ export declare class TasksController {
         createdAt: Date;
         updatedAt: Date;
         deletedAt: Date | null;
-        taskId: string;
-        authorId: string;
         body: string;
         voiceNoteId: string | null;
+        taskId: string;
+        authorId: string;
     })[]>;
     addComment(user: AuthUserPayload, id: string, dto: CreateCommentDto): Promise<{
         author: {
+            email: string;
             name: string;
             id: string;
-            email: string;
             avatarUrl: string | null;
         };
     } & {
@@ -288,10 +289,10 @@ export declare class TasksController {
         createdAt: Date;
         updatedAt: Date;
         deletedAt: Date | null;
-        taskId: string;
-        authorId: string;
         body: string;
         voiceNoteId: string | null;
+        taskId: string;
+        authorId: string;
     }>;
     deleteComment(user: AuthUserPayload, commentId: string): Promise<{
         success: boolean;

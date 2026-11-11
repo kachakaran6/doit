@@ -251,8 +251,20 @@ export class TasksController {
   @Post('tasks/:id/assign')
   @UseGuards(WorkspaceMemberGuard)
   @ApiBearerAuth('bearer-auth')
-  @ApiOperation({ summary: 'Assign task to user or unassign' })
+  @ApiOperation({ summary: 'Assign task to user or unassign (POST)' })
   async assign(
+    @CurrentUser() user: AuthUserPayload,
+    @Param('id') id: string,
+    @Body(new ZodValidationPipe(AssignTaskSchema)) dto: AssignTaskDto,
+  ) {
+    return this.tasksService.assign(id, user.sub, dto.assigneeId);
+  }
+
+  @Patch('tasks/:id/assign')
+  @UseGuards(WorkspaceMemberGuard)
+  @ApiBearerAuth('bearer-auth')
+  @ApiOperation({ summary: 'Assign task to user or unassign (PATCH)' })
+  async assignPatch(
     @CurrentUser() user: AuthUserPayload,
     @Param('id') id: string,
     @Body(new ZodValidationPipe(AssignTaskSchema)) dto: AssignTaskDto,

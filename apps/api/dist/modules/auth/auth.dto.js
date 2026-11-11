@@ -29,7 +29,9 @@ exports.ForgotPasswordSchema = zod_1.z.object({
     email: zod_1.z.string().email(),
 });
 exports.ResetPasswordSchema = zod_1.z.object({
-    token: zod_1.z.string().min(1),
-    password: zod_1.z.string().min(8, 'Password must be at least 8 characters'),
+    token: zod_1.z.string().min(1).optional(),
+    email: zod_1.z.string().email().optional(),
+    password: zod_1.z.string().min(6, 'Password must be at least 6 characters').optional(),
+    newPassword: zod_1.z.string().min(6, 'Password must be at least 6 characters').optional(),
 });
 //# sourceMappingURL=auth.dto.js.map

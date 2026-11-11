@@ -68,6 +68,12 @@ export function ProjectsPage() {
             <p className="mt-1 text-[13px] text-[var(--muted-foreground)] line-clamp-2">
               {project.description || 'No description'}
             </p>
+            {project.defaultAssignee && (
+              <div className="mt-2 flex items-center gap-1.5 text-[11px] text-[var(--muted-foreground)]">
+                <span className="w-1.5 h-1.5 rounded-full bg-[var(--primary)]" />
+                <span>Default: <strong className="font-medium text-[var(--foreground)]">{project.defaultAssignee.name}</strong></span>
+              </div>
+            )}
           </button>
         ))}
         {projects.length === 0 ? (

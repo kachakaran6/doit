@@ -103,6 +103,9 @@ let TasksController = class TasksController {
     async assign(user, id, dto) {
         return this.tasksService.assign(id, user.sub, dto.assigneeId);
     }
+    async assignPatch(user, id, dto) {
+        return this.tasksService.assign(id, user.sub, dto.assigneeId);
+    }
     async setLabels(user, id, dto) {
         return this.tasksService.setLabels(id, user.sub, dto.labelIds);
     }
@@ -312,7 +315,7 @@ __decorate([
     (0, common_1.Post)('tasks/:id/assign'),
     (0, common_1.UseGuards)(workspace_member_guard_1.WorkspaceMemberGuard),
     (0, swagger_1.ApiBearerAuth)('bearer-auth'),
-    (0, swagger_1.ApiOperation)({ summary: 'Assign task to user or unassign' }),
+    (0, swagger_1.ApiOperation)({ summary: 'Assign task to user or unassign (POST)' }),
     __param(0, (0, current_user_decorator_1.CurrentUser)()),
     __param(1, (0, common_1.Param)('id')),
     __param(2, (0, common_1.Body)(new zod_validation_pipe_1.ZodValidationPipe(tasks_dto_1.AssignTaskSchema))),
@@ -320,6 +323,18 @@ __decorate([
     __metadata("design:paramtypes", [Object, String, Object]),
     __metadata("design:returntype", Promise)
 ], TasksController.prototype, "assign", null);
+__decorate([
+    (0, common_1.Patch)('tasks/:id/assign'),
+    (0, common_1.UseGuards)(workspace_member_guard_1.WorkspaceMemberGuard),
+    (0, swagger_1.ApiBearerAuth)('bearer-auth'),
+    (0, swagger_1.ApiOperation)({ summary: 'Assign task to user or unassign (PATCH)' }),
+    __param(0, (0, current_user_decorator_1.CurrentUser)()),
+    __param(1, (0, common_1.Param)('id')),
+    __param(2, (0, common_1.Body)(new zod_validation_pipe_1.ZodValidationPipe(tasks_dto_1.AssignTaskSchema))),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, String, Object]),
+    __metadata("design:returntype", Promise)
+], TasksController.prototype, "assignPatch", null);
 __decorate([
     (0, common_1.Post)('tasks/:id/labels'),
     (0, common_1.UseGuards)(workspace_member_guard_1.WorkspaceMemberGuard),

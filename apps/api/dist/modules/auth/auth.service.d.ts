@@ -23,16 +23,20 @@ export declare class AuthService {
     logout(sessionId: string): Promise<void>;
     logoutAll(userId: string): Promise<void>;
     getSessions(userId: string): Promise<{
-        id: string;
-        createdAt: Date;
-        appVersion: string | null;
         deviceName: string | null;
         deviceId: string | null;
         platform: string | null;
+        appVersion: string | null;
+        id: string;
         lastSeenAt: Date;
+        createdAt: Date;
     }[]>;
     revokeSession(userId: string, sessionId: string): Promise<void>;
     forgotPassword(email: string): Promise<{
         sent: boolean;
+    }>;
+    resetPassword(email: string, newPassword: string): Promise<{
+        success: boolean;
+        message: string;
     }>;
 }

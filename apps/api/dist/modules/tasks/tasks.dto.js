@@ -11,7 +11,8 @@ exports.CreateTaskSchema = zod_1.z.object({
     source: zod_1.z.enum(['MANUAL', 'VOICE', 'BUG', 'STICKY', 'WIDGET', 'OVERLAY', 'SHARE']).default('MANUAL'),
     dueAt: zod_1.z.string().datetime().optional(),
     dueHasTime: zod_1.z.boolean().default(false),
-    assigneeId: zod_1.z.string().uuid().optional(),
+    assigneeId: zod_1.z
+        .preprocess((val) => (val === '' || val === 'unassigned' ? undefined : val), zod_1.z.string().uuid().nullable().optional()),
     labelIds: zod_1.z.array(zod_1.z.string().uuid()).default([]),
 });
 exports.UpdateTaskSchema = zod_1.z.object({
@@ -21,7 +22,8 @@ exports.UpdateTaskSchema = zod_1.z.object({
     priority: zod_1.z.enum(['LOW', 'MEDIUM', 'HIGH', 'URGENT']).optional(),
     dueAt: zod_1.z.string().datetime().nullable().optional(),
     dueHasTime: zod_1.z.boolean().optional(),
-    assigneeId: zod_1.z.string().uuid().nullable().optional(),
+    assigneeId: zod_1.z
+        .preprocess((val) => (val === '' || val === 'unassigned' ? null : val), zod_1.z.string().uuid().nullable().optional()),
 });
 exports.UpdateStatusSchema = zod_1.z.object({
     status: zod_1.z.enum(['TODO', 'IN_PROGRESS', 'BLOCKED', 'DONE']),
@@ -31,7 +33,8 @@ exports.ReorderTaskSchema = zod_1.z.object({
     afterId: zod_1.z.string().uuid().optional(),
 });
 exports.AssignTaskSchema = zod_1.z.object({
-    assigneeId: zod_1.z.string().uuid().nullable(),
+    assigneeId: zod_1.z
+        .preprocess((val) => (val === '' || val === 'unassigned' ? null : val), zod_1.z.string().uuid().nullable()),
 });
 exports.SetLabelsSchema = zod_1.z.object({
     labelIds: zod_1.z.array(zod_1.z.string().uuid()),

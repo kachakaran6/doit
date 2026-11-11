@@ -5,101 +5,101 @@ export declare class ProjectsService {
     constructor(prisma: PrismaService);
     create(workspaceId: string, dto: CreateProjectDto): Promise<{
         defaultAssignee: {
+            email: string;
             name: string;
             id: string;
-            email: string;
             avatarUrl: string | null;
         } | null;
     } & {
         name: string;
-        key: string;
-        description: string | null;
-        color: import(".prisma/client").$Enums.AccentName;
-        defaultAssigneeId: string | null;
         id: string;
-        archivedAt: Date | null;
         createdAt: Date;
         updatedAt: Date;
         workspaceId: string;
+        description: string | null;
+        key: string;
+        color: import(".prisma/client").$Enums.AccentName;
+        defaultAssigneeId: string | null;
+        archivedAt: Date | null;
     }>;
     findAll(workspaceId: string): Promise<({
+        _count: {
+            stickies: number;
+            tasks: number;
+        };
         defaultAssignee: {
+            email: string;
             name: string;
             id: string;
-            email: string;
             avatarUrl: string | null;
         } | null;
-        _count: {
-            tasks: number;
-            stickies: number;
-        };
     } & {
         name: string;
-        key: string;
-        description: string | null;
-        color: import(".prisma/client").$Enums.AccentName;
-        defaultAssigneeId: string | null;
         id: string;
-        archivedAt: Date | null;
         createdAt: Date;
         updatedAt: Date;
         workspaceId: string;
+        description: string | null;
+        key: string;
+        color: import(".prisma/client").$Enums.AccentName;
+        defaultAssigneeId: string | null;
+        archivedAt: Date | null;
     })[]>;
     findOne(projectId: string): Promise<{
+        _count: {
+            stickies: number;
+            tasks: number;
+        };
         workspace: {
             name: string;
             id: string;
             slug: string;
         };
         defaultAssignee: {
+            email: string;
             name: string;
             id: string;
-            email: string;
             avatarUrl: string | null;
         } | null;
-        _count: {
-            tasks: number;
-            stickies: number;
-        };
     } & {
         name: string;
-        key: string;
-        description: string | null;
-        color: import(".prisma/client").$Enums.AccentName;
-        defaultAssigneeId: string | null;
         id: string;
-        archivedAt: Date | null;
         createdAt: Date;
         updatedAt: Date;
         workspaceId: string;
+        description: string | null;
+        key: string;
+        color: import(".prisma/client").$Enums.AccentName;
+        defaultAssigneeId: string | null;
+        archivedAt: Date | null;
     }>;
     update(projectId: string, dto: UpdateProjectDto): Promise<{
         defaultAssignee: {
+            email: string;
             name: string;
             id: string;
-            email: string;
             avatarUrl: string | null;
         } | null;
     } & {
         name: string;
-        key: string;
-        description: string | null;
-        color: import(".prisma/client").$Enums.AccentName;
-        defaultAssigneeId: string | null;
         id: string;
-        archivedAt: Date | null;
         createdAt: Date;
         updatedAt: Date;
         workspaceId: string;
+        description: string | null;
+        key: string;
+        color: import(".prisma/client").$Enums.AccentName;
+        defaultAssigneeId: string | null;
+        archivedAt: Date | null;
     }>;
     getProjectMembers(projectId: string): Promise<{
         projectId: string;
         projectName: string;
         defaultAssigneeId: string | null;
         defaultAssignee: {
+            email: string;
             name: string;
             id: string;
-            email: string;
             avatarUrl: string | null;
         } | null;
         members: {

@@ -5,13 +5,13 @@ export declare const RegisterSchema: z.ZodEffects<z.ZodObject<{
     name: z.ZodOptional<z.ZodString>;
     fullName: z.ZodOptional<z.ZodString>;
 }, "strip", z.ZodTypeAny, {
-    password: string;
     email: string;
+    password: string;
     name?: string | undefined;
     fullName?: string | undefined;
 }, {
-    password: string;
     email: string;
+    password: string;
     name?: string | undefined;
     fullName?: string | undefined;
 }>, {
@@ -19,8 +19,8 @@ export declare const RegisterSchema: z.ZodEffects<z.ZodObject<{
     password: string;
     name: string;
 }, {
-    password: string;
     email: string;
+    password: string;
     name?: string | undefined;
     fullName?: string | undefined;
 }>;
@@ -33,15 +33,15 @@ export declare const LoginSchema: z.ZodObject<{
     platform: z.ZodOptional<z.ZodEnum<["ios", "android", "web"]>>;
     appVersion: z.ZodOptional<z.ZodString>;
 }, "strip", z.ZodTypeAny, {
-    password: string;
     email: string;
+    password: string;
     deviceName?: string | undefined;
     deviceId?: string | undefined;
     platform?: "ios" | "android" | "web" | undefined;
     appVersion?: string | undefined;
 }, {
-    password: string;
     email: string;
+    password: string;
     deviceName?: string | undefined;
     deviceId?: string | undefined;
     platform?: "ios" | "android" | "web" | undefined;
@@ -65,13 +65,19 @@ export declare const ForgotPasswordSchema: z.ZodObject<{
 }>;
 export type ForgotPasswordDto = z.infer<typeof ForgotPasswordSchema>;
 export declare const ResetPasswordSchema: z.ZodObject<{
-    token: z.ZodString;
-    password: z.ZodString;
+    token: z.ZodOptional<z.ZodString>;
+    email: z.ZodOptional<z.ZodString>;
+    password: z.ZodOptional<z.ZodString>;
+    newPassword: z.ZodOptional<z.ZodString>;
 }, "strip", z.ZodTypeAny, {
-    password: string;
-    token: string;
+    email?: string | undefined;
+    password?: string | undefined;
+    token?: string | undefined;
+    newPassword?: string | undefined;
 }, {
-    password: string;
-    token: string;
+    email?: string | undefined;
+    password?: string | undefined;
+    token?: string | undefined;
+    newPassword?: string | undefined;
 }>;
 export type ResetPasswordDto = z.infer<typeof ResetPasswordSchema>;

@@ -28,7 +28,13 @@ export interface TaskViewModel {
   orderKey: string;
   dueDate?: string;
   projectId: string;
-  assigneeId?: string;
+  assigneeId?: string | null;
+  assignee?: {
+    id: string;
+    name: string;
+    email?: string | null;
+    avatarUrl?: string | null;
+  } | null;
   labels?: Array<{ id: string; name: string; color: string }>;
   attachments?: TaskAttachment[];
   createdAt?: string;

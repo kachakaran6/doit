@@ -12,13 +12,15 @@ exports.CreateProjectSchema = zod_1.z.object({
         .transform((k) => k.toUpperCase()),
     description: zod_1.z.string().optional(),
     color: zod_1.z.enum(['INDIGO', 'TEAL', 'AMBER', 'ROSE', 'VIOLET']).default('INDIGO'),
-    defaultAssigneeId: zod_1.z.string().uuid().nullable().optional(),
+    defaultAssigneeId: zod_1.z
+        .preprocess((val) => (val === '' || val === 'unassigned' ? null : val), zod_1.z.string().uuid().nullable().optional()),
 });
 exports.UpdateProjectSchema = zod_1.z.object({
     name: zod_1.z.string().min(2).optional(),
     description: zod_1.z.string().optional(),
     color: zod_1.z.enum(['INDIGO', 'TEAL', 'AMBER', 'ROSE', 'VIOLET']).optional(),
-    defaultAssigneeId: zod_1.z.string().uuid().nullable().optional(),
+    defaultAssigneeId: zod_1.z
+        .preprocess((val) => (val === '' || val === 'unassigned' ? null : val), zod_1.z.string().uuid().nullable().optional()),
     archived: zod_1.z.boolean().optional(),
 });
 //# sourceMappingURL=projects.dto.js.map

@@ -1,5 +1,5 @@
 import { AuthService } from './auth.service';
-import { RegisterDto, LoginDto, RefreshTokenDto, ForgotPasswordDto } from './auth.dto';
+import { RegisterDto, LoginDto, RefreshTokenDto, ForgotPasswordDto, ResetPasswordDto } from './auth.dto';
 import { AuthUserPayload } from '../../common/decorators/current-user.decorator';
 import { UsersService } from '../users/users.service';
 export declare class AuthController {
@@ -16,19 +16,23 @@ export declare class AuthController {
         success: boolean;
     }>;
     getSessions(user: AuthUserPayload): Promise<{
-        id: string;
-        createdAt: Date;
-        appVersion: string | null;
         deviceName: string | null;
         deviceId: string | null;
         platform: string | null;
+        appVersion: string | null;
+        id: string;
         lastSeenAt: Date;
+        createdAt: Date;
     }[]>;
     revokeSession(user: AuthUserPayload, sessionId: string): Promise<{
         success: boolean;
     }>;
     forgotPassword(dto: ForgotPasswordDto): Promise<{
         sent: boolean;
+    }>;
+    resetPassword(dto: ResetPasswordDto): Promise<{
+        success: boolean;
+        message: string;
     }>;
     getMe(user: AuthUserPayload): Promise<{
         user: {

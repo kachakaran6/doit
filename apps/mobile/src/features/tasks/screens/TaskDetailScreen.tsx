@@ -29,7 +29,9 @@ import {
   useUpdateTaskMutation,
   useDeleteTaskMutation,
   useSetTaskLabelsMutation,
+  useAssignTaskMutation,
 } from '../api/mutations';
+import { http } from '../../../lib/http';
 import { useWorkspaceStore } from '../../workspace';
 import { RootStackParamList } from '../../../navigation/types';
 import { TaskStatus, TaskPriority } from '../types';
@@ -47,6 +49,7 @@ import {
   CheckCircle2,
   FileText,
   X,
+  User,
 } from 'lucide-react-native';
 import { SolutionPromptSection } from '../components/SolutionPromptSection';
 import { TaskStatusPickerSheet } from '../components/TaskStatusPickerSheet';
@@ -78,13 +81,28 @@ export const TaskDetailScreen: React.FC = () => {
   const { data: task, isLoading, error } = useTaskDetailQuery(id);
   const updateStatus = useUpdateTaskStatusMutation(task?.projectId || 'default');
   const updateTask = useUpdateTaskMutation(task?.projectId || 'default');
+  const assignTask = useAssignTaskMutation(task?.projectId || 'default');
   const deleteTask = useDeleteTaskMutation(task?.projectId || 'default');
   const setLabels = useSetTaskLabelsMutation(task?.projectId || 'default');
 
   const [statusPickerOpen, setStatusPickerOpen] = useState(false);
   const [priorityPickerOpen, setPriorityPickerOpen] = useState(false);
+  const [assigneePickerOpen, setAssigneePickerOpen] = useState(false);
+  const [projectMembers, setProjectMembers] = useState<any[]>([]);
   const [labelPickerOpen, setLabelPickerOpen] = useState(false);
   const [labelManagerOpen, setLabelManagerOpen] = useState(false);
+
+  React.useEffect(() => {
+    if (!task?.projectId) return;
+    http
+      .get<any>(`/projects/${task.projectId}/members`)
+      .then((res) => {
+        setProjectMembers(res?.members || []);
+      })
+      .catch(() => {
+        setProjectMembers([]);
+      });
+  }, [task?.projectId]);
 
   // Title edit state
   const [isEditingTitle, setIsEditingTitle] = useState(false);
@@ -356,6 +374,55 @@ export const TaskDetailScreen: React.FC = () => {
             </View>
           </TouchableOpacity>
 
+          {/* Assignee Row */}
+          <TouchableOpacity
+            style={[styles.propRow, { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.hairline }]}
+            activeOpacity={0.7}
+            onPress={() => setAssigneePickerOpen(true)}
+            accessibilityRole="button"
+            accessibilityLabel="Change assignee"
+          >
+            <View style={styles.propLabelGroup}>
+              <User size={12} color={colors.textTertiary} />
+              <Text variant="caption" color="secondary" style={styles.propLabelText}>
+                Assignee
+              </Text>
+            </View>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+              <View
+                style={{
+                  width: 20,
+                  height: 20,
+                  borderRadius: 10,
+                  backgroundColor: task.assignee ? colors.accent : colors.surface2,
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                }}
+              >
+                <Text
+                  variant="caption"
+                  style={{
+                    fontSize: 10,
+                    fontWeight: '700',
+                    color: task.assignee ? '#FFF' : colors.textTertiary,
+                  }}
+                >
+                  {task.assignee?.name ? task.assignee.name.charAt(0).toUpperCase() : '?'}
+                </Text>
+              </View>
+              <Text
+                variant="caption"
+                style={{
+                  fontWeight: '600',
+                  color: task.assignee ? colors.textPrimary : colors.textSecondary,
+                }}
+              >
+                {task.assignee?.name || 'Unassigned'}
+              </Text>
+              <ChevronDown size={11} color={colors.textSecondary} />
+            </View>
+          </TouchableOpacity>
+
           {/* Due Date Row (if present) */}
           {task.dueDate ? (
             <View style={[styles.propRow, { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.hairline }]}>
@@ -500,6 +567,148 @@ export const TaskDetailScreen: React.FC = () => {
         currentPriority={task.priority || 'MEDIUM'}
         onSelectPriority={handleSelectPriority}
       />
+
+      {/* Assignee Picker Sheet Modal */}
+      <Modal
+        visible={assigneePickerOpen}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setAssigneePickerOpen(false)}
+      >
+        <TouchableOpacity
+          style={styles.modalBackdrop}
+          activeOpacity={1}
+          onPress={() => setAssigneePickerOpen(false)}
+        />
+        <View
+          style={{
+            position: 'absolute',
+            bottom: 0,
+            left: 0,
+            right: 0,
+            backgroundColor: colors.surface,
+            borderTopLeftRadius: radius.xl,
+            borderTopRightRadius: radius.xl,
+            borderWidth: 1,
+            borderColor: colors.border,
+            padding: spacing.lg,
+            maxHeight: '60%',
+          }}
+        >
+          <View
+            style={{
+              flexDirection: 'row',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              marginBottom: spacing.md,
+            }}
+          >
+            <Text variant="title" style={{ fontWeight: '600' }}>
+              Assign Member
+            </Text>
+            <TouchableOpacity
+              onPress={() => setAssigneePickerOpen(false)}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            >
+              <X size={18} color={colors.textSecondary} />
+            </TouchableOpacity>
+          </View>
+
+          <ScrollView showsVerticalScrollIndicator={false}>
+            {/* Option to unassign */}
+            <TouchableOpacity
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                paddingVertical: spacing.md,
+                borderBottomWidth: StyleSheet.hairlineWidth,
+                borderBottomColor: colors.hairline,
+              }}
+              onPress={async () => {
+                setAssigneePickerOpen(false);
+                await assignTask.mutateAsync({ taskId: task.id, assigneeId: null });
+              }}
+            >
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                <View
+                  style={{
+                    width: 32,
+                    height: 32,
+                    borderRadius: 16,
+                    backgroundColor: colors.surface2,
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                  }}
+                >
+                  <Text variant="caption" style={{ color: colors.textTertiary, fontWeight: '700' }}>
+                    ✕
+                  </Text>
+                </View>
+                <Text variant="body" color={!task.assigneeId ? 'accent' : 'primary'}>
+                  Unassigned
+                </Text>
+              </View>
+              {!task.assigneeId && <Check size={18} color={colors.accent} />}
+            </TouchableOpacity>
+
+            {projectMembers.map((m: any) => {
+              const isSelected = task.assigneeId === m.id;
+              return (
+                <TouchableOpacity
+                  key={m.id}
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    paddingVertical: spacing.md,
+                    borderBottomWidth: StyleSheet.hairlineWidth,
+                    borderBottomColor: colors.hairline,
+                  }}
+                  onPress={async () => {
+                    setAssigneePickerOpen(false);
+                    await assignTask.mutateAsync({ taskId: task.id, assigneeId: m.id });
+                  }}
+                >
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                    <View
+                      style={{
+                        width: 32,
+                        height: 32,
+                        borderRadius: 16,
+                        backgroundColor: colors.accent,
+                        justifyContent: 'center',
+                        alignItems: 'center',
+                      }}
+                    >
+                      <Text variant="caption" style={{ color: '#FFF', fontWeight: '700' }}>
+                        {m.name.charAt(0).toUpperCase()}
+                      </Text>
+                    </View>
+                    <View>
+                      <Text
+                        variant="body"
+                        style={{
+                          fontWeight: isSelected ? '700' : '500',
+                          color: isSelected ? colors.accent : colors.textPrimary,
+                        }}
+                      >
+                        {m.name}
+                      </Text>
+                      {m.email && (
+                        <Text variant="caption" color="secondary" style={{ fontSize: 11 }}>
+                          {m.email}
+                        </Text>
+                      )}
+                    </View>
+                  </View>
+                  {isSelected && <Check size={18} color={colors.accent} />}
+                </TouchableOpacity>
+              );
+            })}
+          </ScrollView>
+        </View>
+      </Modal>
 
       <TaskLabelPickerSheet
         visible={labelPickerOpen}

@@ -20,7 +20,11 @@ import {
   RefreshTokenSchema,
   ForgotPasswordDto,
   ForgotPasswordSchema,
+  ResetPasswordDto,
+  ResetPasswordSchema,
 } from './auth.dto';
+import { AppError } from '../../common/errors/app.error';
+import { ErrorCode } from '../../common/errors/error-code.enum';
 import { ZodValidationPipe } from '../../common/pipes/zod-validation.pipe';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { Public } from '../../common/decorators/public.decorator';
@@ -106,6 +110,21 @@ export class AuthController {
     @Body(new ZodValidationPipe(ForgotPasswordSchema)) dto: ForgotPasswordDto,
   ) {
     return this.authService.forgotPassword(dto.email);
+  }
+
+  @Public()
+  @Post('password/reset')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Reset password with direct email and new password' })
+  async resetPassword(
+    @Body(new ZodValidationPipe(ResetPasswordSchema)) dto: ResetPasswordDto,
+  ) {
+    const email = dto.email;
+    const newPassword = dto.newPassword || dto.password;
+    if (!email || !newPassword) {
+      throw new AppError(ErrorCode.VALIDATION_FAILED, 'Email and new password are required.', 400);
+    }
+    return this.authService.resetPassword(email, newPassword);
   }
 
   @Get('me')

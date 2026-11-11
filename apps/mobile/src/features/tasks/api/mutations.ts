@@ -153,6 +153,7 @@ export function useUpdateTaskMutation(projectId: string = 'default') {
         priority?: 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT';
         status?: TaskStatus;
         dueAt?: string | null;
+        assigneeId?: string | null;
       };
     }) => {
       return http.patch<TaskViewModel>(`/tasks/${id}`, data);
@@ -242,6 +243,26 @@ export function useDeleteTaskMutation(projectId: string = 'default') {
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: taskKeys.lists() });
       playReviewService.recordEngagement().catch(() => { });
+    },
+  });
+}
+
+export function useAssignTaskMutation(projectId: string = 'default') {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ taskId, assigneeId }: { taskId: string; assigneeId: string | null }) => {
+      return http.post<TaskViewModel>(`/tasks/${taskId}/assign`, { assigneeId });
+    },
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: taskKeys.all });
+      if (variables.taskId) {
+        queryClient.invalidateQueries({ queryKey: taskKeys.detail(variables.taskId) });
+      }
+    },
+    onError: (err: any) => {
+      const message = err?.response?.data?.message || err?.message || 'Could not assign member.';
+      Alert.alert('Assignment Failed', message);
     },
   });
 }

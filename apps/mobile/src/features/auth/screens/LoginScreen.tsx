@@ -14,7 +14,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Text, Button, Input } from '../../../components/ui';
 import { useTheme } from '../../../theme/useTheme';
 import { useLoginMutation, useRegisterMutation } from '../api/mutations';
-import { CheckCircle2, ShieldCheck, Server, RefreshCw } from 'lucide-react-native';
+import { CheckCircle2, ShieldCheck, Server, RefreshCw, Eye, EyeOff } from 'lucide-react-native';
 import { http } from '../../../lib/http';
 import {
   getPendingInviteToken,
@@ -29,10 +29,13 @@ export const LoginScreen: React.FC = () => {
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const [showForgotSheet, setShowForgotSheet] = useState(false);
   const [forgotEmail, setForgotEmail] = useState('');
+  const [forgotNewPassword, setForgotNewPassword] = useState('');
+  const [showForgotNewPassword, setShowForgotNewPassword] = useState(false);
   const [forgotLoading, setForgotLoading] = useState(false);
   const [forgotSuccess, setForgotSuccess] = useState(false);
   const [forgotError, setForgotError] = useState<string | null>(null);
@@ -131,12 +134,22 @@ export const LoginScreen: React.FC = () => {
       setForgotError('Please enter your account email.');
       return;
     }
+    if (!forgotNewPassword.trim() || forgotNewPassword.length < 8) {
+      setForgotError('New password must be at least 8 characters long.');
+      return;
+    }
     try {
       setForgotLoading(true);
-      await http.post('/auth/password/forgot', { email: forgotEmail.trim() });
+      await http.post('/auth/password/reset', {
+        email: forgotEmail.trim(),
+        newPassword: forgotNewPassword.trim(),
+      });
       setForgotSuccess(true);
+      setEmail(forgotEmail.trim());
+      setPassword(forgotNewPassword.trim());
+      setErrorMessage(null);
     } catch (err: any) {
-      setForgotError(err?.message || 'Unable to request password reset. Please verify connection.');
+      setForgotError(err?.message || 'Unable to reset password. Please verify connection.');
     } finally {
       setForgotLoading(false);
     }
@@ -162,8 +175,8 @@ export const LoginScreen: React.FC = () => {
             styles.container,
             {
               paddingHorizontal: spacing.lg,
-              paddingTop: keyboardVisible ? spacing.sm : spacing.xl,
-              paddingBottom: keyboardVisible ? 280 : spacing['2xl'],
+              paddingTop: keyboardVisible ? spacing.xs : spacing.xl,
+              paddingBottom: keyboardVisible ? 380 : spacing['2xl'],
               justifyContent: keyboardVisible ? 'flex-start' : 'center',
             },
           ]}
@@ -332,18 +345,57 @@ export const LoginScreen: React.FC = () => {
               autoCorrect={false}
             />
 
-            <Input
-              label="Password"
-              placeholder="••••••••••••"
-              value={password}
-              onChangeText={setPassword}
-              isPassword
-              onFocus={() => {
-                setTimeout(() => {
-                  scrollViewRef.current?.scrollToEnd({ animated: true });
-                }, 100);
-              }}
-            />
+            <View>
+              <View
+                style={{
+                  flexDirection: 'row',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  marginBottom: spacing.xs,
+                }}
+              >
+                <Text variant="label" color={errorMessage ? 'danger' : 'secondary'}>
+                  Password
+                </Text>
+                <TouchableOpacity
+                  onPress={() => setShowPassword((prev) => !prev)}
+                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                  style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}
+                  accessibilityRole="button"
+                  accessibilityLabel={showPassword ? 'Hide password' : 'Show password'}
+                >
+                  {showPassword ? (
+                    <EyeOff size={15} color={colors.accent} />
+                  ) : (
+                    <Eye size={15} color={colors.accent} />
+                  )}
+                  <Text
+                    variant="caption"
+                    style={{
+                      color: colors.accent,
+                      fontWeight: '600',
+                      fontSize: 12,
+                    }}
+                  >
+                    {showPassword ? 'Hide password' : 'Show password'}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+
+              <Input
+                placeholder="••••••••••••"
+                value={password}
+                onChangeText={setPassword}
+                secureTextEntry={!showPassword}
+                isPassword
+                onFocus={() => {
+                  setKeyboardVisible(true);
+                  setTimeout(() => {
+                    scrollViewRef.current?.scrollTo({ y: 160, animated: true });
+                  }, 120);
+                }}
+              />
+            </View>
 
             {mode === 'signin' && (
               <View style={{ flexDirection: 'row', justifyContent: 'flex-end', marginTop: -spacing.xs }}>
@@ -591,7 +643,7 @@ export const LoginScreen: React.FC = () => {
             </View>
 
             <Text variant="body" color="secondary" style={{ fontSize: 13, lineHeight: 18 }}>
-              Enter the email associated with your account to receive password reset assistance.
+              Enter your account email and a new password to reset your credentials and sign in immediately.
             </Text>
 
             {forgotSuccess ? (
@@ -606,18 +658,15 @@ export const LoginScreen: React.FC = () => {
                 }}
               >
                 <Text variant="label" style={{ color: colors.success, fontWeight: '600' }}>
-                  ✓ Reset Request Dispatched
+                  ✓ Password Reset Successfully
                 </Text>
                 <Text variant="caption" color="secondary" style={{ lineHeight: 18 }}>
-                  If an account is registered with this email, reset instructions have been logged.
-                </Text>
-                <Text variant="caption" color="accent" style={{ lineHeight: 18, marginTop: 4 }}>
-                  💡 Demo Hint: Demo accounts (alice@samyukt.com / bob@samyukt.com) use password: Password123!
+                  Your password has been updated. Credentials have been prefilled in the sign-in form.
                 </Text>
                 <View style={{ marginTop: spacing.sm }}>
                   <Button
-                    title="Back to Sign In"
-                    variant="secondary"
+                    title="Sign In with New Password"
+                    variant="primary"
                     size="sm"
                     fullWidth
                     onPress={() => setShowForgotSheet(false)}
@@ -652,6 +701,45 @@ export const LoginScreen: React.FC = () => {
                   autoCorrect={false}
                 />
 
+                <View>
+                  <View
+                    style={{
+                      flexDirection: 'row',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      marginBottom: spacing.xs,
+                    }}
+                  >
+                    <Text variant="label" color="secondary">
+                      New Password (min 8 chars)
+                    </Text>
+                    <TouchableOpacity
+                      onPress={() => setShowForgotNewPassword((prev) => !prev)}
+                      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                      style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}
+                    >
+                      {showForgotNewPassword ? (
+                        <EyeOff size={13} color={colors.accent} />
+                      ) : (
+                        <Eye size={13} color={colors.accent} />
+                      )}
+                      <Text
+                        variant="caption"
+                        style={{ color: colors.accent, fontWeight: '600', fontSize: 11 }}
+                      >
+                        {showForgotNewPassword ? 'Hide' : 'Show'}
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                  <Input
+                    placeholder="Enter new password"
+                    value={forgotNewPassword}
+                    onChangeText={setForgotNewPassword}
+                    secureTextEntry={!showForgotNewPassword}
+                    isPassword
+                  />
+                </View>
+
                 <View style={{ flexDirection: 'row', gap: spacing.sm, marginTop: spacing.xs }}>
                   <View style={{ flex: 1 }}>
                     <Button
@@ -663,7 +751,7 @@ export const LoginScreen: React.FC = () => {
                   </View>
                   <View style={{ flex: 1 }}>
                     <Button
-                      title="Send Request"
+                      title="Reset Password"
                       variant="primary"
                       fullWidth
                       loading={forgotLoading}

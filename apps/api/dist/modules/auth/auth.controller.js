@@ -17,6 +17,8 @@ const common_1 = require("@nestjs/common");
 const swagger_1 = require("@nestjs/swagger");
 const auth_service_1 = require("./auth.service");
 const auth_dto_1 = require("./auth.dto");
+const app_error_1 = require("../../common/errors/app.error");
+const error_code_enum_1 = require("../../common/errors/error-code.enum");
 const zod_validation_pipe_1 = require("../../common/pipes/zod-validation.pipe");
 const jwt_auth_guard_1 = require("../../common/guards/jwt-auth.guard");
 const public_decorator_1 = require("../../common/decorators/public.decorator");
@@ -53,6 +55,14 @@ let AuthController = class AuthController {
     }
     async forgotPassword(dto) {
         return this.authService.forgotPassword(dto.email);
+    }
+    async resetPassword(dto) {
+        const email = dto.email;
+        const newPassword = dto.newPassword || dto.password;
+        if (!email || !newPassword) {
+            throw new app_error_1.AppError(error_code_enum_1.ErrorCode.VALIDATION_FAILED, 'Email and new password are required.', 400);
+        }
+        return this.authService.resetPassword(email, newPassword);
     }
     async getMe(user) {
         return this.usersService.getMe(user.sub);
@@ -140,6 +150,16 @@ __decorate([
     __metadata("design:paramtypes", [Object]),
     __metadata("design:returntype", Promise)
 ], AuthController.prototype, "forgotPassword", null);
+__decorate([
+    (0, public_decorator_1.Public)(),
+    (0, common_1.Post)('password/reset'),
+    (0, common_1.HttpCode)(common_1.HttpStatus.OK),
+    (0, swagger_1.ApiOperation)({ summary: 'Reset password with direct email and new password' }),
+    __param(0, (0, common_1.Body)(new zod_validation_pipe_1.ZodValidationPipe(auth_dto_1.ResetPasswordSchema))),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", Promise)
+], AuthController.prototype, "resetPassword", null);
 __decorate([
     (0, common_1.Get)('me'),
     (0, swagger_1.ApiBearerAuth)('bearer-auth'),

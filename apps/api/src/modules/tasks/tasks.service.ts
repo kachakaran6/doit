@@ -36,11 +36,11 @@ export class TasksService {
       };
     }
 
-    let project: { id: string; key: string; workspaceId: string } | null = null;
+    let project: { id: string; key: string; workspaceId: string; defaultAssigneeId?: string | null } | null = null;
     if (dto.projectId && dto.projectId !== 'default') {
       project = await this.prisma.project.findUnique({
         where: { id: dto.projectId },
-        select: { id: true, key: true, workspaceId: true },
+        select: { id: true, key: true, workspaceId: true, defaultAssigneeId: true },
       });
     }
 
@@ -118,7 +118,10 @@ export class TasksService {
           dueAt: dto.dueAt ? new Date(dto.dueAt) : null,
           dueHasTime: dto.dueHasTime || false,
           createdById: userId,
-          assigneeId: dto.assigneeId || null,
+          assigneeId:
+            dto.assigneeId !== undefined && dto.assigneeId !== null && dto.assigneeId !== ''
+              ? dto.assigneeId
+              : project?.defaultAssigneeId || null,
           labels: {
             create: (dto.labelIds || []).map((labelId) => ({
               label: { connect: { id: labelId } },
@@ -536,7 +539,8 @@ export class TasksService {
     return { id: updated.id, order: String(updated.order) };
   }
 
-  async assign(taskId: string, userId: string, assigneeId: string | null) {
+  async assign(rawTaskId: string, userId: string, rawAssigneeId: string | null) {
+    const taskId = await this.resolveTaskId(rawTaskId);
     const task = await this.prisma.task.findUnique({
       where: { id: taskId },
       include: { project: true },
@@ -546,9 +550,27 @@ export class TasksService {
       throw new AppError(ErrorCode.TASK_NOT_FOUND, 'Task not found.', 404);
     }
 
+    const cleanAssigneeId =
+      rawAssigneeId && rawAssigneeId !== 'unassigned' && rawAssigneeId.trim() !== ''
+        ? rawAssigneeId.trim()
+        : null;
+
+    if (cleanAssigneeId) {
+      const isMember = await this.prisma.membership.findFirst({
+        where: { workspaceId: task.project.workspaceId, userId: cleanAssigneeId },
+      });
+      if (!isMember) {
+        throw new AppError(
+          ErrorCode.FORBIDDEN,
+          'Selected assignee must be a member of this workspace.',
+          400,
+        );
+      }
+    }
+
     const updated = await this.prisma.task.update({
       where: { id: taskId },
-      data: { assigneeId },
+      data: { assigneeId: cleanAssigneeId },
       include: {
         project: { select: { key: true } },
         assignee: { select: { id: true, name: true, avatarUrl: true } },
@@ -564,7 +586,7 @@ export class TasksService {
         taskId,
         actorId: userId,
         action: 'task.assigned',
-        meta: { assigneeId },
+        meta: { assigneeId: cleanAssigneeId },
       },
     });
 

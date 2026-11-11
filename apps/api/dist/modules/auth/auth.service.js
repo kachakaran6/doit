@@ -172,6 +172,32 @@ let AuthService = AuthService_1 = class AuthService {
         }
         return { sent: true };
     }
+    async resetPassword(email, newPassword) {
+        const cleanEmail = email?.trim().toLowerCase();
+        if (!cleanEmail) {
+            throw new app_error_1.AppError(error_code_enum_1.ErrorCode.VALIDATION_FAILED, 'Email is required.', 400);
+        }
+        const user = await this.prisma.user.findUnique({
+            where: { email: cleanEmail },
+        });
+        if (!user) {
+            throw new app_error_1.AppError(error_code_enum_1.ErrorCode.NOT_FOUND, 'Account with this email does not exist.', 404);
+        }
+        const passwordHash = await this.passwordService.hash(newPassword);
+        await this.prisma.user.update({
+            where: { id: user.id },
+            data: { passwordHash },
+        });
+        await this.prisma.session.updateMany({
+            where: { userId: user.id, revokedAt: null },
+            data: { revokedAt: new Date() },
+        });
+        this.logger.log(`Password reset successfully for user: ${user.email}`);
+        return {
+            success: true,
+            message: 'Password has been reset successfully. Please sign in with your new password.',
+        };
+    }
 };
 exports.AuthService = AuthService;
 exports.AuthService = AuthService = AuthService_1 = __decorate([

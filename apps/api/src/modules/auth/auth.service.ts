@@ -210,4 +210,37 @@ export class AuthService {
     // Always return success to prevent email enumeration
     return { sent: true };
   }
+
+  async resetPassword(email: string, newPassword: string): Promise<{ success: boolean; message: string }> {
+    const cleanEmail = email?.trim().toLowerCase();
+    if (!cleanEmail) {
+      throw new AppError(ErrorCode.VALIDATION_FAILED, 'Email is required.', 400);
+    }
+    const user = await this.prisma.user.findUnique({
+      where: { email: cleanEmail },
+    });
+
+    if (!user) {
+      throw new AppError(ErrorCode.NOT_FOUND, 'Account with this email does not exist.', 404);
+    }
+
+    const passwordHash = await this.passwordService.hash(newPassword);
+
+    await this.prisma.user.update({
+      where: { id: user.id },
+      data: { passwordHash },
+    });
+
+    // Revoke previous sessions on password change
+    await this.prisma.session.updateMany({
+      where: { userId: user.id, revokedAt: null },
+      data: { revokedAt: new Date() },
+    });
+
+    this.logger.log(`Password reset successfully for user: ${user.email}`);
+    return {
+      success: true,
+      message: 'Password has been reset successfully. Please sign in with your new password.',
+    };
+  }
 }
