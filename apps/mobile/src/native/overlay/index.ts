@@ -31,8 +31,8 @@ export interface OverlayService {
   stopBubble(): Promise<boolean>;
   isBubbleRunning(): Promise<boolean>;
   getRunningState(): boolean;
-  getCredentials(): Promise<{ authToken?: string | null; refreshToken?: string | null; baseUrl?: string | null; projectId?: string | null } | null>;
-  syncAuthCredentials(token: string | null, baseUrl?: string, projectId?: string | null, refreshToken?: string | null): Promise<void>;
+  getCredentials(): Promise<{ authToken?: string | null; refreshToken?: string | null; baseUrl?: string | null; projectId?: string | null; workspaceId?: string | null } | null>;
+  syncAuthCredentials(token: string | null, baseUrl?: string, projectId?: string | null, refreshToken?: string | null, workspaceId?: string | null): Promise<void>;
   persistSessionBackup(sessionJson: string | null): Promise<boolean>;
   getSessionBackup(): Promise<string | null>;
   setShakeEnabled(enabled: boolean, sensitivity?: string): Promise<void>;
@@ -178,7 +178,7 @@ class OverlayServiceImpl implements OverlayService {
     return this.isRunning;
   }
 
-  async getCredentials(): Promise<{ authToken?: string | null; refreshToken?: string | null; baseUrl?: string | null; projectId?: string | null } | null> {
+  async getCredentials(): Promise<{ authToken?: string | null; refreshToken?: string | null; baseUrl?: string | null; projectId?: string | null; workspaceId?: string | null } | null> {
     if (!this.isAvailable() || !OverlayServiceModule?.getCredentials) return null;
     try {
       return await OverlayServiceModule.getCredentials();
@@ -187,10 +187,18 @@ class OverlayServiceImpl implements OverlayService {
     }
   }
 
-  async syncAuthCredentials(token: string | null, baseUrl: string = 'https://doit.samyukt.pro/api/v1', projectId: string | null = null, refreshToken: string | null = null): Promise<void> {
+  async syncAuthCredentials(
+    token: string | null,
+    baseUrl: string = 'https://doit.samyukt.pro/api/v1',
+    projectId: string | null = null,
+    refreshToken: string | null = null,
+    workspaceId: string | null = null
+  ): Promise<void> {
     if (!this.isAvailable()) return;
     try {
-      if (OverlayServiceModule?.syncAuthCredentialsWithRefresh && refreshToken) {
+      if (OverlayServiceModule?.syncAuthCredentialsFull) {
+        await OverlayServiceModule.syncAuthCredentialsFull(token, refreshToken, baseUrl, projectId, workspaceId);
+      } else if (OverlayServiceModule?.syncAuthCredentialsWithRefresh && refreshToken) {
         await OverlayServiceModule.syncAuthCredentialsWithRefresh(token, refreshToken, baseUrl, projectId);
       } else if (OverlayServiceModule?.syncAuthCredentials) {
         await OverlayServiceModule.syncAuthCredentials(token, baseUrl, projectId);

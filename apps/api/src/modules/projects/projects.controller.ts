@@ -6,9 +6,11 @@ import {
   Delete,
   Body,
   Param,
+  Query,
+  Headers,
   UseGuards,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiBearerAuth, ApiHeader, ApiQuery } from '@nestjs/swagger';
 import { ProjectsService } from './projects.service';
 import {
   CreateProjectDto,
@@ -20,6 +22,8 @@ import { ZodValidationPipe } from '../../common/pipes/zod-validation.pipe';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { WorkspaceMemberGuard } from '../../common/guards/workspace-member.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
+import { AppError } from '../../common/errors/app.error';
+import { ErrorCode } from '../../common/errors/error-code.enum';
 
 @ApiTags('Projects')
 @Controller()
@@ -44,6 +48,23 @@ export class ProjectsController {
   @ApiBearerAuth('bearer-auth')
   @ApiOperation({ summary: 'List projects in workspace' })
   async findAll(@Param('workspaceId') workspaceId: string) {
+    return this.projectsService.findAll(workspaceId);
+  }
+
+  @Get('projects')
+  @UseGuards(WorkspaceMemberGuard)
+  @ApiBearerAuth('bearer-auth')
+  @ApiQuery({ name: 'workspaceId', required: false })
+  @ApiHeader({ name: 'x-workspace-id', required: false })
+  @ApiOperation({ summary: 'List active projects for workspace (via workspaceId query param or x-workspace-id header)' })
+  async listProjects(
+    @Query('workspaceId') queryWsId?: string,
+    @Headers('x-workspace-id') headerWsId?: string,
+  ) {
+    const workspaceId = queryWsId || headerWsId;
+    if (!workspaceId) {
+      throw new AppError(ErrorCode.VALIDATION_FAILED, 'workspaceId query parameter or x-workspace-id header is required', 400);
+    }
     return this.projectsService.findAll(workspaceId);
   }
 

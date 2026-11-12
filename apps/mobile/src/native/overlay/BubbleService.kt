@@ -1453,34 +1453,76 @@ class BubbleService : Service(), SensorEventListener {
                     return@Thread
                 }
 
-                val url = URL(baseUrl + "/workspaces")
-                val conn = (url.openConnection() as HttpURLConnection).apply {
-                    requestMethod = "GET"
-                    setRequestProperty("Authorization", "Bearer " + token)
-                    connectTimeout = 8000
-                    readTimeout = 8000
-                }
+                val activeWorkspaceId = sp.getString("workspace_id", null)
+                val projectsList = mutableListOf<ProjectItem>()
 
-                if (conn.responseCode in 200..299) {
-                    val body = conn.inputStream.bufferedReader().use { it.readText() }
-                    val jsonVal = org.json.JSONTokener(body).nextValue()
-                    val workspacesArr = if (jsonVal is org.json.JSONArray) {
-                        jsonVal
-                    } else if (jsonVal is JSONObject && jsonVal.has("data")) {
-                        val d = jsonVal.get("data")
-                        if (d is org.json.JSONArray) d else null
-                    } else {
-                        null
+                if (!activeWorkspaceId.isNullOrEmpty()) {
+                    val url = URL(baseUrl + "/workspaces/" + activeWorkspaceId + "/projects")
+                    val conn = (url.openConnection() as HttpURLConnection).apply {
+                        requestMethod = "GET"
+                        setRequestProperty("Authorization", "Bearer " + token)
+                        setRequestProperty("x-workspace-id", activeWorkspaceId)
+                        connectTimeout = 8000
+                        readTimeout = 8000
                     }
 
-                    val projectsList = mutableListOf<ProjectItem>()
-                    if (workspacesArr != null) {
-                        for (i in 0 until workspacesArr.length()) {
-                            val ws = workspacesArr.getJSONObject(i)
+                    if (conn.responseCode in 200..299) {
+                        val body = conn.inputStream.bufferedReader().use { it.readText() }
+                        val jsonVal = org.json.JSONTokener(body).nextValue()
+                        val projectsArr = if (jsonVal is org.json.JSONArray) {
+                            jsonVal
+                        } else if (jsonVal is JSONObject && jsonVal.has("data")) {
+                            val d = jsonVal.get("data")
+                            if (d is org.json.JSONArray) d else null
+                        } else {
+                            null
+                        }
+
+                        if (projectsArr != null) {
+                            for (j in 0 until projectsArr.length()) {
+                                val p = projectsArr.getJSONObject(j)
+                                val isArchived = p.has("archivedAt") && !p.isNull("archivedAt")
+                                if (isArchived) continue
+                                val pId = p.getString("id")
+                                val pName = p.getString("name")
+                                val pKey = p.optString("key", "PRJ")
+                                val defAssignee = if (p.has("defaultAssigneeId") && !p.isNull("defaultAssigneeId")) p.getString("defaultAssigneeId") else null
+                                if (projectsList.none { it.id == pId }) {
+                                    projectsList.add(ProjectItem(pId, pName, pKey, defAssignee))
+                                }
+                            }
+                        }
+                    }
+                    conn.disconnect()
+                } else {
+                    val url = URL(baseUrl + "/workspaces")
+                    val conn = (url.openConnection() as HttpURLConnection).apply {
+                        requestMethod = "GET"
+                        setRequestProperty("Authorization", "Bearer " + token)
+                        connectTimeout = 8000
+                        readTimeout = 8000
+                    }
+
+                    if (conn.responseCode in 200..299) {
+                        val body = conn.inputStream.bufferedReader().use { it.readText() }
+                        val jsonVal = org.json.JSONTokener(body).nextValue()
+                        val workspacesArr = if (jsonVal is org.json.JSONArray) {
+                            jsonVal
+                        } else if (jsonVal is JSONObject && jsonVal.has("data")) {
+                            val d = jsonVal.get("data")
+                            if (d is org.json.JSONArray) d else null
+                        } else {
+                            null
+                        }
+
+                        if (workspacesArr != null && workspacesArr.length() > 0) {
+                            val ws = workspacesArr.getJSONObject(0)
                             val projs = ws.optJSONArray("projects")
                             if (projs != null) {
                                 for (j in 0 until projs.length()) {
                                     val p = projs.getJSONObject(j)
+                                    val isArchived = p.has("archivedAt") && !p.isNull("archivedAt")
+                                    if (isArchived) continue
                                     val pId = p.getString("id")
                                     val pName = p.getString("name")
                                     val pKey = p.optString("key", "PRJ")
@@ -1492,30 +1534,28 @@ class BubbleService : Service(), SensorEventListener {
                             }
                         }
                     }
-
-                    Handler(Looper.getMainLooper()).post {
-                        availableProjects = projectsList
-                        isLoadingProjects = false
-                        // Rule:
-                        // If only one project exists, preselect it clearly and load members
-                        // If multiple projects exist, require explicit user selection
-                        if (projectsList.size == 1) {
-                            selectedProject = projectsList[0]
-                            updateProjectDropdownUI()
-                            fetchMembersForProject(selectedProject!!.id)
-                        } else {
-                            selectedProject = null
-                            updateProjectDropdownUI()
-                        }
-                        updateSubmitButtonState()
-                    }
-                } else {
-                    Handler(Looper.getMainLooper()).post {
-                        isLoadingProjects = false
-                        updateProjectDropdownUI()
-                    }
+                    conn.disconnect()
                 }
-                conn.disconnect()
+
+                Handler(Looper.getMainLooper()).post {
+                    availableProjects = projectsList
+                    isLoadingProjects = false
+                    // Rule:
+                    // If only one project exists, preselect it clearly and load members
+                    // If multiple projects exist, require explicit user selection
+                    if (projectsList.size == 1) {
+                        selectedProject = projectsList[0]
+                        updateProjectDropdownUI()
+                        fetchMembersForProject(selectedProject!!.id)
+                    } else {
+                        selectedProject = null
+                        selectedAssignee = null
+                        availableMembers = emptyList()
+                        updateProjectDropdownUI()
+                        updateAssigneeDropdownUI()
+                    }
+                    updateSubmitButtonState()
+                }
             } catch (e: Exception) {
                 android.util.Log.e("BubbleService", "Error fetching projects: " + e.message)
                 Handler(Looper.getMainLooper()).post {
@@ -2610,10 +2650,14 @@ class BubbleService : Service(), SensorEventListener {
                     }
                 }
 
+                val wsId = sp.getString("workspace_id", null)
                 var taskConn = (URL(endpointUrl).openConnection() as HttpURLConnection).apply {
                     requestMethod = "POST"
                     setRequestProperty("Authorization", "Bearer " + token)
                     setRequestProperty("Content-Type", "application/json")
+                    if (!wsId.isNullOrEmpty()) {
+                        setRequestProperty("x-workspace-id", wsId)
+                    }
                     doOutput = true
                     connectTimeout = 10000
                     readTimeout = 10000
@@ -2637,6 +2681,9 @@ class BubbleService : Service(), SensorEventListener {
                                 requestMethod = "POST"
                                 setRequestProperty("Authorization", "Bearer " + token)
                                 setRequestProperty("Content-Type", "application/json")
+                                if (!wsId.isNullOrEmpty()) {
+                                    setRequestProperty("x-workspace-id", wsId)
+                                }
                                 doOutput = true
                                 connectTimeout = 10000
                                 readTimeout = 10000

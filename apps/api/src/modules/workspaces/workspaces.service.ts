@@ -39,7 +39,20 @@ export class WorkspacesService {
       },
       include: {
         memberships: true,
-        projects: true,
+        projects: {
+          where: { archivedAt: null },
+          orderBy: { createdAt: 'asc' },
+          include: {
+            defaultAssignee: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+                avatarUrl: true,
+              },
+            },
+          },
+        },
         _count: {
           select: {
             projects: true,
@@ -58,7 +71,20 @@ export class WorkspacesService {
       include: {
         workspace: {
           include: {
-            projects: true,
+            projects: {
+              where: { archivedAt: null },
+              orderBy: { createdAt: 'asc' },
+              include: {
+                defaultAssignee: {
+                  select: {
+                    id: true,
+                    name: true,
+                    email: true,
+                    avatarUrl: true,
+                  },
+                },
+              },
+            },
             _count: {
               select: {
                 projects: true,
@@ -114,6 +140,16 @@ export class WorkspacesService {
             name: 'General',
             key: 'GEN',
           },
+          include: {
+            defaultAssignee: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+                avatarUrl: true,
+              },
+            },
+          },
         });
         m.workspace.projects = [defaultProj];
       }
@@ -129,7 +165,20 @@ export class WorkspacesService {
     const workspace = await this.prisma.workspace.findUnique({
       where: { id: workspaceId },
       include: {
-        projects: true,
+        projects: {
+          where: { archivedAt: null },
+          orderBy: { createdAt: 'asc' },
+          include: {
+            defaultAssignee: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+                avatarUrl: true,
+              },
+            },
+          },
+        },
         memberships: {
           include: {
             user: {

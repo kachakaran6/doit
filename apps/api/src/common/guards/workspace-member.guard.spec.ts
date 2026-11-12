@@ -109,4 +109,64 @@ describe('WorkspaceMemberGuard', () => {
       expect((err as AppError).httpStatus).toBe(403);
     }
   });
+
+  it('should throw 403 FORBIDDEN when x-workspace-id header does not match project workspace', async () => {
+    mockPrisma.project.findUnique.mockResolvedValue({
+      id: 'proj-1',
+      workspaceId: 'ws-workspace-A',
+      archivedAt: null,
+    });
+
+    const context = {
+      switchToHttp: () => ({
+        getRequest: () =>
+          ({
+            user: { sub: 'user-1' },
+            params: { projectId: 'proj-1' },
+            headers: { 'x-workspace-id': 'ws-workspace-B' },
+          }) as unknown as RequestWithWorkspace,
+      }),
+      getHandler: () => jest.fn(),
+      getClass: () => jest.fn(),
+    } as unknown as ExecutionContext;
+
+    try {
+      await guard.canActivate(context);
+      fail('Expected AppError for cross-workspace access');
+    } catch (err: unknown) {
+      expect(err).toBeInstanceOf(AppError);
+      expect((err as AppError).code).toBe(ErrorCode.FORBIDDEN);
+      expect((err as AppError).httpStatus).toBe(403);
+    }
+  });
+
+  it('should throw 404 PROJECT_NOT_FOUND when project is archived', async () => {
+    mockPrisma.project.findUnique.mockResolvedValue({
+      id: 'proj-archived',
+      workspaceId: 'ws-1',
+      archivedAt: new Date(),
+    });
+
+    const context = {
+      switchToHttp: () => ({
+        getRequest: () =>
+          ({
+            user: { sub: 'user-1' },
+            params: { projectId: 'proj-archived' },
+            headers: {},
+          }) as unknown as RequestWithWorkspace,
+      }),
+      getHandler: () => jest.fn(),
+      getClass: () => jest.fn(),
+    } as unknown as ExecutionContext;
+
+    try {
+      await guard.canActivate(context);
+      fail('Expected AppError for archived project');
+    } catch (err: unknown) {
+      expect(err).toBeInstanceOf(AppError);
+      expect((err as AppError).code).toBe(ErrorCode.PROJECT_NOT_FOUND);
+      expect((err as AppError).httpStatus).toBe(404);
+    }
+  });
 });

@@ -39,14 +39,19 @@ export function useProjectsQuery(workspaceId?: string) {
   });
 
   useEffect(() => {
-    if (query.data && query.data.length > 0) {
-      if (!activeProject || !query.data.some((p) => p.id === activeProject.id)) {
-        if (query.data[0]) {
-          setActiveProject(query.data[0]);
+    if (query.data && workspaceId) {
+      useWorkspaceStore.getState().updateWorkspaceProjects(workspaceId, query.data);
+      if (query.data.length > 0) {
+        if (!activeProject || !query.data.some((p) => p.id === activeProject.id)) {
+          setActiveProject(query.data[0] || null);
+        }
+      } else {
+        if (activeProject) {
+          setActiveProject(null);
         }
       }
     }
-  }, [query.data, activeProject, setActiveProject]);
+  }, [query.data, workspaceId, activeProject, setActiveProject]);
 
   return query;
 }

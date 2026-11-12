@@ -90,8 +90,8 @@ export class ProjectsService {
   }
 
   async findOne(projectId: string) {
-    const project = await this.prisma.project.findUnique({
-      where: { id: projectId },
+    const project = await this.prisma.project.findFirst({
+      where: { id: projectId, archivedAt: null },
       include: {
         defaultAssignee: {
           select: {
@@ -175,8 +175,8 @@ export class ProjectsService {
   }
 
   async getProjectMembers(projectId: string) {
-    const project = await this.prisma.project.findUnique({
-      where: { id: projectId },
+    const project = await this.prisma.project.findFirst({
+      where: { id: projectId, archivedAt: null },
       select: {
         id: true,
         name: true,

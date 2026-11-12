@@ -38,16 +38,23 @@ export class TasksService {
 
     let project: { id: string; key: string; workspaceId: string; defaultAssigneeId?: string | null } | null = null;
     if (dto.projectId && dto.projectId !== 'default') {
-      project = await this.prisma.project.findUnique({
-        where: { id: dto.projectId },
+      project = await this.prisma.project.findFirst({
+        where: { id: dto.projectId, archivedAt: null },
         select: { id: true, key: true, workspaceId: true, defaultAssigneeId: true },
       });
+      if (!project) {
+        throw new AppError(
+          ErrorCode.PROJECT_NOT_FOUND,
+          'Project not found or is archived/deleted.',
+          404,
+        );
+      }
     }
 
     if (!project) {
       let firstMembership = await this.prisma.membership.findFirst({
         where: { userId },
-        include: { workspace: { include: { projects: { take: 1 } } } },
+        include: { workspace: { include: { projects: { where: { archivedAt: null }, take: 1 } } } },
       });
 
       if (!firstMembership) {

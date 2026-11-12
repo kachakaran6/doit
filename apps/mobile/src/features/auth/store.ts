@@ -117,6 +117,13 @@ export const useAuthStore = create<AuthState>((set) => ({
     http.setAuthToken(null);
     AuthStorage.clearSession().catch(() => {});
     overlayService.syncAuthCredentials(null, 'https://doit.samyukt.pro/api/v1', null);
+    try {
+      // Clear workspace store and persistence on logout
+      const { useWorkspaceStore } = require('../workspace/store');
+      useWorkspaceStore.getState().reset();
+    } catch {
+      // ignore
+    }
     set({
       user: null,
       accessToken: null,

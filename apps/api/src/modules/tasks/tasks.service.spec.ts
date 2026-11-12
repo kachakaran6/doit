@@ -11,6 +11,7 @@ describe('TasksService', () => {
     mockPrisma = {
       project: {
         findUnique: jest.fn(),
+        findFirst: jest.fn(),
       },
       task: {
         findUnique: jest.fn(),
@@ -32,6 +33,11 @@ describe('TasksService', () => {
 
   describe('create and idempotency', () => {
     it('should create task and increment project task number', async () => {
+      mockPrisma.project.findFirst.mockResolvedValue({
+        id: 'proj-1',
+        key: 'SMP',
+        workspaceId: 'ws-1',
+      });
       mockPrisma.project.findUnique.mockResolvedValue({
         id: 'proj-1',
         key: 'SMP',

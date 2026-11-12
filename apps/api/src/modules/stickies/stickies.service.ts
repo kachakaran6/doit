@@ -21,17 +21,20 @@ export class StickiesService {
     let project: { id: string } | null = null;
 
     if (projectId && projectId !== 'default') {
-      project = await this.prisma.project.findUnique({
-        where: { id: projectId },
+      project = await this.prisma.project.findFirst({
+        where: { id: projectId, archivedAt: null },
         select: { id: true },
       });
-      if (project) targetProjectId = project.id;
+      if (!project) {
+        throw new AppError(ErrorCode.PROJECT_NOT_FOUND, 'Project not found or is archived/deleted.', 404);
+      }
+      targetProjectId = project.id;
     }
 
     if (!project) {
       let firstMembership = await this.prisma.membership.findFirst({
         where: { userId },
-        include: { workspace: { include: { projects: { take: 1 } } } },
+        include: { workspace: { include: { projects: { where: { archivedAt: null }, take: 1 } } } },
       });
 
       if (!firstMembership) {

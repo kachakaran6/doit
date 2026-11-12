@@ -67,4 +67,19 @@ describe('ProjectsService', () => {
     expect(project.id).toBe('proj-new');
     expect(mockPrisma.project.create).toHaveBeenCalled();
   });
+
+  it('should only return non-archived projects for the workspace in findAll', async () => {
+    mockPrisma.project.findMany.mockResolvedValue([
+      { id: 'proj-1', name: 'ArrowZ', workspaceId: 'ws-1', archivedAt: null },
+      { id: 'proj-2', name: 'Dustline', workspaceId: 'ws-1', archivedAt: null },
+    ]);
+
+    const result = await service.findAll('ws-1');
+    expect(result).toHaveLength(2);
+    expect(mockPrisma.project.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { workspaceId: 'ws-1', archivedAt: null },
+      })
+    );
+  });
 });

@@ -31,7 +31,7 @@ import { useCreateTaskMutation } from '../features/tasks/api/mutations';
 import { useCreateBugMutation } from '../features/bugs/api/mutations';
 import { useCreateStickyMutation } from '../features/stickies/api/mutations';
 import { useCreateVoiceNoteMutation } from '../features/voice/api/mutations';
-import { useWorkspaceStore } from '../features/workspace';
+import { useWorkspaceStore, useProjectsQuery } from '../features/workspace';
 import { useLabelsQuery } from '../features/labels/api/queries';
 import { overlayService } from '../native/overlay';
 import { RootStackParamList } from '../navigation/types';
@@ -86,8 +86,7 @@ export const CaptureModal: React.FC = () => {
 
   const activeProject = useWorkspaceStore((s) => s.activeProject);
   const activeWorkspace = useWorkspaceStore((s) => s.activeWorkspace);
-  const projects = activeWorkspace?.projects ?? [];
-  const projectId = activeProject?.id || projects[0]?.id || 'default';
+  const { data: projects = [], isLoading: isLoadingProjects } = useProjectsQuery(activeWorkspace?.id);
   const { data: workspaceLabels = [] } = useLabelsQuery(activeWorkspace?.id);
 
   // Form State
@@ -115,7 +114,7 @@ export const CaptureModal: React.FC = () => {
 
   // Popover selector states
   const [activePicker, setActivePicker] = useState<'due' | 'priority' | 'severity' | null>(null);
-  const [selectedProjectId, setSelectedProjectId] = useState(projectId);
+  const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
   const [selectedLabelIds, setSelectedLabelIds] = useState<string[]>([]);
   const [projectQuery, setProjectQuery] = useState('');
   const [labelQuery, setLabelQuery] = useState('');
@@ -129,6 +128,37 @@ export const CaptureModal: React.FC = () => {
   const [assigneeQuery, setAssigneeQuery] = useState('');
   const [loadingMembers, setLoadingMembers] = useState(false);
   const [projectDefaultAssigneeId, setProjectDefaultAssigneeId] = useState<string | null>(null);
+
+  // Automatically ensure selectedProjectId is valid within the currently selected workspace:
+  // - If the user has only one available project in the workspace, preselect it (as required).
+  // - If the user has multiple projects, require explicit selection (clear invalid/previous selections).
+  // - Never retain an assignee or project from a previous workspace.
+  useEffect(() => {
+    if (!projects || projects.length === 0) {
+      setSelectedProjectId(null);
+      return;
+    }
+
+    // If current selectedProjectId is already a valid project in this workspace, keep it
+    if (selectedProjectId && projects.some((p) => p.id === selectedProjectId)) {
+      return;
+    }
+
+    // If the activeProject belongs to this workspace, select it
+    if (activeProject?.id && projects.some((p) => p.id === activeProject.id)) {
+      setSelectedProjectId(activeProject.id);
+      return;
+    }
+
+    // If only one project is available in this workspace, preselect it
+    if (projects.length === 1 && projects[0]) {
+      setSelectedProjectId(projects[0].id);
+      return;
+    }
+
+    // Multiple projects exist and no workspace-specific active project: require explicit selection
+    setSelectedProjectId(null);
+  }, [activeWorkspace?.id, projects, activeProject?.id]);
 
   useEffect(() => {
     if (!selectedProjectId || selectedProjectId === 'default') {
@@ -177,8 +207,13 @@ export const CaptureModal: React.FC = () => {
         if (cancelled || !prefs) return;
         const allowed = new Set(projects.map((p) => p.id));
         const preferred = prefs.rememberLastProject ? prefs.lastProjectId || prefs.defaultProjectId : prefs.defaultProjectId;
-        if (preferred && allowed.has(preferred)) setSelectedProjectId(preferred);
-        else if (activeProject?.id) setSelectedProjectId(activeProject.id);
+        if (preferred && allowed.has(preferred)) {
+          setSelectedProjectId(preferred);
+        } else if (projects.length === 1 && projects[0]) {
+          setSelectedProjectId(projects[0].id);
+        } else if (activeProject?.id && allowed.has(activeProject.id)) {
+          setSelectedProjectId(activeProject.id);
+        }
         const labelIds: string[] = Array.isArray(prefs.defaultLabelIds) ? prefs.defaultLabelIds : [];
         const known = new Set(workspaceLabels.map((l) => l.id));
         const valid = labelIds.filter((id) => known.has(id) || known.size === 0);
@@ -190,7 +225,7 @@ export const CaptureModal: React.FC = () => {
     return () => {
       cancelled = true;
     };
-  }, [activeWorkspace?.id]);
+  }, [activeWorkspace?.id, projects]);
 
   useEffect(() => {
     if (!workspaceLabels.length) return;
@@ -213,9 +248,10 @@ export const CaptureModal: React.FC = () => {
   const timerRef = useRef<NodeJS.Timeout | null>(null);
 
   // Mutations
-  const createTask = useCreateTaskMutation(projectId);
-  const createBug = useCreateBugMutation(projectId);
-  const createSticky = useCreateStickyMutation(projectId);
+  const pId = selectedProjectId || activeProject?.id || projects[0]?.id || 'default';
+  const createTask = useCreateTaskMutation(pId);
+  const createBug = useCreateBugMutation(pId);
+  const createSticky = useCreateStickyMutation(pId);
   const createVoiceNote = useCreateVoiceNoteMutation();
 
   useEffect(() => {
@@ -357,7 +393,7 @@ export const CaptureModal: React.FC = () => {
           description: description.trim() || undefined,
           severity,
           labelIds: selectedLabelIds,
-          projectId: selectedProjectId,
+          projectId: selectedProjectId || undefined,
           assigneeId: selectedAssigneeId || undefined,
           telemetry: {
             platform: Platform.OS,
@@ -373,7 +409,7 @@ export const CaptureModal: React.FC = () => {
           body: fullBody,
           color: stickyColor,
           pinned: isPinned,
-          projectId: selectedProjectId,
+          projectId: selectedProjectId || undefined,
         });
       } else if (mode === 'voice') {
         await createVoiceNote.mutateAsync({
@@ -389,7 +425,7 @@ export const CaptureModal: React.FC = () => {
           dueDate: dueAtIso,
           priority,
           labelIds: selectedLabelIds,
-          projectId: selectedProjectId,
+          projectId: selectedProjectId || undefined,
           assigneeId: selectedAssigneeId || undefined,
         });
         createdId = res?.task?.id || res?.id || null;
@@ -562,8 +598,12 @@ export const CaptureModal: React.FC = () => {
                 style={{ flexDirection: 'row', alignItems: 'center', gap: 8, minHeight: 44 }}
               >
                 <Folder size={16} color={colors.textSecondary} />
-                <Text variant="body" style={{ flex: 1 }}>
-                  {projects.find((p) => p.id === selectedProjectId)?.name || 'Project'}
+                <Text variant="body" style={{ flex: 1, color: selectedProjectId ? colors.textPrimary : colors.textMuted }}>
+                  {isLoadingProjects
+                    ? 'Loading projects...'
+                    : selectedProjectId
+                    ? projects.find((p) => p.id === selectedProjectId)?.name || 'Select Project *'
+                    : 'Select Project *'}
                 </Text>
                 <ChevronDown size={16} color={colors.textMuted} />
               </TouchableOpacity>
@@ -572,7 +612,7 @@ export const CaptureModal: React.FC = () => {
                   <TextInput
                     value={projectQuery}
                     onChangeText={setProjectQuery}
-                    placeholder="Search projects"
+                    placeholder="Search projects in workspace..."
                     placeholderTextColor={colors.textMuted}
                     style={{ color: colors.textPrimary, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.border, marginBottom: 6, minHeight: 36 }}
                   />
@@ -587,12 +627,20 @@ export const CaptureModal: React.FC = () => {
                         }}
                         style={{ minHeight: 40, justifyContent: 'center' }}
                       >
-                        <Text variant="body" style={{ fontWeight: p.id === selectedProjectId ? '700' : '400' }}>
+                        <Text variant="body" style={{ fontWeight: p.id === selectedProjectId ? '700' : '400', color: p.id === selectedProjectId ? colors.accent : colors.textPrimary }}>
                           {p.name}
                         </Text>
                       </TouchableOpacity>
                     ))}
-                  {projects.length === 0 ? <Text variant="caption" color="secondary">No projects in this workspace.</Text> : null}
+                  {projects.length === 0 ? (
+                    <Text variant="caption" color="secondary" style={{ paddingVertical: 8 }}>
+                      No projects in this workspace.
+                    </Text>
+                  ) : projects.filter((p) => p.name.toLowerCase().includes(projectQuery.trim().toLowerCase())).length === 0 ? (
+                    <Text variant="caption" color="secondary" style={{ paddingVertical: 8 }}>
+                      No projects found matching "{projectQuery}".
+                    </Text>
+                  ) : null}
                 </View>
               ) : null}
 
