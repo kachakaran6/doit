@@ -285,10 +285,6 @@ class BubbleService : Service(), SensorEventListener {
         ).toInt()
     }
 
-    private fun isDarkTheme(): Boolean {
-        return (resources.configuration.uiMode and android.content.res.Configuration.UI_MODE_NIGHT_MASK) == android.content.res.Configuration.UI_MODE_NIGHT_YES
-    }
-
     private fun getOverlayLayoutType(): Int {
         return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
@@ -715,15 +711,14 @@ class BubbleService : Service(), SensorEventListener {
         isLoadingProjects = true
         isLoadingMembers = false
 
-        val isDark = isDarkTheme()
-        val bgColor = if (isDark) Color.parseColor("#15171B") else Color.parseColor("#FFFFFF")
-        val borderColor = if (isDark) Color.parseColor("#282B32") else Color.parseColor("#E5E7EB")
-        val textPrimaryColor = if (isDark) Color.WHITE else Color.parseColor("#111827")
-        val textSecondaryColor = if (isDark) Color.parseColor("#8E93A0") else Color.parseColor("#6B7280")
-        val rowBgColor = if (isDark) Color.parseColor("#1F2126") else Color.parseColor("#F9FAFB")
-        val rowBorderColor = if (isDark) Color.parseColor("#30333C") else Color.parseColor("#E5E7EB")
-        val inputBgColor = if (isDark) Color.parseColor("#1F2126") else Color.parseColor("#F9FAFB")
-        val inputHintColor = if (isDark) Color.parseColor("#696E79") else Color.parseColor("#9CA3AF")
+        val bgColor = Color.parseColor("#15171B")
+        val borderColor = Color.parseColor("#282B32")
+        val textPrimaryColor = Color.WHITE
+        val textSecondaryColor = Color.parseColor("#8E93A0")
+        val rowBgColor = Color.parseColor("#1F2126")
+        val rowBorderColor = Color.parseColor("#30333C")
+        val inputBgColor = Color.parseColor("#1F2126")
+        val inputHintColor = Color.parseColor("#696E79")
 
         val displayMetrics = resources.displayMetrics
         val screenWidth = displayMetrics.widthPixels
@@ -967,12 +962,12 @@ class BubbleService : Service(), SensorEventListener {
             }
             background = GradientDrawable().apply {
                 shape = GradientDrawable.OVAL
-                setColor(if (isDark) Color.parseColor("#2A2D36") else Color.parseColor("#E0E7FF"))
+                setColor(Color.parseColor("#2A2D36"))
             }
         }
         assigneeAvatarText = TextView(this).apply {
             text = ""
-            setTextColor(if (isDark) Color.parseColor("#A5B4FC") else Color.parseColor("#4338CA"))
+            setTextColor(Color.parseColor("#A5B4FC"))
             setTextSize(TypedValue.COMPLEX_UNIT_SP, 10f)
             setTypeface(typeface, Typeface.BOLD)
             gravity = Gravity.CENTER
