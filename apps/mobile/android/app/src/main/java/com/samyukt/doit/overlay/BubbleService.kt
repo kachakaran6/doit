@@ -215,7 +215,12 @@ class BubbleService : Service(), SensorEventListener {
             }
         }
 
+        private var inForegroundState: Boolean = true
+
+        fun isAppForeground(): Boolean = inForegroundState
+
         fun setAppInForeground(inForeground: Boolean) {
+            inForegroundState = inForeground
             instance?.let { s ->
                 Handler(Looper.getMainLooper()).post {
                     if (inForeground) {
@@ -237,7 +242,7 @@ class BubbleService : Service(), SensorEventListener {
         fun showQuickCapture(mode: String = "TASK") {
             instance?.let { s ->
                 Handler(Looper.getMainLooper()).post {
-                    s.showCompactModal(mode)
+                    s.triggerUnifiedQuickCapture(mode)
                 }
             }
         }
@@ -483,7 +488,21 @@ class BubbleService : Service(), SensorEventListener {
     }
 
     private fun onBubbleTapped() {
-        showCompactModal("TASK")
+        triggerUnifiedQuickCapture("TASK")
+    }
+
+    private fun triggerUnifiedQuickCapture(mode: String = "TASK") {
+        dismissCompactModal()
+        val emitted = OverlayServiceModule.triggerQuickCapture(mode)
+        if (!emitted || !inForegroundState) {
+            val launchIntent = packageManager.getLaunchIntentForPackage(packageName)?.apply {
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP
+                putExtra("show_quick_capture", mode)
+            }
+            if (launchIntent != null) {
+                startActivity(launchIntent)
+            }
+        }
     }
 
     // ==========================================
@@ -538,7 +557,7 @@ class BubbleService : Service(), SensorEventListener {
 
         val captureItem = createMenuItem(R.drawable.ic_lucide_bug, "Quick Bug") {
             dismissBubbleActionMenu()
-            showCompactModal("BUG")
+            triggerUnifiedQuickCapture("BUG")
         }
         bubbleActionContainer?.addView(captureItem)
 
@@ -657,8 +676,7 @@ class BubbleService : Service(), SensorEventListener {
     private fun onShakeDetected() {
         Handler(Looper.getMainLooper()).post {
             triggerHaptic(60)
-            if (modalContainer != null || pickerContainer != null) return@post
-            showCompactModal("TASK")
+            triggerUnifiedQuickCapture("TASK")
         }
     }
 

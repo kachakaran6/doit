@@ -25,6 +25,38 @@ import java.io.FileOutputStream
 class OverlayServiceModule(private val reactContext: ReactApplicationContext) :
     ReactContextBaseJavaModule(reactContext) {
 
+    companion object {
+        var instance: OverlayServiceModule? = null
+
+        fun triggerQuickCapture(mode: String = "TASK"): Boolean {
+            val module = instance ?: return false
+            return module.emitQuickCapture(mode)
+        }
+    }
+
+    init {
+        instance = this
+    }
+
+    fun emitQuickCapture(mode: String = "TASK"): Boolean {
+        return try {
+            if (reactContext.hasActiveReactInstance()) {
+                val params = Arguments.createMap().apply {
+                    putString("mode", mode.lowercase())
+                }
+                reactContext
+                    .getJSModule(com.facebook.react.modules.core.DeviceEventManagerModule.RCTDeviceEventEmitter::class.java)
+                    .emit("onQuickCaptureTrigger", params)
+                true
+            } else {
+                false
+            }
+        } catch (e: Exception) {
+            android.util.Log.e("OverlayServiceModule", "Failed to emit quick capture trigger", e)
+            false
+        }
+    }
+
     override fun getName(): String = "OverlayServiceModule"
 
     @ReactMethod
@@ -304,12 +336,8 @@ class OverlayServiceModule(private val reactContext: ReactApplicationContext) :
     fun showQuickCapture(mode: String?, promise: Promise) {
         try {
             val targetMode = (mode ?: "TASK").uppercase()
-            if (BubbleService.isRunning) {
-                BubbleService.showQuickCapture(targetMode)
-                promise.resolve(true)
-            } else {
-                promise.resolve(false)
-            }
+            val emitted = emitQuickCapture(targetMode)
+            promise.resolve(emitted)
         } catch (e: Exception) {
             promise.reject("QUICK_CAPTURE_ERROR", e.message)
         }
@@ -432,7 +460,7 @@ class OverlayServiceModule(private val reactContext: ReactApplicationContext) :
     }
 
     private fun saveBitmapAndResolve(bitmap: Bitmap, width: Int, height: Int, promise: Promise) {
-        ScreenCaptureManager.backgroundExecutor.execute {
+        Thread {
             try {
                 val outFile = File(
                     reactContext.cacheDir,
@@ -454,10 +482,9 @@ class OverlayServiceModule(private val reactContext: ReactApplicationContext) :
                 }
                 promise.resolve(map)
             } catch (e: Exception) {
-                try { bitmap.recycle() } catch (_: Exception) {}
                 promise.reject("SAVE_FAILED", e.message)
             }
-        }
+        }.start()
     }
 
     private fun captureViaCanvas(decorView: View, width: Int, height: Int, promise: Promise) {

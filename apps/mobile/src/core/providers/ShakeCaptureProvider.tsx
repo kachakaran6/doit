@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useEffect, useState, useCallback, useRef } from 'react';
+import { DeviceEventEmitter } from 'react-native';
 import { shakeDetector, ShakeSensitivity, ShakeDiagnostics } from '../../native/shake';
 import { navigateToCapture } from '../../navigation/navigationRef';
 import { overlayService } from '../../native/overlay';
@@ -105,11 +106,7 @@ export const ShakeCaptureProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
       // Normal mode: only trigger if user is authenticated and app is in foreground
       if (isAuthenticated) {
-        overlayService.showQuickCapture('TASK').then((shown) => {
-          if (!shown) {
-            navigateToCapture('task');
-          }
-        });
+        navigateToCapture('task');
       }
     };
 
@@ -121,6 +118,19 @@ export const ShakeCaptureProvider: React.FC<{ children: React.ReactNode }> = ({ 
       shakeDetector.stopListening(onShakeDetected);
     };
   }, [shakeEnabled, testMode, isAuthenticated]);
+
+  // Listen to native quick capture trigger (e.g. from floating bubble or native shake)
+  useEffect(() => {
+    const sub = DeviceEventEmitter.addListener('onQuickCaptureTrigger', (event) => {
+      if (isAuthenticated) {
+        const mode = (event?.mode as 'task' | 'bug') || 'task';
+        navigateToCapture(mode);
+      }
+    });
+    return () => {
+      sub.remove();
+    };
+  }, [isAuthenticated]);
 
   return (
     <ShakeCaptureContext.Provider

@@ -210,8 +210,9 @@ export const RootNavigator: React.FC = () => {
                 name="CaptureModal"
                 component={CaptureModal}
                 options={{
-                  presentation: 'modal',
-                  animation: 'slide_from_bottom',
+                  presentation: 'transparentModal',
+                  animation: 'fade',
+                  headerShown: false,
                 }}
               />
               <Stack.Screen name="DevGallery" component={ComponentGallery} />

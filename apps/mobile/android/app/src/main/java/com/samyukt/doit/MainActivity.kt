@@ -51,6 +51,12 @@ class MainActivity : ReactActivity() {
     super.onNewIntent(intent)
     setIntent(intent)
     consumeDeepLinkIntent()
+    if (intent.hasExtra("show_quick_capture") || intent.hasExtra("show_modal")) {
+      val mode = intent.getStringExtra("show_quick_capture") ?: intent.getStringExtra("show_modal") ?: "TASK"
+      window?.decorView?.postDelayed({
+        com.samyukt.doit.overlay.OverlayServiceModule.triggerQuickCapture(mode)
+      }, 150)
+    }
   }
 
   private fun consumeDeepLinkIntent() {
@@ -86,19 +92,11 @@ class MainActivity : ReactActivity() {
         }
       }
     } catch (_: Exception) {}
-    if (intent?.hasExtra("show_modal") == true) {
-      val mode = intent.getStringExtra("show_modal") ?: "TASK"
-      try {
-        val sIntent = android.content.Intent(this, com.samyukt.doit.overlay.BubbleService::class.java).apply {
-          action = "com.samyukt.doit.SHOW_MODAL"
-          putExtra("mode", mode)
-        }
-        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
-          startForegroundService(sIntent)
-        } else {
-          startService(sIntent)
-        }
-      } catch (_: Exception) {}
+    if (intent?.hasExtra("show_quick_capture") == true || intent?.hasExtra("show_modal") == true) {
+      val mode = intent.getStringExtra("show_quick_capture") ?: intent.getStringExtra("show_modal") ?: "TASK"
+      window?.decorView?.postDelayed({
+        com.samyukt.doit.overlay.OverlayServiceModule.triggerQuickCapture(mode)
+      }, 300)
     } else if (intent?.hasExtra("show_prompt") == true) {
       try {
         val sIntent = android.content.Intent(this, com.samyukt.doit.overlay.BubbleService::class.java).apply {

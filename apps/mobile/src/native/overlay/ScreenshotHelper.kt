@@ -72,6 +72,11 @@ object ScreenshotHelper {
 
             try {
                 val projection = projectionManager.getMediaProjection(mediaProjectionResultCode, data)
+                if (projection == null) {
+                    onPostCapture()
+                    callback.onError("PROJECTION_NULL")
+                    return@postDelayed
+                }
                 activeMediaProjection = projection
 
                 val imageReader = ImageReader.newInstance(width, height, PixelFormat.RGBA_8888, 2)
@@ -126,7 +131,7 @@ object ScreenshotHelper {
                             fos.flush()
                             fos.close()
 
-                            virtualDisplay.release()
+                            virtualDisplay?.release()
                             imageReader.close()
                             projection.stop()
                             activeMediaProjection = null
@@ -134,7 +139,7 @@ object ScreenshotHelper {
                             onPostCapture()
                             callback.onSuccess(outFile)
                         } else {
-                            virtualDisplay.release()
+                            virtualDisplay?.release()
                             imageReader.close()
                             projection.stop()
                             activeMediaProjection = null
@@ -142,7 +147,7 @@ object ScreenshotHelper {
                             callback.onError("EMPTY_BUFFER")
                         }
                     } catch (e: Exception) {
-                        virtualDisplay.release()
+                        virtualDisplay?.release()
                         imageReader.close()
                         projection.stop()
                         activeMediaProjection = null
