@@ -42,7 +42,7 @@ track_release = Google::Apis::AndroidpublisherV3::TrackRelease.new(
   release_notes: [
     Google::Apis::AndroidpublisherV3::LocalizedText.new(
       language: 'en-US',
-      text: "Premium Quick Capture & Shake Capture modal UI/UX redesign with full theme and dynamic accent color integration."
+      text: "Restored native quick capture overlay over any application, non-scrollable compact modal, and fixed shake-to-capture gesture."
     )
   ]
 )

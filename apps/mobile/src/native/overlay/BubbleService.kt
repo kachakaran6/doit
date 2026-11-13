@@ -242,7 +242,7 @@ class BubbleService : Service(), SensorEventListener {
         fun showQuickCapture(mode: String = "TASK") {
             instance?.let { s ->
                 Handler(Looper.getMainLooper()).post {
-                    s.triggerUnifiedQuickCapture(mode)
+                    s.showCompactModal(mode)
                 }
             }
         }
@@ -283,6 +283,10 @@ class BubbleService : Service(), SensorEventListener {
             dp,
             resources.displayMetrics
         ).toInt()
+    }
+
+    private fun isDarkTheme(): Boolean {
+        return (resources.configuration.uiMode and android.content.res.Configuration.UI_MODE_NIGHT_MASK) == android.content.res.Configuration.UI_MODE_NIGHT_YES
     }
 
     private fun getOverlayLayoutType(): Int {
@@ -488,21 +492,8 @@ class BubbleService : Service(), SensorEventListener {
     }
 
     private fun onBubbleTapped() {
-        triggerUnifiedQuickCapture("TASK")
-    }
-
-    private fun triggerUnifiedQuickCapture(mode: String = "TASK") {
-        dismissCompactModal()
-        val emitted = OverlayServiceModule.triggerQuickCapture(mode)
-        if (!emitted || !inForegroundState) {
-            val launchIntent = packageManager.getLaunchIntentForPackage(packageName)?.apply {
-                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP
-                putExtra("show_quick_capture", mode)
-            }
-            if (launchIntent != null) {
-                startActivity(launchIntent)
-            }
-        }
+        dismissBubbleActionMenu(immediate = true)
+        showCompactModal("TASK")
     }
 
     // ==========================================
@@ -557,7 +548,7 @@ class BubbleService : Service(), SensorEventListener {
 
         val captureItem = createMenuItem(R.drawable.ic_lucide_bug, "Quick Bug") {
             dismissBubbleActionMenu()
-            triggerUnifiedQuickCapture("BUG")
+            showCompactModal("BUG")
         }
         bubbleActionContainer?.addView(captureItem)
 
@@ -643,19 +634,30 @@ class BubbleService : Service(), SensorEventListener {
         val dynamicMagnitude = Math.abs(totalMagnitude - 9.80665f)
 
         val threshold = when (shakeSensitivity) {
-            "low" -> 21.0f
-            "high" -> 10.0f
-            else -> 14.5f
+            "low" -> 19.0f
+            "high" -> 9.5f
+            else -> 13.0f
         }
 
         if (dynamicMagnitude > threshold) {
-            val sign = if (x > 0) 1f else -1f
-            if (lastSign != 0f && sign != lastSign && (now - lastReversalTimestamp < 500)) {
+            val absX = Math.abs(x)
+            val absY = Math.abs(y)
+            val absZ = Math.abs(Math.abs(z) - 9.80665f)
+
+            val currentSign = if (absX >= absY && absX >= absZ) {
+                if (x >= 0) 1f else -1f
+            } else if (absY >= absX && absY >= absZ) {
+                if (y >= 0) 1f else -1f
+            } else {
+                if (z >= 0) 1f else -1f
+            }
+
+            if (lastSign != 0f && currentSign != lastSign && (now - lastReversalTimestamp < 650)) {
                 reversalCount++
-            } else if (now - lastReversalTimestamp >= 500) {
+            } else if (now - lastReversalTimestamp >= 650) {
                 reversalCount = 1
             }
-            lastSign = sign
+            lastSign = currentSign
             lastReversalTimestamp = now
 
             if (reversalCount >= 2) {
@@ -676,7 +678,8 @@ class BubbleService : Service(), SensorEventListener {
     private fun onShakeDetected() {
         Handler(Looper.getMainLooper()).post {
             triggerHaptic(60)
-            triggerUnifiedQuickCapture("TASK")
+            if (modalContainer != null || pickerContainer != null) return@post
+            showCompactModal("TASK")
         }
     }
 
@@ -712,9 +715,19 @@ class BubbleService : Service(), SensorEventListener {
         isLoadingProjects = true
         isLoadingMembers = false
 
+        val isDark = isDarkTheme()
+        val bgColor = if (isDark) Color.parseColor("#15171B") else Color.parseColor("#FFFFFF")
+        val borderColor = if (isDark) Color.parseColor("#282B32") else Color.parseColor("#E5E7EB")
+        val textPrimaryColor = if (isDark) Color.WHITE else Color.parseColor("#111827")
+        val textSecondaryColor = if (isDark) Color.parseColor("#8E93A0") else Color.parseColor("#6B7280")
+        val rowBgColor = if (isDark) Color.parseColor("#1F2126") else Color.parseColor("#F9FAFB")
+        val rowBorderColor = if (isDark) Color.parseColor("#30333C") else Color.parseColor("#E5E7EB")
+        val inputBgColor = if (isDark) Color.parseColor("#1F2126") else Color.parseColor("#F9FAFB")
+        val inputHintColor = if (isDark) Color.parseColor("#696E79") else Color.parseColor("#9CA3AF")
+
         val displayMetrics = resources.displayMetrics
         val screenWidth = displayMetrics.widthPixels
-        val modalWidth = Math.min((screenWidth * 0.90f).toInt(), dpToPx(350f))
+        val modalWidth = Math.min((screenWidth * 0.92f).toInt(), dpToPx(360f))
 
         modalParams = WindowManager.LayoutParams(
             modalWidth,
@@ -723,22 +736,29 @@ class BubbleService : Service(), SensorEventListener {
             WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL or WindowManager.LayoutParams.FLAG_WATCH_OUTSIDE_TOUCH,
             PixelFormat.TRANSLUCENT
         ).apply {
-            gravity = Gravity.TOP or Gravity.CENTER_HORIZONTAL
-            y = dpToPx(90f)
+            gravity = Gravity.CENTER
         }
 
+        // Fixed compact modal container — no scrolling, completely fits on screen
         modalContainer = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             background = GradientDrawable().apply {
                 shape = GradientDrawable.RECTANGLE
                 cornerRadius = dpToPx(18f).toFloat()
-                setColor(Color.parseColor("#15171B"))
-                setStroke(dpToPx(1.2f), Color.parseColor("#282B32"))
+                setColor(bgColor)
+                setStroke(dpToPx(1.2f), borderColor)
             }
             val p = dpToPx(16f)
             setPadding(p, p, p, p)
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-                elevation = dpToPx(20f).toFloat()
+                elevation = dpToPx(24f).toFloat()
+                clipToOutline = true
+            }
+            setOnTouchListener { _, event ->
+                if (event.action == MotionEvent.ACTION_OUTSIDE) {
+                    dismissCompactModal()
+                    true
+                } else false
             }
         }
 
@@ -754,7 +774,7 @@ class BubbleService : Service(), SensorEventListener {
 
         val appIcon = ImageView(this).apply {
             setImageResource(R.mipmap.ic_launcher_round)
-            layoutParams = LinearLayout.LayoutParams(dpToPx(20f), dpToPx(20f)).apply {
+            layoutParams = LinearLayout.LayoutParams(dpToPx(22f), dpToPx(22f)).apply {
                 marginEnd = dpToPx(8f)
             }
         }
@@ -762,8 +782,8 @@ class BubbleService : Service(), SensorEventListener {
 
         val headerTitle = TextView(this).apply {
             text = "Quick Capture"
-            setTextColor(Color.WHITE)
-            setTextSize(TypedValue.COMPLEX_UNIT_SP, 15.5f)
+            setTextColor(textPrimaryColor)
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 16f)
             setTypeface(typeface, Typeface.BOLD)
             layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
         }
@@ -771,7 +791,7 @@ class BubbleService : Service(), SensorEventListener {
 
         val closeBtn = ImageView(this).apply {
             setImageResource(R.drawable.ic_lucide_x)
-            imageTintList = ColorStateList.valueOf(Color.parseColor("#9EA3AE"))
+            imageTintList = ColorStateList.valueOf(textSecondaryColor)
             val pC = dpToPx(4f)
             setPadding(pC, pC, pC, pC)
             layoutParams = LinearLayout.LayoutParams(dpToPx(24f), dpToPx(24f))
@@ -821,15 +841,15 @@ class BubbleService : Service(), SensorEventListener {
         val inputBg = GradientDrawable().apply {
             shape = GradientDrawable.RECTANGLE
             cornerRadius = dpToPx(10f).toFloat()
-            setColor(Color.parseColor("#1F2126"))
-            setStroke(dpToPx(1f), Color.parseColor("#30333C"))
+            setColor(inputBgColor)
+            setStroke(dpToPx(1f), rowBorderColor)
         }
 
         activeEditText = EditText(this).apply {
             background = inputBg
             hint = "What do you want to capture?"
-            setHintTextColor(Color.parseColor("#696E79"))
-            setTextColor(Color.WHITE)
+            setHintTextColor(inputHintColor)
+            setTextColor(textPrimaryColor)
             setTextSize(TypedValue.COMPLEX_UNIT_SP, 14f)
             val pI = dpToPx(12f)
             setPadding(pI, pI, pI, pI)
@@ -863,8 +883,8 @@ class BubbleService : Service(), SensorEventListener {
             background = GradientDrawable().apply {
                 shape = GradientDrawable.RECTANGLE
                 cornerRadius = dpToPx(8f).toFloat()
-                setColor(Color.parseColor("#1F2126"))
-                setStroke(dpToPx(1f), Color.parseColor("#30333C"))
+                setColor(rowBgColor)
+                setStroke(dpToPx(1f), rowBorderColor)
             }
             val pH = dpToPx(12f)
             val pV = dpToPx(8f)
@@ -884,7 +904,7 @@ class BubbleService : Service(), SensorEventListener {
 
         val folderIcon = ImageView(this).apply {
             setImageResource(R.drawable.ic_lucide_folder)
-            imageTintList = ColorStateList.valueOf(Color.parseColor("#9EA3AE"))
+            imageTintList = ColorStateList.valueOf(textSecondaryColor)
             layoutParams = LinearLayout.LayoutParams(dpToPx(16f), dpToPx(16f)).apply {
                 marginEnd = dpToPx(8f)
             }
@@ -893,7 +913,7 @@ class BubbleService : Service(), SensorEventListener {
 
         projectDropdownText = TextView(this).apply {
             text = "Loading projects..."
-            setTextColor(Color.parseColor("#696E79"))
+            setTextColor(textSecondaryColor)
             setTextSize(TypedValue.COMPLEX_UNIT_SP, 13f)
             setSingleLine(true)
             ellipsize = TextUtils.TruncateAt.END
@@ -903,7 +923,7 @@ class BubbleService : Service(), SensorEventListener {
 
         val projectChevron = ImageView(this).apply {
             setImageResource(R.drawable.ic_lucide_chevron_down)
-            imageTintList = ColorStateList.valueOf(Color.parseColor("#696E79"))
+            imageTintList = ColorStateList.valueOf(textSecondaryColor)
             layoutParams = LinearLayout.LayoutParams(dpToPx(14f), dpToPx(14f)).apply {
                 marginStart = dpToPx(6f)
             }
@@ -918,8 +938,8 @@ class BubbleService : Service(), SensorEventListener {
             background = GradientDrawable().apply {
                 shape = GradientDrawable.RECTANGLE
                 cornerRadius = dpToPx(8f).toFloat()
-                setColor(Color.parseColor("#1F2126"))
-                setStroke(dpToPx(1f), Color.parseColor("#30333C"))
+                setColor(rowBgColor)
+                setStroke(dpToPx(1f), rowBorderColor)
             }
             val pH = dpToPx(12f)
             val pV = dpToPx(8f)
@@ -947,12 +967,12 @@ class BubbleService : Service(), SensorEventListener {
             }
             background = GradientDrawable().apply {
                 shape = GradientDrawable.OVAL
-                setColor(Color.parseColor("#2A2D36"))
+                setColor(if (isDark) Color.parseColor("#2A2D36") else Color.parseColor("#E0E7FF"))
             }
         }
         assigneeAvatarText = TextView(this).apply {
             text = ""
-            setTextColor(Color.parseColor("#A5B4FC"))
+            setTextColor(if (isDark) Color.parseColor("#A5B4FC") else Color.parseColor("#4338CA"))
             setTextSize(TypedValue.COMPLEX_UNIT_SP, 10f)
             setTypeface(typeface, Typeface.BOLD)
             gravity = Gravity.CENTER
