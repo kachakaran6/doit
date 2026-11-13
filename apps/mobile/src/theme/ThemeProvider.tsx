@@ -11,6 +11,24 @@ import {
 } from './useTheme';
 import { ThemeStorage } from './theme.storage';
 import { spacing, radius, typography, dimensions, elevation } from '@doit/tokens';
+import { overlayService } from '../native/overlay';
+
+function toAndroidColor(input: string, fallback: string): string {
+  const value = (input || '').trim();
+  const match = value.match(
+    /^rgba?\(\s*([\d.]+)\s*,\s*([\d.]+)\s*,\s*([\d.]+)\s*(?:,\s*([\d.]+)\s*)?\)$/i,
+  );
+  if (!match) {
+    return value.startsWith('#') ? value : fallback;
+  }
+  const channel = (raw: string) =>
+    Math.max(0, Math.min(255, Math.round(Number(raw)))).toString(16).padStart(2, '0');
+  const alphaSource = match[4];
+  const alpha = alphaSource == null
+    ? 255
+    : Math.round(Number(alphaSource) <= 1 ? Number(alphaSource) * 255 : Number(alphaSource));
+  return `#${channel(String(alpha))}${channel(match[1])}${channel(match[2])}${channel(match[3])}`;
+}
 
 export interface ThemeProviderProps {
   children: ReactNode;
@@ -77,6 +95,19 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({
       }
     }
   }, [resolvedTheme]);
+
+  // Synchronize Android native overlay with active theme and accent
+  useEffect(() => {
+    if (Platform.OS === 'android') {
+      overlayService.updateThemeConfig(
+        mode,
+        resolvedTheme,
+        accent,
+        toAndroidColor(colors.accent, '#3A66F2'),
+        toAndroidColor(colors.accentSoft, resolvedTheme === 'dark' ? '#293A66F2' : '#1F2F5BEA'),
+      );
+    }
+  }, [mode, resolvedTheme, accent, colors.accent, colors.accentSoft]);
 
   const contextValue: ThemeContextValue = useMemo(
     () => ({

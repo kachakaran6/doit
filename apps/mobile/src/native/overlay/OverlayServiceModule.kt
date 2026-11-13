@@ -362,6 +362,25 @@ class OverlayServiceModule(private val reactContext: ReactApplicationContext) :
     }
 
     @ReactMethod
+    fun updateThemeConfig(mode: String?, resolvedTheme: String?, accent: String?, accentFill: String?, accentSoft: String?, promise: Promise) {
+        try {
+            val prefs = reactContext.getSharedPreferences("doit_overlay_prefs", Context.MODE_PRIVATE)
+            prefs.edit().apply {
+                if (!mode.isNullOrEmpty()) putString("theme_mode", mode)
+                if (!resolvedTheme.isNullOrEmpty()) putString("resolved_theme", resolvedTheme)
+                if (!accent.isNullOrEmpty()) putString("accent_name", accent)
+                if (!accentFill.isNullOrEmpty()) putString("accent_fill", accentFill)
+                if (!accentSoft.isNullOrEmpty()) putString("accent_soft", accentSoft)
+                commit()
+            }
+            BubbleService.updateThemeConfig(mode, resolvedTheme, accent, accentFill, accentSoft)
+            promise.resolve(true)
+        } catch (e: Exception) {
+            promise.reject("THEME_FAILED", e.message)
+        }
+    }
+
+    @ReactMethod
     fun isAccessibilityEnabled(promise: Promise) {
         val running = DoItAccessibilityService.isRunning()
         if (running) {

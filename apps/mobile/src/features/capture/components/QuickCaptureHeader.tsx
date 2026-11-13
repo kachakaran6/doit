@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, StyleSheet, TouchableOpacity } from 'react-native';
-import { X, Check } from 'lucide-react-native';
+import { X } from 'lucide-react-native';
 import { Text } from '../../../components/ui';
 import { useTheme } from '../../../theme/useTheme';
 
@@ -11,24 +11,41 @@ export interface QuickCaptureHeaderProps {
 
 export const QuickCaptureHeader: React.FC<QuickCaptureHeaderProps> = ({
   onClose,
-  title = 'Quick Capture',
+  title = 'New capture',
 }) => {
   const { colors, radius } = useTheme();
 
   return (
-    <View style={styles.header}>
+    <View
+      style={[
+        styles.header,
+        { backgroundColor: colors.accentSoft, borderRadius: radius.lg },
+      ]}
+    >
       <View style={styles.titleContainer}>
-        <View style={[styles.appBadge, { backgroundColor: colors.accent, borderRadius: radius.pill }]}>
-          <Check size={14} color={colors.accentOnPrimary} strokeWidth={2.5} />
+        <View style={styles.copy}>
+          <Text variant="caption" style={[styles.eyebrow, { color: colors.accent }]}>
+            DOIT
+          </Text>
+          <Text variant="headline" style={[styles.title, { color: colors.textPrimary }]}>
+            {title}
+          </Text>
+          <Text variant="caption" style={{ color: colors.textSecondary }}>
+            Task or bug, with project and owner
+          </Text>
         </View>
-        <Text variant="headline" style={[styles.title, { color: colors.textPrimary }]}>
-          {title}
-        </Text>
       </View>
 
       <TouchableOpacity
         onPress={onClose}
-        style={[styles.closeButton, { backgroundColor: colors.surface2, borderRadius: radius.pill }]}
+        style={[
+          styles.closeButton,
+          {
+            backgroundColor: colors.surface1,
+            borderColor: colors.accent,
+            borderRadius: radius.pill,
+          },
+        ]}
         hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
         accessibilityRole="button"
         accessibilityLabel="Close capture dialog"
@@ -45,28 +62,32 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingBottom: 14,
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+    marginBottom: 14,
   },
   titleContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
+    flex: 1,
+    marginRight: 12,
   },
-  appBadge: {
-    width: 26,
-    height: 26,
-    alignItems: 'center',
-    justifyContent: 'center',
+  copy: {
+    gap: 1,
+  },
+  eyebrow: {
+    fontSize: 11,
+    fontWeight: '700',
+    letterSpacing: 1.4,
   },
   title: {
-    fontSize: 17,
+    fontSize: 22,
     fontWeight: '700',
-    letterSpacing: -0.2,
+    letterSpacing: -0.4,
   },
   closeButton: {
-    width: 30,
-    height: 30,
+    width: 36,
+    height: 36,
     alignItems: 'center',
     justifyContent: 'center',
+    borderWidth: 1,
   },
 });

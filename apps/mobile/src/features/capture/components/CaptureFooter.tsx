@@ -19,13 +19,21 @@ export const CaptureFooter: React.FC<CaptureFooterProps> = ({
   isSubmitting,
   submitLabel = 'Submit',
 }) => {
-  const { colors, radius } = useTheme();
+  const { colors } = useTheme();
 
   return (
     <View style={styles.footer}>
       <TouchableOpacity
         onPress={onCancel}
-        style={styles.cancelButton}
+        style={[
+          styles.cancelButton,
+          {
+            backgroundColor: colors.surface2,
+            borderColor: colors.hairline,
+            borderRadius: 14,
+            flex: 0.85,
+          },
+        ]}
         hitSlop={{ top: 8, bottom: 8, left: 12, right: 12 }}
         activeOpacity={0.6}
         accessibilityRole="button"
@@ -46,8 +54,9 @@ export const CaptureFooter: React.FC<CaptureFooterProps> = ({
           styles.submitButton,
           {
             backgroundColor: isSubmitDisabled ? colors.surface3 : colors.accent,
-            borderRadius: radius.md,
+            borderRadius: 14,
             opacity: isSubmitDisabled ? 0.6 : 1,
+            flex: 1.15,
           },
         ]}
         activeOpacity={0.8}
@@ -86,15 +95,16 @@ const styles = StyleSheet.create({
   footer: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    marginTop: 14,
-    paddingTop: 4,
+    gap: 8,
+    marginTop: 16,
   },
   cancelButton: {
-    paddingVertical: 10,
+    paddingVertical: 12,
     paddingHorizontal: 12,
     justifyContent: 'center',
-    minHeight: 44,
+    alignItems: 'center',
+    minHeight: 46,
+    borderWidth: 1,
   },
   cancelText: {
     fontSize: 14,

@@ -38,7 +38,7 @@ export const QuickCaptureModal: React.FC<QuickCaptureModalProps> = ({
   onDismiss,
 }) => {
   const navigation = useNavigation();
-  const { colors, radius } = useTheme();
+  const { colors, radius, resolvedTheme } = useTheme();
 
   // Mode: task or bug (unified primary modes)
   const [mode, setMode] = useState<CaptureType>(initialMode === 'bug' ? 'bug' : 'task');
@@ -401,9 +401,10 @@ export const QuickCaptureModal: React.FC<QuickCaptureModalProps> = ({
   const screenWidth = Dimensions.get('window').width;
   const modalWidth = Math.min(screenWidth - 32, 400);
 
+  const scrim = resolvedTheme === 'dark' ? 'rgba(5,6,10,0.78)' : 'rgba(16,18,28,0.46)';
+
   return (
-    <View style={styles.backdrop}>
-      {/* Tap backdrop to dismiss */}
+    <View style={[styles.backdrop, { backgroundColor: scrim }]}>
       <TouchableWithoutFeedback onPress={handleClose}>
         <View style={StyleSheet.absoluteFillObject} />
       </TouchableWithoutFeedback>
@@ -419,17 +420,17 @@ export const QuickCaptureModal: React.FC<QuickCaptureModalProps> = ({
               {
                 width: modalWidth,
                 backgroundColor: colors.surface1,
-                borderColor: colors.hairline,
-                borderRadius: radius.xl,
+                borderColor: colors.accent,
+                borderRadius: 28,
               },
             ]}
           >
+            <View style={[styles.accentBar, { backgroundColor: colors.accent }]} />
             <ScrollView
               showsVerticalScrollIndicator={false}
               keyboardShouldPersistTaps="handled"
               contentContainerStyle={styles.cardContent}
             >
-              {/* Header */}
               <QuickCaptureHeader onClose={handleClose} />
 
               {/* Task / Bug Segmented Selector */}
@@ -493,7 +494,6 @@ export const QuickCaptureModal: React.FC<QuickCaptureModalProps> = ({
 const styles = StyleSheet.create({
   backdrop: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.65)',
     justifyContent: 'center',
     alignItems: 'center',
     padding: 16,
@@ -504,16 +504,22 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   modalCard: {
-    borderWidth: 1,
+    borderWidth: 1.5,
     maxHeight: '92%',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.35,
-    shadowRadius: 16,
-    elevation: 16,
+    shadowOffset: { width: 0, height: 16 },
+    shadowOpacity: 0.28,
+    shadowRadius: 28,
+    elevation: 18,
     overflow: 'hidden',
   },
+  accentBar: {
+    height: 6,
+    width: '100%',
+  },
   cardContent: {
-    padding: 16,
+    paddingHorizontal: 16,
+    paddingTop: 14,
+    paddingBottom: 16,
   },
 });

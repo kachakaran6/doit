@@ -36,6 +36,7 @@ export interface OverlayService {
   persistSessionBackup(sessionJson: string | null): Promise<boolean>;
   getSessionBackup(): Promise<string | null>;
   setShakeEnabled(enabled: boolean, sensitivity?: string): Promise<void>;
+  updateThemeConfig(mode: string, resolvedTheme: string, accent: string, accentFill: string, accentSoft: string): Promise<void>;
   showQuickCapture(mode?: 'TASK' | 'BUG' | 'task' | 'bug'): Promise<boolean>;
   hasScreenshotPermission(): Promise<boolean>;
   requestScreenshotPermission(): Promise<boolean>;
@@ -232,6 +233,21 @@ class OverlayServiceImpl implements OverlayService {
       await OverlayServiceModule.setShakeEnabled(enabled, sensitivity);
     } catch (e) {
       console.warn('[OverlayService] Failed to set shake config:', e);
+    }
+  }
+
+  async updateThemeConfig(
+    mode: string,
+    resolvedTheme: string,
+    accent: string,
+    accentFill: string,
+    accentSoft: string
+  ): Promise<void> {
+    if (!this.isAvailable() || !OverlayServiceModule?.updateThemeConfig) return;
+    try {
+      await OverlayServiceModule.updateThemeConfig(mode, resolvedTheme, accent, accentFill, accentSoft);
+    } catch (e) {
+      console.warn('[OverlayService] Failed to set theme config:', e);
     }
   }
 
