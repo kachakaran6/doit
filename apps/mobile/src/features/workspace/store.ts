@@ -42,10 +42,15 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
     // Determine target active project:
     const currentProject = get().activeProject;
     let activeProject: ProjectItem | null = null;
-    if (currentProject && activeWorkspace?.projects?.some((p) => p.id === currentProject.id)) {
+    if (persistedProjId === 'ALL') {
+      activeProject = null;
+    } else if (currentProject && activeWorkspace?.projects?.some((p) => p.id === currentProject.id)) {
       activeProject = activeWorkspace.projects.find((p) => p.id === currentProject.id)!;
     } else if (persistedProjId && activeWorkspace?.projects?.some((p) => p.id === persistedProjId)) {
       activeProject = activeWorkspace.projects.find((p) => p.id === persistedProjId)!;
+    } else if (currentProject === null && !persistedProjId) {
+      // User or state has selected All Projects
+      activeProject = null;
     } else {
       activeProject = activeWorkspace?.projects?.[0] || null;
     }
@@ -75,10 +80,14 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
   },
   setActiveWorkspace: (ws) => {
     const persistedProjId = WorkspaceStorage.getActiveProjectId();
-    const proj =
-      (persistedProjId && ws.projects?.find((p) => p.id === persistedProjId)) ||
-      ws.projects?.[0] ||
-      null;
+    let proj: ProjectItem | null = null;
+    if (persistedProjId === 'ALL') {
+      proj = null;
+    } else if (persistedProjId && ws.projects?.some((p) => p.id === persistedProjId)) {
+      proj = ws.projects.find((p) => p.id === persistedProjId)!;
+    } else {
+      proj = ws.projects?.[0] || null;
+    }
 
     WorkspaceStorage.saveActiveWorkspaceId(ws?.id || null);
     WorkspaceStorage.saveActiveProjectId(proj?.id || null);
@@ -125,8 +134,9 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
 
       if (state.activeWorkspace?.id === workspaceId) {
         updatedActiveWs = { ...state.activeWorkspace, projects };
-        // If current active project is no longer valid in updated project list, reset it
-        if (!updatedActiveProj || !projects.some((p) => p.id === updatedActiveProj?.id)) {
+        // If current active project is no longer valid in updated project list, reset it.
+        // If updatedActiveProj is null, it represents "All Projects" and shouldn't be overridden.
+        if (updatedActiveProj && !projects.some((p) => p.id === updatedActiveProj?.id)) {
           updatedActiveProj = projects[0] || null;
           WorkspaceStorage.saveActiveProjectId(updatedActiveProj?.id || null);
         }

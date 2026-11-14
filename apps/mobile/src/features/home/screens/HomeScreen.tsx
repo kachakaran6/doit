@@ -76,25 +76,25 @@ export const HomeScreen: React.FC = () => {
   const activeProject = useWorkspaceStore((s) => s.activeProject);
   useProjectsQuery(activeWorkspace?.id);
 
-  const projectId = activeProject?.id || 'default';
+  const projectId = activeProject?.id || null;
 
   const {
     data: tasks,
     isLoading: tasksLoading,
     refetch: refetchTasks,
     isRefetching: refetchingTasks,
-  } = useTasksQuery(projectId);
+  } = useTasksQuery(projectId, undefined, { workspaceId: activeWorkspace?.id });
 
   const {
     data: stickies,
     isLoading: stickiesLoading,
     refetch: refetchStickies,
-  } = useStickiesQuery(projectId);
+  } = useStickiesQuery(projectId || 'default');
 
   const {
     data: bugs,
     refetch: refetchBugs,
-  } = useBugsQuery(projectId);
+  } = useBugsQuery(projectId, undefined, { workspaceId: activeWorkspace?.id });
 
   const updateStatus = useUpdateTaskStatusMutation(projectId);
 

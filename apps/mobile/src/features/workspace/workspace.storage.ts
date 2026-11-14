@@ -111,7 +111,7 @@ export const WorkspaceStorage = {
           if (projectId) {
             localStorage.setItem(ACTIVE_PROJECT_KEY, projectId);
           } else {
-            localStorage.removeItem(ACTIVE_PROJECT_KEY);
+            localStorage.setItem(ACTIVE_PROJECT_KEY, 'ALL');
           }
         }
       } catch {}
@@ -121,7 +121,7 @@ export const WorkspaceStorage = {
     if (projectId) {
       SecureStore.setItemAsync(ACTIVE_PROJECT_KEY, projectId).catch(() => {});
     } else {
-      SecureStore.deleteItemAsync(ACTIVE_PROJECT_KEY).catch(() => {});
+      SecureStore.setItemAsync(ACTIVE_PROJECT_KEY, 'ALL').catch(() => {});
     }
   },
 

@@ -72,7 +72,7 @@ export function useCreateTaskMutation(projectId: string = 'default') {
   });
 }
 
-export function useUpdateTaskStatusMutation(projectId: string = 'default') {
+export function useUpdateTaskStatusMutation(projectId?: string | null) {
   const queryClient = useQueryClient();
 
   return useMutation({

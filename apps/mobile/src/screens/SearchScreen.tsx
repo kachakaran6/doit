@@ -49,12 +49,13 @@ export const SearchScreen: React.FC = () => {
   const [query, setQuery] = useState('');
   const [recentSearches, setRecentSearches] = useState<string[]>([]);
 
+  const activeWorkspace = useWorkspaceStore((s) => s.activeWorkspace);
   const activeProject = useWorkspaceStore((s) => s.activeProject);
-  const projectId = activeProject?.id || 'default';
+  const projectId = activeProject?.id || null;
 
-  const { data: tasks } = useTasksQuery(projectId);
-  const { data: bugs } = useBugsQuery(projectId);
-  const { data: stickies } = useStickiesQuery(projectId);
+  const { data: tasks } = useTasksQuery(projectId, undefined, { workspaceId: activeWorkspace?.id });
+  const { data: bugs } = useBugsQuery(projectId, undefined, { workspaceId: activeWorkspace?.id });
+  const { data: stickies } = useStickiesQuery(projectId || 'default');
 
   // Load recent searches
   useEffect(() => {

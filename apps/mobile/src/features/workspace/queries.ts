@@ -42,7 +42,9 @@ export function useProjectsQuery(workspaceId?: string) {
     if (query.data && workspaceId) {
       useWorkspaceStore.getState().updateWorkspaceProjects(workspaceId, query.data);
       if (query.data.length > 0) {
-        if (!activeProject || !query.data.some((p) => p.id === activeProject.id)) {
+        // Only reset if an active project was selected and it no longer exists in query.data.
+        // If activeProject is null, it represents "All Projects" which is a valid selection.
+        if (activeProject && !query.data.some((p) => p.id === activeProject.id)) {
           setActiveProject(query.data[0] || null);
         }
       } else {

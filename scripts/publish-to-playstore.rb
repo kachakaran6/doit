@@ -42,7 +42,7 @@ track_release = Google::Apis::AndroidpublisherV3::TrackRelease.new(
   release_notes: [
     Google::Apis::AndroidpublisherV3::LocalizedText.new(
       language: 'en-US',
-      text: "View all tasks and bugs across projects with project filtering in task and bug queues."
+      text: "Fix All Projects filter selection and persistence across tasks and bugs queues."
     )
   ]
 )

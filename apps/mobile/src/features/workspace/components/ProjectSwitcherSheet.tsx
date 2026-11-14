@@ -254,7 +254,11 @@ export const ProjectSwitcherSheet: React.FC<ProjectSwitcherSheetProps> = ({
                   {/* List of projects */}
                   <View style={{ gap: spacing.xs }}>
                     {/* All Projects Option */}
-                    <View
+                    <TouchableOpacity
+                      onPress={() => handleSelect(null)}
+                      activeOpacity={0.7}
+                      accessibilityRole="button"
+                      accessibilityLabel="Select All Projects"
                       style={[
                         styles.projectItem,
                         {
@@ -268,13 +272,7 @@ export const ProjectSwitcherSheet: React.FC<ProjectSwitcherSheetProps> = ({
                         },
                       ]}
                     >
-                      <TouchableOpacity
-                        style={[styles.itemLeft, { flex: 1 }]}
-                        onPress={() => handleSelect(null)}
-                        activeOpacity={0.7}
-                        accessibilityRole="button"
-                        accessibilityLabel="Select All Projects"
-                      >
+                      <View style={[styles.itemLeft, { flex: 1 }]}>
                         <View
                           style={[
                             styles.keyBadge,
@@ -294,9 +292,9 @@ export const ProjectSwitcherSheet: React.FC<ProjectSwitcherSheetProps> = ({
                             Show tasks and bugs across all projects
                           </Text>
                         </View>
-                      </TouchableOpacity>
+                      </View>
                       {!activeProject && <Check size={18} color={colors.accentText} strokeWidth={2.5} />}
-                    </View>
+                    </TouchableOpacity>
 
                     {projects.map((p) => {
                       const isSelected = p.id === activeProject?.id;
