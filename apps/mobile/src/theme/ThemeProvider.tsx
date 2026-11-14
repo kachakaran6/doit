@@ -27,7 +27,7 @@ function toAndroidColor(input: string, fallback: string): string {
   const alpha = alphaSource == null
     ? 255
     : Math.round(Number(alphaSource) <= 1 ? Number(alphaSource) * 255 : Number(alphaSource));
-  return `#${channel(String(alpha))}${channel(match[1])}${channel(match[2])}${channel(match[3])}`;
+  return `#${channel(String(alpha))}${channel(match[1] || '0')}${channel(match[2] || '0')}${channel(match[3] || '0')}`;
 }
 
 export interface ThemeProviderProps {

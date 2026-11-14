@@ -58,13 +58,18 @@ export const TaskListScreen: React.FC = () => {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { viewMode, setViewMode, isCreateSheetOpen, setCreateSheetOpen } = useTaskStore();
   const { openProjectSheet } = useSheetStore();
+  const activeWorkspace = useWorkspaceStore((s) => s.activeWorkspace);
   const activeProject = useWorkspaceStore((s) => s.activeProject);
-  const projectId = activeProject?.id || 'default';
+  const projectId = activeProject?.id || null;
 
-  const { data: tasks, isLoading, error, refetch, isRefetching } = useTasksQuery(projectId);
+  const { data: tasks, isLoading, error, refetch, isRefetching } = useTasksQuery(
+    projectId,
+    undefined,
+    { workspaceId: activeWorkspace?.id }
+  );
   const { activeTab, setActiveTab, filteredTasks } = useTaskFilters(tasks || []);
-  const updateStatus = useUpdateTaskStatusMutation(projectId);
-  const deleteTask = useDeleteTaskMutation(projectId);
+  const updateStatus = useUpdateTaskStatusMutation(projectId || 'default');
+  const deleteTask = useDeleteTaskMutation(projectId || 'default');
 
   const handleToggleStatus = (id: string, current: TaskStatus) => {
     if (updateStatus.isPending) return;

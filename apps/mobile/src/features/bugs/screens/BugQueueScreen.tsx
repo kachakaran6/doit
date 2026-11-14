@@ -40,11 +40,16 @@ export const BugQueueScreen: React.FC = () => {
   const [telemetryExpanded, setTelemetryExpanded] = useState(false);
   const { openProjectSheet } = useSheetStore();
 
+  const activeWorkspace = useWorkspaceStore((s) => s.activeWorkspace);
   const activeProject = useWorkspaceStore((s) => s.activeProject);
-  const projectId = activeProject?.id || 'default';
+  const projectId = activeProject?.id || null;
 
-  const { data: bugs, isLoading, error, refetch, isRefetching } = useBugsQuery(projectId);
-  const deleteBug = useDeleteBugMutation(projectId);
+  const { data: bugs, isLoading, error, refetch, isRefetching } = useBugsQuery(
+    projectId,
+    undefined,
+    { workspaceId: activeWorkspace?.id }
+  );
+  const deleteBug = useDeleteBugMutation(projectId || 'default');
 
   const handleConfirmDelete = (bug: { id: string; title: string }) => {
     Alert.alert(

@@ -42,7 +42,7 @@ track_release = Google::Apis::AndroidpublisherV3::TrackRelease.new(
   release_notes: [
     Google::Apis::AndroidpublisherV3::LocalizedText.new(
       language: 'en-US',
-      text: "Quick Capture now follows light, dark, and your accent color, with a new capture sheet."
+      text: "View all tasks and bugs across projects with project filtering in task and bug queues."
     )
   ]
 )

@@ -3,13 +3,24 @@ import { bugKeys } from './keys';
 import { http } from '../../../lib/http';
 import { BugViewModel } from '../types';
 
-export function useBugsQuery(projectId: string = 'default', filters?: Record<string, any>) {
+export function useBugsQuery(
+  projectId: string | null = 'default',
+  filters?: Record<string, any>,
+  options?: { workspaceId?: string | null }
+) {
+  const isAllProjects = !projectId || projectId === 'ALL';
   return useQuery({
-    queryKey: bugKeys.list({ projectId, ...filters }),
+    queryKey: bugKeys.list({ projectId: isAllProjects ? 'ALL' : projectId, workspaceId: options?.workspaceId, ...filters }),
     queryFn: async (): Promise<BugViewModel[]> => {
-      const res = await http.get<{ items: BugViewModel[] } | BugViewModel[]>(
-        `/projects/${projectId}/bugs`
-      );
+      let endpoint: string;
+      if (isAllProjects) {
+        endpoint = options?.workspaceId
+          ? `/workspaces/${options.workspaceId}/tasks?type=BUG`
+          : '/workspaces/default/tasks?type=BUG';
+      } else {
+        endpoint = `/projects/${projectId}/bugs`;
+      }
+      const res = await http.get<{ items: BugViewModel[] } | BugViewModel[]>(endpoint);
       if (Array.isArray(res)) return res;
       return res.items || [];
     },

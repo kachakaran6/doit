@@ -16,7 +16,7 @@ import { Text, Input, Button } from '../../../components/ui';
 import { useWorkspaceStore } from '../store';
 import { useProjectsQuery } from '../queries';
 import { http } from '../../../lib/http';
-import { Check, Plus, X, FolderKanban, User, Settings2, ChevronDown } from 'lucide-react-native';
+import { Check, Plus, X, FolderKanban, User, Settings2, ChevronDown, Layers } from 'lucide-react-native';
 
 interface ProjectSwitcherSheetProps {
   visible?: boolean;
@@ -253,6 +253,51 @@ export const ProjectSwitcherSheet: React.FC<ProjectSwitcherSheetProps> = ({
                 <>
                   {/* List of projects */}
                   <View style={{ gap: spacing.xs }}>
+                    {/* All Projects Option */}
+                    <View
+                      style={[
+                        styles.projectItem,
+                        {
+                          backgroundColor: !activeProject
+                            ? colors.surface2 || colors.surfaceRaised
+                            : colors.surface1 || colors.surface,
+                          borderColor: !activeProject ? colors.accent : colors.hairline,
+                          borderWidth: 1,
+                          borderRadius: radius.md,
+                          padding: spacing.md,
+                        },
+                      ]}
+                    >
+                      <TouchableOpacity
+                        style={[styles.itemLeft, { flex: 1 }]}
+                        onPress={() => handleSelect(null)}
+                        activeOpacity={0.7}
+                        accessibilityRole="button"
+                        accessibilityLabel="Select All Projects"
+                      >
+                        <View
+                          style={[
+                            styles.keyBadge,
+                            {
+                              backgroundColor: !activeProject ? colors.accent : colors.surface2,
+                              borderRadius: radius.sm,
+                            },
+                          ]}
+                        >
+                          <Layers size={14} color={!activeProject ? '#FFFFFF' : colors.textPrimary} />
+                        </View>
+                        <View style={{ marginLeft: spacing.md, flex: 1 }}>
+                          <Text variant="bodyStrong" numberOfLines={1}>
+                            All Projects
+                          </Text>
+                          <Text variant="caption" color="secondary" style={{ fontSize: 11, marginTop: 2 }}>
+                            Show tasks and bugs across all projects
+                          </Text>
+                        </View>
+                      </TouchableOpacity>
+                      {!activeProject && <Check size={18} color={colors.accentText} strokeWidth={2.5} />}
+                    </View>
+
                     {projects.map((p) => {
                       const isSelected = p.id === activeProject?.id;
                       const defaultAssigneeName = p.defaultAssignee?.name;
