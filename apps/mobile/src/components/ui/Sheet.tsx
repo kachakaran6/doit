@@ -1,38 +1,37 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect } from 'react';
 import {
   View,
   Modal,
-  Pressable,
-  Animated,
+  TouchableOpacity,
   Dimensions,
   StyleSheet,
   ViewStyle,
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../../theme/useTheme';
 import { useBottomInsets } from '../../layout/useBottomInsets';
+import { useBackNavigationStore } from '../../navigation/back-navigation.store';
 import { Text } from './Text';
 
 export interface SheetProps {
   visible: boolean;
   onClose: () => void;
   title?: string;
-  detent?: 0.5 | 0.9;
+  detent?: 0.5 | 0.9 | number;
   children: React.ReactNode;
   footer?: React.ReactNode;
   style?: ViewStyle;
 }
 
 /**
- * P-02 Sheet:
- * 09-PROMPTS/P-02-shell.md & 02-SURFACE-SYSTEM.md
- * - Detents: 0.5 / 0.9
- * - Surface L1 / L2 background with 1px top highlight
- * - ZERO border
- * - Top radius 28 (radius.xl)
- * - Pinned footer clears accessory bar via useBottomInsets()
- * - Keyboard avoiding on iOS & Android adjustResize
+ * Robust Native Bottom Sheet:
+ * - Uses native Modal with animationType="slide" to prevent Fabric native driver failures
+ * - statusBarTranslucent covers full window seamlessly
+ * - Backdrop touch dismisses immediately
+ * - Keyboard avoiding on iOS & Android
+ * - Integrated with useBackNavigationStore and onRequestClose for hardware back
  */
 export const Sheet: React.FC<SheetProps> = ({
   visible,
@@ -44,142 +43,129 @@ export const Sheet: React.FC<SheetProps> = ({
   style,
 }) => {
   const { colors, radius, spacing, resolvedTheme } = useTheme();
+  const insets = useSafeAreaInsets();
   const { sheetFooterPaddingBottom } = useBottomInsets();
   const screenHeight = Dimensions.get('window').height;
-  const sheetHeight = screenHeight * detent;
+  const detentRatio = typeof detent === 'number' ? detent : 0.5;
+  const maxHeight = Math.min(screenHeight * detentRatio, screenHeight - (insets.top || 20));
 
-  const translateY = useRef(new Animated.Value(sheetHeight)).current;
-  const backdropOpacity = useRef(new Animated.Value(0)).current;
-
+  // Register with global back navigation so hardware back cleanly closes this sheet
   useEffect(() => {
-    if (visible) {
-      Animated.parallel([
-        Animated.timing(backdropOpacity, {
-          toValue: 1,
-          duration: 200,
-          useNativeDriver: true,
-        }),
-        Animated.spring(translateY, {
-          toValue: 0,
-          damping: 24,
-          stiffness: 250,
-          useNativeDriver: true,
-        }),
-      ]).start();
-    } else {
-      Animated.parallel([
-        Animated.timing(backdropOpacity, {
-          toValue: 0,
-          duration: 150,
-          useNativeDriver: true,
-        }),
-        Animated.timing(translateY, {
-          toValue: sheetHeight,
-          duration: 180,
-          useNativeDriver: true,
-        }),
-      ]).start();
-    }
-  }, [visible, sheetHeight, backdropOpacity, translateY]);
+    if (!visible) return;
+    const subscriberId = `sheet-${title || 'modal'}-${Date.now()}`;
+    return useBackNavigationStore.getState().registerBackSubscriber(
+      subscriberId,
+      () => {
+        onClose();
+        return true;
+      },
+      80 // Higher priority than screen navigation
+    );
+  }, [visible, onClose, title]);
 
   if (!visible) return null;
 
   const isDark = resolvedTheme === 'dark';
 
   return (
-    <Modal transparent visible={visible} onRequestClose={onClose} animationType="none">
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        style={styles.modalContainer}
-      >
-        <Animated.View
-          style={[
-            styles.backdrop,
-            {
-              backgroundColor: colors.overlay,
-              opacity: backdropOpacity,
-            },
-          ]}
+    <Modal
+      transparent
+      visible={visible}
+      onRequestClose={onClose}
+      animationType="slide"
+      statusBarTranslucent
+    >
+      <View style={styles.modalRoot}>
+        {/* Full screen backdrop */}
+        <TouchableOpacity
+          style={[styles.backdrop, { backgroundColor: colors.overlay || 'rgba(0,0,0,0.65)' }]}
+          activeOpacity={1}
+          onPress={onClose}
+        />
+
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          style={styles.keyboardContainer}
+          pointerEvents="box-none"
         >
-          <Pressable style={styles.backdropPressable} onPress={onClose} />
-        </Animated.View>
+          <View
+            style={[
+              styles.sheet,
+              {
+                maxHeight,
+                backgroundColor: colors.surface1 || colors.surface,
+                borderTopLeftRadius: radius.xl, // 28
+                borderTopRightRadius: radius.xl,
+                paddingBottom: Math.max(insets.bottom, 16),
+              },
+              style,
+            ]}
+          >
+            {/* 1px top highlight */}
+            {isDark && <View style={styles.topHighlight} />}
 
-        <Animated.View
-          style={[
-            styles.sheet,
-            {
-              height: sheetHeight,
-              backgroundColor: colors.surface,
-              borderTopLeftRadius: radius.xl, // 28
-              borderTopRightRadius: radius.xl,
-              transform: [{ translateY }],
-            },
-            style,
-          ]}
-        >
-          {/* 1px top highlight */}
-          {isDark && <View style={styles.topHighlight} />}
-
-          {/* Drag Handle */}
-          <View style={styles.handleContainer}>
-            <View
-              style={[
-                styles.handle,
-                {
-                  backgroundColor: colors.borderStrong,
-                  borderRadius: radius.pill,
-                },
-              ]}
-            />
-          </View>
-
-          {title && (
-            <View
-              style={[
-                styles.header,
-                {
-                  paddingHorizontal: spacing.lg,
-                  paddingBottom: spacing.md,
-                },
-              ]}
-            >
-              <Text variant="h3">{title}</Text>
+            {/* Drag Handle */}
+            <View style={styles.handleContainer}>
+              <View
+                style={[
+                  styles.handle,
+                  {
+                    backgroundColor: colors.borderStrong || 'rgba(255, 255, 255, 0.2)',
+                    borderRadius: radius.pill,
+                  },
+                ]}
+              />
             </View>
-          )}
 
-          <View style={[styles.content, { paddingHorizontal: spacing.lg }]}>
-            {children}
-          </View>
+            {title && (
+              <View
+                style={[
+                  styles.header,
+                  {
+                    paddingHorizontal: spacing.lg,
+                    paddingBottom: spacing.md,
+                  },
+                ]}
+              >
+                <Text variant="h3">{title}</Text>
+              </View>
+            )}
 
-          {footer && (
-            <View
-              style={[
-                styles.footer,
-                {
-                  paddingHorizontal: spacing.lg,
-                  paddingBottom: sheetFooterPaddingBottom,
-                },
-              ]}
-            >
-              {footer}
+            <View style={styles.content}>
+              {children}
             </View>
-          )}
-        </Animated.View>
-      </KeyboardAvoidingView>
+
+            {footer && (
+              <View
+                style={[
+                  styles.footer,
+                  {
+                    paddingHorizontal: spacing.lg,
+                    paddingBottom: sheetFooterPaddingBottom,
+                  },
+                ]}
+              >
+                {footer}
+              </View>
+            )}
+          </View>
+        </KeyboardAvoidingView>
+      </View>
     </Modal>
   );
 };
 
 const styles = StyleSheet.create({
-  modalContainer: {
+  modalRoot: {
     flex: 1,
     justifyContent: 'flex-end',
   },
   backdrop: {
     ...StyleSheet.absoluteFillObject,
   },
-  backdropPressable: {
-    flex: 1,
+  keyboardContainer: {
+    width: '100%',
+    justifyContent: 'flex-end',
   },
   sheet: {
     width: '100%',
@@ -210,7 +196,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 0,
   },
   content: {
-    flex: 1,
+    flexShrink: 1,
   },
   footer: {
     paddingTop: 12,

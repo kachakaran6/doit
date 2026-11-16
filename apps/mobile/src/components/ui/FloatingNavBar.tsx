@@ -223,6 +223,7 @@ export const FloatingNavBar: React.FC<FloatingNavBarProps> = ({
         transparent
         animationType="fade"
         onRequestClose={() => setQuickMenuVisible(false)}
+        statusBarTranslucent
       >
         <TouchableWithoutFeedback onPress={() => setQuickMenuVisible(false)}>
           <View style={styles.modalOverlay}>

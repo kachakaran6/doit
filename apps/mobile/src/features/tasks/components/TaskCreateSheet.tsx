@@ -84,7 +84,11 @@ export const TaskCreateSheet: React.FC<TaskCreateSheetProps> = ({
 
   return (
     <Sheet visible={isOpen} onClose={onClose} detent={0.9} title="New Task">
-      <ScrollView contentContainerStyle={{ padding: spacing.lg, gap: spacing.lg }}>
+      <ScrollView
+        contentContainerStyle={{ padding: spacing.lg, gap: spacing.lg }}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+      >
         <Input
           placeholder="What needs to be done?"
           value={title}
