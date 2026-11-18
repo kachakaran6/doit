@@ -17,6 +17,9 @@ export function WorkspaceSettingsPage() {
   const [name, setName] = useState(activeWorkspace?.name || '');
   const [labelName, setLabelName] = useState('');
   const [labelColor, setLabelColor] = useState('INDIGO');
+  const [editingLabelId, setEditingLabelId] = useState<string | null>(null);
+  const [editLabelName, setEditLabelName] = useState('');
+  const [editLabelColor, setEditLabelColor] = useState('INDIGO');
   const health = useQuery({
     queryKey: ['health'],
     queryFn: () => api.system.health(),
@@ -89,25 +92,89 @@ export function WorkspaceSettingsPage() {
             <Button size="sm" type="submit">Add label</Button>
           </form>
           <ul className="space-y-2">
-            {labels.map((label) => (
-              <li key={label.id} className="flex items-center justify-between rounded-lg border border-[var(--border)] px-3 py-2 text-[13px]">
-                <span>{label.name} · {label.color}</span>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={async () => {
-                    try {
-                      await api.workspaces.deleteLabel(label.id);
-                      await loadLabels(activeWorkspace.id);
-                    } catch (err: any) {
-                      error('Could not delete label', err.message);
-                    }
-                  }}
-                >
-                  Delete
-                </Button>
-              </li>
-            ))}
+            {labels.map((label) => {
+              const isEditing = editingLabelId === label.id;
+              if (isEditing) {
+                return (
+                  <li key={label.id} className="flex flex-wrap items-center gap-2 rounded-lg border border-[var(--primary)] bg-[var(--surface-raised)] p-2 text-[13px]">
+                    <input
+                      type="text"
+                      value={editLabelName}
+                      onChange={(e) => setEditLabelName(e.target.value)}
+                      className="flex-1 min-w-[140px] h-8 rounded-md border border-[var(--input)] bg-[var(--background)] px-2.5 text-[13px]"
+                      autoFocus
+                    />
+                    <div className="w-[120px]">
+                      <ShadcnSelect
+                        value={editLabelColor}
+                        onChange={setEditLabelColor}
+                        options={COLORS.map((c) => ({ value: c, label: c }))}
+                      />
+                    </div>
+                    <Button
+                      size="sm"
+                      onClick={async () => {
+                        if (!editLabelName.trim()) return;
+                        try {
+                          await api.workspaces.updateLabel(label.id, {
+                            name: editLabelName.trim(),
+                            color: editLabelColor,
+                          });
+                          await loadLabels(activeWorkspace.id);
+                          setEditingLabelId(null);
+                          success('Label updated', editLabelName.trim());
+                        } catch (err: any) {
+                          error('Could not update label', err.message);
+                        }
+                      }}
+                    >
+                      Save
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => setEditingLabelId(null)}
+                    >
+                      Cancel
+                    </Button>
+                  </li>
+                );
+              }
+
+              return (
+                <li key={label.id} className="flex items-center justify-between rounded-lg border border-[var(--border)] px-3 py-2 text-[13px]">
+                  <span>{label.name} · {label.color}</span>
+                  <div className="flex items-center gap-1.5">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => {
+                        setEditingLabelId(label.id);
+                        setEditLabelName(label.name);
+                        setEditLabelColor(label.color);
+                      }}
+                    >
+                      Edit
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={async () => {
+                        try {
+                          await api.workspaces.deleteLabel(label.id);
+                          await loadLabels(activeWorkspace.id);
+                          success('Label deleted', label.name);
+                        } catch (err: any) {
+                          error('Could not delete label', err.message);
+                        }
+                      }}
+                    >
+                      Delete
+                    </Button>
+                  </div>
+                </li>
+              );
+            })}
           </ul>
         </div>
       ) : null}

@@ -120,11 +120,16 @@ export function SettingsPage() {
 
   const handleSaveProfile = async (e: React.FormEvent) => {
     e.preventDefault();
-    setProfileSaving(true);
-    setTimeout(() => {
+    if (!profileName.trim()) return;
+    try {
+      setProfileSaving(true);
+      if (user) {
+        useAuthStore.getState().setUser({ ...user, name: profileName.trim() });
+      }
+      success('Profile updated', 'Your profile name has been saved.');
+    } finally {
       setProfileSaving(false);
-      success('Profile updated', 'Your preferences have been saved.');
-    }, 300);
+    }
   };
 
   const handleSaveWorkspace = async (e: React.FormEvent) => {

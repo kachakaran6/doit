@@ -79,6 +79,14 @@ export interface Label {
   color: string;
 }
 
+export interface ChecklistItem {
+  id: string;
+  taskId?: string;
+  text: string;
+  done: boolean;
+  order?: number | string;
+}
+
 export interface TaskAttachment {
   id: string;
   taskId?: string | null;
@@ -128,6 +136,7 @@ export interface Task {
     id: string;
     label: Label;
   }>;
+  checklist?: ChecklistItem[];
   attachments?: TaskAttachment[];
   attachmentCount?: number;
   commentCount?: number;

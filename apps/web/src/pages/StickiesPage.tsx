@@ -16,6 +16,7 @@ import {
   Search,
   X,
   StickyNote,
+  Pencil,
 } from 'lucide-react';
 
 const PASTEL_THEMES = [
@@ -36,6 +37,11 @@ export function StickiesPage() {
   const [pinnedOnly, setPinnedOnly] = useState(false);
   const [quickNoteBody, setQuickNoteBody] = useState('');
   const [quickColor, setQuickColor] = useState('yellow');
+
+  // Edit note state
+  const [editingStickyId, setEditingStickyId] = useState<string | null>(null);
+  const [editStickyBody, setEditStickyBody] = useState('');
+  const [editStickyColor, setEditStickyColor] = useState('yellow');
 
   const pId = activeProject?.id || projects[0]?.id;
 
@@ -70,6 +76,20 @@ export function StickiesPage() {
     },
     onError: (err: any) => {
       error('Failed to create note', err.message);
+    },
+  });
+
+  // Update Note Mutation
+  const updateMutation = useMutation({
+    mutationFn: ({ id, body, color }: { id: string; body: string; color?: string }) =>
+      api.stickies.update(id, { body, color }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['stickies', pId] });
+      setEditingStickyId(null);
+      success('Note updated', 'Sticky note saved.');
+    },
+    onError: (err: any) => {
+      error('Failed to update note', err.message);
     },
   });
 
@@ -293,8 +313,10 @@ export function StickiesPage() {
 
           {/* 2. Existing Sticky Notes Cards */}
           {filteredStickies.map((sticky, idx) => {
+            const isEditing = editingStickyId === sticky.id;
+            const activeColor = isEditing ? editStickyColor : sticky.color;
             const theme =
-              PASTEL_THEMES.find((t) => t.id === sticky.color) ||
+              PASTEL_THEMES.find((t) => t.id === activeColor) ||
               PASTEL_THEMES[idx % PASTEL_THEMES.length] ||
               PASTEL_THEMES[0]!;
 
@@ -303,50 +325,156 @@ export function StickiesPage() {
                 key={sticky.id}
                 className={`p-4 rounded-2xl border ${theme.bg} flex flex-col justify-between min-h-[190px] shadow-2xs hover:shadow-sm transition-all group relative`}
               >
-                <div>
-                  <div className="flex items-start justify-between gap-2 mb-2">
-                    <button
-                      type="button"
-                      onClick={() =>
-                        togglePinMutation.mutate({ id: sticky.id, isPinned: !sticky.isPinned })
-                      }
-                      className={`p-1 rounded-md transition-colors cursor-pointer ${
-                        sticky.isPinned
-                          ? 'text-[var(--primary-text)] font-semibold'
-                          : 'text-[var(--muted-foreground)] opacity-40 hover:opacity-100'
-                      }`}
-                      title={sticky.isPinned ? 'Unpin note' : 'Pin note to top'}
-                    >
-                      <Pin className={`w-3.5 h-3.5 ${sticky.isPinned ? 'fill-current' : ''}`} />
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => deleteMutation.mutate(sticky.id)}
-                      className="p-1 rounded-md text-[var(--muted-foreground)] opacity-0 group-hover:opacity-100 hover:text-[var(--danger-text)] transition-all cursor-pointer"
-                      title="Delete note"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-
-                  <p className="text-[13px] text-[var(--foreground)] leading-relaxed whitespace-pre-wrap select-text">
-                    {sticky.body}
-                  </p>
-                </div>
-
-                <div className="pt-3 border-t border-[var(--border)]/40 flex items-center justify-between text-[11px] text-[var(--muted-foreground)]">
-                  <span>{sticky.createdAt ? new Date(sticky.createdAt).toLocaleDateString() : 'Recent'}</span>
-                  <button
-                    type="button"
-                    onClick={() => convertMutation.mutate(sticky.id)}
-                    className="font-medium text-[var(--primary-text)] hover:underline flex items-center gap-1 cursor-pointer"
-                    title="Convert this sticky note into a real project task"
+                {isEditing ? (
+                  <form
+                    onSubmit={(e) => {
+                      e.preventDefault();
+                      if (!editStickyBody.trim()) return;
+                      updateMutation.mutate({
+                        id: sticky.id,
+                        body: editStickyBody.trim(),
+                        color: editStickyColor,
+                      });
+                    }}
+                    className="flex flex-col justify-between h-full space-y-3"
                   >
-                    <span>To task</span>
-                    <ArrowRight className="w-3 h-3" />
-                  </button>
-                </div>
+                    <textarea
+                      rows={4}
+                      value={editStickyBody}
+                      onChange={(e) => setEditStickyBody(e.target.value)}
+                      onKeyDown={(e) => {
+                        if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+                          if (editStickyBody.trim()) {
+                            updateMutation.mutate({
+                              id: sticky.id,
+                              body: editStickyBody.trim(),
+                              color: editStickyColor,
+                            });
+                          }
+                        } else if (e.key === 'Escape') {
+                          setEditingStickyId(null);
+                        }
+                      }}
+                      autoFocus
+                      className="w-full bg-transparent text-[13px] text-[var(--foreground)] placeholder:text-[var(--muted-foreground)] resize-none focus:outline-none leading-relaxed"
+                    />
+
+                    <div className="pt-2 border-t border-[var(--border)]/40 flex items-center justify-between gap-1">
+                      {/* Color dots */}
+                      <div className="flex items-center gap-1">
+                        {PASTEL_THEMES.map((t) => (
+                          <button
+                            key={t.id}
+                            type="button"
+                            onClick={() => setEditStickyColor(t.id)}
+                            className={`w-3.5 h-3.5 rounded-full transition-transform ${
+                              editStickyColor === t.id ? 'ring-2 ring-[var(--primary)] scale-110' : 'opacity-70 hover:opacity-100'
+                            }`}
+                            style={{
+                              backgroundColor:
+                                t.id === 'yellow' ? '#fde047' :
+                                t.id === 'green' ? '#86efac' :
+                                t.id === 'blue' ? '#93c5fd' :
+                                t.id === 'purple' ? '#d8b4fe' : '#fecdd3',
+                            }}
+                            title={t.label}
+                          />
+                        ))}
+                      </div>
+
+                      <div className="flex items-center gap-1">
+                        <Button
+                          type="button"
+                          size="xs"
+                          variant="outline"
+                          onClick={() => setEditingStickyId(null)}
+                          className="h-6 text-[11px] px-2"
+                        >
+                          Cancel
+                        </Button>
+                        <Button
+                          type="submit"
+                          size="xs"
+                          variant="primary"
+                          disabled={!editStickyBody.trim() || updateMutation.isPending}
+                          className="h-6 text-[11px] px-2 font-medium"
+                        >
+                          Save
+                        </Button>
+                      </div>
+                    </div>
+                  </form>
+                ) : (
+                  <>
+                    <div>
+                      <div className="flex items-start justify-between gap-2 mb-2">
+                        <button
+                          type="button"
+                          onClick={() =>
+                            togglePinMutation.mutate({ id: sticky.id, isPinned: !sticky.isPinned })
+                          }
+                          className={`p-1 rounded-md transition-colors cursor-pointer ${
+                            sticky.isPinned
+                              ? 'text-[var(--primary-text)] font-semibold'
+                              : 'text-[var(--muted-foreground)] opacity-40 hover:opacity-100'
+                          }`}
+                          title={sticky.isPinned ? 'Unpin note' : 'Pin note to top'}
+                        >
+                          <Pin className={`w-3.5 h-3.5 ${sticky.isPinned ? 'fill-current' : ''}`} />
+                        </button>
+
+                        <div className="flex items-center gap-1">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setEditingStickyId(sticky.id);
+                              setEditStickyBody(sticky.body);
+                              setEditStickyColor(sticky.color || 'yellow');
+                            }}
+                            className="p-1 rounded-md text-[var(--muted-foreground)] opacity-0 group-hover:opacity-100 hover:text-[var(--primary-text)] transition-all cursor-pointer"
+                            title="Edit note"
+                          >
+                            <Pencil className="w-3.5 h-3.5" />
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => deleteMutation.mutate(sticky.id)}
+                            className="p-1 rounded-md text-[var(--muted-foreground)] opacity-0 group-hover:opacity-100 hover:text-[var(--danger-text)] transition-all cursor-pointer"
+                            title="Delete note"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </div>
+
+                      <p
+                        onDoubleClick={() => {
+                          setEditingStickyId(sticky.id);
+                          setEditStickyBody(sticky.body);
+                          setEditStickyColor(sticky.color || 'yellow');
+                        }}
+                        className="text-[13px] text-[var(--foreground)] leading-relaxed whitespace-pre-wrap select-text cursor-pointer"
+                        title="Double-click to edit note"
+                      >
+                        {sticky.body}
+                      </p>
+                    </div>
+
+                    <div className="pt-3 border-t border-[var(--border)]/40 flex items-center justify-between text-[11px] text-[var(--muted-foreground)]">
+                      <span>{sticky.createdAt ? new Date(sticky.createdAt).toLocaleDateString() : 'Recent'}</span>
+                      <button
+                        type="button"
+                        onClick={() => convertMutation.mutate(sticky.id)}
+                        className="font-medium text-[var(--primary-text)] hover:underline flex items-center gap-1 cursor-pointer"
+                        title="Convert this sticky note into a real project task"
+                      >
+                        <span>To task</span>
+                        <ArrowRight className="w-3 h-3" />
+                      </button>
+                    </div>
+                  </>
+                )}
               </div>
             );
           })}

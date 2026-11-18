@@ -32,6 +32,7 @@ export function CreateModal({
   const [priority, setPriority] = useState('MEDIUM');
   const [severity, setSeverity] = useState('MAJOR');
   const [isPinned, setIsPinned] = useState(false);
+  const [stickyColor, setStickyColor] = useState('yellow');
   const [selectedLabelIds, setSelectedLabelIds] = useState<string[]>([]);
   const [selectedAssigneeId, setSelectedAssigneeId] = useState<string>('');
   const [labelQuery, setLabelQuery] = useState('');
@@ -114,6 +115,7 @@ export function CreateModal({
       } else {
         await api.stickies.create(pId, {
           body: title.trim(),
+          color: stickyColor,
           isPinned,
         });
         success('Sticky note added', title.trim().slice(0, 30));
@@ -230,11 +232,11 @@ export function CreateModal({
               />
             </div>
 
-            {/* Assignee Selection (Mandatory) */}
+            {/* Assignee Selection */}
             <div className="space-y-1">
               <label className="flex items-center gap-1.5 text-[13px] font-medium text-[var(--foreground)]">
                 <User className="w-3.5 h-3.5 text-[var(--muted-foreground)]" />
-                <span>Assignee <span className="text-[var(--destructive)]">*</span></span>
+                <span>Assignee <span className="text-[11px] font-normal text-[var(--muted-foreground)]">(optional)</span></span>
                 {projectMembersData?.defaultAssigneeId && selectedAssigneeId === projectMembersData.defaultAssigneeId && (
                   <span className="text-[10px] font-semibold text-[var(--primary)] bg-[var(--primary-soft)] px-1.5 py-0.5 rounded-full ml-auto">
                     Default
@@ -342,17 +344,43 @@ export function CreateModal({
           </div>
         )}
 
-        {/* Sticky Pin */}
+        {/* Sticky Color & Pin */}
         {type === 'sticky' && (
-          <label className="flex items-center gap-2 text-[13px] text-[var(--foreground)] cursor-pointer">
-            <input
-              type="checkbox"
-              checked={isPinned}
-              onChange={(e) => setIsPinned(e.target.checked)}
-              className="rounded border-[var(--border)] accent-[var(--primary)]"
-            />
-            <span>Pin sticky to top of board</span>
-          </label>
+          <div className="space-y-3">
+            <div className="space-y-1">
+              <label className="block text-[13px] font-medium text-[var(--foreground)]">Note color</label>
+              <div className="flex items-center gap-2">
+                {[
+                  { id: 'yellow', label: 'Yellow', bg: '#fde047' },
+                  { id: 'green', label: 'Green', bg: '#86efac' },
+                  { id: 'blue', label: 'Blue', bg: '#93c5fd' },
+                  { id: 'purple', label: 'Purple', bg: '#d8b4fe' },
+                  { id: 'rose', label: 'Rose', bg: '#fecdd3' },
+                ].map((c) => (
+                  <button
+                    key={c.id}
+                    type="button"
+                    onClick={() => setStickyColor(c.id)}
+                    className={`w-6 h-6 rounded-full transition-transform ${
+                      stickyColor === c.id ? 'ring-2 ring-[var(--primary)] scale-110' : 'opacity-70 hover:opacity-100'
+                    }`}
+                    style={{ backgroundColor: c.bg }}
+                    title={c.label}
+                  />
+                ))}
+              </div>
+            </div>
+
+            <label className="flex items-center gap-2 text-[13px] text-[var(--foreground)] cursor-pointer">
+              <input
+                type="checkbox"
+                checked={isPinned}
+                onChange={(e) => setIsPinned(e.target.checked)}
+                className="rounded border-[var(--border)] accent-[var(--primary)]"
+              />
+              <span>Pin sticky to top of board</span>
+            </label>
+          </div>
         )}
 
         {/* Footer */}

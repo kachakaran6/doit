@@ -437,13 +437,13 @@ export const api = {
         method: 'POST',
         body: JSON.stringify({ labelIds }),
       }),
-    addChecklist: (id: string, title: string) =>
-      apiRequest<{ id: string; title: string; isCompleted: boolean }>(`/tasks/${id}/checklist`, {
+    addChecklist: (id: string, text: string) =>
+      apiRequest<{ id: string; text: string; done: boolean }>(`/tasks/${id}/checklist`, {
         method: 'POST',
-        body: JSON.stringify({ title }),
+        body: JSON.stringify({ text }),
       }),
-    updateChecklist: (itemId: string, data: { title?: string; isCompleted?: boolean }) =>
-      apiRequest<{ id: string; title: string; isCompleted: boolean }>(`/checklist/${itemId}`, {
+    updateChecklist: (itemId: string, data: { text?: string; done?: boolean }) =>
+      apiRequest<{ id: string; text: string; done: boolean }>(`/checklist/${itemId}`, {
         method: 'PATCH',
         body: JSON.stringify(data),
       }),

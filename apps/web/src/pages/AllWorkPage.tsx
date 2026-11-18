@@ -28,6 +28,8 @@ import {
   Table as TableIcon,
   Image as ImageIcon,
   Calendar,
+  Pencil,
+  Trash2,
 } from 'lucide-react';
 
 export type UnifiedWorkType = 'TASK' | 'BUG';
@@ -37,8 +39,8 @@ export interface UnifiedWorkItem {
   type: UnifiedWorkType;
   humanId: string;
   title: string;
-  description?: string;
-  status: 'TODO' | 'IN_PROGRESS' | 'DONE';
+  description?: string | null;
+  status: any;
   priority?: string; // Task
   severity?: string; // Bug
   dueAt?: string | null;
@@ -73,6 +75,10 @@ export function AllWorkPage() {
   // Selected item for detail inspection
   const [selectedItem, setSelectedItem] = useState<UnifiedWorkItem | null>(null);
   const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
+  const [isEditingTitle, setIsEditingTitle] = useState(false);
+  const [editTitleValue, setEditTitleValue] = useState('');
+  const [isEditingDesc, setIsEditingDesc] = useState(false);
+  const [editDescValue, setEditDescValue] = useState('');
 
   const wsId = activeWorkspace?.id;
   const isAllProjects = selectedProjectId === 'ALL';
@@ -127,6 +133,39 @@ export function AllWorkPage() {
     },
     onError: (err: any) => {
       error('Failed to update status', err.message);
+    },
+  });
+
+  // Update item (title, desc, priority/severity)
+  const updateItemMutation = useMutation({
+    mutationFn: ({ id, data }: { id: string; data: Partial<any> }) =>
+      api.tasks.update(id, data),
+    onSuccess: (updated) => {
+      queryClient.invalidateQueries({ queryKey: ['all-work-tasks'] });
+      queryClient.invalidateQueries({ queryKey: ['all-work-bugs'] });
+      queryClient.invalidateQueries({ queryKey: ['tasks'] });
+      queryClient.invalidateQueries({ queryKey: ['bugs'] });
+      setSelectedItem((prev) => (prev ? { ...prev, ...updated } : null));
+      success('Item updated', '');
+    },
+    onError: (err: any) => {
+      error('Failed to update item', err.message);
+    },
+  });
+
+  // Delete item
+  const deleteItemMutation = useMutation({
+    mutationFn: (id: string) => api.tasks.delete(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['all-work-tasks'] });
+      queryClient.invalidateQueries({ queryKey: ['all-work-bugs'] });
+      queryClient.invalidateQueries({ queryKey: ['tasks'] });
+      queryClient.invalidateQueries({ queryKey: ['bugs'] });
+      setSelectedItem(null);
+      success('Item deleted', 'Removed from workspace.');
+    },
+    onError: (err: any) => {
+      error('Failed to delete item', err.message);
     },
   });
 
@@ -778,8 +817,8 @@ export function AllWorkPage() {
           <div className="space-y-5">
             {/* Modal Header */}
             <div className="flex items-start justify-between gap-3 pb-3 border-b border-[var(--border)]">
-              <div>
-                <div className="flex items-center gap-2 mb-1.5">
+              <div className="space-y-2 flex-1">
+                <div className="flex flex-wrap items-center gap-2">
                   <span
                     className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold ${
                       selectedItem.type === 'TASK'
@@ -800,18 +839,121 @@ export function AllWorkPage() {
                   </span>
 
                   {selectedItem.type === 'TASK' ? (
-                    <PriorityBadge priority={selectedItem.priority || 'MEDIUM'} />
+                    <ShadcnSelect
+                      value={selectedItem.priority || 'MEDIUM'}
+                      onChange={(newPri) => updateItemMutation.mutate({ id: selectedItem.id, data: { priority: newPri } })}
+                      className="h-7 text-[11px] min-w-[100px]"
+                      wrapperClassName="w-auto"
+                      options={[
+                        { value: 'URGENT', label: 'Urgent' },
+                        { value: 'HIGH', label: 'High' },
+                        { value: 'MEDIUM', label: 'Medium' },
+                        { value: 'LOW', label: 'Low' },
+                        { value: 'NONE', label: 'No priority' },
+                      ]}
+                    />
                   ) : (
-                    <SeverityBadge severity={selectedItem.severity || 'MAJOR'} />
+                    <ShadcnSelect
+                      value={selectedItem.severity || 'MAJOR'}
+                      onChange={(newSev) => updateItemMutation.mutate({ id: selectedItem.id, data: { severity: newSev } })}
+                      className="h-7 text-[11px] min-w-[100px]"
+                      wrapperClassName="w-auto"
+                      options={[
+                        { value: 'CRITICAL', label: 'Critical' },
+                        { value: 'MAJOR', label: 'Major' },
+                        { value: 'MINOR', label: 'Minor' },
+                        { value: 'TRIVIAL', label: 'Trivial' },
+                      ]}
+                    />
                   )}
                 </div>
 
-                <h2 className="text-[18px] font-semibold text-[var(--foreground)] leading-snug">
-                  {selectedItem.title}
-                </h2>
+                {/* Editable Title */}
+                {isEditingTitle ? (
+                  <div className="flex items-center gap-1.5 pt-1">
+                    <input
+                      type="text"
+                      value={editTitleValue}
+                      onChange={(e) => setEditTitleValue(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          if (editTitleValue.trim()) {
+                            updateItemMutation.mutate({ id: selectedItem.id, data: { title: editTitleValue.trim() } });
+                            setIsEditingTitle(false);
+                          }
+                        } else if (e.key === 'Escape') {
+                          setIsEditingTitle(false);
+                          setEditTitleValue(selectedItem.title);
+                        }
+                      }}
+                      autoFocus
+                      className="flex-1 rounded-lg border border-[var(--input)] bg-[var(--background)] px-2.5 py-1 text-[16px] font-semibold text-[var(--foreground)] focus:outline-none focus:ring-1 focus:ring-[var(--primary)]"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (editTitleValue.trim()) {
+                          updateItemMutation.mutate({ id: selectedItem.id, data: { title: editTitleValue.trim() } });
+                          setIsEditingTitle(false);
+                        }
+                      }}
+                      className="px-2 py-1 rounded bg-[var(--primary)] text-white text-[12px] font-medium cursor-pointer"
+                    >
+                      Save
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsEditingTitle(false);
+                        setEditTitleValue(selectedItem.title);
+                      }}
+                      className="px-2 py-1 rounded border border-[var(--border)] text-[12px] cursor-pointer"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                ) : (
+                  <div className="flex items-start justify-between gap-2 group">
+                    <h2
+                      onClick={() => {
+                        setEditTitleValue(selectedItem.title);
+                        setIsEditingTitle(true);
+                      }}
+                      className="text-[18px] font-semibold text-[var(--foreground)] leading-snug cursor-pointer hover:text-[var(--primary)] transition-colors"
+                      title="Click to edit title"
+                    >
+                      {selectedItem.title}
+                    </h2>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setEditTitleValue(selectedItem.title);
+                        setIsEditingTitle(true);
+                      }}
+                      className="p-1 rounded-md text-[var(--muted-foreground)] opacity-40 group-hover:opacity-100 hover:text-[var(--primary)] transition-all cursor-pointer shrink-0"
+                      title="Edit title"
+                    >
+                      <Pencil className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                )}
               </div>
 
-              <StatusBadge status={selectedItem.status} />
+              <div className="flex items-center gap-1.5 shrink-0">
+                <StatusBadge status={selectedItem.status} />
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (window.confirm(`Delete ${selectedItem.humanId}?`)) {
+                      deleteItemMutation.mutate(selectedItem.id);
+                    }
+                  }}
+                  className="p-1.5 rounded-md text-[var(--muted-foreground)] hover:text-[var(--danger-text)] hover:bg-[rgba(201,60,53,0.1)] transition-colors cursor-pointer"
+                  title="Delete item"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              </div>
             </div>
 
             {/* Quick Triage / Status Buttons */}
@@ -854,12 +996,68 @@ export function AllWorkPage() {
 
             {/* Description */}
             <div className="space-y-1.5">
-              <h4 className="text-[11px] font-medium text-[var(--muted-foreground)] uppercase tracking-wide">
-                Description
-              </h4>
-              <p className="text-[13px] text-[var(--foreground)] leading-relaxed whitespace-pre-wrap bg-[var(--surface-raised)] p-3 rounded-xl border border-[var(--border)]">
-                {selectedItem.description || 'No description provided.'}
-              </p>
+              <div className="flex items-center justify-between text-[11px] font-medium text-[var(--muted-foreground)] uppercase tracking-wide">
+                <span>Description</span>
+                {!isEditingDesc && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setEditDescValue(selectedItem.description || '');
+                      setIsEditingDesc(true);
+                    }}
+                    className="flex items-center gap-1 text-[var(--primary-text)] hover:underline cursor-pointer lowercase font-normal text-[11px]"
+                  >
+                    <Pencil className="w-3 h-3" />
+                    <span>Edit</span>
+                  </button>
+                )}
+              </div>
+
+              {isEditingDesc ? (
+                <div className="space-y-2">
+                  <textarea
+                    rows={4}
+                    value={editDescValue}
+                    onChange={(e) => setEditDescValue(e.target.value)}
+                    placeholder="Add description..."
+                    autoFocus
+                    className="w-full rounded-xl border border-[var(--input)] bg-[var(--background)] p-3 text-[13px] text-[var(--foreground)] focus:outline-none focus:ring-1 focus:ring-[var(--primary)] leading-relaxed"
+                  />
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        updateItemMutation.mutate({ id: selectedItem.id, data: { description: editDescValue.trim() || null } });
+                        setIsEditingDesc(false);
+                      }}
+                      className="px-3 py-1 rounded bg-[var(--primary)] text-white text-[12px] font-medium cursor-pointer"
+                    >
+                      Save description
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsEditingDesc(false);
+                        setEditDescValue(selectedItem.description || '');
+                      }}
+                      className="px-3 py-1 rounded border border-[var(--border)] text-[12px] cursor-pointer"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div
+                  onClick={() => {
+                    setEditDescValue(selectedItem.description || '');
+                    setIsEditingDesc(true);
+                  }}
+                  className="text-[13px] text-[var(--foreground)] leading-relaxed whitespace-pre-wrap bg-[var(--surface-raised)] p-3 rounded-xl border border-[var(--border)] cursor-pointer hover:border-[var(--border-strong)] transition-colors"
+                  title="Click to edit description"
+                >
+                  {selectedItem.description || <span className="text-[var(--muted-foreground)] italic">No description provided. Click to add.</span>}
+                </div>
+              )}
             </div>
 
             {/* If Bug: Steps and Device Context */}

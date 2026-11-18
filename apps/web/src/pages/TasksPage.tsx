@@ -35,6 +35,8 @@ import {
   Rows3,
   ListFilter,
   GripVertical,
+  Pencil,
+  CheckSquare,
 } from 'lucide-react';
 
 function TaskScreenshotCard({
@@ -126,6 +128,13 @@ export function TasksPage() {
   // Drag and drop state for Kanban
   const [draggedTaskId, setDraggedTaskId] = useState<string | null>(null);
   const [dropTargetCol, setDropTargetCol] = useState<string | null>(null);
+
+  // Editing state for Task Peek Panel
+  const [isEditingTitle, setIsEditingTitle] = useState(false);
+  const [editTitleValue, setEditTitleValue] = useState('');
+  const [isEditingDesc, setIsEditingDesc] = useState(false);
+  const [editDescValue, setEditDescValue] = useState('');
+  const [newChecklistText, setNewChecklistText] = useState('');
 
   const pId = activeProject?.id || projects[0]?.id;
 
@@ -267,6 +276,61 @@ export function TasksPage() {
     },
     onError: (err: any) => {
       error('Failed to delete task', err.message);
+    },
+  });
+
+  // Update Task Mutation
+  const updateTaskMutation = useMutation({
+    mutationFn: (data: Partial<Task>) => {
+      if (!selectedTask?.id) throw new Error('No task selected');
+      return api.tasks.update(selectedTask.id, data);
+    },
+    onSuccess: (updated) => {
+      queryClient.invalidateQueries({ queryKey: ['tasks', pId] });
+      queryClient.invalidateQueries({ queryKey: ['task', updated.id] });
+      setSelectedTask((prev) => (prev ? { ...prev, ...updated } : updated));
+      success('Task updated', '');
+    },
+    onError: (err: any) => {
+      error('Failed to update task', err.message);
+    },
+  });
+
+  // Checklist Mutations
+  const addChecklistMutation = useMutation({
+    mutationFn: ({ taskId, text }: { taskId: string; text: string }) =>
+      api.tasks.addChecklist(taskId, text),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['task', selectedTask?.id] });
+      queryClient.invalidateQueries({ queryKey: ['tasks', pId] });
+      setNewChecklistText('');
+      success('Checklist item added', '');
+    },
+    onError: (err: any) => {
+      error('Failed to add checklist item', err.message);
+    },
+  });
+
+  const updateChecklistMutation = useMutation({
+    mutationFn: ({ itemId, done, text }: { itemId: string; done?: boolean; text?: string }) =>
+      api.tasks.updateChecklist(itemId, { done, text }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['task', selectedTask?.id] });
+    },
+    onError: (err: any) => {
+      error('Failed to update checklist item', err.message);
+    },
+  });
+
+  const deleteChecklistMutation = useMutation({
+    mutationFn: (itemId: string) => api.tasks.deleteChecklist(itemId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['task', selectedTask?.id] });
+      queryClient.invalidateQueries({ queryKey: ['tasks', pId] });
+      success('Checklist item removed', '');
+    },
+    onError: (err: any) => {
+      error('Failed to delete checklist item', err.message);
     },
   });
 
@@ -956,10 +1020,76 @@ export function TasksPage() {
 
           {/* Body */}
           <div className="p-5 flex-1 overflow-y-auto space-y-6">
+            {/* Editable Title */}
             <div>
-              <h2 className="text-[17px] font-semibold text-[var(--foreground)] leading-snug">
-                {activeTask.title}
-              </h2>
+              {isEditingTitle ? (
+                <div className="flex items-center gap-1.5">
+                  <input
+                    type="text"
+                    value={editTitleValue}
+                    onChange={(e) => setEditTitleValue(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        if (editTitleValue.trim()) {
+                          updateTaskMutation.mutate({ title: editTitleValue.trim() });
+                          setIsEditingTitle(false);
+                        }
+                      } else if (e.key === 'Escape') {
+                        setIsEditingTitle(false);
+                        setEditTitleValue(activeTask.title);
+                      }
+                    }}
+                    autoFocus
+                    className="flex-1 rounded-lg border border-[var(--input)] bg-[var(--background)] px-2.5 py-1 text-[16px] font-semibold text-[var(--foreground)] focus:outline-none focus:ring-1 focus:ring-[var(--primary)]"
+                  />
+                  <Button
+                    size="xs"
+                    variant="primary"
+                    onClick={() => {
+                      if (editTitleValue.trim()) {
+                        updateTaskMutation.mutate({ title: editTitleValue.trim() });
+                        setIsEditingTitle(false);
+                      }
+                    }}
+                  >
+                    Save
+                  </Button>
+                  <Button
+                    size="xs"
+                    variant="outline"
+                    onClick={() => {
+                      setIsEditingTitle(false);
+                      setEditTitleValue(activeTask.title);
+                    }}
+                  >
+                    Cancel
+                  </Button>
+                </div>
+              ) : (
+                <div className="flex items-start justify-between gap-2 group">
+                  <h2
+                    onClick={() => {
+                      setEditTitleValue(activeTask.title);
+                      setIsEditingTitle(true);
+                    }}
+                    className="text-[17px] font-semibold text-[var(--foreground)] leading-snug cursor-pointer hover:text-[var(--primary)] transition-colors"
+                    title="Click to edit title"
+                  >
+                    {activeTask.title}
+                  </h2>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setEditTitleValue(activeTask.title);
+                      setIsEditingTitle(true);
+                    }}
+                    className="p-1 rounded-md text-[var(--muted-foreground)] opacity-40 hover:opacity-100 hover:text-[var(--primary)] transition-all cursor-pointer shrink-0"
+                    title="Edit title"
+                  >
+                    <Pencil className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              )}
             </div>
 
             {/* Properties List */}
@@ -986,7 +1116,46 @@ export function TasksPage() {
 
               <div className="flex items-center justify-between">
                 <span className="text-[var(--muted-foreground)]">Priority</span>
-                <PriorityBadge priority={activeTask.priority} />
+                <ShadcnSelect
+                  value={activeTask.priority || 'MEDIUM'}
+                  onChange={(newPriority) =>
+                    updateTaskMutation.mutate({ priority: newPriority as any })
+                  }
+                  className="h-8 text-[12px] min-w-[120px]"
+                  wrapperClassName="w-auto"
+                  options={[
+                    { value: 'URGENT', label: 'Urgent' },
+                    { value: 'HIGH', label: 'High' },
+                    { value: 'MEDIUM', label: 'Medium' },
+                    { value: 'LOW', label: 'Low' },
+                    { value: 'NONE', label: 'No priority' },
+                  ]}
+                />
+              </div>
+
+              <div className="flex items-center justify-between gap-3">
+                <span className="text-[var(--muted-foreground)]">Due Date</span>
+                <div className="flex items-center gap-1.5">
+                  <input
+                    type="date"
+                    value={activeTask.dueAt ? activeTask.dueAt.slice(0, 10) : ''}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      updateTaskMutation.mutate({ dueAt: val ? new Date(val).toISOString() : null });
+                    }}
+                    className="h-8 px-2 rounded-lg border border-[var(--input)] bg-[var(--background)] text-[12px] text-[var(--foreground)]"
+                  />
+                  {activeTask.dueAt && (
+                    <button
+                      type="button"
+                      onClick={() => updateTaskMutation.mutate({ dueAt: null })}
+                      className="p-1 text-[var(--muted-foreground)] hover:text-[var(--foreground)] cursor-pointer"
+                      title="Clear due date"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                </div>
               </div>
 
               <div className="flex items-center justify-between gap-3">
@@ -1066,12 +1235,142 @@ export function TasksPage() {
 
             {/* Description */}
             <div className="space-y-1.5">
-              <div className="text-[12px] font-semibold text-[var(--muted-foreground)] uppercase tracking-wide">
-                Description
+              <div className="flex items-center justify-between text-[12px] font-semibold text-[var(--muted-foreground)] uppercase tracking-wide">
+                <span>Description</span>
+                {!isEditingDesc && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setEditDescValue(activeTask.description || '');
+                      setIsEditingDesc(true);
+                    }}
+                    className="flex items-center gap-1 text-[var(--primary-text)] hover:underline cursor-pointer lowercase font-normal text-[11px]"
+                  >
+                    <Pencil className="w-3 h-3" />
+                    <span>Edit</span>
+                  </button>
+                )}
               </div>
-              <p className="text-[13px] text-[var(--foreground)] leading-relaxed whitespace-pre-wrap bg-[var(--surface-raised)]/50 p-3 rounded-lg border border-[var(--border)] min-h-[48px]">
-                {activeTask.description || 'No description provided.'}
-              </p>
+              {isEditingDesc ? (
+                <div className="space-y-2">
+                  <textarea
+                    rows={4}
+                    value={editDescValue}
+                    onChange={(e) => setEditDescValue(e.target.value)}
+                    placeholder="Add description..."
+                    autoFocus
+                    className="w-full rounded-lg border border-[var(--input)] bg-[var(--background)] p-3 text-[13px] text-[var(--foreground)] focus:outline-none focus:ring-1 focus:ring-[var(--primary)] leading-relaxed"
+                  />
+                  <div className="flex items-center gap-2">
+                    <Button
+                      size="xs"
+                      variant="primary"
+                      onClick={() => {
+                        updateTaskMutation.mutate({ description: editDescValue.trim() || null });
+                        setIsEditingDesc(false);
+                      }}
+                    >
+                      Save description
+                    </Button>
+                    <Button
+                      size="xs"
+                      variant="outline"
+                      onClick={() => {
+                        setIsEditingDesc(false);
+                        setEditDescValue(activeTask.description || '');
+                      }}
+                    >
+                      Cancel
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <div
+                  onClick={() => {
+                    setEditDescValue(activeTask.description || '');
+                    setIsEditingDesc(true);
+                  }}
+                  className="text-[13px] text-[var(--foreground)] leading-relaxed whitespace-pre-wrap bg-[var(--surface-raised)]/50 p-3 rounded-lg border border-[var(--border)] min-h-[48px] cursor-pointer hover:border-[var(--border-strong)] transition-colors"
+                  title="Click to edit description"
+                >
+                  {activeTask.description || <span className="text-[var(--muted-foreground)] italic">No description provided. Click to add.</span>}
+                </div>
+              )}
+            </div>
+
+            {/* Checklist */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between text-[12px] font-semibold text-[var(--muted-foreground)] uppercase tracking-wide">
+                <div className="flex items-center gap-1.5">
+                  <CheckSquare className="w-3.5 h-3.5 text-[var(--primary-text)]" />
+                  <span>Checklist</span>
+                  {activeTask.checklist && activeTask.checklist.length > 0 && (
+                    <span className="text-[11px] font-normal lowercase text-[var(--muted-foreground)]">
+                      ({activeTask.checklist.filter((i) => i.done).length}/{activeTask.checklist.length})
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              {/* Items */}
+              <div className="space-y-1">
+                {(activeTask.checklist || []).map((item) => (
+                  <div
+                    key={item.id}
+                    className="flex items-center justify-between gap-2 px-2.5 py-1.5 rounded-lg bg-[var(--surface-raised)]/60 border border-[var(--border)] group text-[13px]"
+                  >
+                    <label className="flex items-center gap-2 min-w-0 cursor-pointer flex-1">
+                      <input
+                        type="checkbox"
+                        checked={Boolean(item.done)}
+                        onChange={(e) =>
+                          updateChecklistMutation.mutate({ itemId: item.id, done: e.target.checked })
+                        }
+                        className="rounded border-[var(--border)] accent-[var(--primary)] w-4 h-4 cursor-pointer"
+                      />
+                      <span className={`truncate select-text ${item.done ? 'line-through text-[var(--muted-foreground)]' : 'text-[var(--foreground)]'}`}>
+                        {item.text}
+                      </span>
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => deleteChecklistMutation.mutate(item.id)}
+                      className="text-[var(--muted-foreground)] opacity-0 group-hover:opacity-100 hover:text-[var(--danger-text)] transition-opacity p-0.5 cursor-pointer"
+                      title="Delete item"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+
+              {/* Add checklist item form */}
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  if (!newChecklistText.trim() || !activeTask.id) return;
+                  addChecklistMutation.mutate({ taskId: activeTask.id, text: newChecklistText.trim() });
+                }}
+                className="flex items-center gap-1.5 pt-1"
+              >
+                <input
+                  type="text"
+                  placeholder="Add a checklist item…"
+                  value={newChecklistText}
+                  onChange={(e) => setNewChecklistText(e.target.value)}
+                  className="flex-1 h-7.5 px-2.5 rounded-md border border-[var(--border)] bg-[var(--background)] text-[12px] text-[var(--foreground)] placeholder:text-[var(--muted-foreground)] focus:outline-none focus:ring-1 focus:ring-[var(--primary)]"
+                />
+                <Button
+                  type="submit"
+                  size="xs"
+                  variant="primary"
+                  disabled={!newChecklistText.trim() || addChecklistMutation.isPending}
+                  className="h-7.5 px-2 text-[11px]"
+                >
+                  <Plus className="w-3 h-3 mr-0.5" />
+                  <span>Add</span>
+                </Button>
+              </form>
             </div>
 
             {/* Captured Screenshots & Image Attachments */}

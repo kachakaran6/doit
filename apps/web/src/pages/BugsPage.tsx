@@ -22,6 +22,9 @@ import {
   ChevronLeft,
   ChevronDown,
   Plus,
+  Pencil,
+  Trash2,
+  User,
 } from 'lucide-react';
 
 function BugThumbnailItem({ bug }: { bug: any }) {
@@ -56,7 +59,7 @@ function BugThumbnailItem({ bug }: { bug: any }) {
 }
 
 export function BugsPage() {
-  const { activeProject, projects, setActiveProject } = useWorkspaceStore();
+  const { activeProject, projects, setActiveProject, activeWorkspace } = useWorkspaceStore();
   const openCreate = useCreateStore((s) => s.openCreate);
   const queryClient = useQueryClient();
   const { success, error } = useToast();
@@ -67,12 +70,25 @@ export function BugsPage() {
   const [selectedBugId, setSelectedBugId] = useState<string | null>(null);
   const [telemetryOpen, setTelemetryOpen] = useState(false);
 
+  // Edit state
+  const [isEditingTitle, setIsEditingTitle] = useState(false);
+  const [editTitleValue, setEditTitleValue] = useState('');
+  const [isEditingDesc, setIsEditingDesc] = useState(false);
+  const [editDescValue, setEditDescValue] = useState('');
+
   // Lightbox state
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [imgLoading, setImgLoading] = useState(true);
   const [imgError, setImgError] = useState(false);
 
   const pId = activeProject?.id || projects[0]?.id;
+
+  // Fetch workspace members for assignment
+  const { data: members = [] } = useQuery({
+    queryKey: ['workspace-members', activeWorkspace?.id],
+    queryFn: () => (activeWorkspace?.id ? api.workspaces.members(activeWorkspace.id) : []),
+    enabled: Boolean(activeWorkspace?.id),
+  });
 
   // 1. Fetch real bugs from backend
   const { data: bugs = [], isLoading } = useQuery({
@@ -99,6 +115,35 @@ export function BugsPage() {
     },
     onError: (err: any) => {
       error('Failed to update bug', err.message);
+    },
+  });
+
+  // 4. Update Bug details mutation (title, description, severity)
+  const updateBugMutation = useMutation({
+    mutationFn: (data: Partial<any>) => {
+      if (!selectedBugId) throw new Error('No bug selected');
+      return api.tasks.update(selectedBugId, data);
+    },
+    onSuccess: (updated) => {
+      queryClient.invalidateQueries({ queryKey: ['bugs', pId] });
+      queryClient.invalidateQueries({ queryKey: ['bug', updated.id] });
+      success('Bug updated', '');
+    },
+    onError: (err: any) => {
+      error('Failed to update bug', err.message);
+    },
+  });
+
+  // 5. Delete Bug mutation
+  const deleteBugMutation = useMutation({
+    mutationFn: (bugId: string) => api.tasks.delete(bugId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['bugs', pId] });
+      setSelectedBugId(null);
+      success('Bug deleted', 'Report removed from project.');
+    },
+    onError: (err: any) => {
+      error('Failed to delete bug', err.message);
     },
   });
 
@@ -354,20 +399,151 @@ export function BugsPage() {
             {activeBug ? (
               <>
                 {/* Header */}
-                <div className="flex items-start justify-between gap-3 pb-3 border-b border-[var(--border)]">
-                  <div>
-                    <div className="flex items-center gap-2 mb-1">
+                <div className="pb-3 border-b border-[var(--border)] space-y-2">
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-2">
                       <span className="text-[12px] font-mono font-semibold text-[var(--muted-foreground)]">
                         {activeBug.humanId}
                       </span>
-                      <SeverityBadge severity={activeBug.severity || 'MAJOR'} />
+                      <ShadcnSelect
+                        value={activeBug.severity || 'MAJOR'}
+                        onChange={(newSev) => updateBugMutation.mutate({ severity: newSev })}
+                        className="h-7 text-[11px] min-w-[100px]"
+                        wrapperClassName="w-auto"
+                        options={[
+                          { value: 'CRITICAL', label: 'Critical' },
+                          { value: 'MAJOR', label: 'Major' },
+                          { value: 'MINOR', label: 'Minor' },
+                          { value: 'TRIVIAL', label: 'Trivial' },
+                        ]}
+                      />
                     </div>
-                    <h3 className="text-[17px] font-semibold text-[var(--foreground)] leading-snug">
-                      {activeBug.title}
-                    </h3>
+
+                    <div className="flex items-center gap-1.5">
+                      <StatusBadge status={activeBug.status} />
+                      <Button
+                        variant="ghost"
+                        size="icon-sm"
+                        onClick={() => {
+                          if (window.confirm(`Delete bug ${activeBug.humanId}?`)) {
+                            deleteBugMutation.mutate(activeBug.id);
+                          }
+                        }}
+                        className="text-[var(--danger-text)] hover:bg-[rgba(201,60,53,0.1)]"
+                        title="Delete bug"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
                   </div>
 
-                  <StatusBadge status={activeBug.status} />
+                  {/* Editable Title */}
+                  {isEditingTitle ? (
+                    <div className="flex items-center gap-1.5 pt-1">
+                      <input
+                        type="text"
+                        value={editTitleValue}
+                        onChange={(e) => setEditTitleValue(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            if (editTitleValue.trim()) {
+                              updateBugMutation.mutate({ title: editTitleValue.trim() });
+                              setIsEditingTitle(false);
+                            }
+                          } else if (e.key === 'Escape') {
+                            setIsEditingTitle(false);
+                            setEditTitleValue(activeBug.title);
+                          }
+                        }}
+                        autoFocus
+                        className="flex-1 rounded-lg border border-[var(--input)] bg-[var(--background)] px-2.5 py-1 text-[16px] font-semibold text-[var(--foreground)] focus:outline-none focus:ring-1 focus:ring-[var(--primary)]"
+                      />
+                      <Button
+                        size="xs"
+                        variant="primary"
+                        onClick={() => {
+                          if (editTitleValue.trim()) {
+                            updateBugMutation.mutate({ title: editTitleValue.trim() });
+                            setIsEditingTitle(false);
+                          }
+                        }}
+                      >
+                        Save
+                      </Button>
+                      <Button
+                        size="xs"
+                        variant="outline"
+                        onClick={() => {
+                          setIsEditingTitle(false);
+                          setEditTitleValue(activeBug.title);
+                        }}
+                      >
+                        Cancel
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="flex items-start justify-between gap-2 group pt-0.5">
+                      <h3
+                        onClick={() => {
+                          setEditTitleValue(activeBug.title);
+                          setIsEditingTitle(true);
+                        }}
+                        className="text-[17px] font-semibold text-[var(--foreground)] leading-snug cursor-pointer hover:text-[var(--primary)] transition-colors"
+                        title="Click to edit title"
+                      >
+                        {activeBug.title}
+                      </h3>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setEditTitleValue(activeBug.title);
+                          setIsEditingTitle(true);
+                        }}
+                        className="p-1 rounded-md text-[var(--muted-foreground)] opacity-40 group-hover:opacity-100 hover:text-[var(--primary)] transition-all cursor-pointer shrink-0"
+                        title="Edit title"
+                      >
+                        <Pencil className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                {/* Bug Details & Assignee */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-3 rounded-xl bg-[var(--surface-raised)] border border-[var(--border)] text-[12px]">
+                  <div className="flex items-center justify-between sm:justify-start gap-2">
+                    <span className="text-[var(--muted-foreground)] flex items-center gap-1">
+                      <User className="w-3.5 h-3.5" />
+                      <span>Assignee:</span>
+                    </span>
+                    <ShadcnSelect
+                      value={activeBug.assigneeId || 'unassigned'}
+                      onChange={async (newVal) => {
+                        const assigneeId = newVal === 'unassigned' ? null : newVal;
+                        try {
+                          await api.tasks.assign(activeBug.id, assigneeId);
+                          queryClient.invalidateQueries({ queryKey: ['bugs', pId] });
+                          queryClient.invalidateQueries({ queryKey: ['bug', activeBug.id] });
+                          success('Assignee updated', '');
+                        } catch (err: any) {
+                          error('Could not assign bug', err.message);
+                        }
+                      }}
+                      className="h-7 text-[11px] min-w-[140px]"
+                      wrapperClassName="w-auto"
+                      options={[
+                        { value: 'unassigned', label: 'Unassigned' },
+                        ...members.map((m) => ({
+                          value: m.userId,
+                          label: m.user?.name || m.user?.email || 'Member',
+                        })),
+                      ]}
+                    />
+                  </div>
+
+                  <div className="flex items-center justify-between sm:justify-end gap-2 text-[var(--muted-foreground)]">
+                    <span>Reported:</span>
+                    <span className="font-medium text-[var(--foreground)]">{new Date(activeBug.createdAt).toLocaleDateString()}</span>
+                  </div>
                 </div>
 
                 {/* Triage Action Row */}
@@ -411,16 +587,72 @@ export function BugsPage() {
                   )}
                 </div>
 
-                {/* Description & Reproduction Steps (Prominently First) */}
+                {/* Description & Reproduction Steps */}
                 <div className="space-y-1.5">
-                  <div className="text-[11px] font-semibold text-[var(--muted-foreground)] uppercase tracking-wide">
-                    Issue Description & Reproduction
+                  <div className="flex items-center justify-between text-[11px] font-semibold text-[var(--muted-foreground)] uppercase tracking-wide">
+                    <span>Issue Description & Reproduction</span>
+                    {!isEditingDesc && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setEditDescValue(activeBug.description || '');
+                          setIsEditingDesc(true);
+                        }}
+                        className="flex items-center gap-1 text-[var(--primary-text)] hover:underline cursor-pointer lowercase font-normal text-[11px]"
+                      >
+                        <Pencil className="w-3 h-3" />
+                        <span>Edit</span>
+                      </button>
+                    )}
                   </div>
-                  <div className="p-3.5 rounded-xl bg-[var(--surface-raised)]/60 border border-[var(--border)]">
-                    <p className="text-[13px] text-[var(--foreground)] whitespace-pre-wrap leading-relaxed">
-                      {activeBug.description || 'No detailed reproduction steps or notes provided for this report.'}
-                    </p>
-                  </div>
+
+                  {isEditingDesc ? (
+                    <div className="space-y-2">
+                      <textarea
+                        rows={4}
+                        value={editDescValue}
+                        onChange={(e) => setEditDescValue(e.target.value)}
+                        placeholder="Add reproduction steps and notes…"
+                        autoFocus
+                        className="w-full rounded-xl border border-[var(--input)] bg-[var(--background)] p-3 text-[13px] text-[var(--foreground)] focus:outline-none focus:ring-1 focus:ring-[var(--primary)] leading-relaxed"
+                      />
+                      <div className="flex items-center gap-2">
+                        <Button
+                          size="xs"
+                          variant="primary"
+                          onClick={() => {
+                            updateBugMutation.mutate({ description: editDescValue.trim() || null });
+                            setIsEditingDesc(false);
+                          }}
+                        >
+                          Save description
+                        </Button>
+                        <Button
+                          size="xs"
+                          variant="outline"
+                          onClick={() => {
+                            setIsEditingDesc(false);
+                            setEditDescValue(activeBug.description || '');
+                          }}
+                        >
+                          Cancel
+                        </Button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div
+                      onClick={() => {
+                        setEditDescValue(activeBug.description || '');
+                        setIsEditingDesc(true);
+                      }}
+                      className="p-3.5 rounded-xl bg-[var(--surface-raised)]/60 border border-[var(--border)] cursor-pointer hover:border-[var(--border-strong)] transition-colors"
+                      title="Click to edit reproduction steps"
+                    >
+                      <p className="text-[13px] text-[var(--foreground)] whitespace-pre-wrap leading-relaxed">
+                        {activeBug.description || <span className="text-[var(--muted-foreground)] italic">No detailed reproduction steps provided. Click to add.</span>}
+                      </p>
+                    </div>
+                  )}
                 </div>
 
                 {/* Compact Screenshot Viewer Card (With Lightbox) */}
