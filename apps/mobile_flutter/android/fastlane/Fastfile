@@ -8,6 +8,7 @@ platform :android do
       ENV["PLAY_STORE_JSON_KEY"],
       File.expand_path("api-key.json", __dir__),
       File.expand_path("../api-key.json", __dir__),
+      File.expand_path("../../api-key.json", __dir__),
       File.expand_path("../../../api-key.json", __dir__),
       File.expand_path("../../../../api-key.json", __dir__)
     ].compact
@@ -15,23 +16,73 @@ platform :android do
     candidates.find { |path| File.exist?(path) && !File.zero?(path) }
   end
 
-  def get_release_aab
-    aab_path = File.expand_path("../../build/app/outputs/bundle/release/app-release.aab", __dir__)
-    unless File.exist?(aab_path)
-      UI.message("🔨 AAB not found. Running Flutter release bundle build...")
-      sh("cd ../.. && flutter build appbundle --release")
+  # Helper: Read & Auto-increment version code and name in pubspec.yaml and UI
+  def get_target_build_number(options)
+    pubspec_path = File.expand_path("../../pubspec.yaml", __dir__)
+    content = File.read(pubspec_path)
+
+    match = content.match(/^version:\s*([0-9\.]+)\+(\d+)/)
+    current_version = match ? match[1] : "2.0.1"
+    current_build = match ? match[2].to_i : 61
+
+    target_version = options[:version_name] || current_version
+    target_build = if options[:build_number]
+                     options[:build_number].to_i
+                   elsif options[:version_code]
+                     options[:version_code].to_i
+                   elsif options[:bump] == false
+                     current_build
+                   else
+                     # Auto-increment build number by default on release
+                     current_build + 1
+                   end
+
+    if target_build != current_build || target_version != current_version
+      UI.message("⬆️ Autoincrementing Flutter build to #{target_version}+#{target_build} (was #{current_version}+#{current_build})...")
+      updated_content = content.sub(/^version:\s*([0-9\.]+)\+(\d+)/, "version: #{target_version}+#{target_build}")
+      File.write(pubspec_path, updated_content)
+
+      # Sync Settings screen version display
+      settings_path = File.expand_path("../../lib/features/settings/screens/settings_screen.dart", __dir__)
+      if File.exist?(settings_path)
+        s_content = File.read(settings_path)
+        s_content = s_content.gsub(/Version\s+[0-9\.]+\s*\(Build\s*\d+\)/, "Version #{target_version} (Build #{target_build})")
+        s_content = s_content.gsub(/Version\s+[0-9\.]+\s*Build\s*\d+/, "Version #{target_version} Build #{target_build}")
+        File.write(settings_path, s_content)
+      end
+    else
+      UI.message("ℹ️ Using existing build number: #{target_version}+#{target_build}")
     end
-    UI.user_error!("Failed to locate app-release.aab at #{aab_path}") unless File.exist?(aab_path)
-    aab_path
+
+    { version_name: target_version, build_number: target_build }
   end
 
-  desc "Upload Flutter release bundle to Google Play Internal testing track"
+  # Helper: Build Release AAB Bundle with version parameters & archive locally
+  def build_flutter_aab(version_name, build_number)
+    UI.message("🔨 Building Flutter release AAB for v#{version_name}+#{build_number}...")
+    sh("cd ../.. && flutter build appbundle --release --build-name=#{version_name} --build-number=#{build_number}")
+
+    source_aab = File.expand_path("../../build/app/outputs/bundle/release/app-release.aab", __dir__)
+    UI.user_error!("AAB build failed! Could not find #{source_aab}") unless File.exist?(source_aab)
+
+    # Archive to release-builds directory
+    releases_dir = File.expand_path("../../../../release-builds", __dir__)
+    FileUtils.mkdir_p(releases_dir)
+    target_aab = File.join(releases_dir, "DoIt-v#{version_name}-build#{build_number}.aab")
+    FileUtils.cp(source_aab, target_aab)
+    UI.success("📦 Release bundle archived at: #{target_aab}")
+
+    source_aab
+  end
+
+  desc "Autoincrement build number, build release AAB, and upload to Google Play Internal testing track"
   lane :internal do |options|
+    info = get_target_build_number(options)
+    aab = build_flutter_aab(info[:version_name], info[:build_number])
     key = resolve_play_store_key
     UI.user_error!("Google Play service account key (api-key.json) not found!") if key.nil?
-    aab = get_release_aab
 
-    UI.message("🚀 Deploying release bundle to Google Play [internal] track...")
+    UI.message("🚀 Deploying build #{info[:version_name]}+#{info[:build_number]} to Google Play [internal] track...")
     upload_to_play_store(
       track: "internal",
       aab: aab,
@@ -43,20 +94,57 @@ platform :android do
       skip_upload_images: true,
       skip_upload_screenshots: true
     )
-    UI.success("✨ Successfully deployed to Google Play Internal Testing track!")
+    UI.success("✨ Successfully deployed build #{info[:build_number]} to Google Play Internal Testing track!")
   end
 
-  desc "Upload Flutter release bundle to Google Play Closed testing track"
+  desc "Autoincrement build number, build release AAB, and upload to Google Play Closed testing (alpha) track"
   lane :closed do |options|
+    info = get_target_build_number(options)
+    aab = build_flutter_aab(info[:version_name], info[:build_number])
     key = resolve_play_store_key
     UI.user_error!("Google Play service account key (api-key.json) not found!") if key.nil?
-    aab = get_release_aab
 
-    UI.message("🚀 Deploying release bundle to Google Play [alpha/closed] track...")
+    UI.message("🚀 Deploying build #{info[:version_name]}+#{info[:build_number]} to Google Play [alpha/closed] track...")
+    upload_to_play_store(
+      track: "alpha",
+      aab: aab,
+      json_key: key,
+      package_name: "com.samyukt.doit",
+      release_status: options[:release_status] || "completed",
+      skip_upload_apk: true,
+      skip_upload_metadata: true,
+      skip_upload_images: true,
+      skip_upload_screenshots: true
+    )
+    UI.success("✨ Successfully deployed build #{info[:build_number]} to Google Play Closed Testing track!")
+  end
+
+  desc "Autoincrement build number, build AAB, and deploy to BOTH Google Play Internal and Closed tracks"
+  lane :deploy_both do |options|
+    info = get_target_build_number(options)
+    aab = build_flutter_aab(info[:version_name], info[:build_number])
+    key = resolve_play_store_key
+    UI.user_error!("Google Play service account key (api-key.json) not found!") if key.nil?
+
+    UI.message("🚀 Step 1/2: Deploying build #{info[:version_name]}+#{info[:build_number]} to Google Play [internal] track...")
+    upload_to_play_store(
+      track: "internal",
+      aab: aab,
+      json_key: key,
+      package_name: "com.samyukt.doit",
+      release_status: options[:release_status] || "completed",
+      skip_upload_apk: true,
+      skip_upload_metadata: true,
+      skip_upload_images: true,
+      skip_upload_screenshots: true
+    )
+    UI.success("✨ Uploaded to Internal Testing track!")
+
+    UI.message("🚀 Step 2/2: Promoting build #{info[:build_number]} to Google Play [closed/alpha] track...")
     upload_to_play_store(
       track: "internal",
       track_promote_to: "alpha",
-      version_code: 61,
+      version_code: info[:build_number],
       json_key: key,
       package_name: "com.samyukt.doit",
       release_status: options[:release_status] || "completed",
@@ -66,16 +154,37 @@ platform :android do
       skip_upload_images: true,
       skip_upload_screenshots: true
     )
-    UI.success("✨ Successfully deployed to Google Play Closed Testing track!")
+    UI.success("🎉 Successfully deployed build #{info[:build_number]} to BOTH Internal & Closed tracks!")
+  end
+
+  desc "Promote latest release from Internal track to Closed Testing (alpha) track without rebuilding"
+  lane :promote_to_closed do |options|
+    key = resolve_play_store_key
+    UI.user_error!("Google Play service account key (api-key.json) not found!") if key.nil?
+
+    upload_to_play_store(
+      track: "internal",
+      track_promote_to: "alpha",
+      json_key: key,
+      package_name: "com.samyukt.doit",
+      release_status: options[:release_status] || "completed",
+      skip_upload_apk: true,
+      skip_upload_aab: true,
+      skip_upload_metadata: true,
+      skip_upload_images: true,
+      skip_upload_screenshots: true
+    )
+    UI.success("🎉 Successfully promoted latest Internal release to Closed Testing track!")
   end
 
   desc "Upload Flutter release bundle to Google Play Production track"
   lane :production do |options|
+    info = get_target_build_number(options)
+    aab = build_flutter_aab(info[:version_name], info[:build_number])
     key = resolve_play_store_key
     UI.user_error!("Google Play service account key (api-key.json) not found!") if key.nil?
-    aab = get_release_aab
 
-    UI.message("🚀 Deploying release bundle to Google Play [production] track...")
+    UI.message("🚀 Deploying build #{info[:version_name]}+#{info[:build_number]} to Google Play [production] track...")
     upload_to_play_store(
       track: "production",
       aab: aab,
@@ -87,7 +196,7 @@ platform :android do
       skip_upload_images: true,
       skip_upload_screenshots: true
     )
-    UI.success("✨ Successfully deployed to Google Play Production track!")
+    UI.success("✨ Successfully deployed build #{info[:build_number]} to Google Play Production track!")
   end
 
 end
