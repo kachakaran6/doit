@@ -23,7 +23,6 @@ import '../../features/projects/screens/project_context_screen.dart';
 import '../../features/capture/screens/capture_modal.dart';
 import '../theme/app_theme.dart';
 import '../widgets/floating_nav_bar.dart';
-import '../widgets/draggable_overlay_bubble.dart';
 import '../widgets/app_sheet.dart';
 
 final GlobalKey<NavigatorState> rootNavigatorKey = GlobalKey<NavigatorState>();
@@ -105,15 +104,6 @@ final routerProvider = Provider<GoRouter>((ref) {
                               },
                             ),
                           );
-                        },
-                      ),
-                      ValueListenableBuilder<int>(
-                        valueListenable: activeModalCount,
-                        builder: (context, count, _) {
-                          if (count > 0 || keyboardOpen) {
-                            return const SizedBox.shrink();
-                          }
-                          return const DraggableOverlayBubble();
                         },
                       ),
                     ],

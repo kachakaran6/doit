@@ -276,6 +276,20 @@ class BubbleService : Service(), SensorEventListener {
             }
         }
 
+        fun notifyCredentialsUpdated(workspaceId: String?, projectId: String?) {
+            instance?.let { s ->
+                Handler(Looper.getMainLooper()).post {
+                    s.availableProjects = emptyList()
+                    s.selectedProject = null
+                    s.availableMembers = emptyList()
+                    s.selectedAssignee = null
+                    if (s.modalContainer != null) {
+                        s.fetchProjects()
+                    }
+                }
+            }
+        }
+
         fun showQuickCapture(mode: String = "TASK") {
             instance?.let { s ->
                 Handler(Looper.getMainLooper()).post {
@@ -1556,14 +1570,13 @@ class BubbleService : Service(), SensorEventListener {
      * Submit button remains DISABLED until:
      * - Description is non-empty
      * - Project is selected
-     * - Assignee is selected
+     * (Assignee is optional)
      */
     private fun updateSubmitButtonState() {
         val palette = activePalette ?: getCurrentThemePalette()
         val hasText = activeEditText?.text?.toString()?.trim()?.isNotEmpty() == true
         val hasProject = selectedProject != null
-        val hasAssignee = selectedAssignee != null
-        val canSubmit = hasText && hasProject && hasAssignee && !isRecordingAudio && !isSubmitting
+        val canSubmit = hasText && hasProject && !isRecordingAudio && !isSubmitting
 
         submitButton?.apply {
             isClickable = canSubmit
@@ -1639,8 +1652,8 @@ class BubbleService : Service(), SensorEventListener {
             }
             assigneeAvatarText?.setTextColor(palette.accent)
         } else if (availableMembers.isEmpty()) {
-            assigneeDropdownText?.text = "No members available"
-            assigneeDropdownText?.setTextColor(Color.parseColor("#EF4444"))
+            assigneeDropdownText?.text = "Unassigned"
+            assigneeDropdownText?.setTextColor(palette.textMuted)
             assigneeDropdownText?.setTypeface(assigneeDropdownText?.typeface, Typeface.NORMAL)
             assigneeAvatarText?.text = ""
             assigneeAvatarContainer?.background = GradientDrawable().apply {
@@ -1648,7 +1661,7 @@ class BubbleService : Service(), SensorEventListener {
                 setColor(palette.rowBorder)
             }
         } else {
-            assigneeDropdownText?.text = "Select assignee *"
+            assigneeDropdownText?.text = "Unassigned"
             assigneeDropdownText?.setTextColor(palette.textSecondary)
             assigneeDropdownText?.setTypeface(assigneeDropdownText?.typeface, Typeface.NORMAL)
             assigneeAvatarText?.text = ""
@@ -1691,7 +1704,8 @@ class BubbleService : Service(), SensorEventListener {
                     return@Thread
                 }
 
-                val activeWorkspaceId = sp.getString("workspace_id", null)
+                val activeWorkspaceId = sp.getString("workspace_id", null) ?: sp.getString("active_workspace_id", null)
+                val activeProjectId = sp.getString("project_id", null) ?: sp.getString("active_project_id", null)
                 val projectsList = mutableListOf<ProjectItem>()
 
                 if (!activeWorkspaceId.isNullOrEmpty()) {
@@ -1778,10 +1792,20 @@ class BubbleService : Service(), SensorEventListener {
                 Handler(Looper.getMainLooper()).post {
                     availableProjects = projectsList
                     isLoadingProjects = false
-                    // Rule:
-                    // If only one project exists, preselect it clearly and load members
-                    // If multiple projects exist, require explicit user selection
-                    if (projectsList.size == 1) {
+                    
+                    val matchingProject = if (!activeProjectId.isNullOrEmpty()) {
+                        projectsList.find { it.id == activeProjectId }
+                    } else null
+
+                    if (matchingProject != null) {
+                        selectedProject = matchingProject
+                        updateProjectDropdownUI()
+                        fetchMembersForProject(matchingProject.id)
+                    } else if (projectsList.size == 1) {
+                        selectedProject = projectsList[0]
+                        updateProjectDropdownUI()
+                        fetchMembersForProject(selectedProject!!.id)
+                    } else if (projectsList.isNotEmpty()) {
                         selectedProject = projectsList[0]
                         updateProjectDropdownUI()
                         fetchMembersForProject(selectedProject!!.id)
@@ -1822,10 +1846,14 @@ class BubbleService : Service(), SensorEventListener {
                     return@Thread
                 }
 
+                val wsId = sp.getString("workspace_id", null) ?: sp.getString("active_workspace_id", null)
                 val url = URL(baseUrl + "/projects/" + projectId + "/members")
                 val conn = (url.openConnection() as HttpURLConnection).apply {
                     requestMethod = "GET"
                     setRequestProperty("Authorization", "Bearer " + token)
+                    if (!wsId.isNullOrEmpty()) {
+                        setRequestProperty("x-workspace-id", wsId)
+                    }
                     connectTimeout = 8000
                     readTimeout = 8000
                 }
@@ -1855,11 +1883,10 @@ class BubbleService : Service(), SensorEventListener {
                     Handler(Looper.getMainLooper()).post {
                         availableMembers = membersList
                         isLoadingMembers = false
-                        // Rule:
-                        // Automatically select the project's default assignee.
-                        // If no default assignee exists, require the user to select one.
                         if (!defaultAssigneeId.isNullOrEmpty()) {
-                            selectedAssignee = membersList.find { it.id == defaultAssigneeId }
+                            selectedAssignee = membersList.find { it.id == defaultAssigneeId } ?: membersList.firstOrNull()
+                        } else if (membersList.isNotEmpty()) {
+                            selectedAssignee = membersList[0]
                         } else {
                             selectedAssignee = null
                         }
@@ -2286,7 +2313,7 @@ class BubbleService : Service(), SensorEventListener {
             val filtered = availableMembers.filter {
                 query.isEmpty() || it.name.contains(query, ignoreCase = true) || (it.email?.contains(query, ignoreCase = true) == true)
             }
-            if (filtered.isEmpty()) {
+            if (filtered.isEmpty() && query.isNotEmpty()) {
                 val emptyTv = TextView(this).apply {
                     text = "No matching members"
                     setTextColor(palette.textMuted)
@@ -2297,6 +2324,50 @@ class BubbleService : Service(), SensorEventListener {
                 }
                 itemsLayout.addView(emptyTv)
                 return
+            }
+
+            if (query.isEmpty()) {
+                val isSelected = selectedAssignee == null
+                val unassignedRow = LinearLayout(this).apply {
+                    orientation = LinearLayout.HORIZONTAL
+                    gravity = Gravity.CENTER_VERTICAL
+                    background = GradientDrawable().apply {
+                        shape = GradientDrawable.RECTANGLE
+                        cornerRadius = dpToPx(8f).toFloat()
+                        if (isSelected) {
+                            setColor(palette.accentSoft)
+                            setStroke(dpToPx(1f), palette.accent)
+                        } else {
+                            setColor(palette.rowBg)
+                            setStroke(dpToPx(1f), palette.rowBorder)
+                        }
+                    }
+                    val pH = dpToPx(12f)
+                    val pV = dpToPx(9f)
+                    setPadding(pH, pV, pH, pV)
+                    layoutParams = LinearLayout.LayoutParams(
+                        LinearLayout.LayoutParams.MATCH_PARENT,
+                        LinearLayout.LayoutParams.WRAP_CONTENT
+                    ).apply {
+                        bottomMargin = dpToPx(6f)
+                    }
+                    isClickable = true
+                    isFocusable = true
+                    setOnClickListener {
+                        selectedAssignee = null
+                        updateAssigneeDropdownUI()
+                        dismissPicker()
+                        updateSubmitButtonState()
+                    }
+                }
+                val label = TextView(this).apply {
+                    text = "Unassigned"
+                    setTextColor(palette.textPrimary)
+                    setTextSize(TypedValue.COMPLEX_UNIT_SP, 14f)
+                    setTypeface(typeface, if (isSelected) Typeface.BOLD else Typeface.NORMAL)
+                }
+                unassignedRow.addView(label)
+                itemsLayout.addView(unassignedRow)
             }
 
             for (m in filtered) {
@@ -2837,6 +2908,15 @@ class BubbleService : Service(), SensorEventListener {
                         }
                         apply()
                     }
+                    try {
+                        getSharedPreferences("com.samyukt.doit.bubble_prefs", Context.MODE_PRIVATE).edit().apply {
+                            putString("auth_token", newAccessToken)
+                            if (!newRefreshToken.isNullOrEmpty()) {
+                                putString("refresh_token", newRefreshToken)
+                            }
+                            apply()
+                        }
+                    } catch (_: Exception) {}
                     conn.disconnect()
                     return newAccessToken
                 }
@@ -2858,8 +2938,8 @@ class BubbleService : Service(), SensorEventListener {
         val targetProject = selectedProject
         val targetAssignee = selectedAssignee
 
-        if (targetProject == null || targetAssignee == null) {
-            showOverlaySnackbar("Please select both project and assignee", false)
+        if (targetProject == null) {
+            showOverlaySnackbar("Please select a project", false)
             return
         }
 
@@ -2884,13 +2964,15 @@ class BubbleService : Service(), SensorEventListener {
                     put("type", mode)
                     put("source", "OVERLAY")
                     put("priority", "MEDIUM")
-                    put("assigneeId", targetAssignee.id)
+                    if (targetAssignee != null) {
+                        put("assigneeId", targetAssignee.id)
+                    }
                     if (mode == "BUG") {
                         put("severity", "MAJOR")
                     }
                 }
 
-                val wsId = sp.getString("workspace_id", null)
+                val wsId = sp.getString("workspace_id", null) ?: sp.getString("active_workspace_id", null)
                 var taskConn = (URL(endpointUrl).openConnection() as HttpURLConnection).apply {
                     requestMethod = "POST"
                     setRequestProperty("Authorization", "Bearer " + token)
@@ -2953,6 +3035,7 @@ class BubbleService : Service(), SensorEventListener {
                     val itemType = if (mode == "BUG") "Bug reported" else "Task captured"
                     val extra = if (audioFile != null) " with voice note" else if (screenshotFile != null) " with screenshot" else ""
                     showOverlaySnackbar("✓ " + itemType + extra + " in " + targetProject.name, true)
+                    FlutterOverlayBridge.notifyItemCreated()
                 } else {
                     android.util.Log.e("BubbleService", "Failed to create " + mode + ": http code " + taskCode)
                     val itemType = if (mode == "BUG") "bug" else "task"
@@ -3000,12 +3083,18 @@ class BubbleService : Service(), SensorEventListener {
         android.util.Log.d("BubbleService", "uploadFileAttachment: file=" + file.name + ", type=" + contentType + ", size=" + sizeBytes + ", target=" + targetId + ", isBug=" + isBug)
 
         try {
+            val sp = prefs ?: getSharedPreferences("doit_overlay_prefs", Context.MODE_PRIVATE)
+            val wsId = sp.getString("workspace_id", null) ?: sp.getString("active_workspace_id", null)
+
             // Step 1: /uploads/init
             val initUrl = URL(baseUrl + "/uploads/init")
             val initConn = (initUrl.openConnection() as HttpURLConnection).apply {
                 requestMethod = "POST"
                 setRequestProperty("Authorization", "Bearer " + token)
                 setRequestProperty("Content-Type", "application/json")
+                if (!wsId.isNullOrEmpty()) {
+                    setRequestProperty("x-workspace-id", wsId)
+                }
                 doOutput = true
                 connectTimeout = 10000
                 readTimeout = 10000
@@ -3067,6 +3156,9 @@ class BubbleService : Service(), SensorEventListener {
                 requestMethod = "POST"
                 setRequestProperty("Authorization", "Bearer " + token)
                 setRequestProperty("Content-Type", "application/json")
+                if (!wsId.isNullOrEmpty()) {
+                    setRequestProperty("x-workspace-id", wsId)
+                }
                 doOutput = true
                 connectTimeout = 10000
                 readTimeout = 10000

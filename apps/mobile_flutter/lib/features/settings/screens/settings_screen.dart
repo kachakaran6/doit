@@ -648,7 +648,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       AppText('DoIt Mobile', variant: TextVariant.bodyLarge, fontWeight: FontWeight.w700),
-                      AppText('Version 2.0.4 (Build 64)', variant: TextVariant.caption, colorType: TextColorType.secondary),
+                      AppText('Version 2.0.5 (Build 65)', variant: TextVariant.caption, colorType: TextColorType.secondary),
                     ],
                   ),
                   Container(

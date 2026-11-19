@@ -16,12 +16,22 @@ class FlutterOverlayBridge(private val context: Context) : MethodChannel.MethodC
 
     companion object {
         const val CHANNEL_NAME = "com.samyukt.doit/overlay_service"
+        private var activeChannel: MethodChannel? = null
 
         fun registerWith(flutterEngine: FlutterEngine, context: Context): MethodChannel {
             val channel = MethodChannel(flutterEngine.dartExecutor.binaryMessenger, CHANNEL_NAME)
             val handler = FlutterOverlayBridge(context)
             channel.setMethodCallHandler(handler)
+            activeChannel = channel
             return channel
+        }
+
+        fun notifyItemCreated() {
+            android.os.Handler(android.os.Looper.getMainLooper()).post {
+                try {
+                    activeChannel?.invokeMethod("onItemCreated", null)
+                } catch (_: Exception) {}
+            }
         }
     }
 
@@ -74,26 +84,50 @@ class FlutterOverlayBridge(private val context: Context) : MethodChannel.MethodC
                 val projectId = call.argument<String?>("projectId")
                 val workspaceId = call.argument<String?>("workspaceId")
 
-                val prefs = context.getSharedPreferences("com.samyukt.doit.bubble_prefs", Context.MODE_PRIVATE)
-                prefs.edit().apply {
-                    putString("auth_token", token)
-                    putString("refresh_token", refreshToken)
-                    putString("base_url", baseUrl)
-                    putString("active_project_id", projectId)
-                    putString("active_workspace_id", workspaceId)
-                    apply()
+                val prefsList = listOf(
+                    context.getSharedPreferences("doit_overlay_prefs", Context.MODE_PRIVATE),
+                    context.getSharedPreferences("com.samyukt.doit.bubble_prefs", Context.MODE_PRIVATE)
+                )
+                for (p in prefsList) {
+                    p.edit().apply {
+                        if (token != null) putString("auth_token", token) else remove("auth_token")
+                        if (refreshToken != null) putString("refresh_token", refreshToken) else if (token == null) remove("refresh_token")
+                        putString("base_url", baseUrl)
+                        if (projectId != null) {
+                            putString("project_id", projectId)
+                            putString("active_project_id", projectId)
+                        } else {
+                            remove("project_id")
+                            remove("active_project_id")
+                        }
+                        if (workspaceId != null) {
+                            putString("workspace_id", workspaceId)
+                            putString("active_workspace_id", workspaceId)
+                        } else {
+                            remove("workspace_id")
+                            remove("active_workspace_id")
+                        }
+                        apply()
+                    }
                 }
+                BubbleService.notifyCredentialsUpdated(workspaceId, projectId)
                 result.success(true)
             }
             "setShakeEnabled" -> {
                 val enabled = call.argument<Boolean>("enabled") ?: true
                 val sensitivity = call.argument<String>("sensitivity") ?: "normal"
-                val prefs = context.getSharedPreferences("com.samyukt.doit.bubble_prefs", Context.MODE_PRIVATE)
-                prefs.edit().apply {
-                    putBoolean("shake_enabled", enabled)
-                    putString("shake_sensitivity", sensitivity)
-                    apply()
+                val prefsList = listOf(
+                    context.getSharedPreferences("doit_overlay_prefs", Context.MODE_PRIVATE),
+                    context.getSharedPreferences("com.samyukt.doit.bubble_prefs", Context.MODE_PRIVATE)
+                )
+                for (p in prefsList) {
+                    p.edit().apply {
+                        putBoolean("shake_enabled", enabled)
+                        putString("shake_sensitivity", sensitivity)
+                        apply()
+                    }
                 }
+                BubbleService.updateShakeConfig(enabled, sensitivity)
                 result.success(true)
             }
             "updateThemeConfig" -> {
@@ -103,15 +137,21 @@ class FlutterOverlayBridge(private val context: Context) : MethodChannel.MethodC
                 val accentFill = call.argument<String>("accentFill") ?: "#3A66F2"
                 val accentSoft = call.argument<String>("accentSoft") ?: "#1E294B"
 
-                val prefs = context.getSharedPreferences("com.samyukt.doit.bubble_prefs", Context.MODE_PRIVATE)
-                prefs.edit().apply {
-                    putString("theme_mode", mode)
-                    putString("resolved_theme", resolvedTheme)
-                    putString("theme_accent", accent)
-                    putString("theme_accent_fill", accentFill)
-                    putString("theme_accent_soft", accentSoft)
-                    apply()
+                val prefsList = listOf(
+                    context.getSharedPreferences("doit_overlay_prefs", Context.MODE_PRIVATE),
+                    context.getSharedPreferences("com.samyukt.doit.bubble_prefs", Context.MODE_PRIVATE)
+                )
+                for (p in prefsList) {
+                    p.edit().apply {
+                        putString("theme_mode", mode)
+                        putString("resolved_theme", resolvedTheme)
+                        putString("theme_accent", accent)
+                        putString("theme_accent_fill", accentFill)
+                        putString("theme_accent_soft", accentSoft)
+                        apply()
+                    }
                 }
+                BubbleService.updateThemeConfig(mode, resolvedTheme, accent, accentFill, accentSoft)
                 result.success(true)
             }
             "isAccessibilityEnabled" -> {

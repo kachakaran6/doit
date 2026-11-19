@@ -55,6 +55,7 @@ class HttpClient {
   }
 
   String getBaseUrl() => _baseUrl;
+  String get baseUrl => _baseUrl;
 
   void setAuthToken(String? token) {
     _authToken = token;
@@ -62,6 +63,7 @@ class HttpClient {
 
   String? getAuthToken() => _authToken;
   String? get authToken => _authToken;
+  Future<String?> getRefreshToken() => _secureStorage.getRefreshToken();
 
   void setWorkspaceId(String? workspaceId) {
     _workspaceId = workspaceId;

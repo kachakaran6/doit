@@ -15,6 +15,8 @@ import 'features/tasks/providers/tasks_provider.dart';
 import 'features/bugs/providers/bugs_provider.dart';
 import 'features/stickies/providers/stickies_provider.dart';
 import 'features/auth/providers/auth_provider.dart';
+import 'core/native/system_overlay_service.dart';
+import 'core/network/http_client.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -50,9 +52,25 @@ class _DoItAppState extends ConsumerState<DoItApp> with WidgetsBindingObserver {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    SystemOverlayService.setOnItemCreatedListener(() {
+      ref.read(tasksProvider.notifier).fetchTasks();
+      ref.read(bugsProvider.notifier).fetchBugs();
+    });
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _applyShakeConfig(ref.read(shakeConfigProvider));
       PlayUpdateService.checkForUpdatesSafely();
+      final wsState = ref.read(workspaceProvider);
+      if (wsState.activeWorkspace != null) {
+        HttpClient().getRefreshToken().then((rt) {
+          SystemOverlayService.syncAuthCredentials(
+            token: HttpClient().authToken,
+            refreshToken: rt,
+            baseUrl: HttpClient().baseUrl,
+            workspaceId: wsState.activeWorkspace!.id,
+            projectId: wsState.activeProject?.id,
+          );
+        });
+      }
     });
   }
 
@@ -60,6 +78,20 @@ class _DoItAppState extends ConsumerState<DoItApp> with WidgetsBindingObserver {
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
       PlayUpdateService.checkForUpdatesSafely();
+      ref.read(tasksProvider.notifier).fetchTasks();
+      ref.read(bugsProvider.notifier).fetchBugs();
+      final wsState = ref.read(workspaceProvider);
+      if (wsState.activeWorkspace != null) {
+        HttpClient().getRefreshToken().then((rt) {
+          SystemOverlayService.syncAuthCredentials(
+            token: HttpClient().authToken,
+            refreshToken: rt,
+            baseUrl: HttpClient().baseUrl,
+            workspaceId: wsState.activeWorkspace!.id,
+            projectId: wsState.activeProject?.id,
+          );
+        });
+      }
     }
   }
 

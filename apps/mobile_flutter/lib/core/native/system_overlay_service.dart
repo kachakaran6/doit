@@ -20,6 +20,15 @@ class SystemOverlayService {
 
   static bool get isAndroid => Platform.isAndroid;
 
+  static void setOnItemCreatedListener(void Function() callback) {
+    if (!isAndroid) return;
+    _channel.setMethodCallHandler((call) async {
+      if (call.method == 'onItemCreated') {
+        callback();
+      }
+    });
+  }
+
   static Future<bool> isAvailable() async {
     if (!isAndroid) return false;
     try {

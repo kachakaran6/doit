@@ -81,6 +81,14 @@ class WorkspaceNotifier extends Notifier<WorkspaceState> {
       if (activeWs != null) {
         apiClient.setWorkspaceId(activeWs.id);
         await _localStorage.saveActiveWorkspaceId(activeWs.id);
+        final refreshToken = await apiClient.getRefreshToken();
+        SystemOverlayService.syncAuthCredentials(
+          token: apiClient.authToken,
+          refreshToken: refreshToken,
+          baseUrl: apiClient.baseUrl,
+          workspaceId: activeWs.id,
+          projectId: activeProj?.id,
+        );
       }
       if (activeProj != null) {
         await _localStorage.saveActiveProjectId(activeProj.id);
@@ -111,8 +119,11 @@ class WorkspaceNotifier extends Notifier<WorkspaceState> {
       activeProject: proj,
     );
 
+    final refreshToken = await apiClient.getRefreshToken();
     SystemOverlayService.syncAuthCredentials(
       token: apiClient.authToken,
+      refreshToken: refreshToken,
+      baseUrl: apiClient.baseUrl,
       workspaceId: ws.id,
       projectId: proj?.id,
     );
@@ -127,8 +138,11 @@ class WorkspaceNotifier extends Notifier<WorkspaceState> {
       state = state.copyWith(activeProject: proj);
     }
 
+    final refreshToken = await apiClient.getRefreshToken();
     SystemOverlayService.syncAuthCredentials(
       token: apiClient.authToken,
+      refreshToken: refreshToken,
+      baseUrl: apiClient.baseUrl,
       workspaceId: state.activeWorkspace?.id,
       projectId: proj?.id,
     );
