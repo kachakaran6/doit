@@ -16,45 +16,96 @@ platform :android do
     candidates.find { |path| File.exist?(path) && !File.zero?(path) }
   end
 
-  # Helper: Read & Auto-increment version code and name in pubspec.yaml and UI
-  def get_target_build_number(options)
-    pubspec_path = File.expand_path("../../pubspec.yaml", __dir__)
+  # ─────────────────────────────────────────────────────────────────────────────
+  # Automatic Version & Build Number Manager
+  # ─────────────────────────────────────────────────────────────────────────────
+
+  # Computes the next version name adhering to:
+  # 1.0.1 -> 1.0.2 ... 1.0.20 -> 1.1.1 -> 1.1.2 ... 1.1.20 -> 1.2.1 ...
+  def calculate_next_version_name(current_version_name)
+    parts = current_version_name.to_s.split(".").map(&:to_i)
+    major = parts[0] || 1
+    minor = parts[1] || 0
+    patch = parts[2] || 0
+
+    next_patch = patch + 1
+    next_minor = minor
+    next_major = major
+
+    # Roll over to next minor once patch exceeds 20
+    if next_patch > 20
+      next_patch = 1
+      next_minor = minor + 1
+      if next_minor > 20
+        next_minor = 0
+        next_major = major + 1
+      end
+    end
+
+    "#{next_major}.#{next_minor}.#{next_patch}"
+  end
+
+  def get_target_version_and_build(options)
+    root_dir = File.expand_path("../..", __dir__)
+    pubspec_path = File.join(root_dir, "pubspec.yaml")
+    UI.user_error!("pubspec.yaml not found at #{pubspec_path}") unless File.exist?(pubspec_path)
+
     content = File.read(pubspec_path)
+    match = content.match(/^version:\s*([^\s+]+)\+(\d+)/)
+    UI.user_error!("Could not parse version in #{pubspec_path}") unless match
 
-    match = content.match(/^version:\s*([0-9\.]+)\+(\d+)/)
-    current_version = match ? match[1] : "2.0.1"
-    current_build = match ? match[2].to_i : 61
+    current_version_name = match[1]
+    current_build = match[2].to_i
 
-    target_version = options[:version_name] || current_version
+    # Compute default next values
+    default_next_version_name = calculate_next_version_name(current_version_name)
+    next_build = current_build + 1
+
     target_build = if options[:build_number]
-                     options[:build_number].to_i
-                   elsif options[:version_code]
-                     options[:version_code].to_i
-                   elsif options[:bump] == false
-                     current_build
-                   else
-                     # Auto-increment build number by default on release
-                     current_build + 1
-                   end
+      options[:build_number].to_i
+    elsif options[:version_code]
+      options[:version_code].to_i
+    elsif UI.interactive? && !options[:non_interactive]
+      prompt_val = UI.input("Enter build number (current: #{current_build}, default: #{next_build}):").strip
+      prompt_val.empty? ? next_build : prompt_val.to_i
+    else
+      next_build
+    end
 
-    if target_build != current_build || target_version != current_version
-      UI.message("⬆️ Autoincrementing Flutter build to #{target_version}+#{target_build} (was #{current_version}+#{current_build})...")
-      updated_content = content.sub(/^version:\s*([0-9\.]+)\+(\d+)/, "version: #{target_version}+#{target_build}")
+    target_build = next_build if target_build.nil? || target_build <= 0
+
+    target_version_name = if options[:version_name]
+      options[:version_name].to_s.strip
+    elsif options[:version]
+      options[:version].to_s.strip
+    elsif UI.interactive? && !options[:non_interactive]
+      prompt_val = UI.input("Enter version name (current: #{current_version_name}, default: #{default_next_version_name}):").strip
+      prompt_val.empty? ? default_next_version_name : prompt_val
+    else
+      default_next_version_name
+    end
+
+    target_version_name = default_next_version_name if target_version_name.nil? || target_version_name.empty?
+
+    # Persist version bump to pubspec.yaml
+    if target_build != current_build || target_version_name != current_version_name
+      UI.message("⬆️ Updating Flutter version in pubspec.yaml: #{target_version_name}+#{target_build} (was #{current_version_name}+#{current_build})...")
+      updated_content = content.sub(/^version:\s*[^\s+]+/, "version: #{target_version_name}+#{target_build}")
       File.write(pubspec_path, updated_content)
 
       # Sync Settings screen version display
-      settings_path = File.expand_path("../../lib/features/settings/screens/settings_screen.dart", __dir__)
+      settings_path = File.join(root_dir, "lib", "features", "settings", "screens", "settings_screen.dart")
       if File.exist?(settings_path)
         s_content = File.read(settings_path)
-        s_content = s_content.gsub(/Version\s+[0-9\.]+\s*\(Build\s*\d+\)/, "Version #{target_version} (Build #{target_build})")
-        s_content = s_content.gsub(/Version\s+[0-9\.]+\s*Build\s*\d+/, "Version #{target_version} Build #{target_build}")
+        s_content = s_content.gsub(/Version\s+[0-9\.]+\s*\(Build\s*\d+\)/, "Version #{target_version_name} (Build #{target_build})")
+        s_content = s_content.gsub(/Version\s+[0-9\.]+\s*Build\s*\d+/, "Version #{target_version_name} Build #{target_build}")
         File.write(settings_path, s_content)
       end
     else
-      UI.message("ℹ️ Using existing build number: #{target_version}+#{target_build}")
+      UI.message("ℹ️ Using existing version: #{target_version_name}+#{target_build}")
     end
 
-    { version_name: target_version, build_number: target_build }
+    { version_name: target_version_name, build_number: target_build }
   end
 
   # Helper: Build Release AAB Bundle with version parameters & archive locally
@@ -75,9 +126,9 @@ platform :android do
     source_aab
   end
 
-  desc "Autoincrement build number, build release AAB, and upload to Google Play Internal testing track"
+  desc "Autoincrement version & build, compile release AAB, and upload to Google Play Internal testing track"
   lane :internal do |options|
-    info = get_target_build_number(options)
+    info = get_target_version_and_build(options)
     aab = build_flutter_aab(info[:version_name], info[:build_number])
     key = resolve_play_store_key
     UI.user_error!("Google Play service account key (api-key.json) not found!") if key.nil?
@@ -97,9 +148,9 @@ platform :android do
     UI.success("✨ Successfully deployed build #{info[:build_number]} to Google Play Internal Testing track!")
   end
 
-  desc "Autoincrement build number, build release AAB, and upload to Google Play Closed testing (alpha) track"
+  desc "Autoincrement version & build, compile release AAB, and upload to Google Play Closed testing (alpha) track"
   lane :closed do |options|
-    info = get_target_build_number(options)
+    info = get_target_version_and_build(options)
     aab = build_flutter_aab(info[:version_name], info[:build_number])
     key = resolve_play_store_key
     UI.user_error!("Google Play service account key (api-key.json) not found!") if key.nil?
@@ -119,9 +170,9 @@ platform :android do
     UI.success("✨ Successfully deployed build #{info[:build_number]} to Google Play Closed Testing track!")
   end
 
-  desc "Autoincrement build number, build AAB, and deploy to BOTH Google Play Internal and Closed tracks"
+  desc "Autoincrement version & build, compile AAB, and deploy to BOTH Google Play Internal and Closed tracks"
   lane :deploy_both do |options|
-    info = get_target_build_number(options)
+    info = get_target_version_and_build(options)
     aab = build_flutter_aab(info[:version_name], info[:build_number])
     key = resolve_play_store_key
     UI.user_error!("Google Play service account key (api-key.json) not found!") if key.nil?
@@ -179,7 +230,7 @@ platform :android do
 
   desc "Upload Flutter release bundle to Google Play Production track"
   lane :production do |options|
-    info = get_target_build_number(options)
+    info = get_target_version_and_build(options)
     aab = build_flutter_aab(info[:version_name], info[:build_number])
     key = resolve_play_store_key
     UI.user_error!("Google Play service account key (api-key.json) not found!") if key.nil?
