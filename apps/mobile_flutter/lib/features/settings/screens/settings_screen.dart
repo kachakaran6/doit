@@ -13,6 +13,7 @@ import '../../../core/widgets/app_card.dart';
 import '../../../core/widgets/app_button.dart';
 import '../../../core/widgets/app_avatar.dart';
 import '../../../core/widgets/app_sheet.dart';
+import '../../../core/services/play_update_service.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../widgets/shake_test_modal.dart';
 import '../widgets/quick_capture_guide_sheet.dart';
@@ -590,10 +591,12 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   onTap: () {
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(
-                        content: Text('DoIt is up to date (Version 2.0.3 Build 63).'),
+                        content: Text('Checking Google Play for updates...'),
                         duration: Duration(seconds: 2),
+                        behavior: SnackBarBehavior.floating,
                       ),
                     );
+                    PlayUpdateService.checkForUpdatesSafely(context: context, forceUserCheck: true);
                   },
                 ),
                 Divider(color: tokens.hairline, height: 1),
@@ -645,7 +648,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       AppText('DoIt Mobile', variant: TextVariant.bodyLarge, fontWeight: FontWeight.w700),
-                      AppText('Version 2.0.3 (Build 63)', variant: TextVariant.caption, colorType: TextColorType.secondary),
+                      AppText('Version 2.0.4 (Build 64)', variant: TextVariant.caption, colorType: TextColorType.secondary),
                     ],
                   ),
                   Container(

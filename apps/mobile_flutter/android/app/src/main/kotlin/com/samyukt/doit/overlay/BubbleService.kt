@@ -34,14 +34,17 @@ import android.text.TextWatcher
 import android.util.DisplayMetrics
 import android.util.TypedValue
 import android.view.Gravity
+import android.view.KeyEvent
 import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
 import android.view.WindowManager
+import android.view.inputmethod.InputMethodManager
 import android.widget.EditText
 import android.widget.FrameLayout
 import android.widget.ImageView
 import android.widget.LinearLayout
+import android.widget.RelativeLayout
 import android.widget.ScrollView
 import android.widget.TextView
 import android.widget.Toast
@@ -863,85 +866,61 @@ class BubbleService : Service(), SensorEventListener {
                 elevation = dpToPx(28f).toFloat()
                 clipToOutline = true
             }
-            setOnClickListener { }
+            setOnClickListener {
+                if (activeEditText?.hasFocus() == true) {
+                    activeEditText?.clearFocus()
+                    val imm = getSystemService(Context.INPUT_METHOD_SERVICE) as? InputMethodManager
+                    imm?.hideSoftInputFromWindow(windowToken, 0)
+                }
+            }
         }
 
-        val accentBar = View(this).apply {
-            background = GradientDrawable().apply {
-                shape = GradientDrawable.RECTANGLE
-                setColor(palette.accent)
-            }
-            layoutParams = LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT,
-                dpToPx(6f)
-            )
-        }
-        card.addView(accentBar)
-
-        val headerLayout = LinearLayout(this).apply {
-            orientation = LinearLayout.HORIZONTAL
-            gravity = Gravity.CENTER_VERTICAL
-            background = GradientDrawable().apply {
-                shape = GradientDrawable.RECTANGLE
-                setColor(palette.accentSoft)
-            }
-            val hPad = dpToPx(16f)
-            setPadding(hPad, dpToPx(14f), hPad, dpToPx(14f))
+        // Sleek, minimal top bar: subtle centered grab handle + close button (no bulky banner)
+        val topBar = RelativeLayout(this).apply {
+            val pad = dpToPx(16f)
+            setPadding(pad, dpToPx(14f), pad, dpToPx(2f))
             layoutParams = LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
                 LinearLayout.LayoutParams.WRAP_CONTENT
             )
         }
 
-        val titleBlock = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+        val grabHandle = View(this).apply {
+            background = GradientDrawable().apply {
+                shape = GradientDrawable.RECTANGLE
+                cornerRadius = dpToPx(3f).toFloat()
+                setColor(if (palette.isDark) Color.parseColor("#44FFFFFF") else Color.parseColor("#33000000"))
+            }
+            layoutParams = RelativeLayout.LayoutParams(dpToPx(36f), dpToPx(4f)).apply {
+                addRule(RelativeLayout.CENTER_IN_PARENT)
+            }
         }
-        val eyebrow = TextView(this).apply {
-            text = "DOIT"
-            setTextColor(palette.accent)
-            setTextSize(TypedValue.COMPLEX_UNIT_SP, 11f)
-            setTypeface(typeface, Typeface.BOLD)
-            letterSpacing = 0.14f
-        }
-        val headerTitle = TextView(this).apply {
-            text = "New capture"
-            setTextColor(palette.textPrimary)
-            setTextSize(TypedValue.COMPLEX_UNIT_SP, 20f)
-            setTypeface(typeface, Typeface.BOLD)
-        }
-        val headerSubtitle = TextView(this).apply {
-            text = "Task or bug, with project and owner"
-            setTextColor(palette.textSecondary)
-            setTextSize(TypedValue.COMPLEX_UNIT_SP, 12.5f)
-        }
-        titleBlock.addView(eyebrow)
-        titleBlock.addView(headerTitle)
-        titleBlock.addView(headerSubtitle)
-        headerLayout.addView(titleBlock)
+        topBar.addView(grabHandle)
 
         val closeBtn = ImageView(this).apply {
             setImageResource(R.drawable.ic_lucide_x)
-            imageTintList = ColorStateList.valueOf(palette.textPrimary)
+            imageTintList = ColorStateList.valueOf(palette.textSecondary)
             background = GradientDrawable().apply {
                 shape = GradientDrawable.OVAL
-                setColor(if (palette.isDark) Color.parseColor("#332F3544") else Color.parseColor("#FFFFFFFF"))
-                setStroke(dpToPx(1f), palette.border)
+                setColor(if (palette.isDark) Color.parseColor("#332F3544") else Color.parseColor("#15000000"))
             }
-            val pC = dpToPx(8f)
+            val pC = dpToPx(7f)
             setPadding(pC, pC, pC, pC)
-            layoutParams = LinearLayout.LayoutParams(dpToPx(36f), dpToPx(36f))
+            layoutParams = RelativeLayout.LayoutParams(dpToPx(32f), dpToPx(32f)).apply {
+                addRule(RelativeLayout.ALIGN_PARENT_END)
+                addRule(RelativeLayout.CENTER_VERTICAL)
+            }
             isClickable = true
             isFocusable = true
             setOnClickListener { dismissCompactModal() }
         }
-        headerLayout.addView(closeBtn)
-        card.addView(headerLayout)
+        topBar.addView(closeBtn)
+        card.addView(topBar)
 
         val body = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             val p = dpToPx(16f)
-            setPadding(p, dpToPx(14f), p, p)
+            setPadding(p, dpToPx(8f), p, p)
         }
         card.addView(body)
 
@@ -995,7 +974,17 @@ class BubbleService : Service(), SensorEventListener {
             setStroke(dpToPx(1f), palette.rowBorder)
         }
 
-        activeEditText = EditText(this).apply {
+        activeEditText = object : EditText(this) {
+            override fun onKeyPreIme(keyCode: Int, event: KeyEvent?): Boolean {
+                if (keyCode == KeyEvent.KEYCODE_BACK && event?.action == KeyEvent.ACTION_UP) {
+                    clearFocus()
+                    val imm = context.getSystemService(Context.INPUT_METHOD_SERVICE) as? InputMethodManager
+                    imm?.hideSoftInputFromWindow(windowToken, 0)
+                    return true // Intercept back press to dismiss keyboard without closing modal
+                }
+                return super.onKeyPreIme(keyCode, event)
+            }
+        }.apply {
             background = inputBg
             hint = "What do you want to capture?"
             setHintTextColor(palette.textMuted)
@@ -1453,11 +1442,33 @@ class BubbleService : Service(), SensorEventListener {
 
         updateSubmitButtonState()
 
-        val scrim = LinearLayout(this).apply {
+        val scrim = object : LinearLayout(this) {
+            override fun dispatchKeyEvent(event: KeyEvent): Boolean {
+                if (event.keyCode == KeyEvent.KEYCODE_BACK && event.action == KeyEvent.ACTION_UP) {
+                    if (activeEditText?.hasFocus() == true) {
+                        activeEditText?.clearFocus()
+                        val imm = context.getSystemService(Context.INPUT_METHOD_SERVICE) as? InputMethodManager
+                        imm?.hideSoftInputFromWindow(windowToken, 0)
+                        return true // Consumed: only dismiss keyboard, keep modal open
+                    }
+                    dismissCompactModal()
+                    return true
+                }
+                return super.dispatchKeyEvent(event)
+            }
+        }.apply {
             orientation = LinearLayout.VERTICAL
             gravity = Gravity.CENTER
             setBackgroundColor(if (palette.isDark) Color.parseColor("#B306070B") else Color.parseColor("#66101622"))
-            setOnClickListener { dismissCompactModal() }
+            setOnClickListener {
+                if (activeEditText?.hasFocus() == true) {
+                    activeEditText?.clearFocus()
+                    val imm = context.getSystemService(Context.INPUT_METHOD_SERVICE) as? InputMethodManager
+                    imm?.hideSoftInputFromWindow(windowToken, 0)
+                } else {
+                    dismissCompactModal()
+                }
+            }
         }
         scrim.addView(
             card,

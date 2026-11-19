@@ -9,6 +9,7 @@ import 'core/providers/capture_bubble_provider.dart';
 import 'features/capture/screens/capture_modal.dart';
 import 'features/system/providers/version_policy_provider.dart';
 import 'features/system/screens/force_update_screen.dart';
+import 'core/services/play_update_service.dart';
 import 'features/workspace/providers/workspace_provider.dart';
 import 'features/tasks/providers/tasks_provider.dart';
 import 'features/bugs/providers/bugs_provider.dart';
@@ -42,15 +43,24 @@ class DoItApp extends ConsumerStatefulWidget {
   ConsumerState<DoItApp> createState() => _DoItAppState();
 }
 
-class _DoItAppState extends ConsumerState<DoItApp> {
+class _DoItAppState extends ConsumerState<DoItApp> with WidgetsBindingObserver {
   ShakeDetector? _shakeDetector;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _applyShakeConfig(ref.read(shakeConfigProvider));
+      PlayUpdateService.checkForUpdatesSafely();
     });
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      PlayUpdateService.checkForUpdatesSafely();
+    }
   }
 
   void _applyShakeConfig(ShakeConfigState config) {
@@ -76,6 +86,7 @@ class _DoItAppState extends ConsumerState<DoItApp> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _shakeDetector?.stopListening();
     super.dispose();
   }
