@@ -90,7 +90,7 @@ platform :android do
     # Persist version bump to pubspec.yaml
     if target_build != current_build || target_version_name != current_version_name
       UI.message("⬆️ Updating Flutter version in pubspec.yaml: #{target_version_name}+#{target_build} (was #{current_version_name}+#{current_build})...")
-      updated_content = content.sub(/^version:\s*[^\s+]+/, "version: #{target_version_name}+#{target_build}")
+      updated_content = content.sub(/^version:\s*[^\r\n]+/, "version: #{target_version_name}+#{target_build}")
       File.write(pubspec_path, updated_content)
 
       # Sync Settings screen version display

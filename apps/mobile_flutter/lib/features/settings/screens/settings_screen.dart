@@ -351,50 +351,54 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                           }
                         }
 
-                        return GestureDetector(
-                          behavior: HitTestBehavior.opaque,
-                          onTap: () {
-                            HapticFeedback.selectionClick();
-                            ref.read(themeProvider.notifier).setAccent(acc);
-                          },
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
-                            child: AnimatedContainer(
-                              duration: const Duration(milliseconds: 200),
-                              width: 44,
-                              height: 44,
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                border: isSelected
-                                    ? Border.all(
-                                        color: tokens.accent,
-                                        width: 2.5,
-                                      )
-                                    : Border.all(
-                                        color: Colors.transparent,
-                                        width: 2.5,
-                                      ),
-                              ),
+                        return Expanded(
+                          child: GestureDetector(
+                            behavior: HitTestBehavior.opaque,
+                            onTap: () {
+                              HapticFeedback.mediumImpact();
+                              ref.read(themeProvider.notifier).setAccent(acc);
+                            },
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 4),
                               child: Center(
-                                child: Container(
-                                  width: 32,
-                                  height: 32,
+                                child: AnimatedContainer(
+                                  duration: const Duration(milliseconds: 200),
+                                  width: 44,
+                                  height: 44,
                                   decoration: BoxDecoration(
-                                    color: c,
                                     shape: BoxShape.circle,
-                                    boxShadow: isSelected
-                                        ? [
-                                            BoxShadow(
-                                              color: c.withAlpha(120),
-                                              blurRadius: 8,
-                                              offset: const Offset(0, 2),
-                                            ),
-                                          ]
-                                        : null,
+                                    border: isSelected
+                                        ? Border.all(
+                                            color: c,
+                                            width: 2.5,
+                                          )
+                                        : Border.all(
+                                            color: Colors.transparent,
+                                            width: 2.5,
+                                          ),
                                   ),
-                                  child: isSelected
-                                      ? const Icon(LucideIcons.check, size: 18, color: Colors.white)
-                                      : null,
+                                  child: Center(
+                                    child: Container(
+                                      width: 32,
+                                      height: 32,
+                                      decoration: BoxDecoration(
+                                        color: c,
+                                        shape: BoxShape.circle,
+                                        boxShadow: isSelected
+                                            ? [
+                                                BoxShadow(
+                                                  color: c.withAlpha(140),
+                                                  blurRadius: 10,
+                                                  offset: const Offset(0, 3),
+                                                ),
+                                              ]
+                                            : null,
+                                      ),
+                                      child: isSelected
+                                          ? const Icon(LucideIcons.check, size: 18, color: Colors.white)
+                                          : null,
+                                    ),
+                                  ),
                                 ),
                               ),
                             ),
@@ -586,7 +590,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   onTap: () {
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(
-                        content: Text('DoIt is up to date (Version 2.0.2 Build 62).'),
+                        content: Text('DoIt is up to date (Version 2.0.3 Build 63).'),
                         duration: Duration(seconds: 2),
                       ),
                     );
@@ -641,7 +645,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       AppText('DoIt Mobile', variant: TextVariant.bodyLarge, fontWeight: FontWeight.w700),
-                      AppText('Version 2.0.2 (Build 62)', variant: TextVariant.caption, colorType: TextColorType.secondary),
+                      AppText('Version 2.0.3 (Build 63)', variant: TextVariant.caption, colorType: TextColorType.secondary),
                     ],
                   ),
                   Container(

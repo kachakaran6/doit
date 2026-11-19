@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'app_colors.dart';
 import 'app_radius.dart';
+import '../native/system_overlay_service.dart';
 
 class ThemeState {
   final ThemeMode themeMode;
@@ -51,8 +52,8 @@ class ThemeNotifier extends Notifier<ThemeState> {
   Future<void> _loadFromPrefs() async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      final modeStr = prefs.getString(_themeModeKey);
-      final accStr = prefs.getString(_accentKey);
+      final modeStr = prefs.getString(_themeModeKey) ?? prefs.getString('doit.theme.mode');
+      final accStr = prefs.getString(_accentKey) ?? prefs.getString('doit.theme.accent');
 
       ThemeMode mode = ThemeMode.dark;
       if (modeStr == 'light') mode = ThemeMode.light;
@@ -67,6 +68,7 @@ class ThemeNotifier extends Notifier<ThemeState> {
       }
 
       state = ThemeState(themeMode: mode, accent: acc);
+      _syncNativeOverlay(state);
     } catch (_) {}
   }
 
@@ -74,12 +76,36 @@ class ThemeNotifier extends Notifier<ThemeState> {
     state = state.copyWith(themeMode: mode);
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_themeModeKey, mode.name);
+    await prefs.setString('doit.theme.mode', mode.name);
+    _syncNativeOverlay(state);
   }
 
   Future<void> setAccent(AppAccentName accent) async {
     state = state.copyWith(accent: accent);
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_accentKey, accent.name);
+    await prefs.setString('doit.theme.accent', accent.name);
+    _syncNativeOverlay(state);
+  }
+
+  void _syncNativeOverlay(ThemeState s) {
+    try {
+      final isDark = s.themeMode != ThemeMode.light;
+      final tokens = isDark
+          ? AppThemeTokens.dark(accentName: s.accent)
+          : AppThemeTokens.light(accentName: s.accent);
+
+      final accentHex = '#${tokens.accent.toARGB32().toRadixString(16).padLeft(8, '0').substring(2)}';
+      final accentSoftHex = '#${tokens.accentSoft.toARGB32().toRadixString(16).padLeft(8, '0')}';
+
+      SystemOverlayService.updateThemeConfig(
+        mode: s.themeMode.name,
+        resolvedTheme: isDark ? 'dark' : 'light',
+        accent: s.accent.name,
+        accentFill: accentHex,
+        accentSoft: accentSoftHex,
+      );
+    } catch (_) {}
   }
 }
 

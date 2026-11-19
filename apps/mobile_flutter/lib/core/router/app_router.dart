@@ -21,6 +21,7 @@ import '../../features/system/screens/foundation_gallery_screen.dart';
 import '../../features/system/screens/our_apps_screen.dart';
 import '../../features/projects/screens/project_context_screen.dart';
 import '../../features/capture/screens/capture_modal.dart';
+import '../theme/app_theme.dart';
 import '../widgets/floating_nav_bar.dart';
 import '../widgets/draggable_overlay_bubble.dart';
 import '../widgets/app_sheet.dart';
@@ -55,56 +56,71 @@ final routerProvider = Provider<GoRouter>((ref) {
         parentNavigatorKey: rootNavigatorKey,
         builder: (context, state, navigationShell) {
           final keyboardOpen = MediaQuery.of(context).viewInsets.bottom > 0;
-          return Scaffold(
-            resizeToAvoidBottomInset: false,
-            body: Stack(
-              children: [
-                navigationShell,
-                ValueListenableBuilder<int>(
-                  valueListenable: activeModalCount,
-                  builder: (context, count, _) {
-                    if (count > 0 || keyboardOpen) {
-                      return const SizedBox.shrink();
-                    }
-                    return Positioned(
-                      left: 0,
-                      right: 0,
-                      bottom: 0,
-                      child: FloatingNavBar(
-                        currentIndex: navigationShell.currentIndex,
-                        onTabSelected: (index) {
-                          navigationShell.goBranch(
-                            index,
-                            initialLocation: index == navigationShell.currentIndex,
-                          );
-                        },
-                        onQuickCapturePressed: () {
-                          AppSheet.show(
-                            context: context,
-                            builder: (_) => const QuickCaptureSheet(initialMode: 'task'),
-                          );
-                        },
-                        onQuickModeSelected: (mode) {
-                          AppSheet.show(
-                            context: context,
-                            builder: (_) => QuickCaptureSheet(initialMode: mode),
+          return Consumer(
+            builder: (context, ref, _) {
+              final themeState = ref.watch(themeProvider);
+              final isDark = themeState.themeMode == ThemeMode.dark ||
+                  (themeState.themeMode == ThemeMode.system &&
+                      MediaQuery.of(context).platformBrightness == Brightness.dark);
+              final activeTheme = isDark
+                  ? AppTheme.buildDarkTheme(themeState.accent)
+                  : AppTheme.buildLightTheme(themeState.accent);
+
+              return Theme(
+                data: activeTheme,
+                child: Scaffold(
+                  resizeToAvoidBottomInset: false,
+                  body: Stack(
+                    children: [
+                      navigationShell,
+                      ValueListenableBuilder<int>(
+                        valueListenable: activeModalCount,
+                        builder: (context, count, _) {
+                          if (count > 0 || keyboardOpen) {
+                            return const SizedBox.shrink();
+                          }
+                          return Positioned(
+                            left: 0,
+                            right: 0,
+                            bottom: 0,
+                            child: FloatingNavBar(
+                              currentIndex: navigationShell.currentIndex,
+                              onTabSelected: (index) {
+                                navigationShell.goBranch(
+                                  index,
+                                  initialLocation: index == navigationShell.currentIndex,
+                                );
+                              },
+                              onQuickCapturePressed: () {
+                                AppSheet.show(
+                                  context: context,
+                                  builder: (_) => const QuickCaptureSheet(initialMode: 'task'),
+                                );
+                              },
+                              onQuickModeSelected: (mode) {
+                                AppSheet.show(
+                                  context: context,
+                                  builder: (_) => QuickCaptureSheet(initialMode: mode),
+                                );
+                              },
+                            ),
                           );
                         },
                       ),
-                    );
-                  },
+                      ValueListenableBuilder<int>(
+                        valueListenable: activeModalCount,
+                        builder: (context, count, _) {
+                          if (count > 0 || keyboardOpen) {
+                            return const SizedBox.shrink();
+                          }
+                          return const DraggableOverlayBubble();
+                        },
+                      ),
+                    ],
+                  ),
                 ),
-                ValueListenableBuilder<int>(
-                  valueListenable: activeModalCount,
-                  builder: (context, count, _) {
-                    if (count > 0 || keyboardOpen) {
-                      return const SizedBox.shrink();
-                    }
-                    return const DraggableOverlayBubble();
-                  },
-                ),
-              ],
-            ),
+              );
+            },
           );
         },
         branches: [
