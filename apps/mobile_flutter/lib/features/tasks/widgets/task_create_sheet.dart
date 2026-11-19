@@ -48,11 +48,8 @@ class _TaskCreateSheetState extends ConsumerState<TaskCreateSheet> {
   }
 
   void _openLabelManager() {
-    showModalBottomSheet(
+    AppSheet.show(
       context: context,
-      useRootNavigator: true,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
       builder: (_) => LabelManagerSheet(
         onLabelsChanged: (labels) {
           setState(() {

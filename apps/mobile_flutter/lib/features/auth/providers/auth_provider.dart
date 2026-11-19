@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/network/http_client.dart';
 import '../../../core/network/api_endpoints.dart';
 import '../../../core/storage/secure_storage.dart';
+import '../../../core/native/system_overlay_service.dart';
 import '../models/auth_session.dart';
 
 class AuthState {
@@ -71,6 +72,11 @@ class AuthNotifier extends Notifier<AuthState> {
           user: user,
         );
 
+        SystemOverlayService.syncAuthCredentials(
+          token: token,
+          baseUrl: 'https://doit.samyukt.pro/api/v1',
+        );
+
         // Background profile refresh from /auth/me
         _refreshUserProfile();
         return;
@@ -112,6 +118,12 @@ class AuthNotifier extends Notifier<AuthState> {
         accessToken: session.accessToken,
         user: session.user,
         isLoading: false,
+      );
+
+      SystemOverlayService.syncAuthCredentials(
+        token: session.accessToken,
+        refreshToken: session.refreshToken,
+        baseUrl: 'https://doit.samyukt.pro/api/v1',
       );
       return true;
     } catch (e) {

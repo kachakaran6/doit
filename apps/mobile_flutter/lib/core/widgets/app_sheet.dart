@@ -2,7 +2,10 @@ import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
 import '../theme/app_radius.dart';
 import '../theme/app_spacing.dart';
+import '../router/app_router.dart';
 import 'app_text.dart';
+
+final ValueNotifier<int> activeModalCount = ValueNotifier<int>(0);
 
 class AppSheet extends StatelessWidget {
   final String? title;
@@ -22,16 +25,22 @@ class AppSheet extends StatelessWidget {
     bool isDismissible = true,
     bool enableDrag = true,
     bool useRootNavigator = true,
-  }) {
-    return showModalBottomSheet<T>(
-      context: context,
-      useRootNavigator: useRootNavigator,
-      isScrollControlled: true,
-      isDismissible: isDismissible,
-      enableDrag: enableDrag,
-      backgroundColor: Colors.transparent,
-      builder: builder,
-    );
+  }) async {
+    activeModalCount.value++;
+    try {
+      final targetContext = rootNavigatorKey.currentContext ?? context;
+      return await showModalBottomSheet<T>(
+        context: targetContext,
+        useRootNavigator: true,
+        isScrollControlled: true,
+        isDismissible: isDismissible,
+        enableDrag: enableDrag,
+        backgroundColor: Colors.transparent,
+        builder: builder,
+      );
+    } finally {
+      activeModalCount.value = (activeModalCount.value - 1).clamp(0, 999);
+    }
   }
 
   @override

@@ -25,13 +25,13 @@ import '../widgets/floating_nav_bar.dart';
 import '../widgets/draggable_overlay_bubble.dart';
 import '../widgets/app_sheet.dart';
 
-final GlobalKey<NavigatorState> _rootNavigatorKey = GlobalKey<NavigatorState>();
+final GlobalKey<NavigatorState> rootNavigatorKey = GlobalKey<NavigatorState>();
 
 final routerProvider = Provider<GoRouter>((ref) {
   final authState = ref.watch(authProvider);
 
   return GoRouter(
-    navigatorKey: _rootNavigatorKey,
+    navigatorKey: rootNavigatorKey,
     initialLocation: authState.isAuthenticated ? '/home' : '/auth',
     redirect: (context, state) {
       if (!authState.isInitialized) return null;
@@ -52,38 +52,57 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
       // Stateful Nested Bottom Navigation Shell
       StatefulShellRoute.indexedStack(
+        parentNavigatorKey: rootNavigatorKey,
         builder: (context, state, navigationShell) {
+          final keyboardOpen = MediaQuery.of(context).viewInsets.bottom > 0;
           return Scaffold(
+            resizeToAvoidBottomInset: false,
             body: Stack(
               children: [
                 navigationShell,
-                Positioned(
-                  left: 0,
-                  right: 0,
-                  bottom: 0,
-                  child: FloatingNavBar(
-                    currentIndex: navigationShell.currentIndex,
-                    onTabSelected: (index) {
-                      navigationShell.goBranch(
-                        index,
-                        initialLocation: index == navigationShell.currentIndex,
-                      );
-                    },
-                    onQuickCapturePressed: () {
-                      AppSheet.show(
-                        context: context,
-                        builder: (_) => const QuickCaptureSheet(initialMode: 'task'),
-                      );
-                    },
-                    onQuickModeSelected: (mode) {
-                      AppSheet.show(
-                        context: context,
-                        builder: (_) => QuickCaptureSheet(initialMode: mode),
-                      );
-                    },
-                  ),
+                ValueListenableBuilder<int>(
+                  valueListenable: activeModalCount,
+                  builder: (context, count, _) {
+                    if (count > 0 || keyboardOpen) {
+                      return const SizedBox.shrink();
+                    }
+                    return Positioned(
+                      left: 0,
+                      right: 0,
+                      bottom: 0,
+                      child: FloatingNavBar(
+                        currentIndex: navigationShell.currentIndex,
+                        onTabSelected: (index) {
+                          navigationShell.goBranch(
+                            index,
+                            initialLocation: index == navigationShell.currentIndex,
+                          );
+                        },
+                        onQuickCapturePressed: () {
+                          AppSheet.show(
+                            context: context,
+                            builder: (_) => const QuickCaptureSheet(initialMode: 'task'),
+                          );
+                        },
+                        onQuickModeSelected: (mode) {
+                          AppSheet.show(
+                            context: context,
+                            builder: (_) => QuickCaptureSheet(initialMode: mode),
+                          );
+                        },
+                      ),
+                    );
+                  },
                 ),
-                const DraggableOverlayBubble(),
+                ValueListenableBuilder<int>(
+                  valueListenable: activeModalCount,
+                  builder: (context, count, _) {
+                    if (count > 0 || keyboardOpen) {
+                      return const SizedBox.shrink();
+                    }
+                    return const DraggableOverlayBubble();
+                  },
+                ),
               ],
             ),
           );
@@ -127,7 +146,7 @@ final routerProvider = Provider<GoRouter>((ref) {
       // Detail & Modal Screens
       GoRoute(
         path: '/task/:id',
-        parentNavigatorKey: _rootNavigatorKey,
+        parentNavigatorKey: rootNavigatorKey,
         builder: (context, state) {
           final id = state.pathParameters['id'] ?? '';
           return TaskDetailScreen(taskId: id);
@@ -135,7 +154,7 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: '/bug/:id',
-        parentNavigatorKey: _rootNavigatorKey,
+        parentNavigatorKey: rootNavigatorKey,
         builder: (context, state) {
           final id = state.pathParameters['id'] ?? '';
           return BugDetailScreen(bugId: id);
@@ -143,57 +162,57 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: '/stickies',
-        parentNavigatorKey: _rootNavigatorKey,
+        parentNavigatorKey: rootNavigatorKey,
         builder: (context, state) => const StickyBoardScreen(),
       ),
       GoRoute(
         path: '/notifications',
-        parentNavigatorKey: _rootNavigatorKey,
+        parentNavigatorKey: rootNavigatorKey,
         builder: (context, state) => const NotificationsScreen(),
       ),
       GoRoute(
         path: '/pending-sync',
-        parentNavigatorKey: _rootNavigatorKey,
+        parentNavigatorKey: rootNavigatorKey,
         builder: (context, state) => const PendingSyncScreen(),
       ),
       GoRoute(
         path: '/trash',
-        parentNavigatorKey: _rootNavigatorKey,
+        parentNavigatorKey: rootNavigatorKey,
         builder: (context, state) => const TrashScreen(),
       ),
       GoRoute(
         path: '/team-members',
-        parentNavigatorKey: _rootNavigatorKey,
+        parentNavigatorKey: rootNavigatorKey,
         builder: (context, state) => const TeamMembersScreen(),
       ),
       GoRoute(
         path: '/settings',
-        parentNavigatorKey: _rootNavigatorKey,
+        parentNavigatorKey: rootNavigatorKey,
         builder: (context, state) => const SettingsScreen(),
       ),
       GoRoute(
         path: '/ai-provider',
-        parentNavigatorKey: _rootNavigatorKey,
+        parentNavigatorKey: rootNavigatorKey,
         builder: (context, state) => const AiProviderScreen(),
       ),
       GoRoute(
         path: '/quick-capture-prefs',
-        parentNavigatorKey: _rootNavigatorKey,
+        parentNavigatorKey: rootNavigatorKey,
         builder: (context, state) => const QuickCapturePrefsScreen(),
       ),
       GoRoute(
         path: '/foundation-gallery',
-        parentNavigatorKey: _rootNavigatorKey,
+        parentNavigatorKey: rootNavigatorKey,
         builder: (context, state) => const FoundationGalleryScreen(),
       ),
       GoRoute(
         path: '/our-apps',
-        parentNavigatorKey: _rootNavigatorKey,
+        parentNavigatorKey: rootNavigatorKey,
         builder: (context, state) => const OurAppsScreen(),
       ),
       GoRoute(
         path: '/project-context',
-        parentNavigatorKey: _rootNavigatorKey,
+        parentNavigatorKey: rootNavigatorKey,
         builder: (context, state) => const ProjectContextScreen(),
       ),
     ],

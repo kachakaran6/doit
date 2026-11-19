@@ -12,6 +12,7 @@ import '../../../core/widgets/app_text.dart';
 import '../../../core/widgets/app_card.dart';
 import '../../../core/widgets/app_button.dart';
 import '../../../core/widgets/app_avatar.dart';
+import '../../../core/widgets/app_sheet.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../widgets/shake_test_modal.dart';
 import '../widgets/quick_capture_guide_sheet.dart';
@@ -442,11 +443,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   title: 'Hardware & Capture Guide',
                   subtitle: 'Troubleshooting floating bubble & gestures',
                   onTap: () {
-                    showModalBottomSheet(
+                    AppSheet.show(
                       context: context,
-                      useRootNavigator: true,
-                      isScrollControlled: true,
-                      backgroundColor: Colors.transparent,
                       builder: (_) => const QuickCaptureGuideSheet(),
                     );
                   },
@@ -588,7 +586,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   onTap: () {
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(
-                        content: Text('DoIt is up to date (Version 2.0.1 Build 61).'),
+                        content: Text('DoIt is up to date (Version 2.0.2 Build 62).'),
                         duration: Duration(seconds: 2),
                       ),
                     );
@@ -643,7 +641,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       AppText('DoIt Mobile', variant: TextVariant.bodyLarge, fontWeight: FontWeight.w700),
-                      AppText('Version 2.0.1 (Build 61)', variant: TextVariant.caption, colorType: TextColorType.secondary),
+                      AppText('Version 2.0.2 (Build 62)', variant: TextVariant.caption, colorType: TextColorType.secondary),
                     ],
                   ),
                   Container(

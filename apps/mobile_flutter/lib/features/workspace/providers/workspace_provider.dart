@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/network/http_client.dart';
 import '../../../core/network/api_endpoints.dart';
 import '../../../core/storage/local_storage.dart';
+import '../../../core/native/system_overlay_service.dart';
 import '../models/workspace.dart';
 
 class WorkspaceState {
@@ -109,6 +110,12 @@ class WorkspaceNotifier extends Notifier<WorkspaceState> {
       activeWorkspace: ws,
       activeProject: proj,
     );
+
+    SystemOverlayService.syncAuthCredentials(
+      token: apiClient.authToken,
+      workspaceId: ws.id,
+      projectId: proj?.id,
+    );
   }
 
   Future<void> setActiveProject(ProjectItem? proj) async {
@@ -119,6 +126,12 @@ class WorkspaceNotifier extends Notifier<WorkspaceState> {
       await _localStorage.saveActiveProjectId(proj.id);
       state = state.copyWith(activeProject: proj);
     }
+
+    SystemOverlayService.syncAuthCredentials(
+      token: apiClient.authToken,
+      workspaceId: state.activeWorkspace?.id,
+      projectId: proj?.id,
+    );
   }
 }
 

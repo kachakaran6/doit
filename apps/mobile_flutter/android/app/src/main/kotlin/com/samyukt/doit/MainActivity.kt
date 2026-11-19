@@ -1,5 +1,12 @@
 package com.samyukt.doit
 
 import io.flutter.embedding.android.FlutterActivity
+import io.flutter.embedding.engine.FlutterEngine
+import com.samyukt.doit.overlay.FlutterOverlayBridge
 
-class MainActivity : FlutterActivity()
+class MainActivity : FlutterActivity() {
+    override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
+        super.configureFlutterEngine(flutterEngine)
+        FlutterOverlayBridge.registerWith(flutterEngine, applicationContext)
+    }
+}

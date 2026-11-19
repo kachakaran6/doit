@@ -5,6 +5,7 @@ import '../theme/app_theme.dart';
 import '../theme/app_radius.dart';
 import '../theme/app_spacing.dart';
 import 'app_text.dart';
+import 'app_sheet.dart';
 
 class NavTabItem {
   final String label;
@@ -38,10 +39,8 @@ class FloatingNavBar extends StatelessWidget {
     HapticFeedback.mediumImpact();
     final tokens = context.tokens;
 
-    showModalBottomSheet(
+    AppSheet.show(
       context: context,
-      useRootNavigator: true,
-      backgroundColor: Colors.transparent,
       builder: (ctx) => Container(
         margin: const EdgeInsets.all(AppSpacing.lg),
         padding: const EdgeInsets.all(AppSpacing.lg),

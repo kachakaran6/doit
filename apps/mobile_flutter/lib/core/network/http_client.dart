@@ -61,6 +61,7 @@ class HttpClient {
   }
 
   String? getAuthToken() => _authToken;
+  String? get authToken => _authToken;
 
   void setWorkspaceId(String? workspaceId) {
     _workspaceId = workspaceId;

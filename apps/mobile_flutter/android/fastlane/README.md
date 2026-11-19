@@ -21,7 +21,7 @@ For _fastlane_ installation instructions, see [Installing _fastlane_](https://do
 [bundle exec] fastlane android internal
 ```
 
-Upload Flutter release bundle to Google Play Internal testing track
+Autoincrement version & build, compile release AAB, and upload to Google Play Internal testing track
 
 ### android closed
 
@@ -29,7 +29,23 @@ Upload Flutter release bundle to Google Play Internal testing track
 [bundle exec] fastlane android closed
 ```
 
-Upload Flutter release bundle to Google Play Closed testing track
+Autoincrement version & build, compile release AAB, and upload to Google Play Closed testing (alpha) track
+
+### android deploy_both
+
+```sh
+[bundle exec] fastlane android deploy_both
+```
+
+Autoincrement version & build, compile AAB, and deploy to BOTH Google Play Internal and Closed tracks
+
+### android promote_to_closed
+
+```sh
+[bundle exec] fastlane android promote_to_closed
+```
+
+Promote latest release from Internal track to Closed Testing (alpha) track without rebuilding
 
 ### android production
 
