@@ -1,0 +1,93 @@
+# Fastlane configuration for DoIt Flutter Mobile (Android)
+default_platform(:android)
+
+platform :android do
+
+  def resolve_play_store_key
+    candidates = [
+      ENV["PLAY_STORE_JSON_KEY"],
+      File.expand_path("api-key.json", __dir__),
+      File.expand_path("../api-key.json", __dir__),
+      File.expand_path("../../../api-key.json", __dir__),
+      File.expand_path("../../../../api-key.json", __dir__)
+    ].compact
+
+    candidates.find { |path| File.exist?(path) && !File.zero?(path) }
+  end
+
+  def get_release_aab
+    aab_path = File.expand_path("../../build/app/outputs/bundle/release/app-release.aab", __dir__)
+    unless File.exist?(aab_path)
+      UI.message("🔨 AAB not found. Running Flutter release bundle build...")
+      sh("cd ../.. && flutter build appbundle --release")
+    end
+    UI.user_error!("Failed to locate app-release.aab at #{aab_path}") unless File.exist?(aab_path)
+    aab_path
+  end
+
+  desc "Upload Flutter release bundle to Google Play Internal testing track"
+  lane :internal do |options|
+    key = resolve_play_store_key
+    UI.user_error!("Google Play service account key (api-key.json) not found!") if key.nil?
+    aab = get_release_aab
+
+    UI.message("🚀 Deploying release bundle to Google Play [internal] track...")
+    upload_to_play_store(
+      track: "internal",
+      aab: aab,
+      json_key: key,
+      package_name: "com.samyukt.doit",
+      release_status: options[:release_status] || "completed",
+      skip_upload_apk: true,
+      skip_upload_metadata: true,
+      skip_upload_images: true,
+      skip_upload_screenshots: true
+    )
+    UI.success("✨ Successfully deployed to Google Play Internal Testing track!")
+  end
+
+  desc "Upload Flutter release bundle to Google Play Closed testing track"
+  lane :closed do |options|
+    key = resolve_play_store_key
+    UI.user_error!("Google Play service account key (api-key.json) not found!") if key.nil?
+    aab = get_release_aab
+
+    UI.message("🚀 Deploying release bundle to Google Play [alpha/closed] track...")
+    upload_to_play_store(
+      track: "internal",
+      track_promote_to: "alpha",
+      version_code: 61,
+      json_key: key,
+      package_name: "com.samyukt.doit",
+      release_status: options[:release_status] || "completed",
+      skip_upload_apk: true,
+      skip_upload_aab: true,
+      skip_upload_metadata: true,
+      skip_upload_images: true,
+      skip_upload_screenshots: true
+    )
+    UI.success("✨ Successfully deployed to Google Play Closed Testing track!")
+  end
+
+  desc "Upload Flutter release bundle to Google Play Production track"
+  lane :production do |options|
+    key = resolve_play_store_key
+    UI.user_error!("Google Play service account key (api-key.json) not found!") if key.nil?
+    aab = get_release_aab
+
+    UI.message("🚀 Deploying release bundle to Google Play [production] track...")
+    upload_to_play_store(
+      track: "production",
+      aab: aab,
+      json_key: key,
+      package_name: "com.samyukt.doit",
+      release_status: options[:release_status] || "completed",
+      skip_upload_apk: true,
+      skip_upload_metadata: true,
+      skip_upload_images: true,
+      skip_upload_screenshots: true
+    )
+    UI.success("✨ Successfully deployed to Google Play Production track!")
+  end
+
+end

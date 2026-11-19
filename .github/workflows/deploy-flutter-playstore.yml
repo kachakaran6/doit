@@ -1,0 +1,92 @@
+name: Deploy Flutter Mobile to Google Play
+
+on:
+  workflow_dispatch:
+    inputs:
+      track:
+        description: 'Google Play Track to deploy to'
+        required: true
+        default: 'internal'
+        type: choice
+        options:
+          - internal
+          - closed
+          - production
+      release_status:
+        description: 'Release rollout status'
+        required: true
+        default: 'completed'
+        type: choice
+        options:
+          - completed
+          - draft
+          - inProgress
+
+jobs:
+  deploy:
+    name: Build & Deploy to Google Play
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.44.8'
+          channel: 'stable'
+          cache: true
+
+      - name: Set up Ruby & Fastlane
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.3'
+          bundler-cache: false
+
+      - name: Install Fastlane
+        run: gem install fastlane --no-document
+
+      - name: Install Flutter Dependencies
+        run: |
+          cd apps/mobile_flutter
+          flutter pub get
+
+      - name: Run Static Analysis & Tests
+        run: |
+          cd apps/mobile_flutter
+          flutter analyze
+          flutter test
+
+      - name: Configure Keystore & Service Account
+        env:
+          PLAY_STORE_JSON_KEY_BASE64: ${{ secrets.PLAY_STORE_JSON_KEY_BASE64 }}
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          KEY_PROPERTIES: ${{ secrets.ANDROID_KEY_PROPERTIES }}
+        run: |
+          # If secrets provided, decode them; otherwise use committed key files
+          if [ -n "$PLAY_STORE_JSON_KEY_BASE64" ]; then
+            echo "$PLAY_STORE_JSON_KEY_BASE64" | base64 --decode > apps/mobile_flutter/android/fastlane/api-key.json
+          fi
+          if [ -n "$ANDROID_KEYSTORE_BASE64" ]; then
+            echo "$ANDROID_KEYSTORE_BASE64" | base64 --decode > apps/mobile_flutter/android/app/doit-release-key.jks
+          fi
+          if [ -n "$KEY_PROPERTIES" ]; then
+            echo "$KEY_PROPERTIES" > apps/mobile_flutter/android/key.properties
+          fi
+
+      - name: Build Signed Android App Bundle (AAB)
+        run: |
+          cd apps/mobile_flutter
+          flutter build appbundle --release
+
+      - name: Deploy via Fastlane
+        run: |
+          cd apps/mobile_flutter/android
+          fastlane ${{ github.event.inputs.track || 'internal' }} release_status:${{ github.event.inputs.release_status || 'completed' }}
